@@ -18,7 +18,7 @@ from PyQt6.QtCore import Qt
 from ui.login_window import LoginWindow
 from ui.main_window import MainWindow
 from services.auth_service import AuthService
-from utils.config import Config
+from utils.firebase_config import FirebaseConfig
 
 
 class SionyxApp:
@@ -38,8 +38,8 @@ class SionyxApp:
             Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
         )
 
-        # Initialize services
-        self.config = Config()
+        # Initialize services1
+        self.config = FirebaseConfig()
         self.auth_service = AuthService(self.config)
 
         # Show appropriate window based on login state
