@@ -1,16 +1,18 @@
 """
-Registration Window - Full Screen Kiosk Mode
+Registration Window - Inherits from BaseKioskWindow
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                              QLineEdit, QPushButton, QFrame, QMessageBox,
-                              QScrollArea, QApplication)
+from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
+                              QLineEdit, QPushButton, QFrame,
+                              QApplication, QGraphicsDropShadowEffect, QWidget)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QKeySequence, QShortcut
+from PyQt6.QtGui import QFont, QColor
+
+from ui.base_window import BaseKioskWindow
 
 
-class RegisterWindow(QWidget):
-    """Registration window with modern design and kiosk mode"""
+class RegisterWindow(BaseKioskWindow):
+    """Registration window - inherits kiosk functionality"""
 
     registration_success = pyqtSignal()
     back_to_login = pyqtSignal()
@@ -19,138 +21,142 @@ class RegisterWindow(QWidget):
         super().__init__()
         self.auth_service = auth_service
         self.init_ui()
-        self.setup_kiosk_mode()
 
     def init_ui(self):
-        """Initialize the user interface"""
+        """Initialize UI"""
         self.setWindowTitle("Sionyx - Create Account")
 
-        # Set window flags for kiosk mode
-        self.setWindowFlags(
-            Qt.WindowType.Window |
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint
-        )
-
-        # Make fullscreen
-        screen = QApplication.primaryScreen().geometry()
-        self.setGeometry(screen)
-        self.showFullScreen()
-
-        # Main layout
-        main_layout = QVBoxLayout()
-        main_layout.setContentsMargins(0, 0, 0, 0)
+        # Use base class method
+        main_layout = self.create_main_layout()
 
         # Center container
         center_widget = QWidget()
         center_layout = QVBoxLayout(center_widget)
         center_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        center_layout.setSpacing(25)
+        center_layout.setSpacing(30)
 
         # Title
         title_label = QLabel("Create Account")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setFont(QFont("Arial", 36, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: #2196F3;")
+        title_label.setFont(QFont("Segoe UI", 40, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: #1976D2;")
 
-        subtitle_label = QLabel("Join Sionyx today")
+        subtitle_label = QLabel("Join SIONYX Today")
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle_label.setFont(QFont("Arial", 13))
-        subtitle_label.setStyleSheet("color: #666; margin-bottom: 30px;")
+        subtitle_label.setFont(QFont("Segoe UI", 14))
+        subtitle_label.setStyleSheet("color: #546E7A;")
 
-        # Registration Card - Fixed width
-        card_frame = QFrame()
-        card_frame.setObjectName("registerCard")
-        card_frame.setFixedWidth(500)
-        card_layout = QVBoxLayout(card_frame)
-        card_layout.setSpacing(15)
-        card_layout.setContentsMargins(40, 35, 40, 35)
+        # Card
+        self.card_frame = QFrame()
+        self.card_frame.setObjectName("registerCard")
+        self.card_frame.setFixedSize(540, 720)
+
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(40)
+        shadow.setXOffset(0)
+        shadow.setYOffset(10)
+        shadow.setColor(QColor(0, 0, 0, 60))
+        self.card_frame.setGraphicsEffect(shadow)
+
+        card_layout = QVBoxLayout(self.card_frame)
+        card_layout.setSpacing(16)
+        card_layout.setContentsMargins(50, 40, 50, 40)
 
         # First Name
         first_name_label = QLabel("First Name *")
-        first_name_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        first_name_label.setStyleSheet("color: #555;")
+        first_name_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        first_name_label.setStyleSheet("color: #424242;")
 
         self.first_name_input = QLineEdit()
+        self.first_name_input.setObjectName("inputField")
         self.first_name_input.setPlaceholderText("Enter your first name")
-        self.first_name_input.setFont(QFont("Arial", 12))
-        self.first_name_input.setFixedHeight(48)
+        self.first_name_input.setFont(QFont("Segoe UI", 13))
+        self.first_name_input.setFixedHeight(52)
 
         # Last Name
         last_name_label = QLabel("Last Name *")
-        last_name_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        last_name_label.setStyleSheet("color: #555;")
+        last_name_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        last_name_label.setStyleSheet("color: #424242;")
 
         self.last_name_input = QLineEdit()
+        self.last_name_input.setObjectName("inputField")
         self.last_name_input.setPlaceholderText("Enter your last name")
-        self.last_name_input.setFont(QFont("Arial", 12))
-        self.last_name_input.setFixedHeight(48)
+        self.last_name_input.setFont(QFont("Segoe UI", 13))
+        self.last_name_input.setFixedHeight(52)
 
-        # Phone Number
+        # Phone
         phone_label = QLabel("Phone Number *")
-        phone_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        phone_label.setStyleSheet("color: #555;")
+        phone_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        phone_label.setStyleSheet("color: #424242;")
 
         self.phone_input = QLineEdit()
+        self.phone_input.setObjectName("inputField")
         self.phone_input.setPlaceholderText("+1 234 567 8900")
-        self.phone_input.setFont(QFont("Arial", 12))
-        self.phone_input.setFixedHeight(48)
+        self.phone_input.setFont(QFont("Segoe UI", 13))
+        self.phone_input.setFixedHeight(52)
 
-        # Email (Optional)
+        # Email
         email_label = QLabel("Email (Optional)")
-        email_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        email_label.setStyleSheet("color: #555;")
+        email_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        email_label.setStyleSheet("color: #424242;")
 
         self.email_input = QLineEdit()
+        self.email_input.setObjectName("inputField")
         self.email_input.setPlaceholderText("your.email@example.com")
-        self.email_input.setFont(QFont("Arial", 12))
-        self.email_input.setFixedHeight(48)
+        self.email_input.setFont(QFont("Segoe UI", 13))
+        self.email_input.setFixedHeight(52)
 
         # Password
         password_label = QLabel("Password *")
-        password_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        password_label.setStyleSheet("color: #555;")
+        password_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        password_label.setStyleSheet("color: #424242;")
 
         self.password_input = QLineEdit()
+        self.password_input.setObjectName("inputField")
         self.password_input.setPlaceholderText("Minimum 6 characters")
         self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.password_input.setFont(QFont("Arial", 12))
-        self.password_input.setFixedHeight(48)
+        self.password_input.setFont(QFont("Segoe UI", 13))
+        self.password_input.setFixedHeight(52)
 
         # Confirm Password
         confirm_label = QLabel("Confirm Password *")
-        confirm_label.setFont(QFont("Arial", 10, QFont.Weight.Bold))
-        confirm_label.setStyleSheet("color: #555;")
+        confirm_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        confirm_label.setStyleSheet("color: #424242;")
 
         self.confirm_password_input = QLineEdit()
+        self.confirm_password_input.setObjectName("inputField")
         self.confirm_password_input.setPlaceholderText("Re-enter your password")
         self.confirm_password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.confirm_password_input.setFont(QFont("Arial", 12))
-        self.confirm_password_input.setFixedHeight(48)
+        self.confirm_password_input.setFont(QFont("Segoe UI", 13))
+        self.confirm_password_input.setFixedHeight(52)
 
         # Register button
         self.register_button = QPushButton("Create Account")
-        self.register_button.setFont(QFont("Arial", 12, QFont.Weight.Bold))
-        self.register_button.setFixedHeight(52)
+        self.register_button.setObjectName("primaryButton")
+        self.register_button.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        self.register_button.setFixedHeight(56)
         self.register_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.register_button.clicked.connect(self.handle_register)
 
-        # Back to login link
-        login_layout = QHBoxLayout()
-        login_label = QLabel("Already have an account?")
-        login_label.setFont(QFont("Arial", 10))
-        login_label.setStyleSheet("color: #666;")
+        # Back to login
+        login_container = QWidget()
+        login_layout = QHBoxLayout(login_container)
+        login_layout.setSpacing(8)
 
-        self.login_link = QLabel("<a href='#' style='color: #2196F3; text-decoration: none; font-weight: bold;'>Sign In</a>")
-        self.login_link.setFont(QFont("Arial", 10))
+        login_text = QLabel("Already have an account?")
+        login_text.setFont(QFont("Segoe UI", 11))
+        login_text.setStyleSheet("color: #616161;")
+
+        self.login_link = QLabel("<a href='#' style='color: #1976D2; text-decoration: none; font-weight: 600;'>Sign In</a>")
+        self.login_link.setFont(QFont("Segoe UI", 11))
         self.login_link.linkActivated.connect(self.go_back_to_login)
 
         login_layout.addStretch()
-        login_layout.addWidget(login_label)
+        login_layout.addWidget(login_text)
         login_layout.addWidget(self.login_link)
         login_layout.addStretch()
 
-        # Add widgets to card
+        # Add to card
         card_layout.addWidget(first_name_label)
         card_layout.addWidget(self.first_name_input)
         card_layout.addWidget(last_name_label)
@@ -163,116 +169,24 @@ class RegisterWindow(QWidget):
         card_layout.addWidget(self.password_input)
         card_layout.addWidget(confirm_label)
         card_layout.addWidget(self.confirm_password_input)
-        card_layout.addSpacing(10)
+        card_layout.addSpacing(12)
         card_layout.addWidget(self.register_button)
-        card_layout.addSpacing(15)
-        card_layout.addLayout(login_layout)
+        card_layout.addSpacing(10)
+        card_layout.addWidget(login_container)
 
-        # Add to center layout
+        # Add to center
         center_layout.addWidget(title_label)
         center_layout.addWidget(subtitle_label)
-        center_layout.addWidget(card_frame, alignment=Qt.AlignmentFlag.AlignCenter)
+        center_layout.addWidget(self.card_frame, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        # Add center to main
         main_layout.addWidget(center_widget)
-
         self.setLayout(main_layout)
 
-        # Apply stylesheet
-        self.apply_styles()
+        # Apply base stylesheet
+        self.setStyleSheet(self.apply_base_stylesheet())
 
-        # Enable Enter key
         self.confirm_password_input.returnPressed.connect(self.handle_register)
-
-        # Focus on first input
         QTimer.singleShot(100, lambda: self.first_name_input.setFocus())
-
-    def setup_kiosk_mode(self):
-        """Setup kiosk mode restrictions"""
-        self.setWindowModality(Qt.WindowModality.ApplicationModal)
-
-        # Admin exit shortcut
-        self.exit_shortcut = QShortcut(QKeySequence("Ctrl+Alt+Q"), self)
-        self.exit_shortcut.activated.connect(self.admin_exit)
-
-        self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
-
-    def admin_exit(self):
-        """Admin exit with password"""
-        from PyQt6.QtWidgets import QInputDialog
-
-        password, ok = QInputDialog.getText(
-            self,
-            "Admin Access",
-            "Enter admin password to exit:",
-            QLineEdit.EchoMode.Password
-        )
-
-        if ok and password == "admin123":
-            QApplication.quit()
-        elif ok:
-            QMessageBox.warning(self, "Access Denied", "Incorrect admin password")
-
-    def apply_styles(self):
-        """Apply modern stylesheet"""
-        self.setStyleSheet("""
-            QWidget {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #f5f7fa, stop:1 #c3cfe2
-                );
-            }
-            
-            #registerCard {
-                background-color: white;
-                border-radius: 20px;
-                border: 1px solid #e0e0e0;
-            }
-            
-            QLineEdit {
-                padding: 12px 14px;
-                border: 2px solid #e0e0e0;
-                border-radius: 10px;
-                background-color: #fafafa;
-                color: #333;
-            }
-            
-            QLineEdit:focus {
-                border: 2px solid #2196F3;
-                background-color: white;
-            }
-            
-            QPushButton {
-                background-color: #2196F3;
-                color: white;
-                border: none;
-                border-radius: 10px;
-                font-weight: bold;
-            }
-            
-            QPushButton:hover {
-                background-color: #1976D2;
-            }
-            
-            QPushButton:pressed {
-                background-color: #0D47A1;
-            }
-            
-            QPushButton:disabled {
-                background-color: #BDBDBD;
-            }
-        """)
-
-    def keyPressEvent(self, event):
-        """Prevent Escape key"""
-        if event.key() == Qt.Key.Key_Escape:
-            event.ignore()
-        else:
-            super().keyPressEvent(event)
-
-    def closeEvent(self, event):
-        """Prevent closing"""
-        event.ignore()
 
     def handle_register(self):
         """Handle registration"""
@@ -284,37 +198,45 @@ class RegisterWindow(QWidget):
         confirm_password = self.confirm_password_input.text()
 
         if not first_name:
-            self.show_error("Please enter your first name")
+            self.show_error("Validation Error", "Please enter your first name")
             self.first_name_input.setFocus()
+            self.shake_widget(self.first_name_input)
             return
 
         if not last_name:
-            self.show_error("Please enter your last name")
+            self.show_error("Validation Error", "Please enter your last name")
             self.last_name_input.setFocus()
+            self.shake_widget(self.last_name_input)
             return
 
         if not phone:
-            self.show_error("Please enter your phone number")
+            self.show_error("Validation Error", "Please enter your phone number")
             self.phone_input.setFocus()
+            self.shake_widget(self.phone_input)
             return
 
         if not password:
-            self.show_error("Please enter a password")
+            self.show_error("Validation Error", "Please enter a password")
             self.password_input.setFocus()
-            return
-
-        if password != confirm_password:
-            self.show_error("Passwords do not match")
-            self.confirm_password_input.clear()
-            self.confirm_password_input.setFocus()
+            self.shake_widget(self.password_input)
             return
 
         if len(password) < 6:
-            self.show_error("Password must be at least 6 characters")
+            self.show_error("Validation Error", "Password must be at least 6 characters")
+            self.password_input.setFocus()
+            self.shake_widget(self.password_input)
+            return
+
+        if password != confirm_password:
+            self.show_error("Validation Error", "Passwords do not match")
+            self.confirm_password_input.clear()
+            self.confirm_password_input.setFocus()
+            self.shake_widget(self.confirm_password_input)
             return
 
         self.register_button.setEnabled(False)
         self.register_button.setText("Creating Account...")
+        QApplication.processEvents()
 
         result = self.auth_service.register(
             phone=phone,
@@ -328,28 +250,13 @@ class RegisterWindow(QWidget):
         self.register_button.setText("Create Account")
 
         if result['success']:
-            self.show_success("Account created successfully!")
+            self.show_success("Registration Successful", "Welcome to Sionyx!")
             self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
             self.registration_success.emit()
         else:
-            self.show_error(result.get('error', 'Registration failed'))
+            self.show_error("Registration Failed", result.get('error', 'Could not create account'))
+            self.shake_widget(self.card_frame)
 
     def go_back_to_login(self):
         """Go back to login"""
         self.back_to_login.emit()
-
-    def show_error(self, message: str):
-        """Show error message"""
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle("Registration Error")
-        msg.setText(message)
-        msg.exec()
-
-    def show_success(self, message: str):
-        """Show success message"""
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Success")
-        msg.setText(message)
-        msg.exec()
