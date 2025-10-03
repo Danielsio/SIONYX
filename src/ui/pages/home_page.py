@@ -1,0 +1,189 @@
+"""
+Home Dashboard Page
+Shows user stats and session controls
+"""
+
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                              QPushButton, QFrame, QMessageBox,
+                              QGraphicsDropShadowEffect)
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QFont, QColor
+
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+class HomePage(QWidget):
+    """Home dashboard with stats and session controls"""
+
+    def __init__(self, auth_service, parent=None):
+        super().__init__(parent)
+        self.auth_service = auth_service
+        self.current_user = auth_service.get_current_user()
+
+        self.countdown_timer = QTimer()
+        self.countdown_timer.timeout.connect(self.update_countdown)
+
+        self.init_ui()
+        self.countdown_timer.start(1000)
+
+    def init_ui(self):
+        """Initialize UI"""
+        self.setObjectName("homePage")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(45, 35, 45, 35)
+        layout.setSpacing(25)
+
+        # Header
+        header = QLabel("Dashboard")
+        header.setFont(QFont("Segoe UI", 30, QFont.Weight.Bold))
+        header.setStyleSheet("color: #111827;")
+
+        # Stats grid - ONLY 2 CARDS NOW
+        stats_container = QWidget()
+        stats_layout = QHBoxLayout(stats_container)
+        stats_layout.setSpacing(20)
+
+        # Time card
+        self.time_card = self.create_stat_card(
+            "Remaining Time",
+            "0h 0m 0s",
+            "#10B981",
+            "timeValue"
+        )
+
+        # Prints card
+        prints = str(self.current_user.get('remainingPrints', 0))
+        self.prints_card = self.create_stat_card(
+            "Prints Available",
+            prints,
+            "#3B82F6",
+            "printsValue"
+        )
+
+        stats_layout.addWidget(self.time_card)
+        stats_layout.addWidget(self.prints_card)
+        stats_layout.addStretch()  # Push cards to left
+
+        # Main action card
+        action_card = self.create_action_card()
+
+        layout.addWidget(header)
+        layout.addWidget(stats_container)
+        layout.addWidget(action_card)
+        layout.addStretch()
+
+        self.update_countdown()
+
+    def create_stat_card(self, title: str, value: str, color: str, value_name: str) -> QFrame:
+        """Create stat card"""
+        card = QFrame()
+        card.setObjectName("statCard")
+        card.setFixedSize(320, 120)
+
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)
+        shadow.setXOffset(0)
+        shadow.setYOffset(3)
+        shadow.setColor(QColor(0, 0, 0, 20))
+        card.setGraphicsEffect(shadow)
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(25, 20, 25, 20)
+        layout.setSpacing(8)
+
+        title_label = QLabel(title)
+        title_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Medium))
+        title_label.setStyleSheet("color: #6B7280;")
+
+        value_label = QLabel(value)
+        value_label.setObjectName(value_name)
+        value_label.setFont(QFont("Segoe UI", 26, QFont.Weight.Bold))
+        value_label.setStyleSheet(f"color: {color};")
+
+        layout.addWidget(title_label)
+        layout.addWidget(value_label)
+
+        return card
+
+    def create_action_card(self) -> QFrame:
+        """Create action card"""
+        card = QFrame()
+        card.setObjectName("mainActionCard")
+
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(30)
+        shadow.setXOffset(0)
+        shadow.setYOffset(6)
+        shadow.setColor(QColor(0, 0, 0, 50))
+        card.setGraphicsEffect(shadow)
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(50, 40, 50, 40)
+        layout.setSpacing(18)
+
+        welcome = QLabel(f"Welcome back, {self.current_user.get('firstName')}!")
+        welcome.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
+        welcome.setStyleSheet("color: #111827;")
+
+        instruction = QLabel("Ready to start your session? Click below to begin.")
+        instruction.setFont(QFont("Segoe UI", 14))
+        instruction.setStyleSheet("color: #6B7280;")
+
+        # Start button
+        self.start_btn = QPushButton("🚀  Start Using PC")
+        self.start_btn.setObjectName("startButton")
+        self.start_btn.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        self.start_btn.setMinimumHeight(70)
+        self.start_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.start_btn.clicked.connect(self.handle_start_session)
+
+        layout.addWidget(welcome)
+        layout.addWidget(instruction)
+        layout.addSpacing(12)
+        layout.addWidget(self.start_btn)
+
+        return card
+
+    def update_countdown(self):
+        """Update time display"""
+        remaining = self.current_user.get('remainingTime', 0)
+
+        hours = remaining // 3600
+        minutes = (remaining % 3600) // 60
+        seconds = remaining % 60
+
+        time_str = f"{hours}h {minutes}m {seconds}s"
+
+        time_value = self.time_card.findChild(QLabel, "timeValue")
+        if time_value:
+            time_value.setText(time_str)
+
+            if remaining < 300:
+                time_value.setStyleSheet("color: #EF4444;")
+            elif remaining < 1800:
+                time_value.setStyleSheet("color: #F59E0B;")
+            else:
+                time_value.setStyleSheet("color: #10B981;")
+
+    def handle_start_session(self):
+        """Start session"""
+        logger.info("Start session button clicked")
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("Start Session")
+        msg.setText("Session tracking will be implemented next!")
+        msg.setInformativeText(
+            "This will:\n"
+            "• Start counting down your time\n"
+            "• Enable PC usage\n"
+            "• Track your session in real-time"
+        )
+        msg.exec()
+
+    def cleanup(self):
+        """Cleanup"""
+        self.countdown_timer.stop()
