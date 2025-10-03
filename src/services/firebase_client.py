@@ -4,13 +4,13 @@ Firebase Client - Realtime Database + Authentication
 
 import requests
 import json
-import logging
 from typing import Dict, Optional, Any
 from datetime import datetime, timedelta
 
 from utils.firebase_config import firebase_config
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class FirebaseClient:
@@ -78,11 +78,11 @@ class FirebaseClient:
         }
 
         try:
-            print(f"DEBUG: Signing in with email: {email}")  # DEBUG
+            logger.debug(f"Signing in with email: {email}")
             response = requests.post(url, json=payload, timeout=10)
 
-            print(f"DEBUG: Response status: {response.status_code}")  # DEBUG
-            print(f"DEBUG: Response body: {response.text}")  # DEBUG
+            logger.debug(f"Response status: {response.status_code}")
+            logger.debug(f"Response body: {response.text}")
 
             response.raise_for_status()
 
@@ -99,7 +99,7 @@ class FirebaseClient:
 
         except requests.exceptions.RequestException as e:
             error_msg = self._parse_error(e)
-            print(f"DEBUG: Sign in error: {error_msg}")  # DEBUG
+            logger.debug(f"Sign in error: {error_msg}")
             logger.error(f"Sign in failed: {error_msg}")
             return {
                 'success': False,
@@ -163,20 +163,20 @@ class FirebaseClient:
     def db_get(self, path: str) -> Dict[str, Any]:
         """Get data from Realtime Database"""
         if not self.ensure_valid_token():
-            print("DEBUG: Token validation failed in db_get")  # DEBUG
+            logger.debug("Token validation failed in db_get")
             return {'success': False, 'error': 'Not authenticated'}
 
         url = f"{self.database_url}/{path}.json"
         params = {'auth': self.id_token}
 
-        print(f"DEBUG: DB GET URL: {url}")  # DEBUG
-        print(f"DEBUG: Token exists: {bool(self.id_token)}")  # DEBUG
+        logger.debug(f"DB GET URL: {url}")
+        logger.debug(f"Token exists: {bool(self.id_token)}")
 
         try:
             response = requests.get(url, params=params, timeout=10)
 
-            print(f"DEBUG: DB GET status: {response.status_code}")  # DEBUG
-            print(f"DEBUG: DB GET response: {response.text}")  # DEBUG
+            logger.debug(f"DB GET status: {response.status_code}")
+            logger.debug(f"DB GET response: {response.text}")
 
             response.raise_for_status()
 
@@ -190,7 +190,7 @@ class FirebaseClient:
 
         except requests.exceptions.RequestException as e:
             error_msg = str(e)
-            print(f"DEBUG: DB GET error: {error_msg}")  # DEBUG
+            logger.debug(f"DB GET error: {error_msg}")
             logger.error(f"DB GET failed: {error_msg}")
             return {
                 'success': False,

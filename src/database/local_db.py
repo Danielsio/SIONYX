@@ -5,14 +5,14 @@ All other data is in Firebase Realtime Database
 """
 
 import sqlite3
-import logging
 from pathlib import Path
 from typing import Optional
 from cryptography.fernet import Fernet
 import base64
 import hashlib
+from utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class LocalDatabase:
