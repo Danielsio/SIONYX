@@ -65,7 +65,7 @@ class HomePage(QWidget):
 
         stats_layout.addWidget(self.time_card)
         stats_layout.addWidget(self.prints_card)
-        stats_layout.addStretch()  # Push cards to left
+        stats_layout.addStretch()
 
         # Main action card
         action_card = self.create_action_card()
@@ -128,9 +128,10 @@ class HomePage(QWidget):
         welcome.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
         welcome.setStyleSheet("color: #111827;")
 
-        instruction = QLabel("Ready to start your session? Click below to begin.")
-        instruction.setFont(QFont("Segoe UI", 14))
-        instruction.setStyleSheet("color: #6B7280;")
+        # Instruction text (will update based on time)
+        self.instruction = QLabel("Ready to start your session? Click below to begin.")
+        self.instruction.setFont(QFont("Segoe UI", 14))
+        self.instruction.setStyleSheet("color: #6B7280;")
 
         # Start button
         self.start_btn = QPushButton("🚀  Start Using PC")
@@ -141,14 +142,14 @@ class HomePage(QWidget):
         self.start_btn.clicked.connect(self.handle_start_session)
 
         layout.addWidget(welcome)
-        layout.addWidget(instruction)
+        layout.addWidget(self.instruction)
         layout.addSpacing(12)
         layout.addWidget(self.start_btn)
 
         return card
 
     def update_countdown(self):
-        """Update time display"""
+        """Update time display and button state"""
         remaining = self.current_user.get('remainingTime', 0)
 
         hours = remaining // 3600
@@ -161,39 +162,51 @@ class HomePage(QWidget):
         if time_value:
             time_value.setText(time_str)
 
-            if remaining < 300:
+            # Color based on time
+            if remaining <= 0:
+                time_value.setStyleSheet("color: #EF4444;")
+            elif remaining < 300:
                 time_value.setStyleSheet("color: #EF4444;")
             elif remaining < 1800:
                 time_value.setStyleSheet("color: #F59E0B;")
             else:
                 time_value.setStyleSheet("color: #10B981;")
 
+        # Update button state
+        if remaining <= 0:
+            self.start_btn.setEnabled(False)
+            self.start_btn.setText("⏸  No Time Available")
+            self.instruction.setText("You have no time remaining. Purchase a package to continue.")
+            self.instruction.setStyleSheet("color: #DC2626; font-weight: 600;")
+
+            # Update button style for disabled state
+            self.start_btn.setStyleSheet("""
+                #startButton:disabled {
+                    background-color: #D1D5DB;
+                    color: #6B7280;
+                    cursor: not-allowed;
+                }
+            """)
+        else:
+            self.start_btn.setEnabled(True)
+            self.start_btn.setText("🚀  Start Using PC")
+            self.instruction.setText("Ready to start your session? Click below to begin.")
+            self.instruction.setStyleSheet("color: #6B7280;")
+
     def handle_start_session(self):
-        """Start session"""
+        """Start session immediately without confirmation"""
         logger.info("Start session button clicked")
 
         remaining = self.current_user.get('remainingTime', 0)
 
+        # Double-check (shouldn't happen if button is disabled)
         if remaining <= 0:
-            msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Icon.Warning)
-            msg.setWindowTitle("No Time Remaining")
-            msg.setText("You have no time remaining!")
-            msg.setInformativeText("Please purchase a package to continue.")
-            msg.exec()
+            logger.warning("Attempted to start session with 0 time")
             return
 
-        # Confirm start
-        reply = QMessageBox.question(
-            self,
-            "Start Session",
-            f"Start PC session?\n\nYou have {remaining // 60} minutes available.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-        )
-
-        if reply == QMessageBox.StandardButton.Yes:
-            # Notify parent (main window) to start session
-            self.parent().start_user_session(remaining)
+        # Start session immediately - no confirmation needed
+        logger.info(f"Starting session with {remaining} seconds available")
+        self.parent().parent().parent().start_user_session(remaining)
 
     def cleanup(self):
         """Cleanup"""

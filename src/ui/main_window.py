@@ -402,12 +402,22 @@ class MainWindow(BaseKioskWindow):
             self.floating_timer.close()
             self.floating_timer = None
 
-        # Restore main window
+        # Restore main window and go directly to home page
         self.showNormal()
         self.activateWindow()
 
-        # Show summary
-        self.show_session_summary(result)
+        # Refresh user data and home page directly - no summary dialog
+        if result.get('success'):
+            remaining = result.get('remaining_time', 0)
+            if hasattr(self.home_page, 'current_user'):
+                self.home_page.current_user['remainingTime'] = remaining
+            if hasattr(self.home_page, 'update_countdown'):
+                self.home_page.update_countdown()
+        
+        # Switch to home page
+        self.content_stack.setCurrentWidget(self.home_page)
+        
+        logger.info("Returned to home page without summary dialog")
 
     def on_time_updated(self, remaining_seconds: int):
         """Update floating timer display"""
@@ -477,25 +487,4 @@ class MainWindow(BaseKioskWindow):
         if self.floating_timer:
             self.floating_timer.set_offline_mode(False)
 
-    def show_session_summary(self, result: Dict):
-        """Show session summary dialog"""
-        time_used = result.get('time_used', 0)
-        hours = time_used // 3600
-        minutes = (time_used % 3600) // 60
-
-        remaining = result.get('remaining_time', 0)
-
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Session Summary")
-        msg.setText("Session Ended")
-        msg.setInformativeText(
-            f"Time used: {hours}h {minutes}m\n"
-            f"Time remaining: {remaining // 60}m"
-        )
-        msg.exec()
-
-        # Refresh home page
-        if hasattr(self.home_page, 'update_countdown'):
-            self.home_page.current_user['remainingTime'] = remaining
-            self.home_page.update_countdown()
+    # Session summary method removed - users go directly back to home page
