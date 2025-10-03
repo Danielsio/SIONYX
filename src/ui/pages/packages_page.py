@@ -5,8 +5,8 @@ Browse and purchase time/print packages
 
 from typing import Dict
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                              QPushButton, QFrame, QGridLayout, QMessageBox,
-                              QGraphicsDropShadowEffect, QScrollArea)
+                             QPushButton, QFrame, QGridLayout, QMessageBox,
+                             QGraphicsDropShadowEffect, QScrollArea, QDialog)
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor
 
@@ -118,6 +118,7 @@ class PackagesPage(QWidget):
 
         # Update spacing for much larger cards
         self.packages_layout.setSpacing(40)
+        self.packages_layout.setContentsMargins(20, 10, 20, 40)
 
         # Display in grid (adjust columns for larger 380px cards)
         row, col = 0, 0
@@ -134,9 +135,9 @@ class PackagesPage(QWidget):
 
     def create_package_card(self, package: Dict) -> QFrame:
         """Create an improved package display card with better visual hierarchy"""
-        card = QFrame()
+        card = HoverFrame()
         card.setObjectName("packageCard")
-        card.setFixedSize(380, 480)  # Much larger for better readability
+        card.setFixedSize(400, 520)  # Larger for readability and touch targets
         
         # Add modern border radius to the main card
         card.setStyleSheet("""
@@ -163,9 +164,9 @@ class PackagesPage(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Header section with accent color and proper border radius
+        # Header accent bar
         header = QFrame()
-        header.setFixedHeight(12)
+        header.setFixedHeight(10)
         header.setStyleSheet(f"""
             background-color: {package_tier['accent_color']};
             border-radius: 20px 20px 0 0;
@@ -196,19 +197,19 @@ class PackagesPage(QWidget):
 
         # Package name with better typography
         name = QLabel(package.get('name', 'Package'))
-        name.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
-        name.setStyleSheet("color: #1F2937; margin-bottom: 6px; padding: 0;")
+        name.setFont(QFont("Segoe UI", 26, QFont.Weight.Bold))
+        name.setStyleSheet("color: #111827; margin-bottom: 6px; padding: 0;")
         name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name.setWordWrap(True)
 
         # Description with better readability
         desc = QLabel(package.get('description', ''))
         desc.setFont(QFont("Segoe UI", 13))
-        desc.setStyleSheet("color: #6B7280; line-height: 1.5; padding: 0;")
+        desc.setStyleSheet("color: #6B7280; line-height: 1.6; padding: 0;")
         desc.setWordWrap(True)
         desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        desc.setMinimumHeight(50)
-        desc.setMaximumHeight(60)
+        desc.setMinimumHeight(52)
+        desc.setMaximumHeight(66)
 
         # Value proposition section with improved design
         value_container = QFrame()
@@ -224,7 +225,7 @@ class PackagesPage(QWidget):
         value_layout.setSpacing(14)
 
         # "What you get" header with better styling
-        get_label = QLabel("✨ What you get:")
+        get_label = QLabel("✨ What you get")
         get_label.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
         get_label.setStyleSheet("color: #374151; margin-bottom: 4px;")
 
@@ -277,8 +278,8 @@ class PackagesPage(QWidget):
 
             # Final price - hero element, much larger
             final_label = QLabel(f"₪{pricing['final_price']:.0f}")
-            final_label.setFont(QFont("Segoe UI", 42, QFont.Weight.Bold))
-            final_label.setStyleSheet(f"color: {package_tier['accent_color']}; padding: 4px;")
+            final_label.setFont(QFont("Segoe UI", 44, QFont.Weight.Bold))
+            final_label.setStyleSheet(f"color: {package_tier['accent_color']}; padding: 6px;")
             final_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             final_label.setMinimumHeight(55)
 
@@ -288,7 +289,7 @@ class PackagesPage(QWidget):
         else:
             # Just final price - hero element, very large and clear
             final_label = QLabel(f"₪{pricing['final_price']:.0f}")
-            final_label.setFont(QFont("Segoe UI", 46, QFont.Weight.Bold))
+            final_label.setFont(QFont("Segoe UI", 48, QFont.Weight.Bold))
             final_label.setStyleSheet("color: #1F2937; padding: 8px;")
             final_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
             final_label.setMinimumHeight(60)
@@ -298,7 +299,7 @@ class PackagesPage(QWidget):
         purchase_btn = QPushButton("GET THIS PACKAGE")
         purchase_btn.setObjectName("purchaseButton")
         purchase_btn.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        purchase_btn.setMinimumHeight(56)
+        purchase_btn.setMinimumHeight(58)
         purchase_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         purchase_btn.setStyleSheet(f"""
             QPushButton {{
@@ -312,12 +313,10 @@ class PackagesPage(QWidget):
             }}
             QPushButton:hover {{
                 background-color: {package_tier['hover_color']};
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+                box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
             }}
             QPushButton:pressed {{
                 background-color: {package_tier['pressed_color']};
-                transform: translateY(0px);
             }}
         """)
         purchase_btn.clicked.connect(lambda: self.handle_purchase(package))
@@ -403,18 +402,87 @@ class PackagesPage(QWidget):
         """Handle package purchase"""
         logger.info(f"Purchase initiated: {package.get('name')}")
 
-        pricing = self.package_service.calculate_final_price(package)
+        from ui.payment_dialog import PaymentDialog
+        from services.purchase_service import PurchaseService
+        from PyQt6.QtWidgets import QMessageBox
 
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Purchase Package")
-        msg.setText(f"Purchase {package.get('name')}?")
-        msg.setInformativeText(
-            f"Price: ₪{pricing['final_price']:.2f}\n"
-            f"You'll receive:\n"
-            f"• {package.get('minutes')} minutes\n"
-            f"• {package.get('prints')} prints\n\n"
-            f"Payment integration coming soon!"
-        )
-        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-        msg.exec()
+        # Open payment dialog
+        dialog = PaymentDialog(package, self.current_user, self)
+        result = dialog.exec()
+
+        if result == QDialog.DialogCode.Accepted:
+            # Payment successful
+            payment_response = dialog.get_payment_response()
+
+            if not payment_response:
+                QMessageBox.critical(self, "שגיאה", "לא התקבל אישור תשלום")
+                return
+
+            # Record purchase and credit account
+            purchase_service = PurchaseService(self.auth_service.firebase)
+            purchase_result = purchase_service.record_purchase(
+                self.current_user['uid'],
+                package,
+                payment_response
+            )
+
+            if purchase_result.get('success'):
+                # Update local user data
+                self.current_user['remainingTime'] = purchase_result['new_time']
+                self.current_user['remainingPrints'] = purchase_result['new_prints']
+
+                # Show success
+                QMessageBox.information(
+                    self,
+                    "רכישה הושלמה",
+                    f"הרכישה בוצעה בהצלחה!\n\n"
+                    f"נוספו לחשבונך:\n"
+                    f"• {package.get('minutes')} דקות\n"
+                    f"• {package.get('prints')} הדפסות"
+                )
+
+                # Refresh packages page
+                self.load_packages()
+            else:
+                QMessageBox.critical(
+                    self,
+                    "שגיאה",
+                    f"התשלום בוצע אך נכשל עדכון החשבון.\n{purchase_result.get('error')}"
+                )
+        else:
+            # Payment cancelled
+            logger.info("Payment cancelled by user")
+
+
+class HoverFrame(QFrame):
+    """QFrame that subtly enhances elevation on hover for modern UX"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._shadow = QGraphicsDropShadowEffect(self)
+        self._shadow.setBlurRadius(30)
+        self._shadow.setXOffset(0)
+        self._shadow.setYOffset(6)
+        self._shadow.setColor(QColor(0, 0, 0, 40))
+        self.setGraphicsEffect(self._shadow)
+
+        # Enable hover events
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
+
+    def enterEvent(self, event):
+        # Intensify elevation on hover
+        if isinstance(self.graphicsEffect(), QGraphicsDropShadowEffect):
+            eff: QGraphicsDropShadowEffect = self.graphicsEffect()
+            eff.setBlurRadius(40)
+            eff.setYOffset(10)
+            eff.setColor(QColor(0, 0, 0, 60))
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        # Restore elevation
+        if isinstance(self.graphicsEffect(), QGraphicsDropShadowEffect):
+            eff: QGraphicsDropShadowEffect = self.graphicsEffect()
+            eff.setBlurRadius(30)
+            eff.setYOffset(6)
+            eff.setColor(QColor(0, 0, 0, 40))
+        super().leaveEvent(event)

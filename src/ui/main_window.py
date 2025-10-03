@@ -335,15 +335,11 @@ class MainWindow(BaseKioskWindow):
                     stop:0 #059669, stop:1 #047857);
             }
             
-                /* Package cards */
+            /* Package cards - refined*/
             #packageCard {
                 background-color: #FFFFFF;
                 border: 1px solid #E5E7EB;
-                border-radius: 14px;
-            }
-            
-            #packageCard:hover {
-                border-color: #3B82F6;
+                border-radius: 20px;
             }
             
             /* Purchase button */
@@ -352,7 +348,8 @@ class MainWindow(BaseKioskWindow):
                     stop:0 #3B82F6, stop:1 #2563EB);
                 color: #FFFFFF;
                 border: none;
-                border-radius: 10px;
+                border-radius: 28px;
+                padding: 16px 24px;
             }
             
             #purchaseButton:hover {

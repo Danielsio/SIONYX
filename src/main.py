@@ -12,25 +12,26 @@ if __name__ == "__main__":
     if str(src_dir) not in sys.path:
         sys.path.insert(0, str(src_dir))
 
-# Initialize professional logging system
+# CRITICAL: Import and configure WebEngine BEFORE QApplication
+from PyQt6.QtCore import Qt, QCoreApplication
+QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
+
+# Now initialize logging
 from utils.logger import SionyxLogger
 import logging
 
-# Setup: DEBUG for development, INFO for production
 SionyxLogger.setup(
-    log_level=logging.DEBUG,  # Change to INFO for production
+    log_level=logging.INFO,
     log_to_file=True,
     enable_colors=True
 )
 
-# Clean up old logs (keep last 7 days)
 SionyxLogger.cleanup_old_logs(days_to_keep=7)
 
 from utils.logger import get_logger
 logger = get_logger(__name__)
 
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import Qt
 from ui.login_window import LoginWindow
 from ui.main_window import MainWindow
 from services.auth_service import AuthService
