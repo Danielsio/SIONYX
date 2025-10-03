@@ -56,9 +56,6 @@ class MainWindow(BaseKioskWindow):
         logger.info(f"Dashboard opened: {self.current_user.get('firstName')}")
         self.init_ui()
 
-        logger.info(f"Dashboard opened: {self.current_user.get('firstName')}")
-        self.init_ui()
-
     def init_ui(self):
         """Initialize UI"""
         self.setWindowTitle("Sionyx - Dashboard")
