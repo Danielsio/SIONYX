@@ -1,10 +1,11 @@
 """
 Main Window - Modern Web-Style Navigation
 """
+from typing import Dict
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QFrame, QStackedWidget, QMessageBox)
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont
 
 from ui.base_window import BaseKioskWindow
@@ -13,6 +14,8 @@ from ui.pages.packages_page import PackagesPage
 from ui.pages.history_page import HistoryPage
 from ui.pages.help_page import HelpPage
 from utils.logger import get_logger
+from ui.floating_timer import FloatingTimer
+from services.session_service import SessionService
 
 logger = get_logger(__name__)
 
@@ -34,6 +37,24 @@ class MainWindow(BaseKioskWindow):
         self.current_user = auth_service.get_current_user()
 
         self.page_names = {v: k for k, v in self.PAGES.items()}
+
+        # Session management
+        self.session_service = SessionService(
+            auth_service.firebase,
+            self.current_user['uid']
+        )
+        self.floating_timer = None
+
+        # Connect session signals
+        self.session_service.time_updated.connect(self.on_time_updated)
+        self.session_service.session_ended.connect(self.on_session_ended)
+        self.session_service.warning_5min.connect(self.on_warning_5min)
+        self.session_service.warning_1min.connect(self.on_warning_1min)
+        self.session_service.sync_failed.connect(self.on_sync_failed)
+        self.session_service.sync_restored.connect(self.on_sync_restored)
+
+        logger.info(f"Dashboard opened: {self.current_user.get('firstName')}")
+        self.init_ui()
 
         logger.info(f"Dashboard opened: {self.current_user.get('firstName')}")
         self.init_ui()
@@ -344,3 +365,137 @@ class MainWindow(BaseKioskWindow):
         """
 
         self.setStyleSheet(base + styles)
+
+    def start_user_session(self, remaining_time: int):
+        """Start user session and show floating timer"""
+        logger.info("Starting user session")
+
+        result = self.session_service.start_session(remaining_time)
+
+        if not result['success']:
+            QMessageBox.critical(
+                self,
+                "Session Error",
+                f"Failed to start session: {result['error']}"
+            )
+            return
+
+        # Create and show floating timer
+        self.floating_timer = FloatingTimer()
+        self.floating_timer.return_clicked.connect(self.return_from_session)
+        self.floating_timer.show()
+
+        # Minimize main window
+        self.showMinimized()
+
+        logger.info("Session started, main window minimized")
+
+    def return_from_session(self):
+        """User clicked return button on floating timer"""
+        logger.info("User returning from session")
+
+        # End session
+        result = self.session_service.end_session('user')
+
+        # Close floating timer
+        if self.floating_timer:
+            self.floating_timer.close()
+            self.floating_timer = None
+
+        # Restore main window
+        self.showNormal()
+        self.activateWindow()
+
+        # Show summary
+        self.show_session_summary(result)
+
+    def on_time_updated(self, remaining_seconds: int):
+        """Update floating timer display"""
+        if self.floating_timer:
+            self.floating_timer.update_time(remaining_seconds)
+
+    def on_session_ended(self, reason: str):
+        """Handle session end"""
+        logger.warning(f"Session ended: {reason}")
+
+        # Close timer
+        if self.floating_timer:
+            self.floating_timer.close()
+            self.floating_timer = None
+
+        # Restore window
+        self.showNormal()
+        self.activateWindow()
+
+        # Show appropriate message
+        if reason == 'expired':
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("Time Expired")
+            msg.setText("Your session time has expired!")
+            msg.setInformativeText("Would you like to purchase more time?")
+            msg.setStandardButtons(
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+
+            if msg.exec() == QMessageBox.StandardButton.Yes:
+                self.show_page(self.PAGES['PACKAGES'])
+
+    def on_warning_5min(self):
+        """5 minute warning"""
+        from PyQt6.QtWidgets import QMessageBox
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("Time Warning")
+        msg.setText("5 minutes remaining!")
+        msg.setInformativeText("Your session will end soon.")
+        msg.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
+        msg.show()
+        QTimer.singleShot(3000, msg.close)
+
+    def on_warning_1min(self):
+        """1 minute warning"""
+        from PyQt6.QtWidgets import QMessageBox
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Icon.Critical)
+        msg.setWindowTitle("URGENT")
+        msg.setText("Only 1 minute remaining!")
+        msg.setInformativeText("Save your work now!")
+        msg.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
+        msg.show()
+        QTimer.singleShot(5000, msg.close)
+
+    def on_sync_failed(self, error: str):
+        """Handle sync failure"""
+        logger.error(f"Sync failed: {error}")
+        if self.floating_timer:
+            self.floating_timer.set_offline_mode(True)
+
+    def on_sync_restored(self):
+        """Handle sync restoration"""
+        logger.info("Sync restored")
+        if self.floating_timer:
+            self.floating_timer.set_offline_mode(False)
+
+    def show_session_summary(self, result: Dict):
+        """Show session summary dialog"""
+        time_used = result.get('time_used', 0)
+        hours = time_used // 3600
+        minutes = (time_used % 3600) // 60
+
+        remaining = result.get('remaining_time', 0)
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Information)
+        msg.setWindowTitle("Session Summary")
+        msg.setText("Session Ended")
+        msg.setInformativeText(
+            f"Time used: {hours}h {minutes}m\n"
+            f"Time remaining: {remaining // 60}m"
+        )
+        msg.exec()
+
+        # Refresh home page
+        if hasattr(self.home_page, 'update_countdown'):
+            self.home_page.current_user['remainingTime'] = remaining
+            self.home_page.update_countdown()

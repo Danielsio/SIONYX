@@ -172,17 +172,28 @@ class HomePage(QWidget):
         """Start session"""
         logger.info("Start session button clicked")
 
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Start Session")
-        msg.setText("Session tracking will be implemented next!")
-        msg.setInformativeText(
-            "This will:\n"
-            "• Start counting down your time\n"
-            "• Enable PC usage\n"
-            "• Track your session in real-time"
+        remaining = self.current_user.get('remainingTime', 0)
+
+        if remaining <= 0:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle("No Time Remaining")
+            msg.setText("You have no time remaining!")
+            msg.setInformativeText("Please purchase a package to continue.")
+            msg.exec()
+            return
+
+        # Confirm start
+        reply = QMessageBox.question(
+            self,
+            "Start Session",
+            f"Start PC session?\n\nYou have {remaining // 60} minutes available.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
-        msg.exec()
+
+        if reply == QMessageBox.StandardButton.Yes:
+            # Notify parent (main window) to start session
+            self.parent().start_user_session(remaining)
 
     def cleanup(self):
         """Cleanup"""
