@@ -12,6 +12,7 @@ sys.path.insert(0, str(src_path))
 
 from services.firebase_client import FirebaseClient
 from datetime import datetime
+import requests
 
 
 def seed_packages():
@@ -21,11 +22,14 @@ def seed_packages():
 
     client = FirebaseClient()
 
-    # You need to be authenticated to write to database
-    # Use your admin credentials
-    print("Please sign in with admin account:")
-    email = input("Email (phone@sionyx.app): ")
+    # Admin authentication
+    print("Please sign in with ADMIN account:")
+    phone = input("Phone (e.g., 0501234567): ")
     password = input("Password: ")
+
+    # Convert phone to email
+    clean_phone = ''.join(filter(str.isdigit, phone))
+    email = f"{clean_phone}@sionyx.app"
 
     result = client.sign_in(email, password)
 
@@ -34,6 +38,16 @@ def seed_packages():
         return
 
     print(f"✅ Authenticated as: {result['uid']}\n")
+
+    # Verify admin status
+    user_result = client.db_get(f"users/{result['uid']}")
+    if user_result.get('success') and user_result.get('data'):
+        is_admin = user_result['data'].get('isAdmin', False)
+        if not is_admin:
+            print("❌ Error: This user is not an admin!")
+            print("Run: python tests/test_auth.py --create-admin")
+            return
+        print(f"✓ Admin verified: {user_result['data'].get('firstName')}\n")
 
     # Define packages
     packages = [
@@ -94,7 +108,7 @@ def seed_packages():
         print(f"📦 Creating package {i}/{len(packages)}: {package['name']}")
 
         # Push to Firebase (auto-generates ID)
-        result = client.firebase.post(
+        result = requests.post(
             url=f"{client.database_url}/packages.json",
             params={'auth': client.id_token},
             json=package
