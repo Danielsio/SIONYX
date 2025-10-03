@@ -316,6 +316,31 @@ class MainWindow(BaseKioskWindow):
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #059669, stop:1 #047857);
             }
+            
+                /* Package cards */
+            #packageCard {
+                background-color: #FFFFFF;
+                border: 1px solid #E5E7EB;
+                border-radius: 14px;
+            }
+            
+            #packageCard:hover {
+                border-color: #3B82F6;
+            }
+            
+            /* Purchase button */
+            #purchaseButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #3B82F6, stop:1 #2563EB);
+                color: #FFFFFF;
+                border: none;
+                border-radius: 10px;
+            }
+            
+            #purchaseButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #2563EB, stop:1 #1D4ED8);
+            }
         """
 
         self.setStyleSheet(base + styles)
