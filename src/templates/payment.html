@@ -19,7 +19,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 40px 20px;  /* ← CHANGED: More vertical padding */
         }
 
         .payment-container {
@@ -29,6 +29,7 @@
             max-width: 600px;
             width: 100%;
             padding: 40px;
+            margin: 20px auto;  /* ← ADDED: Margin for spacing */
         }
 
         .header {
@@ -472,7 +473,7 @@
             document.getElementById('loadingPayment').classList.add('active');
             document.getElementById('errorMessage').classList.remove('show');
 
-            // Send payment request
+            // Send payment request WITH CALLBACK
             postToNedarim({
                 'Name': 'FinishTransaction2',
                 'Value': {
@@ -491,10 +492,10 @@
                     'Tashlumim': '1',
                     'Groupe': '',
                     'Comment': 'רכישת חבילה: ' + CONFIG.packageName,
-                    'Param1': 'Package: ' + CONFIG.packageName,
+                    'Param1': CONFIG.purchaseId,  // CRITICAL: Send purchaseId
                     'Param2': '',
                     'ForceUpdateMatching': '0',
-                    'CallBack': '',
+                    'CallBack': CONFIG.callbackUrl,  // CRITICAL: Callback URL
                     'CallBackMailError': ''
                 }
             });

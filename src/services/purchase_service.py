@@ -1,131 +1,97 @@
 """
 Purchase Service
-Handle package purchases and user credit updates
+Handle package purchases with pending state
 """
 
 from typing import Dict
 from datetime import datetime
 from services.firebase_client import FirebaseClient
 from utils.logger import get_logger
+import requests
 
 logger = get_logger(__name__)
 
 
 class PurchaseService:
-    """Manage package purchases"""
+    """Manage package purchases with callback verification"""
 
     def __init__(self, firebase_client: FirebaseClient):
         self.firebase = firebase_client
 
-    def record_purchase(self, user_id: str, package: Dict, payment_response: Dict) -> Dict:
+    def create_pending_purchase(self, user_id: str, package: Dict) -> Dict:
         """
-        Record purchase in Firebase and credit user account
-
-        Args:
-            user_id: User ID
-            package: Package data
-            payment_response: Nedarim Plus payment response
+        Create pending purchase record BEFORE payment
 
         Returns:
-            {'success': bool, 'error': str}
+            {'success': bool, 'purchase_id': str, 'error': str}
         """
-        logger.info(f"Recording purchase for user {user_id}")
+        logger.info(f"Creating pending purchase for user {user_id}")
 
         try:
-            # Create purchase record
             purchase_data = {
                 'userId': user_id,
                 'packageId': package.get('id'),
                 'packageName': package.get('name'),
                 'minutes': package.get('minutes'),
                 'prints': package.get('prints'),
-                'amount': payment_response.get('Amount'),
-                'transactionId': payment_response.get('TransactionId'),
-                'transactionType': payment_response.get('TransactionType'),
-                'creditCardNumber': payment_response.get('CreditCardNumber', '****'),
-                'timestamp': datetime.now().isoformat(),
-                'status': 'completed'
+                'amount': package.get('price'),  # Will update with final amount
+                'status': 'pending',
+                'createdAt': datetime.now().isoformat(),
+                'updatedAt': datetime.now().isoformat()
             }
 
-            # Generate purchase ID
-            import requests
+            # Create in Firebase
             response = requests.post(
-                f"{self.firebase.database_url}/purchases/{user_id}.json",
+                f"{self.firebase.database_url}/pendingPurchases.json",
                 params={'auth': self.firebase.id_token},
                 json=purchase_data
             )
 
             if response.status_code != 200:
-                logger.error(f"Failed to record purchase: {response.text}")
+                logger.error(f"Failed to create pending purchase: {response.text}")
                 return {
                     'success': False,
-                    'error': 'Failed to record purchase'
+                    'error': 'Failed to create purchase record'
                 }
 
             purchase_id = response.json()['name']
-            logger.info(f"Purchase recorded: {purchase_id}")
-
-            # Credit user account
-            credit_result = self.credit_user_account(user_id, package)
-
-            if not credit_result.get('success'):
-                return credit_result
+            logger.info(f"Pending purchase created: {purchase_id}")
 
             return {
                 'success': True,
-                'purchase_id': purchase_id,
-                'new_time': credit_result['new_time'],
-                'new_prints': credit_result['new_prints']
+                'purchase_id': purchase_id
             }
 
         except Exception as e:
-            logger.exception("Purchase recording failed")
+            logger.exception("Failed to create pending purchase")
             return {
                 'success': False,
                 'error': str(e)
             }
 
-    def credit_user_account(self, user_id: str, package: Dict) -> Dict:
+    def listen_for_purchase_completion(self, purchase_id: str, timeout: int = 300):
         """
-        Add time and prints to user account
+        Listen for purchase completion (called from desktop app)
+        This would be replaced with Firebase real-time listener
+
+        Args:
+            purchase_id: Purchase ID to monitor
+            timeout: Maximum seconds to wait
         """
-        logger.info(f"Crediting user account: {user_id}")
+        # This will be handled by Firebase real-time listener in payment dialog
+        pass
 
-        # Get current user data
-        user_result = self.firebase.db_get(f'users/{user_id}')
+    def get_purchase_status(self, purchase_id: str) -> Dict:
+        """Get current purchase status"""
+        result = self.firebase.db_get(f'pendingPurchases/{purchase_id}')
 
-        if not user_result.get('success'):
+        if result.get('success'):
             return {
-                'success': False,
-                'error': 'Failed to get user data'
+                'success': True,
+                'purchase': result.get('data')
             }
-
-        user_data = user_result.get('data', {})
-
-        # Calculate new values
-        current_time = user_data.get('remainingTime', 0)
-        current_prints = user_data.get('remainingPrints', 0)
-
-        new_time = current_time + (package.get('minutes', 0) * 60)  # Convert to seconds
-        new_prints = current_prints + package.get('prints', 0)
-
-        # Update user
-        update_result = self.firebase.db_update(f'users/{user_id}', {
-            'remainingTime': new_time,
-            'remainingPrints': new_prints,
-            'updatedAt': datetime.now().isoformat()
-        })
-
-        if not update_result.get('success'):
-            return {
-                'success': False,
-                'error': 'Failed to update user balance'
-            }
-
-        logger.info(f"User credited: +{package.get('minutes')}min, +{package.get('prints')} prints")
 
         return {
-            'success': True,
-            'new_time': new_time,
-            'new_prints': new_prints
+            'success': False,
+            'error': 'Purchase not found'
         }

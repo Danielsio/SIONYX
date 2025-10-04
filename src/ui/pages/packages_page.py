@@ -409,8 +409,8 @@ class PackagesPage(QWidget):
         from services.purchase_service import PurchaseService
         from PyQt6.QtWidgets import QMessageBox
 
-        # Open payment dialog
-        dialog = PaymentDialog(package, self.current_user, self)
+        # Open payment dialog (derive user and auth from parent)
+        dialog = PaymentDialog(package, self)
         result = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:

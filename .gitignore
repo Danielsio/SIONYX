@@ -208,3 +208,31 @@ __marimo__/
 
 
 **/workspace.xml
+
+
+# ========================================
+# Firebase
+# ========================================
+# Firebase configuration files (CRITICAL - NEVER COMMIT!)
+firebase-config.json
+serviceAccountKey.json
+firebase-adminsdk*.json
+firebase-debug.log
+firebase-debug.*.log
+
+# Firebase cache
+.firebase/
+
+# Firebase Functions - EXCLUDE these
+functions/node_modules/
+functions/.runtimeconfig.json
+functions/package-lock.json
+functions/npm-debug.log*
+functions/yarn-debug.log*
+functions/yarn-error.log*
+
+# Firebase Functions - INCLUDE these (don't add to gitignore)
+# ✅ functions/index.js
+# ✅ functions/package.json
+# ✅ functions/.eslintrc.js
+# ✅ functions/.gitignore
