@@ -4,9 +4,10 @@ Main Window - Modern Web-Style Navigation
 from typing import Dict
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                              QPushButton, QFrame, QStackedWidget, QMessageBox)
+                              QPushButton, QFrame, QStackedWidget, QMessageBox,
+                              QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QColor
 
 from ui.base_window import BaseKioskWindow
 from ui.pages.home_page import HomePage
@@ -16,6 +17,7 @@ from ui.pages.help_page import HelpPage
 from utils.logger import get_logger
 from ui.floating_timer import FloatingTimer
 from services.session_service import SessionService
+from ui.styles import MAIN_WINDOW_QSS
 
 logger = get_logger(__name__)
 
@@ -95,78 +97,54 @@ class MainWindow(BaseKioskWindow):
         self.show_page(self.PAGES['HOME'])
 
     def create_modern_sidebar(self) -> QWidget:
-        """Create modern, clean sidebar like web apps"""
+        """Create modern, clean sidebar like the reference UI"""
         sidebar = QFrame()
         sidebar.setObjectName("modernSidebar")
         sidebar.setFixedWidth(240)
+
+        # Subtle elevation like the mock
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(24)
+        shadow.setXOffset(0)
+        shadow.setYOffset(2)
+        shadow.setColor(QColor(0, 0, 0, 30))
+        sidebar.setGraphicsEffect(shadow)
 
         layout = QVBoxLayout(sidebar)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Top section - Logo + User
-        top_section = QWidget()
-        top_layout = QVBoxLayout(top_section)
-        top_layout.setContentsMargins(20, 25, 20, 20)
-        top_layout.setSpacing(20)
+        # Header bar (burger + brand)
+        header = QWidget()
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(20, 18, 20, 14)
+        header_layout.setSpacing(10)
 
-        # Logo
-        logo_container = QWidget()
-        logo_layout = QVBoxLayout(logo_container)
-        logo_layout.setContentsMargins(0, 0, 0, 0)
-        logo_layout.setSpacing(4)
+        burger = QLabel("≡")
+        burger.setFont(QFont("Segoe UI", 18, QFont.Weight.Black))
+        burger.setStyleSheet("color: #111827;")
 
-        logo = QLabel("SIONYX")
-        logo.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        logo.setStyleSheet("color: #111827;")
+        brand = QLabel("Sionyx")
+        brand.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
+        brand.setStyleSheet("color: #111827;")
 
-        tagline = QLabel("Time Management")
-        tagline.setFont(QFont("Segoe UI", 9))
-        tagline.setStyleSheet("color: #9CA3AF;")
+        header_layout.addWidget(burger)
+        header_layout.addWidget(brand)
+        header_layout.addStretch()
 
-        logo_layout.addWidget(logo)
-        logo_layout.addWidget(tagline)
-
-        # User info card
-        user_card = QFrame()
-        user_card.setObjectName("userCard")
-        user_card_layout = QVBoxLayout(user_card)
-        user_card_layout.setContentsMargins(12, 10, 12, 10)
-        user_card_layout.setSpacing(2)
-
-        user_name = QLabel(f"{self.current_user.get('firstName', 'User')}")
-        user_name.setFont(QFont("Segoe UI", 11, QFont.Weight.DemiBold))
-        user_name.setStyleSheet("color: #111827;")
-
-        user_phone = QLabel(f"{self.current_user.get('phoneNumber', '')}")
-        user_phone.setFont(QFont("Segoe UI", 9))
-        user_phone.setStyleSheet("color: #6B7280;")
-
-        user_card_layout.addWidget(user_name)
-        user_card_layout.addWidget(user_phone)
-
-        top_layout.addWidget(logo_container)
-        top_layout.addWidget(user_card)
-
-        # Navigation section
+        # Navigation section (no 'MENU' label to match mock)
         nav_section = QWidget()
         nav_layout = QVBoxLayout(nav_section)
-        nav_layout.setContentsMargins(12, 10, 12, 10)
-        nav_layout.setSpacing(4)
-
-        # Navigation label
-        nav_label = QLabel("MENU")
-        nav_label.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
-        nav_label.setStyleSheet("color: #9CA3AF; padding-left: 8px; margin-bottom: 6px;")
-        nav_layout.addWidget(nav_label)
+        nav_layout.setContentsMargins(12, 6, 12, 10)
+        nav_layout.setSpacing(6)
 
         self.nav_buttons = []
 
         nav_items = [
-            ("Home", self.PAGES['HOME']),
-            ("Packages", self.PAGES['PACKAGES']),
-            ("History", self.PAGES['HISTORY']),
-            ("Help", self.PAGES['HELP'])
+            ("🏠  Home", self.PAGES['HOME']),
+            ("🧩  Packages", self.PAGES['PACKAGES']),
+            ("🕘  History", self.PAGES['HISTORY']),
+            ("❓  Help", self.PAGES['HELP'])
         ]
 
         for label, index in nav_items:
@@ -179,7 +157,7 @@ class MainWindow(BaseKioskWindow):
         # Bottom section - Logout
         bottom_section = QWidget()
         bottom_layout = QVBoxLayout(bottom_section)
-        bottom_layout.setContentsMargins(12, 10, 12, 20)
+        bottom_layout.setContentsMargins(12, 6, 12, 20)
         bottom_layout.setSpacing(0)
 
         btn_logout = QPushButton("Logout")
@@ -190,8 +168,8 @@ class MainWindow(BaseKioskWindow):
         btn_logout.clicked.connect(self.handle_logout)
         bottom_layout.addWidget(btn_logout)
 
-        # Add sections to sidebar
-        layout.addWidget(top_section)
+        # Compose sidebar
+        layout.addWidget(header)
         layout.addWidget(nav_section, 1)
         layout.addWidget(bottom_section)
 
@@ -245,120 +223,7 @@ class MainWindow(BaseKioskWindow):
     def apply_modern_styles(self):
         """Modern web-style design"""
         base = self.apply_base_stylesheet()
-
-        styles = """
-            /* Modern Sidebar - Clean white background */
-            #modernSidebar {
-                background-color: #FFFFFF;
-                border-right: 1px solid #E5E7EB;
-            }
-            
-            /* User card */
-            #userCard {
-                background-color: #F9FAFB;
-                border: 1px solid #E5E7EB;
-                border-radius: 10px;
-            }
-            
-            /* Modern nav buttons - Clean & minimal */
-            #modernNavButton {
-                background-color: transparent;
-                color: #6B7280;
-                border: none;
-                border-radius: 8px;
-                text-align: left;
-                padding-left: 12px;
-                font-size: 13px;
-            }
-            
-            #modernNavButton:hover {
-                background-color: #F3F4F6;
-                color: #111827;
-            }
-            
-            #modernNavButton:checked {
-                background-color: #EFF6FF;
-                color: #2563EB;
-                font-weight: 600;
-                border-left: 3px solid #2563EB;
-            }
-            
-            /* Modern logout button */
-            #modernLogoutButton {
-                background-color: #FEE2E2;
-                color: #DC2626;
-                border: 1px solid #FCA5A5;
-                border-radius: 8px;
-                font-size: 12px;
-            }
-            
-            #modernLogoutButton:hover {
-                background-color: #FECACA;
-                border-color: #F87171;
-            }
-            
-            /* Content area */
-            #contentStack {
-                background-color: #F9FAFB;
-            }
-            
-            #homePage, #contentPage {
-                background-color: #F9FAFB;
-            }
-            
-            /* Stat cards */
-            #statCard {
-                background-color: #FFFFFF;
-                border-radius: 12px;
-                border: 1px solid #E5E7EB;
-            }
-            
-            /* Action card */
-            #mainActionCard {
-                background-color: #FFFFFF;
-                border-radius: 16px;
-                border: 1px solid #E5E7EB;
-                min-height: 240px;
-            }
-            
-            /* Start button */
-            #startButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #10B981, stop:1 #059669);
-                color: #FFFFFF;
-                border: none;
-                border-radius: 12px;
-            }
-            
-            #startButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #059669, stop:1 #047857);
-            }
-            
-            /* Package cards - refined*/
-            #packageCard {
-                background-color: #FFFFFF;
-                border: 1px solid #E5E7EB;
-                border-radius: 20px;
-            }
-            
-            /* Purchase button */
-            #purchaseButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #3B82F6, stop:1 #2563EB);
-                color: #FFFFFF;
-                border: none;
-                border-radius: 28px;
-                padding: 16px 24px;
-            }
-            
-            #purchaseButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #2563EB, stop:1 #1D4ED8);
-            }
-        """
-
-        self.setStyleSheet(base + styles)
+        self.setStyleSheet(base + MAIN_WINDOW_QSS)
 
     def start_user_session(self, remaining_time: int):
         """Start user session and show floating timer"""

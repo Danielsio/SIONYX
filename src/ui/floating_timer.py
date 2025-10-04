@@ -9,6 +9,11 @@ from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPropertyAnimation, QRect
 from PyQt6.QtGui import QFont, QColor
 
 from utils.logger import get_logger
+from ui.styles import (
+    FLOATING_TIMER_BASE_QSS,
+    FLOATING_TIMER_WARNING_QSS,
+    FLOATING_TIMER_CRITICAL_QSS,
+)
 
 logger = get_logger(__name__)
 
@@ -117,38 +122,14 @@ class FloatingTimer(QWidget):
         """Set warning appearance (5 min remaining)"""
         self.is_warning = True
         self.status_label.setText("⚠ Low Time")
-        self.container.setStyleSheet("""
-            #timerContainer {
-                background-color: rgba(251, 146, 60, 0.95);
-                border: 2px solid #EA580C;
-                border-radius: 12px;
-            }
-            #timeDisplay {
-                color: #FFFFFF;
-            }
-            #statusLabel {
-                color: #FFF7ED;
-            }
-        """)
+        self.container.setStyleSheet(FLOATING_TIMER_WARNING_QSS)
         logger.warning("Timer in warning mode")
 
     def set_critical_mode(self):
         """Set critical appearance (1 min remaining)"""
         self.is_critical = True
         self.status_label.setText("🔥 CRITICAL")
-        self.container.setStyleSheet("""
-            #timerContainer {
-                background-color: rgba(239, 68, 68, 0.95);
-                border: 2px solid #DC2626;
-                border-radius: 12px;
-            }
-            #timeDisplay {
-                color: #FFFFFF;
-            }
-            #statusLabel {
-                color: #FEE2E2;
-            }
-        """)
+        self.container.setStyleSheet(FLOATING_TIMER_CRITICAL_QSS)
 
         # Start pulse animation
         self.pulse_animation()
@@ -182,25 +163,4 @@ class FloatingTimer(QWidget):
 
     def apply_styles(self):
         """Apply styles"""
-        self.container.setStyleSheet("""
-            #timerContainer {
-                background-color: rgba(59, 130, 246, 0.95);
-                border: 2px solid #2563EB;
-                border-radius: 12px;
-            }
-            #timeDisplay {
-                color: #FFFFFF;
-            }
-            #statusLabel {
-                color: #DBEAFE;
-            }
-            #returnButton {
-                background-color: #FFFFFF;
-                color: #2563EB;
-                border: none;
-                border-radius: 8px;
-            }
-            #returnButton:hover {
-                background-color: #EFF6FF;
-            }
-        """)
+        self.container.setStyleSheet(FLOATING_TIMER_BASE_QSS)

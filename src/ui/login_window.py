@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QColor
 
 from ui.base_window import BaseKioskWindow
+from ui.styles import LOGIN_WINDOW_QSS
 
 
 class LoginWindow(BaseKioskWindow):
@@ -170,8 +171,8 @@ class LoginWindow(BaseKioskWindow):
         main_layout.addWidget(center_widget)
         self.setLayout(main_layout)
 
-        # Apply base stylesheet
-        self.setStyleSheet(self.apply_base_stylesheet())
+        # Apply base + login styles
+        self.setStyleSheet(self.apply_base_stylesheet() + LOGIN_WINDOW_QSS)
 
         # Enable Enter key
         self.password_input.returnPressed.connect(self.handle_login)

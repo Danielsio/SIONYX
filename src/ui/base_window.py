@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication, QMessageBox, QIn
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QKeySequence, QShortcut
 
+from ui.styles import BASE_QSS
 
 class BaseKioskWindow(QWidget):
     """Base class for fullscreen kiosk windows"""
@@ -214,71 +215,4 @@ class BaseKioskWindow(QWidget):
 
     def apply_base_stylesheet(self):
         """Apply base stylesheet - consistent across all windows"""
-        return """
-            /* Main background gradient */
-            QWidget {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #E3F2FD, 
-                    stop:0.5 #BBDEFB,
-                    stop:1 #90CAF9
-                );
-            }
-
-            /* Card styling */
-            QFrame {
-                background-color: #FFFFFF;
-                border-radius: 16px;
-                border: 1px solid #E0E0E0;
-            }
-
-            /* Input fields */
-            #inputField {
-                padding: 14px 16px;
-                border: 2px solid #BDBDBD;
-                border-radius: 12px;
-                background-color: #FAFAFA;
-                color: #212121;
-                font-size: 13px;
-                selection-background-color: #1976D2;
-                selection-color: white;
-            }
-
-            #inputField:hover {
-                border: 2px solid #9E9E9E;
-                background-color: #FFFFFF;
-            }
-
-            #inputField:focus {
-                border: 2px solid #1976D2;
-                background-color: #FFFFFF;
-            }
-
-            #inputField::placeholder {
-                color: #9E9E9E;
-            }
-
-            /* Primary button */
-            #primaryButton {
-                background-color: #1976D2;
-                color: #FFFFFF;
-                border: none;
-                border-radius: 12px;
-                font-weight: 600;
-                font-size: 14px;
-                letter-spacing: 0.5px;
-            }
-
-            #primaryButton:hover {
-                background-color: #1565C0;
-            }
-
-            #primaryButton:pressed {
-                background-color: #0D47A1;
-            }
-
-            #primaryButton:disabled {
-                background-color: #BDBDBD;
-                color: #757575;
-            }
-        """
+        return BASE_QSS

@@ -12,6 +12,7 @@ from PyQt6.QtGui import QFont, QColor
 
 from services.package_service import PackageService
 from utils.logger import get_logger
+from ui.styles import PACKAGES_PAGE_QSS
 
 logger = get_logger(__name__)
 
@@ -82,6 +83,8 @@ class PackagesPage(QWidget):
         main_layout.addWidget(scroll, 1)
 
         logger.debug("Packages page initialized")
+        # Apply page-specific styles
+        self.setStyleSheet(PACKAGES_PAGE_QSS)
 
     def load_packages(self):
         """Load packages from Firebase"""

@@ -10,6 +10,7 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor
 
 from utils.logger import get_logger
+from ui.styles import HOME_PAGE_QSS
 
 logger = get_logger(__name__)
 
@@ -76,6 +77,8 @@ class HomePage(QWidget):
         layout.addStretch()
 
         self.update_countdown()
+        # Apply page styles (in addition to base styles from parent window)
+        self.setStyleSheet(HOME_PAGE_QSS)
 
     def create_stat_card(self, title: str, value: str, color: str, value_name: str) -> QFrame:
         """Create stat card"""
