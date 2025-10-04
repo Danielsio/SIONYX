@@ -215,13 +215,16 @@ class BaseKioskWindow(QWidget):
     def apply_base_stylesheet(self):
         """Apply base stylesheet - consistent across all windows"""
         return """
+            /* Global font + background */
+            * { font-family: 'Segoe UI'; }
+
             /* Main background gradient */
             QWidget {
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #E3F2FD, 
-                    stop:0.5 #BBDEFB,
-                    stop:1 #90CAF9
+                    stop:0 #EAF3FE,
+                    stop:0.5 #CFE6FD,
+                    stop:1 #B9DBFC
                 );
             }
 
@@ -229,34 +232,36 @@ class BaseKioskWindow(QWidget):
             QFrame {
                 background-color: #FFFFFF;
                 border-radius: 16px;
-                border: 1px solid #E0E0E0;
+                border: 1px solid #E5E7EB;
             }
 
-            /* Input fields */
+            /* Inputs */
             #inputField {
                 padding: 14px 16px;
-                border: 2px solid #BDBDBD;
+                border: 2px solid #CBD5E1;
                 border-radius: 12px;
-                background-color: #FAFAFA;
-                color: #212121;
+                background-color: #F8FAFC;
+                color: #111827;
                 font-size: 13px;
                 selection-background-color: #1976D2;
                 selection-color: white;
             }
 
-            #inputField:hover {
-                border: 2px solid #9E9E9E;
-                background-color: #FFFFFF;
-            }
+            #inputField:hover { border: 2px solid #94A3B8; background-color: #FFFFFF; }
+            #inputField:focus { border: 2px solid #2563EB; background-color: #FFFFFF; }
+            #inputField::placeholder { color: #94A3B8; }
 
-            #inputField:focus {
-                border: 2px solid #1976D2;
+            /* Default button baseline (specific #ids override) */
+            QPushButton {
                 background-color: #FFFFFF;
+                color: #111827;
+                border: 1px solid #E5E7EB;
+                border-radius: 10px;
+                padding: 10px 16px;
+                font-weight: 600;
             }
-
-            #inputField::placeholder {
-                color: #9E9E9E;
-            }
+            QPushButton:hover { background-color: #F9FAFB; }
+            QPushButton:pressed { background-color: #EFF1F5; }
 
             /* Primary button */
             #primaryButton {
@@ -264,21 +269,31 @@ class BaseKioskWindow(QWidget):
                 color: #FFFFFF;
                 border: none;
                 border-radius: 12px;
-                font-weight: 600;
+                font-weight: 700;
                 font-size: 14px;
-                letter-spacing: 0.5px;
+                letter-spacing: 0.3px;
             }
+            #primaryButton:hover { background-color: #1565C0; }
+            #primaryButton:pressed { background-color: #0D47A1; }
+            #primaryButton:disabled { background-color: #D1D5DB; color: #6B7280; }
 
-            #primaryButton:hover {
-                background-color: #1565C0;
-            }
+            /* Scrollbars */
+            QScrollBar:vertical { background: transparent; width: 10px; margin: 4px; }
+            QScrollBar::handle:vertical { background: #CBD5E1; border-radius: 5px; min-height: 30px; }
+            QScrollBar::handle:vertical:hover { background: #94A3B8; }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
 
-            #primaryButton:pressed {
-                background-color: #0D47A1;
-            }
+            QScrollBar:horizontal { background: transparent; height: 10px; margin: 4px; }
+            QScrollBar::handle:horizontal { background: #CBD5E1; border-radius: 5px; min-width: 30px; }
+            QScrollBar::handle:horizontal:hover { background: #94A3B8; }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0; }
 
-            #primaryButton:disabled {
-                background-color: #BDBDBD;
-                color: #757575;
+            /* Tooltips */
+            QToolTip {
+                color: #111827;
+                background-color: #FFFFFF;
+                border: 1px solid #E5E7EB;
+                border-radius: 8px;
+                padding: 6px 10px;
             }
         """

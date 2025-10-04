@@ -247,10 +247,12 @@ class MainWindow(BaseKioskWindow):
         base = self.apply_base_stylesheet()
 
         styles = """
-            /* Modern Sidebar - Clean white background */
+            /* Modern Sidebar */
             #modernSidebar {
                 background-color: #FFFFFF;
                 border-right: 1px solid #E5E7EB;
+                border-top-right-radius: 16px;
+                border-bottom-right-radius: 16px;
             }
             
             /* User card */
@@ -299,7 +301,9 @@ class MainWindow(BaseKioskWindow):
             
             /* Content area */
             #contentStack {
-                background-color: #F9FAFB;
+                background-color: #F3F4F6;
+                border-top-left-radius: 16px;
+                border-bottom-left-radius: 16px;
             }
             
             #homePage, #contentPage {
@@ -355,6 +359,11 @@ class MainWindow(BaseKioskWindow):
             #purchaseButton:hover {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 #2563EB, stop:1 #1D4ED8);
+            }
+            
+            /* Elevation for sidebar to feel like a panel */
+            QFrame#modernSidebar {
+                border-right: 1px solid #E5E7EB;
             }
         """
 
