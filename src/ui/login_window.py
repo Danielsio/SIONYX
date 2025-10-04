@@ -10,6 +10,7 @@ from PyQt6.QtGui import QFont, QColor
 
 from ui.base_window import BaseKioskWindow
 from ui.styles import LOGIN_WINDOW_QSS
+from utils.const import APP_NAME
 
 
 class LoginWindow(BaseKioskWindow):
@@ -24,7 +25,7 @@ class LoginWindow(BaseKioskWindow):
 
     def init_ui(self):
         """Initialize UI - no duplicate setup code"""
-        self.setWindowTitle("Sionyx - Login")
+        self.setWindowTitle(f"{APP_NAME} - Login")
 
         # Use base class method for layout
         main_layout = self.create_main_layout()
@@ -41,7 +42,7 @@ class LoginWindow(BaseKioskWindow):
         logo_layout.setSpacing(12)
         logo_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        title_label = QLabel("SIONYX")
+        title_label = QLabel(APP_NAME)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setFont(QFont("Segoe UI", 48, QFont.Weight.Bold))
         title_label.setStyleSheet("color: #1976D2; letter-spacing: 4px;")

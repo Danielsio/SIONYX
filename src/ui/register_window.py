@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QColor
 
 from ui.base_window import BaseKioskWindow
+from utils.const import APP_NAME
 
 
 class RegisterWindow(BaseKioskWindow):
@@ -24,7 +25,7 @@ class RegisterWindow(BaseKioskWindow):
 
     def init_ui(self):
         """Initialize UI"""
-        self.setWindowTitle("Sionyx - Create Account")
+        self.setWindowTitle(f"{APP_NAME} - Create Account")
 
         # Use base class method
         main_layout = self.create_main_layout()
@@ -41,7 +42,7 @@ class RegisterWindow(BaseKioskWindow):
         title_label.setFont(QFont("Segoe UI", 40, QFont.Weight.Bold))
         title_label.setStyleSheet("color: #1976D2;")
 
-        subtitle_label = QLabel("Join SIONYX Today")
+        subtitle_label = QLabel(f"Join {APP_NAME} Today")
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle_label.setFont(QFont("Segoe UI", 14))
         subtitle_label.setStyleSheet("color: #546E7A;")
@@ -250,7 +251,7 @@ class RegisterWindow(BaseKioskWindow):
         self.register_button.setText("Create Account")
 
         if result['success']:
-            self.show_success("Registration Successful", "Welcome to Sionyx!")
+            self.show_success("Registration Successful", f"Welcome to {APP_NAME}!")
             self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
             self.registration_success.emit()
         else:

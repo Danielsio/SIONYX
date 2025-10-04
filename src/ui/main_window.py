@@ -18,6 +18,7 @@ from utils.logger import get_logger
 from ui.floating_timer import FloatingTimer
 from services.session_service import SessionService
 from ui.styles import MAIN_WINDOW_QSS
+from utils.const import APP_NAME
 
 logger = get_logger(__name__)
 
@@ -60,7 +61,7 @@ class MainWindow(BaseKioskWindow):
 
     def init_ui(self):
         """Initialize UI"""
-        self.setWindowTitle("Sionyx - Dashboard")
+        self.setWindowTitle(f"{APP_NAME} - Dashboard")
 
         main_layout = self.create_main_layout()
 
@@ -124,7 +125,7 @@ class MainWindow(BaseKioskWindow):
         burger.setFont(QFont("Segoe UI", 18, QFont.Weight.Black))
         burger.setStyleSheet("color: #111827;")
 
-        brand = QLabel("Sionyx")
+        brand = QLabel(APP_NAME)
         brand.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
         brand.setStyleSheet("color: #111827;")
 

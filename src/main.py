@@ -1,5 +1,5 @@
 """
-Sionyx Desktop Application
+SIONYX Desktop Application
 Main entry point
 """
 
@@ -18,6 +18,7 @@ QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 
 # Now initialize logging
 from utils.logger import SionyxLogger
+from utils.const import APP_NAME
 import logging
 
 SionyxLogger.setup(
@@ -50,8 +51,8 @@ class SionyxApp:
         try:
             # Create QApplication
             self.app = QApplication(sys.argv)
-            self.app.setApplicationName("Sionyx")
-            self.app.setOrganizationName("Sionyx")
+            self.app.setApplicationName(APP_NAME)
+            self.app.setOrganizationName(APP_NAME)
             logger.debug("Qt Application created")
 
             # Enable high DPI scaling
