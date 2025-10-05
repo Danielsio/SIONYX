@@ -316,7 +316,6 @@ class PackagesPage(QWidget):
             }}
             QPushButton:hover {{
                 background-color: {package_tier['hover_color']};
-                box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
             }}
             QPushButton:pressed {{
                 background-color: {package_tier['pressed_color']};

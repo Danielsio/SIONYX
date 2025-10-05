@@ -14,6 +14,7 @@ import requests
 from services.payment_bridge import PaymentBridge
 from services.purchase_service import PurchaseService
 from utils.logger import get_logger
+from ui.web.local_server import LocalFileServer
 
 logger = get_logger(__name__)
 
@@ -45,6 +46,7 @@ class PaymentDialog(QDialog):
         self.user = derived_user or {}
         self.payment_response = None
         self.purchase_id = None
+        self._local_server: LocalFileServer | None = None
 
         # Create pending purchase FIRST
         purchase_service = PurchaseService(self.auth_service.firebase)
@@ -124,8 +126,8 @@ class PaymentDialog(QDialog):
         )
 
         # Set size - INCREASED HEIGHT
-        self.setMinimumSize(800, 900)
-        self.resize(900, 1050)
+        self.setMinimumSize(900, 1100)
+        self.resize(1000, 1200)
 
         # Center on screen
         self.center_on_screen()
@@ -135,6 +137,7 @@ class PaymentDialog(QDialog):
 
         # Web view
         self.web_view = QWebEngineView()
+        # Keep default profile (works now); skip advanced debug/profile config
 
         # Setup web channel
         self.channel = QWebChannel()
@@ -146,14 +149,21 @@ class PaymentDialog(QDialog):
         self.bridge.payment_success.connect(self.on_payment_success)
         self.bridge.payment_cancelled.connect(self.on_payment_cancelled)
 
-        # Load HTML
-        html_path = Path(__file__).parent.parent / 'templates' / 'payment.html'
-
+        # Load HTML via local http server (avoid file:// origin issues)
+        html_dir = Path(__file__).parent.parent / 'templates'
+        html_path = html_dir / 'payment.html'
         if not html_path.exists():
             logger.error(f"Payment HTML not found: {html_path}")
             return
 
-        self.web_view.setUrl(QUrl.fromLocalFile(str(html_path.absolute())))
+        try:
+            self._local_server = LocalFileServer(html_dir)
+            self._local_server.start()
+            page_url = QUrl(f"{self._local_server.base_url}/payment.html")
+            self.web_view.setUrl(page_url)
+        except Exception as e:
+            logger.error(f"Failed starting local server: {e}")
+            self.web_view.setUrl(QUrl.fromLocalFile(str(html_path.absolute())))
         self.web_view.loadFinished.connect(self.on_page_loaded)
 
         layout.addWidget(self.web_view)
@@ -222,4 +232,8 @@ class PaymentDialog(QDialog):
         """Cleanup when dialog closes"""
         if hasattr(self, 'status_timer'):
             self.status_timer.stop()
+        # Stop local HTTP server if running
+        if self._local_server is not None:
+            self._local_server.stop()
+            self._local_server = None
         super().closeEvent(event)
