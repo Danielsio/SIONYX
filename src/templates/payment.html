@@ -517,7 +517,7 @@
                         'Groupe': '',
                         'Comment': 'רכישת חבילה: ' + CONFIG.packageName,
                         'Param1': purchaseId,  // CRITICAL: Send purchaseId from Python
-                        'Param2': '',
+                        'Param2': CONFIG.orgId,  // MULTI-TENANCY: Send orgId
                         'ForceUpdateMatching': '0',
                         'CallBack': CONFIG.callbackUrl,  // CRITICAL: Callback URL
                         'CallBackMailError': ''

@@ -20,6 +20,9 @@ class FirebaseClient:
         self.api_key = firebase_config.api_key
         self.database_url = firebase_config.database_url
         self.auth_url = firebase_config.auth_url
+        
+        # MULTI-TENANCY: Organization ID for data isolation
+        self.org_id = firebase_config.org_id
 
         # Auth state
         self.id_token = None
@@ -27,7 +30,7 @@ class FirebaseClient:
         self.token_expiry = None
         self.user_id = None
 
-        logger.info("Firebase client initialized")
+        logger.info(f"Firebase client initialized for organization: {self.org_id}")
 
     # ==================== AUTHENTICATION ====================
 
@@ -159,6 +162,23 @@ class FirebaseClient:
         return True
 
     # ==================== REALTIME DATABASE ====================
+    
+    def _get_org_path(self, path: str) -> str:
+        """
+        Prefix path with organization ID for multi-tenancy.
+        
+        MULTI-TENANCY ARCHITECTURE:
+        - Each organization's data is isolated at: organizations/{orgId}/
+        - Prevents accidental cross-org data access
+        - Enables per-org security rules
+        
+        Examples:
+            'users/abc123' → 'organizations/myorg/users/abc123'
+            'packages' → 'organizations/myorg/packages'
+        """
+        # Remove leading/trailing slashes
+        clean_path = path.strip('/')
+        return f"organizations/{self.org_id}/{clean_path}"
 
     def db_get(self, path: str) -> Dict[str, Any]:
         """Get data from Realtime Database"""
@@ -166,7 +186,9 @@ class FirebaseClient:
             logger.debug("Token validation failed in db_get")
             return {'success': False, 'error': 'Not authenticated'}
 
-        url = f"{self.database_url}/{path}.json"
+        # MULTI-TENANCY: Automatically prefix with org path
+        org_path = self._get_org_path(path)
+        url = f"{self.database_url}/{org_path}.json"
         params = {'auth': self.id_token}
 
         logger.debug(f"DB GET URL: {url}")
@@ -181,7 +203,7 @@ class FirebaseClient:
             response.raise_for_status()
 
             data = response.json()
-            logger.info(f"DB GET: {path}")
+            logger.info(f"DB GET: {org_path}")
 
             return {
                 'success': True,
@@ -205,14 +227,16 @@ class FirebaseClient:
         if not self.ensure_valid_token():
             return {'success': False, 'error': 'Not authenticated'}
 
-        url = f"{self.database_url}/{path}.json"
+        # MULTI-TENANCY: Automatically prefix with org path
+        org_path = self._get_org_path(path)
+        url = f"{self.database_url}/{org_path}.json"
         params = {'auth': self.id_token}
 
         try:
             response = requests.put(url, params=params, json=data, timeout=10)
             response.raise_for_status()
 
-            logger.info(f"DB SET: {path}")
+            logger.info(f"DB SET: {org_path}")
             return {
                 'success': True,
                 'data': response.json()
@@ -234,14 +258,16 @@ class FirebaseClient:
         if not self.ensure_valid_token():
             return {'success': False, 'error': 'Not authenticated'}
 
-        url = f"{self.database_url}/{path}.json"
+        # MULTI-TENANCY: Automatically prefix with org path
+        org_path = self._get_org_path(path)
+        url = f"{self.database_url}/{org_path}.json"
         params = {'auth': self.id_token}
 
         try:
             response = requests.patch(url, params=params, json=data, timeout=10)
             response.raise_for_status()
 
-            logger.info(f"DB UPDATE: {path}")
+            logger.info(f"DB UPDATE: {org_path}")
             return {
                 'success': True,
                 'data': response.json()
@@ -262,14 +288,16 @@ class FirebaseClient:
         if not self.ensure_valid_token():
             return {'success': False, 'error': 'Not authenticated'}
 
-        url = f"{self.database_url}/{path}.json"
+        # MULTI-TENANCY: Automatically prefix with org path
+        org_path = self._get_org_path(path)
+        url = f"{self.database_url}/{org_path}.json"
         params = {'auth': self.id_token}
 
         try:
             response = requests.delete(url, params=params, timeout=10)
             response.raise_for_status()
 
-            logger.info(f"DB DELETE: {path}")
+            logger.info(f"DB DELETE: {org_path}")
             return {'success': True}
 
         except requests.exceptions.RequestException as e:

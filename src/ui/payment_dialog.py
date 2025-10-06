@@ -27,11 +27,12 @@ class FirebaseStreamListener(QThread):
     
     status_changed = pyqtSignal(dict)  # Emits purchase data when status changes
     
-    def __init__(self, database_url: str, auth_token: str, purchase_id: str):
+    def __init__(self, database_url: str, auth_token: str, purchase_id: str, org_id: str):
         super().__init__()
         self.database_url = database_url
         self.auth_token = auth_token
         self.purchase_id = purchase_id
+        self.org_id = org_id
         self.running = True
         
     def run(self):
@@ -39,8 +40,9 @@ class FirebaseStreamListener(QThread):
         logger.info(f"Starting Firebase stream listener for purchase: {self.purchase_id}")
         
         try:
-            # Firebase streaming endpoint
-            stream_url = f"{self.database_url}/purchases/{self.purchase_id}.json"
+            # Firebase streaming endpoint with multi-tenancy
+            org_path = f"organizations/{self.org_id}/purchases/{self.purchase_id}"
+            stream_url = f"{self.database_url}/{org_path}.json"
             params = {'auth': self.auth_token}
             
             # Open streaming connection
@@ -125,7 +127,8 @@ class PaymentDialog(QDialog):
             self.listener_thread = FirebaseStreamListener(
                 self.auth_service.firebase.database_url,
                 self.auth_service.firebase.id_token,
-                self.purchase_id
+                self.purchase_id,
+                self.auth_service.firebase.org_id  # MULTI-TENANCY
             )
             self.listener_thread.status_changed.connect(self.on_purchase_completed)
             self.listener_thread.start()
@@ -167,10 +170,11 @@ class PaymentDialog(QDialog):
             self.status_timer.stop()
             return
 
-        # Get purchase status from Firebase
+        # Get purchase status from Firebase with multi-tenancy
         try:
+            org_path = f"organizations/{self.auth_service.firebase.org_id}/purchases/{self.purchase_id}"
             response = requests.get(
-                f"{self.auth_service.firebase.database_url}/purchases/{self.purchase_id}.json",
+                f"{self.auth_service.firebase.database_url}/{org_path}.json",
                 params={'auth': self.auth_service.firebase.id_token}
             )
 
@@ -310,6 +314,7 @@ class PaymentDialog(QDialog):
             'packagePrints': str(self.package.get('prints', 0)),
             'userName': f"{self.user.get('firstName', '')} {self.user.get('lastName', '')}",
             'callbackUrl': callback_url,
+            'orgId': self.auth_service.firebase.org_id,  # MULTI-TENANCY: Pass org to payment gateway
             # purchaseId will be set by JavaScript after calling createPendingPurchase
         }
 

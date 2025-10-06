@@ -54,7 +54,8 @@ exports.nedarimCallback = onRequest(async (req, res) => {
       Status,
       Amount,
       CreditCardNumber,
-      Param1, // We'll use this to store purchaseId
+      Param1, // purchaseId
+      Param2, // orgId (MULTI-TENANCY)
       Message,
     } = paymentData;
 
@@ -67,8 +68,9 @@ exports.nedarimCallback = onRequest(async (req, res) => {
       });
     }
 
-    // Parse purchaseId from Param1
+    // Parse purchaseId and orgId
     const purchaseId = Param1;
+    const orgId = Param2;
 
     if (!purchaseId) {
       logger.error("Missing purchaseId in Param1");
@@ -78,10 +80,18 @@ exports.nedarimCallback = onRequest(async (req, res) => {
       });
     }
 
-    // Update purchase status in Firebase
+    if (!orgId) {
+      logger.error("Missing orgId in Param2");
+      return res.status(400).json({
+        success: false,
+        error: "Missing orgId (multi-tenancy)",
+      });
+    }
+
+    // MULTI-TENANCY: Update purchase status in organization-specific path
     const purchaseRef = admin
         .database()
-        .ref(`purchases/${purchaseId}`);
+        .ref(`organizations/${orgId}/purchases/${purchaseId}`);
 
     const updateData = {
       status: Status === "Error" ? "failed" : "completed",
@@ -103,7 +113,8 @@ exports.nedarimCallback = onRequest(async (req, res) => {
       const purchase = purchaseSnapshot.val();
 
       if (purchase && purchase.userId) {
-        const userRef = admin.database().ref(`users/${purchase.userId}`);
+        // MULTI-TENANCY: Access user in organization-specific path
+        const userRef = admin.database().ref(`organizations/${orgId}/users/${purchase.userId}`);
         const userSnapshot = await userRef.once("value");
         const user = userSnapshot.val();
 

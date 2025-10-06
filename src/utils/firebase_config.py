@@ -19,6 +19,9 @@ class FirebaseConfig:
         self.auth_domain = os.getenv('FIREBASE_AUTH_DOMAIN')
         self.database_url = os.getenv('FIREBASE_DATABASE_URL')
         self.project_id = os.getenv('FIREBASE_PROJECT_ID')
+        
+        # MULTI-TENANCY: Organization ID for data isolation
+        self.org_id = os.getenv('ORG_ID')
 
         self._validate()
 
@@ -30,6 +33,21 @@ class FirebaseConfig:
             raise ValueError("FIREBASE_DATABASE_URL missing in .env")
         if not self.project_id:
             raise ValueError("FIREBASE_PROJECT_ID missing in .env")
+        if not self.org_id:
+            raise ValueError(
+                "ORG_ID missing in .env\n"
+                "This identifies your organization in the database.\n"
+                "Example: ORG_ID=myorg"
+            )
+        
+        # Validate org_id format (alphanumeric, lowercase, hyphens)
+        import re
+        if not re.match(r'^[a-z0-9-]+$', self.org_id):
+            raise ValueError(
+                f"Invalid ORG_ID: '{self.org_id}'\n"
+                "Must contain only lowercase letters, numbers, and hyphens.\n"
+                "Example: myorg, tech-lab, university-cs"
+            )
 
     @property
     def auth_url(self):

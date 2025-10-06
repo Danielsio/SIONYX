@@ -17,6 +17,8 @@ class PurchaseService:
 
     def __init__(self, firebase_client: FirebaseClient):
         self.firebase = firebase_client
+        # MULTI-TENANCY: Get org_id for direct requests
+        self.org_id = firebase_client.org_id
 
     def create_pending_purchase(self, user_id: str, package: Dict) -> Dict:
         """
@@ -40,9 +42,10 @@ class PurchaseService:
                 'updatedAt': datetime.now().isoformat()
             }
 
-            # Create in Firebase
+            # Create in Firebase with multi-tenancy support
+            org_path = f"organizations/{self.org_id}/purchases"
             response = requests.post(
-                f"{self.firebase.database_url}/purchases.json",
+                f"{self.firebase.database_url}/{org_path}.json",
                 params={'auth': self.firebase.id_token},
                 json=purchase_data
             )
