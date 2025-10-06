@@ -453,7 +453,7 @@
             }
         }
 
-        function handlePayment() {
+        async function handlePayment() {
             // Validate
             const name = document.getElementById('clientName').value.trim();
             const street = document.getElementById('street').value.trim();
@@ -469,32 +469,66 @@
             document.getElementById('loadingPayment').classList.add('active');
             document.getElementById('errorMessage').classList.remove('show');
 
-            // Send payment request WITH CALLBACK
-            postToNedarim({
-                'Name': 'FinishTransaction2',
-                'Value': {
-                    'Mosad': CONFIG.mosadId,
-                    'ApiValid': CONFIG.apiValid,
-                    'PaymentType': 'Ragil',
-                    'Currency': '1',
-                    'Zeout': '',
-                    'FirstName': name,
-                    'LastName': '',
-                    'Street': street,
-                    'City': city,
-                    'Phone': '',
-                    'Mail': '',
-                    'Amount': CONFIG.amount,
-                    'Tashlumim': '1',
-                    'Groupe': '',
-                    'Comment': 'רכישת חבילה: ' + CONFIG.packageName,
-                    'Param1': CONFIG.purchaseId,  // CRITICAL: Send purchaseId
-                    'Param2': '',
-                    'ForceUpdateMatching': '0',
-                    'CallBack': CONFIG.callbackUrl,  // CRITICAL: Callback URL
-                    'CallBackMailError': ''
+            // COST OPTIMIZATION: Create pending purchase ONLY when user clicks pay
+            console.log('Creating pending purchase...');
+            try {
+                // Call Python via QWebChannel to create pending purchase
+                const resultJson = await new Promise((resolve) => {
+                    if (typeof qt !== 'undefined' && qt.webChannelTransport) {
+                        new QWebChannel(qt.webChannelTransport, function(channel) {
+                            const result = channel.objects.payment_bridge.createPendingPurchase();
+                            resolve(result);
+                        });
+                    } else {
+                        resolve(JSON.stringify({success: false, error: 'No bridge'}));
+                    }
+                });
+
+                const result = JSON.parse(resultJson);
+                
+                if (!result.success) {
+                    console.error('Failed to create pending purchase:', result.error);
+                    document.getElementById('formSection').style.display = 'block';
+                    document.getElementById('loadingPayment').classList.remove('active');
+                    showError('שגיאה ביצירת רכישה. נסה שוב.');
+                    return;
                 }
-            });
+
+                const purchaseId = result.purchase_id;
+                console.log('Pending purchase created:', purchaseId);
+
+                // Send payment request WITH CALLBACK and purchase ID
+                postToNedarim({
+                    'Name': 'FinishTransaction2',
+                    'Value': {
+                        'Mosad': CONFIG.mosadId,
+                        'ApiValid': CONFIG.apiValid,
+                        'PaymentType': 'Ragil',
+                        'Currency': '1',
+                        'Zeout': '',
+                        'FirstName': name,
+                        'LastName': '',
+                        'Street': street,
+                        'City': city,
+                        'Phone': '',
+                        'Mail': '',
+                        'Amount': CONFIG.amount,
+                        'Tashlumim': '1',
+                        'Groupe': '',
+                        'Comment': 'רכישת חבילה: ' + CONFIG.packageName,
+                        'Param1': purchaseId,  // CRITICAL: Send purchaseId from Python
+                        'Param2': '',
+                        'ForceUpdateMatching': '0',
+                        'CallBack': CONFIG.callbackUrl,  // CRITICAL: Callback URL
+                        'CallBackMailError': ''
+                    }
+                });
+            } catch (error) {
+                console.error('Error creating pending purchase:', error);
+                document.getElementById('formSection').style.display = 'block';
+                document.getElementById('loadingPayment').classList.remove('active');
+                showError('שגיאה ביצירת רכישה. נסה שוב.');
+            }
         }
 
         function handleTransactionResponse(response) {

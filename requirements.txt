@@ -5,6 +5,9 @@ PyQt6
 # HTTP Client
 requests
 
+# Firebase Realtime Database Streaming
+sseclient-py
+
 # Security & Encryption
 cryptography
 
