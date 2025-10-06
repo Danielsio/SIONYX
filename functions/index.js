@@ -81,7 +81,7 @@ exports.nedarimCallback = onRequest(async (req, res) => {
     // Update purchase status in Firebase
     const purchaseRef = admin
         .database()
-        .ref(`pendingPurchases/${purchaseId}`);
+        .ref(`purchases/${purchaseId}`);
 
     const updateData = {
       status: Status === "Error" ? "failed" : "completed",

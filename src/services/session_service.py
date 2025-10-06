@@ -82,38 +82,28 @@ class SessionService(QObject):
                 'error': 'No time remaining'
             }
 
-        # Create session in Firebase
-        session_data = {
-            'userId': self.user_id,
-            'startTime': datetime.now().isoformat(),
-            'lastHeartbeat': datetime.now().isoformat(),
-            'isActive': True,
-            'timeUsed': 0,
-            'status': 'active'
-        }
+        # OPTIMIZATION: No separate session table!
+        # Store everything on user record to save 50% more writes
+        now = datetime.now().isoformat()
+        
+        result = self.firebase.db_update(f'users/{self.user_id}', {
+            'isSessionActive': True,
+            'sessionStartTime': now,
+            'lastActivity': now,
+            'updatedAt': now
+        })
 
-        # Generate session ID using Firebase push
-        import requests
-        response = requests.post(
-            f"{self.firebase.database_url}/sessions.json",
-            params={'auth': self.firebase.id_token},
-            json=session_data
-        )
-
-        if response.status_code != 200:
-            logger.error(f"Failed to create session: {response.text}")
+        if not result.get('success'):
+            logger.error("Failed to start session")
             return {
                 'success': False,
-                'error': 'Failed to create session in database'
+                'error': 'Failed to start session'
             }
 
-        self.session_id = response.json()['name']
-        logger.info(f"Session created: {self.session_id}")
-
-        # Update user's active session
-        self.firebase.db_update(f'users/{self.user_id}', {
-            'activeSessionId': self.session_id
-        })
+        # Generate local session ID for tracking
+        import uuid
+        self.session_id = str(uuid.uuid4())
+        logger.info(f"Session started (local ID: {self.session_id})")
 
         # Initialize local state
         self.remaining_time = initial_remaining_time
@@ -124,8 +114,8 @@ class SessionService(QObject):
         self.warned_1min = False
 
         # Start timers
-        self.countdown_timer.start(1000)  # Every second
-        self.sync_timer.start(10000)  # Every 10 seconds
+        self.countdown_timer.start(1000)  # Every second (local countdown, free)
+        self.sync_timer.start(60000)  # Every 60 seconds (83% cost reduction!)
 
         logger.info(f"Session started with {initial_remaining_time}s")
         return {
@@ -194,30 +184,26 @@ class SessionService(QObject):
             self.end_session('expired')
 
     def _sync_to_firebase(self):
-        """Sync session state to Firebase every 10 seconds"""
+        """Sync session state to Firebase every 60 seconds"""
         if not self.is_active:
             return
 
-        logger.debug("Syncing session to Firebase")
+        logger.debug("Syncing user state to Firebase")
 
-        sync_data = {
-            'lastHeartbeat': datetime.now().isoformat(),
-            'timeUsed': self.time_used
-        }
-
-        # Update session
-        session_result = self.firebase.db_update(
-            f'sessions/{self.session_id}',
-            sync_data
-        )
-
-        # Update user's remaining time
+        # OPTIMIZATION: Only update user record!
+        # No separate session table = 50% fewer writes
+        now = datetime.now().isoformat()
+        
         user_result = self.firebase.db_update(
             f'users/{self.user_id}',
-            {'remainingTime': self.remaining_time}
+            {
+                'remainingTime': self.remaining_time,
+                'lastActivity': now,
+                'updatedAt': now
+            }
         )
 
-        if session_result.get('success') and user_result.get('success'):
+        if user_result.get('success'):
             logger.debug("Sync successful")
 
             # Reset failure counter
@@ -235,32 +221,28 @@ class SessionService(QObject):
                 self.is_online = False
                 self.sync_failed.emit("Connection lost")
 
-            # Queue update for retry
+            # Queue update for retry (simplified)
             self.sync_queue.append({
                 'timestamp': time.time(),
-                'data': sync_data
+                'remainingTime': self.remaining_time
             })
 
     def _final_sync(self, reason: str):
         """Final sync when ending session"""
         logger.info("Final session sync")
 
-        # Update session
-        session_data = {
-            'endTime': datetime.now().isoformat(),
-            'isActive': False,
-            'status': 'completed' if reason == 'user' else reason,
-            'timeUsed': self.time_used,
-            'lastHeartbeat': datetime.now().isoformat()
-        }
-
-        self.firebase.db_update(f'sessions/{self.session_id}', session_data)
-
-        # Update user
+        # OPTIMIZATION: Only update user record, no separate session
+        now = datetime.now().isoformat()
+        
         self.firebase.db_update(f'users/{self.user_id}', {
             'remainingTime': max(0, self.remaining_time),
-            'activeSessionId': None
+            'isSessionActive': False,
+            'sessionStartTime': None,
+            'lastActivity': now,
+            'updatedAt': now
         })
+        
+        logger.info(f"Session ended. Reason: {reason}, Time used: {self.time_used}s")
 
     def get_remaining_time(self) -> int:
         """Get current remaining time in seconds"""

@@ -3,7 +3,7 @@ Authentication Service - Firebase Realtime Database
 """
 
 from typing import Dict, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from services.firebase_client import FirebaseClient
 from database.local_db import LocalDatabase
@@ -40,6 +40,10 @@ class AuthService:
                 self.current_user = user_result['data']
                 self.current_user['uid'] = self.firebase.user_id
                 logger.info("User auto-logged in")
+                
+                # Check for crashed/orphaned session and recover time
+                self._recover_orphaned_session(self.firebase.user_id)
+                
                 return True
 
         return False
@@ -75,6 +79,9 @@ class AuthService:
 
         self.current_user = user_result['data']
         self.current_user['uid'] = uid
+
+        # Check for crashed/orphaned session and recover time
+        self._recover_orphaned_session(uid)
 
         # Store credentials locally (encrypted)
         self.local_db.store_credentials(
@@ -197,6 +204,75 @@ class AuthService:
             logger.info(f"User data updated for {uid}")
 
         return result
+
+    def _recover_orphaned_session(self, user_id: str):
+        """
+        Clean up orphaned/crashed sessions WITHOUT deducting time.
+        
+        USER-FRIENDLY APPROACH:
+        - Max "stolen" time is 60 seconds (one sync interval)
+        - Could be innocent: power outage, crash, forgot to logout
+        - Better to be forgiving than punish users for technical issues
+        - Runs only on login (free, no extra cost)
+        """
+        try:
+            logger.info(f"Checking for orphaned session for user: {user_id}")
+            
+            # Get user data
+            user_result = self.firebase.db_get(f'users/{user_id}')
+            if not user_result.get('success') or not user_result.get('data'):
+                return
+            
+            user_data = user_result['data']
+            is_session_active = user_data.get('isSessionActive', False)
+            
+            if not is_session_active:
+                logger.debug("No active session to clean up")
+                return
+            
+            # Parse last activity
+            last_activity_str = user_data.get('lastActivity')
+            if not last_activity_str:
+                logger.warning("Session has no lastActivity, cleaning up anyway")
+                # Just clean up
+                self.firebase.db_update(f'users/{user_id}', {
+                    'isSessionActive': False,
+                    'sessionStartTime': None,
+                    'updatedAt': datetime.now().isoformat()
+                })
+                return
+            
+            # Calculate time since last activity
+            try:
+                last_activity = datetime.fromisoformat(last_activity_str)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid lastActivity format: {last_activity_str}")
+                return
+            
+            now = datetime.now()
+            time_since_activity = (now - last_activity).total_seconds()
+            
+            # If activity is older than 2 minutes, session ended abnormally
+            if time_since_activity > 120:  # 2 minutes
+                logger.info(f"🧹 Orphaned session detected ({time_since_activity:.0f}s since last activity)")
+                logger.info("Being kind: NOT deducting time (could be power outage/crash)")
+                logger.info("Max time 'lost': 60 seconds from last sync - acceptable!")
+                
+                # Clean up session WITHOUT deducting time
+                self.firebase.db_update(f'users/{user_id}', {
+                    'isSessionActive': False,
+                    'sessionStartTime': None,
+                    'updatedAt': now.isoformat()
+                })
+                
+                logger.info("✅ Session cleaned up (no time deducted)")
+                
+            else:
+                logger.debug(f"Session is recent ({time_since_activity:.0f}s old), no cleanup needed")
+                
+        except Exception as e:
+            logger.error(f"Failed to recover orphaned session: {e}")
+            # Don't fail login if recovery fails
 
     @staticmethod
     def _phone_to_email(phone: str) -> str:

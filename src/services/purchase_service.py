@@ -42,7 +42,7 @@ class PurchaseService:
 
             # Create in Firebase
             response = requests.post(
-                f"{self.firebase.database_url}/pendingPurchases.json",
+                f"{self.firebase.database_url}/purchases.json",
                 params={'auth': self.firebase.id_token},
                 json=purchase_data
             )
@@ -83,7 +83,7 @@ class PurchaseService:
 
     def get_purchase_status(self, purchase_id: str) -> Dict:
         """Get current purchase status"""
-        result = self.firebase.db_get(f'pendingPurchases/{purchase_id}')
+        result = self.firebase.db_get(f'purchases/{purchase_id}')
 
         if result.get('success'):
             return {

@@ -40,7 +40,7 @@ class FirebaseStreamListener(QThread):
         
         try:
             # Firebase streaming endpoint
-            stream_url = f"{self.database_url}/pendingPurchases/{self.purchase_id}.json"
+            stream_url = f"{self.database_url}/purchases/{self.purchase_id}.json"
             params = {'auth': self.auth_token}
             
             # Open streaming connection
@@ -170,7 +170,7 @@ class PaymentDialog(QDialog):
         # Get purchase status from Firebase
         try:
             response = requests.get(
-                f"{self.auth_service.firebase.database_url}/pendingPurchases/{self.purchase_id}.json",
+                f"{self.auth_service.firebase.database_url}/purchases/{self.purchase_id}.json",
                 params={'auth': self.auth_service.firebase.id_token}
             )
 
