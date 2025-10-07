@@ -4,9 +4,10 @@ Professional UI/UX for all app dialogs
 """
 
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                            QPushButton, QFrame, QGraphicsOpacityEffect)
+                            QPushButton, QFrame, QGraphicsOpacityEffect,
+                            QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon
+from PyQt6.QtGui import QFont, QIcon, QColor
 
 
 class ModernDialog(QDialog):
@@ -21,9 +22,9 @@ class ModernDialog(QDialog):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        # Animation setup
-        self.opacity_effect = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self.opacity_effect)
+        # Animation setup - apply to container, NOT the dialog itself
+        self.opacity_effect = None
+        self.animation_widget = None
         
         self.setup_ui()
         self.apply_styles()
@@ -31,7 +32,7 @@ class ModernDialog(QDialog):
     def setup_ui(self):
         """Setup the basic UI structure"""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(40, 40, 40, 40)
+        main_layout.setContentsMargins(24, 24, 24, 24)
         
         # Dark overlay background
         self.overlay = QFrame()
@@ -43,63 +44,106 @@ class ModernDialog(QDialog):
         self.container = QFrame()
         self.container.setObjectName("dialogContainer")
         container_layout = QVBoxLayout(self.container)
-        container_layout.setSpacing(20)
-        container_layout.setContentsMargins(35, 35, 35, 35)
+        container_layout.setSpacing(16)
+        container_layout.setContentsMargins(24, 24, 24, 24)
+        
+        # Add dramatic drop shadow
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(40)
+        shadow.setXOffset(0)
+        shadow.setYOffset(12)
+        shadow.setColor(QColor(0, 0, 0, 100))
+        self.container.setGraphicsEffect(shadow)
+        
+        # Store reference for animation target
+        self.animation_widget = self.container
         
         overlay_layout.addWidget(self.container)
         main_layout.addWidget(self.overlay)
         
     def apply_styles(self):
-        """Apply modern styling with better contrast"""
+        """Apply modern styling with MAXIMUM contrast"""
         self.setStyleSheet("""
             QDialog {
-                background: rgba(0, 0, 0, 180);
+                /* Subtle scrim to lift the dialog above content */
+                background: rgba(0, 0, 0, 120);
             }
             
             #dialogOverlay {
                 background: transparent;
+                padding: 8px;
             }
             
             #dialogContainer {
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #FFFFFF,
-                    stop:1 #F5F7FA
-                );
-                border-radius: 24px;
-                border: 3px solid rgba(255, 255, 255, 0.8);
-                /* Outer glow for depth */
-                padding: 2px;
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #FFFFFF, stop:1 #F9FAFB);
+                border-radius: 18px;
+                border: 1px solid rgba(229, 231, 235, 0.8);
             }
         """)
         
     def show_animated(self):
         """Show dialog with fade-in animation"""
-        self.opacity_effect.setOpacity(0)
+        # Create opacity effect for animation ONLY on the container
+        if self.animation_widget and not self.opacity_effect:
+            # Apply opacity effect for animation
+            self.opacity_effect = QGraphicsOpacityEffect()
+            self.animation_widget.setGraphicsEffect(self.opacity_effect)
+            self.opacity_effect.setOpacity(0)
+        
         self.show()
         
-        # Fade in animation
-        self.fade_in = QPropertyAnimation(self.opacity_effect, b"opacity")
-        self.fade_in.setDuration(200)
-        self.fade_in.setStartValue(0)
-        self.fade_in.setEndValue(1)
-        self.fade_in.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self.fade_in.start()
+        if self.opacity_effect:
+            # Fade in animation
+            self.fade_in = QPropertyAnimation(self.opacity_effect, b"opacity")
+            self.fade_in.setDuration(250)
+            self.fade_in.setStartValue(0)
+            self.fade_in.setEndValue(1)
+            self.fade_in.setEasingCurve(QEasingCurve.Type.OutCubic)
+            
+            # Restore shadow effect after animation
+            def restore_shadow():
+                if self.animation_widget:
+                    # Create a NEW shadow effect instead of reusing the old one
+                    # (Qt deletes the old effect when we replace it)
+                    shadow = QGraphicsDropShadowEffect()
+                    shadow.setBlurRadius(40)
+                    shadow.setXOffset(0)
+                    shadow.setYOffset(12)
+                    shadow.setColor(QColor(0, 0, 0, 100))
+                    self.animation_widget.setGraphicsEffect(shadow)
+                    self.opacity_effect = None
+            
+            self.fade_in.finished.connect(restore_shadow)
+            self.fade_in.start()
         
     def close_animated(self, result=None):
         """Close dialog with fade-out animation"""
-        self.fade_out = QPropertyAnimation(self.opacity_effect, b"opacity")
-        self.fade_out.setDuration(150)
-        self.fade_out.setStartValue(1)
-        self.fade_out.setEndValue(0)
-        self.fade_out.setEasingCurve(QEasingCurve.Type.InCubic)
+        # Apply opacity effect for closing animation if not already present
+        if self.animation_widget and not self.opacity_effect:
+            self.opacity_effect = QGraphicsOpacityEffect()
+            self.animation_widget.setGraphicsEffect(self.opacity_effect)
+            self.opacity_effect.setOpacity(1)
         
-        if result is not None:
-            self.fade_out.finished.connect(lambda: self.done(result))
-        else:
-            self.fade_out.finished.connect(self.close)
+        if self.opacity_effect:
+            self.fade_out = QPropertyAnimation(self.opacity_effect, b"opacity")
+            self.fade_out.setDuration(150)
+            self.fade_out.setStartValue(1)
+            self.fade_out.setEndValue(0)
+            self.fade_out.setEasingCurve(QEasingCurve.Type.InCubic)
             
-        self.fade_out.start()
+            if result is not None:
+                self.fade_out.finished.connect(lambda: self.done(result))
+            else:
+                self.fade_out.finished.connect(self.close)
+                
+            self.fade_out.start()
+        else:
+            # No animation, just close
+            if result is not None:
+                self.done(result)
+            else:
+                self.close()
 
 
 class ModernMessageBox(ModernDialog):
@@ -146,7 +190,7 @@ class ModernMessageBox(ModernDialog):
         # Title
         title_label = QLabel(self.title_text)
         title_label.setObjectName("dialogTitle")
-        title_label.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        title_label.setFont(QFont("Segoe UI", 18, QFont.Weight.DemiBold))
         title_label.setWordWrap(True)
         
         header_layout.addWidget(icon_label)
@@ -197,7 +241,7 @@ class ModernMessageBox(ModernDialog):
         container_layout.addLayout(buttons_layout)
         
         # Set fixed width for better appearance
-        self.setFixedWidth(500)
+        self.setFixedWidth(440)
         
     def _get_icon_emoji(self):
         """Get emoji icon based on message type"""
@@ -234,95 +278,83 @@ class ModernMessageBox(ModernDialog):
         
         self.setStyleSheet(self.styleSheet() + f"""
             #dialogIcon {{
-                font-size: 44px;
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {icon_color}30,
-                    stop:1 {icon_color}15
-                );
-                border: 2px solid {icon_color}40;
-                border-radius: 26px;
+                font-size: 36px;
+                background: {icon_color}1F; /* ~12% */
+                border: none;
+                border-radius: 12px;
+                padding: 4px;
             }}
             
             #dialogTitle {{
-                color: #1a1a1a;
-                padding-top: 5px;
-                font-weight: bold;
+                color: #111827;
+                padding-top: 2px;
+                font-weight: 700;
+                font-size: 18px;
             }}
             
             #dialogMessage {{
-                color: #2c3e50;
-                line-height: 1.7;
+                color: #374151;
                 font-size: 14px;
+                font-weight: 500;
             }}
             
             #dialogDetailed {{
-                color: #34495e;
-                line-height: 1.6;
-                padding: 16px;
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #f8f9fa,
-                    stop:1 #e9ecef
-                );
-                border: 1px solid #dee2e6;
-                border-radius: 12px;
-                margin-top: 8px;
+                color: #4B5563;
+                padding: 12px;
+                background: #F3F4F6;
+                border: 1px solid #E5E7EB;
+                border-radius: 10px;
+                margin-top: 6px;
             }}
             
             #dialogButton {{
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #e9ecef,
-                    stop:1 #dee2e6
-                );
-                color: #495057;
-                border: 2px solid #ced4da;
-                border-radius: 24px;
-                padding: 14px 32px;
-                font-size: 15px;
-                font-weight: 700;
-                min-width: 120px;
+                background: #FFFFFF;
+                color: #374151;
+                border: 2px solid #D1D5DB;
+                border-radius: 10px;
+                padding: 12px 20px;
+                font-size: 14px;
+                font-weight: 600;
+                min-width: 100px;
+                transition: all 0.2s ease;
             }}
             
             #dialogButton:hover {{
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #dee2e6,
-                    stop:1 #ced4da
-                );
-                border: 2px solid #adb5bd;
+                background: #F3F4F6;
+                border-color: #9CA3AF;
+                color: #111827;
+                transform: translateY(-1px);
             }}
             
             #dialogButton:pressed {{
-                background: #ced4da;
-                border: 2px solid #6c757d;
+                background: #E5E7EB;
+                border-color: #6B7280;
+                color: #111827;
+                transform: translateY(0px);
             }}
             
             #dialogButton[primary="true"] {{
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {self._adjust_color(icon_color, 15)},
-                    stop:1 {icon_color}
-                );
-                color: white;
-                border: 2px solid {self._adjust_color(icon_color, -20)};
-                text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 {icon_color}, stop:1 {self._adjust_color(icon_color, -20)});
+                color: #FFFFFF;
+                border: none;
                 font-weight: 700;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             }}
             
             #dialogButton[primary="true"]:hover {{
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 {icon_color},
-                    stop:1 {self._adjust_color(icon_color, -15)}
-                );
-                border: 2px solid {self._adjust_color(icon_color, -30)};
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 {self._adjust_color(icon_color, 10)}, stop:1 {self._adjust_color(icon_color, -10)});
+                color: #FFFFFF;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+                transform: translateY(-1px);
             }}
             
             #dialogButton[primary="true"]:pressed {{
-                background: {self._adjust_color(icon_color, -20)};
-                border: 2px solid {self._adjust_color(icon_color, -40)};
+                background: {self._adjust_color(icon_color, -30)};
+                color: #FFFFFF;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+                transform: translateY(0px);
             }}
         """)
     
@@ -548,26 +580,23 @@ class ModernNotification(QDialog):
         
         self.setStyleSheet(f"""
             #notificationContainer {{
-                background: qlineargradient(
-                    x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #ffffff,
-                    stop:1 #f8f9fa
-                );
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #FFFFFF, stop:1 #F9FAFB);
                 border-left: 5px solid {color};
-                border: 2px solid {color}40;
-                border-left: 5px solid {color};
-                border-radius: 12px;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+                border: 1px solid #E5E7EB;
+                border-radius: 14px;
             }}
             
             #notificationIcon {{
                 color: {color};
-                font-size: 18px;
+                font-size: 20px;
+                padding: 2px;
             }}
             
             #notificationMessage {{
-                color: #1a1a1a;
+                color: #1F2937;
                 font-weight: 600;
+                font-size: 13px;
             }}
         """)
     
@@ -586,33 +615,40 @@ class ModernNotification(QDialog):
         
         self.move(x, y)
         
-        # Opacity animation
-        self.opacity_effect = QGraphicsOpacityEffect(self)
-        self.setGraphicsEffect(self.opacity_effect)
-        
-        # Fade in
-        self.opacity_effect.setOpacity(0)
-        self.show()
-        
-        fade_in = QPropertyAnimation(self.opacity_effect, b"opacity")
-        fade_in.setDuration(200)
-        fade_in.setStartValue(0)
-        fade_in.setEndValue(1)
-        fade_in.setEasingCurve(QEasingCurve.Type.OutCubic)
-        fade_in.start()
+        # Apply opacity to layout widget, not dialog itself
+        self.opacity_effect = QGraphicsOpacityEffect()
+        container = self.findChild(QFrame, "notificationContainer")
+        if container:
+            container.setGraphicsEffect(self.opacity_effect)
+            
+            # Fade in
+            self.opacity_effect.setOpacity(0)
+            self.show()
+            
+            self.fade_in_anim = QPropertyAnimation(self.opacity_effect, b"opacity")
+            self.fade_in_anim.setDuration(200)
+            self.fade_in_anim.setStartValue(0)
+            self.fade_in_anim.setEndValue(1)
+            self.fade_in_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+            self.fade_in_anim.start()
+        else:
+            self.show()
         
         # Auto dismiss
         QTimer.singleShot(self.duration, self.dismiss_notification)
     
     def dismiss_notification(self):
         """Dismiss notification with fade out"""
-        fade_out = QPropertyAnimation(self.opacity_effect, b"opacity")
-        fade_out.setDuration(200)
-        fade_out.setStartValue(1)
-        fade_out.setEndValue(0)
-        fade_out.setEasingCurve(QEasingCurve.Type.InCubic)
-        fade_out.finished.connect(self.close)
-        fade_out.start()
+        if self.opacity_effect:
+            self.fade_out_anim = QPropertyAnimation(self.opacity_effect, b"opacity")
+            self.fade_out_anim.setDuration(200)
+            self.fade_out_anim.setStartValue(1)
+            self.fade_out_anim.setEndValue(0)
+            self.fade_out_anim.setEasingCurve(QEasingCurve.Type.InCubic)
+            self.fade_out_anim.finished.connect(self.close)
+            self.fade_out_anim.start()
+        else:
+            self.close()
     
     @staticmethod
     def show(parent, message, message_type="info", duration=3000):

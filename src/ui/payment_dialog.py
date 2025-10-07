@@ -330,7 +330,15 @@ class PaymentDialog(QDialog):
     def on_payment_cancelled(self):
         """Handle cancellation"""
         logger.info("Payment cancelled")
-        self.status_timer.stop()
+        
+        # Stop polling timer if it exists (only exists for fallback polling)
+        if hasattr(self, 'status_timer'):
+            self.status_timer.stop()
+        
+        # Stop Firebase stream listener if active
+        if self.listener_thread and self.listener_thread.isRunning():
+            self.listener_thread.stop()
+        
         self.reject()
 
     def get_payment_response(self):
