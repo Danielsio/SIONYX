@@ -201,14 +201,14 @@ class MainWindow(BaseKioskWindow):
         """Logout"""
         logger.warning("Logout requested")
 
-        reply = QMessageBox.question(
-            self,
+        confirmed = self.show_confirm(
             "Confirm Logout",
             "Are you sure you want to logout?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            confirm_text="Yes, Logout",
+            cancel_text="Cancel"
         )
 
-        if reply == QMessageBox.StandardButton.Yes:
+        if confirmed:
             if hasattr(self.home_page, 'cleanup'):
                 self.home_page.cleanup()
 
@@ -299,41 +299,32 @@ class MainWindow(BaseKioskWindow):
 
         # Show appropriate message
         if reason == 'expired':
-            msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Icon.Warning)
-            msg.setWindowTitle("Time Expired")
-            msg.setText("Your session time has expired!")
-            msg.setInformativeText("Would you like to purchase more time?")
-            msg.setStandardButtons(
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            purchase_more = self.show_question(
+                "Time Expired",
+                "Your session time has expired!",
+                "Would you like to purchase more time?",
+                yes_text="Buy More Time",
+                no_text="Not Now"
             )
 
-            if msg.exec() == QMessageBox.StandardButton.Yes:
+            if purchase_more:
                 self.show_page(self.PAGES['PACKAGES'])
 
     def on_warning_5min(self):
         """5 minute warning"""
-        from PyQt6.QtWidgets import QMessageBox
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle("Time Warning")
-        msg.setText("5 minutes remaining!")
-        msg.setInformativeText("Your session will end soon.")
-        msg.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        msg.show()
-        QTimer.singleShot(3000, msg.close)
+        self.show_notification(
+            "⏰ 5 minutes remaining! Your session will end soon.",
+            message_type="warning",
+            duration=4000
+        )
 
     def on_warning_1min(self):
         """1 minute warning"""
-        from PyQt6.QtWidgets import QMessageBox
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Icon.Critical)
-        msg.setWindowTitle("URGENT")
-        msg.setText("Only 1 minute remaining!")
-        msg.setInformativeText("Save your work now!")
-        msg.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
-        msg.show()
-        QTimer.singleShot(5000, msg.close)
+        self.show_notification(
+            "🚨 URGENT: Only 1 minute remaining! Save your work now!",
+            message_type="error",
+            duration=6000
+        )
 
     def on_sync_failed(self, error: str):
         """Handle sync failure"""

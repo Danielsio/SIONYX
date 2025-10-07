@@ -5,8 +5,10 @@ Base Window - Shared functionality for all fullscreen kiosk windows
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication, QMessageBox, QInputDialog, QLineEdit
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QKeySequence, QShortcut
+import sys
 
 from ui.styles import BASE_QSS
+from ui.modern_dialogs import ModernMessageBox, ModernConfirmDialog, ModernNotification
 
 class BaseKioskWindow(QWidget):
     """Base class for fullscreen kiosk windows"""
@@ -103,29 +105,11 @@ class BaseKioskWindow(QWidget):
             sys.exit(0)
 
         elif ok:
-            msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Icon.Critical)
-            msg.setWindowTitle("Access Denied")
-            msg.setText("Incorrect administrator password")
-            msg.setStyleSheet("""
-                QMessageBox {
-                    background-color: white;
-                }
-                QLabel {
-                    color: #D32F2F;
-                    font-size: 14px;
-                    font-weight: 600;
-                }
-                QPushButton {
-                    background-color: #D32F2F;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 10px 24px;
-                    font-weight: 600;
-                }
-            """)
-            msg.exec()
+            ModernMessageBox.error(
+                self,
+                "Access Denied",
+                "Incorrect administrator password"
+            )
 
     def keyPressEvent(self, event):
         """Prevent Escape key from closing"""
@@ -157,61 +141,35 @@ class BaseKioskWindow(QWidget):
         animation.setEasingCurve(QEasingCurve.Type.InOutCubic)
         animation.start()
 
-    def show_error(self, title: str, message: str):
-        """Show standardized error message"""
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle(title)
-        msg.setText(f"<b style='color: #D32F2F;'>{message}</b>")
-        msg.setStyleSheet("""
-            QMessageBox {
-                background-color: white;
-            }
-            QLabel {
-                color: #212121;
-                font-size: 13px;
-            }
-            QPushButton {
-                background-color: #D32F2F;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 24px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: #C62828;
-            }
-        """)
-        msg.exec()
+    def show_error(self, title: str, message: str, detailed_text: str = ""):
+        """Show modern error message"""
+        ModernMessageBox.error(self, title, message, detailed_text)
 
-    def show_success(self, title: str, message: str):
-        """Show standardized success message"""
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle(title)
-        msg.setText(f"<b style='color: #388E3C;'>{message}</b>")
-        msg.setStyleSheet("""
-            QMessageBox {
-                background-color: white;
-            }
-            QLabel {
-                color: #212121;
-                font-size: 13px;
-            }
-            QPushButton {
-                background-color: #388E3C;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 10px 24px;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background-color: #2E7D32;
-            }
-        """)
-        msg.exec()
+    def show_success(self, title: str, message: str, detailed_text: str = ""):
+        """Show modern success message"""
+        ModernMessageBox.success(self, title, message, detailed_text)
+    
+    def show_warning(self, title: str, message: str, detailed_text: str = ""):
+        """Show modern warning message"""
+        ModernMessageBox.warning(self, title, message, detailed_text)
+    
+    def show_info(self, title: str, message: str, detailed_text: str = ""):
+        """Show modern information message"""
+        ModernMessageBox.information(self, title, message, detailed_text)
+    
+    def show_question(self, title: str, message: str, detailed_text: str = "", 
+                     yes_text: str = "Yes", no_text: str = "No"):
+        """Show modern question dialog, returns True if Yes clicked"""
+        return ModernMessageBox.question(self, title, message, detailed_text, yes_text, no_text)
+    
+    def show_confirm(self, title: str, message: str, confirm_text: str = "Yes", 
+                    cancel_text: str = "No", danger: bool = False):
+        """Show modern confirmation dialog, returns True if confirmed"""
+        return ModernConfirmDialog.confirm(self, title, message, confirm_text, cancel_text, danger)
+    
+    def show_notification(self, message: str, message_type: str = "info", duration: int = 3000):
+        """Show auto-dismissing notification toast"""
+        return ModernNotification.show(self, message, message_type, duration)
 
     def apply_base_stylesheet(self):
         """Apply base stylesheet - consistent across all windows"""

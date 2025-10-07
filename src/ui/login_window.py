@@ -241,13 +241,10 @@ class LoginWindow(BaseKioskWindow):
 
     def forgot_password_clicked(self):
         """Handle forgot password"""
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Information)
-        msg.setWindowTitle("Password Reset")
-        msg.setText("<b>Forgot your password?</b>")
-        msg.setInformativeText(
-            "Please contact your system administrator.\n\n"
-            "Email: support@sionyx.com\n"
-            "Phone: +1 (555) 123-4567"
+        self.show_info(
+            "Password Reset",
+            "Forgot your password?",
+            "Please contact your system administrator.<br><br>"
+            "<b>Email:</b> support@sionyx.com<br>"
+            "<b>Phone:</b> +1 (555) 123-4567"
         )
-        msg.exec()

@@ -417,7 +417,12 @@ class PackagesPage(QWidget):
             payment_response = dialog.get_payment_response()
 
             if not payment_response:
-                QMessageBox.critical(self, "שגיאה", "לא התקבל אישור תשלום")
+                # Get parent window to show dialog
+                parent_window = self.window()
+                if hasattr(parent_window, 'show_error'):
+                    parent_window.show_error("Payment Error", "Payment confirmation not received")
+                else:
+                    QMessageBox.critical(self, "שגיאה", "לא התקבל אישור תשלום")
                 return
 
             # Record purchase and credit account
@@ -433,24 +438,42 @@ class PackagesPage(QWidget):
                 self.current_user['remainingTime'] = purchase_result['new_time']
                 self.current_user['remainingPrints'] = purchase_result['new_prints']
 
-                # Show success
-                QMessageBox.information(
-                    self,
-                    "רכישה הושלמה",
-                    f"הרכישה בוצעה בהצלחה!\n\n"
-                    f"נוספו לחשבונך:\n"
-                    f"• {package.get('minutes')} דקות\n"
-                    f"• {package.get('prints')} הדפסות"
-                )
+                # Show success with modern dialog
+                parent_window = self.window()
+                if hasattr(parent_window, 'show_success'):
+                    parent_window.show_success(
+                        "Purchase Complete! 🎉",
+                        f"Your purchase was successful!",
+                        f"Added to your account:<br>"
+                        f"• <b>{package.get('minutes')} minutes</b> of session time<br>"
+                        f"• <b>{package.get('prints')} prints</b>"
+                    )
+                else:
+                    QMessageBox.information(
+                        self,
+                        "רכישה הושלמה",
+                        f"הרכישה בוצעה בהצלחה!\n\n"
+                        f"נוספו לחשבונך:\n"
+                        f"• {package.get('minutes')} דקות\n"
+                        f"• {package.get('prints')} הדפסות"
+                    )
 
                 # Refresh packages page
                 self.load_packages()
             else:
-                QMessageBox.critical(
-                    self,
-                    "שגיאה",
-                    f"התשלום בוצע אך נכשל עדכון החשבון.\n{purchase_result.get('error')}"
-                )
+                parent_window = self.window()
+                if hasattr(parent_window, 'show_error'):
+                    parent_window.show_error(
+                        "Account Update Failed",
+                        "Payment was processed but account update failed",
+                        purchase_result.get('error', 'Unknown error')
+                    )
+                else:
+                    QMessageBox.critical(
+                        self,
+                        "שגיאה",
+                        f"התשלום בוצע אך נכשל עדכון החשבון.\n{purchase_result.get('error')}"
+                    )
         else:
             # Payment cancelled
             logger.info("Payment cancelled by user")
