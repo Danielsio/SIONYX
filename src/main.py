@@ -33,7 +33,7 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 from PyQt6.QtWidgets import QApplication
-from ui.login_window import LoginWindow
+from ui.auth_window import AuthWindow
 from ui.main_window import MainWindow
 from services.auth_service import AuthService
 from utils.firebase_config import FirebaseConfig
@@ -45,21 +45,20 @@ class SionyxApp:
     def __init__(self):
         logger.info("Initializing application components")
 
-        self.login_window = None
+        self.auth_window = None
         self.main_window = None
 
         try:
+            # Enable high DPI scaling BEFORE creating QApplication
+            QApplication.setHighDpiScaleFactorRoundingPolicy(
+                Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+            )
+            
             # Create QApplication
             self.app = QApplication(sys.argv)
             self.app.setApplicationName(APP_NAME)
             self.app.setOrganizationName(APP_NAME)
-            logger.debug("Qt Application created")
-
-            # Enable high DPI scaling
-            QApplication.setHighDpiScaleFactorRoundingPolicy(
-                Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-            )
-            logger.debug("High DPI scaling enabled")
+            logger.debug("Qt Application created with high DPI scaling enabled")
 
             # Initialize services
             self.config = FirebaseConfig()
@@ -73,29 +72,29 @@ class SionyxApp:
                 logger.info("User session restored from cache")
                 self.show_main_window()
             else:
-                logger.info("No active session, showing login screen")
-                self.show_login_window()
+                logger.info("No active session, showing auth screen")
+                self.show_auth_window()
 
         except Exception as e:
             logger.exception("Failed to initialize application")
             raise
 
-    def show_login_window(self):
-        """Display login window"""
-        logger.info("Opening login window")
-        self.login_window = LoginWindow(self.auth_service)
-        self.login_window.login_success.connect(self.show_main_window)
-        self.login_window.show()
-        logger.debug("Login window displayed")
+    def show_auth_window(self):
+        """Display authentication window"""
+        logger.info("Opening auth window")
+        self.auth_window = AuthWindow(self.auth_service)
+        self.auth_window.login_success.connect(self.show_main_window)
+        self.auth_window.show()
+        logger.debug("Auth window displayed")
 
     def show_main_window(self):
         """Display main dashboard"""
         logger.info("Opening main dashboard")
 
-        if self.login_window is not None:
-            self.login_window.close()
-            self.login_window = None
-            logger.debug("Login window closed")
+        if self.auth_window is not None:
+            self.auth_window.close()
+            self.auth_window = None
+            logger.debug("Auth window closed")
 
         self.main_window = MainWindow(self.auth_service, self.config)
         self.main_window.show()
