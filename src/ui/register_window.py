@@ -9,6 +9,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QColor
 
 from ui.base_window import BaseKioskWindow
+from ui.styles import REGISTER_WINDOW_QSS
 from utils.const import APP_NAME
 
 
@@ -26,6 +27,7 @@ class RegisterWindow(BaseKioskWindow):
     def init_ui(self):
         """Initialize UI"""
         self.setWindowTitle(f"{APP_NAME} - Create Account")
+        self.setObjectName("RegisterWindow")
 
         # Use base class method
         main_layout = self.create_main_layout()
@@ -40,12 +42,12 @@ class RegisterWindow(BaseKioskWindow):
         title_label = QLabel("Create Account")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setFont(QFont("Segoe UI", 40, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: #1976D2;")
+        title_label.setObjectName("registerTitle")
 
         subtitle_label = QLabel(f"Join {APP_NAME} Today")
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle_label.setFont(QFont("Segoe UI", 14))
-        subtitle_label.setStyleSheet("color: #546E7A;")
+        subtitle_label.setObjectName("registerSubtitle")
 
         # Card
         self.card_frame = QFrame()
@@ -66,7 +68,7 @@ class RegisterWindow(BaseKioskWindow):
         # First Name
         first_name_label = QLabel("First Name *")
         first_name_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        first_name_label.setStyleSheet("color: #424242;")
+        first_name_label.setObjectName("fieldLabel")
 
         self.first_name_input = QLineEdit()
         self.first_name_input.setObjectName("inputField")
@@ -77,7 +79,7 @@ class RegisterWindow(BaseKioskWindow):
         # Last Name
         last_name_label = QLabel("Last Name *")
         last_name_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        last_name_label.setStyleSheet("color: #424242;")
+        last_name_label.setObjectName("fieldLabel")
 
         self.last_name_input = QLineEdit()
         self.last_name_input.setObjectName("inputField")
@@ -88,7 +90,7 @@ class RegisterWindow(BaseKioskWindow):
         # Phone
         phone_label = QLabel("Phone Number *")
         phone_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        phone_label.setStyleSheet("color: #424242;")
+        phone_label.setObjectName("fieldLabel")
 
         self.phone_input = QLineEdit()
         self.phone_input.setObjectName("inputField")
@@ -99,7 +101,7 @@ class RegisterWindow(BaseKioskWindow):
         # Email
         email_label = QLabel("Email (Optional)")
         email_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        email_label.setStyleSheet("color: #424242;")
+        email_label.setObjectName("fieldLabel")
 
         self.email_input = QLineEdit()
         self.email_input.setObjectName("inputField")
@@ -110,7 +112,7 @@ class RegisterWindow(BaseKioskWindow):
         # Password
         password_label = QLabel("Password *")
         password_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        password_label.setStyleSheet("color: #424242;")
+        password_label.setObjectName("fieldLabel")
 
         self.password_input = QLineEdit()
         self.password_input.setObjectName("inputField")
@@ -122,7 +124,7 @@ class RegisterWindow(BaseKioskWindow):
         # Confirm Password
         confirm_label = QLabel("Confirm Password *")
         confirm_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        confirm_label.setStyleSheet("color: #424242;")
+        confirm_label.setObjectName("fieldLabel")
 
         self.confirm_password_input = QLineEdit()
         self.confirm_password_input.setObjectName("inputField")
@@ -146,7 +148,7 @@ class RegisterWindow(BaseKioskWindow):
 
         login_text = QLabel("Already have an account?")
         login_text.setFont(QFont("Segoe UI", 11))
-        login_text.setStyleSheet("color: #616161;")
+        login_text.setObjectName("mutedText")
 
         self.login_link = QLabel("<a href='#' style='color: #1976D2; text-decoration: none; font-weight: 600;'>Sign In</a>")
         self.login_link.setFont(QFont("Segoe UI", 11))
@@ -183,8 +185,8 @@ class RegisterWindow(BaseKioskWindow):
         main_layout.addWidget(center_widget)
         self.setLayout(main_layout)
 
-        # Apply base stylesheet
-        self.setStyleSheet(self.apply_base_stylesheet())
+        # Apply base + register styles
+        self.setStyleSheet(self.apply_base_stylesheet() + REGISTER_WINDOW_QSS)
 
         self.confirm_password_input.returnPressed.connect(self.handle_register)
         QTimer.singleShot(100, lambda: self.first_name_input.setFocus())

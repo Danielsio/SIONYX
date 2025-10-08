@@ -316,21 +316,18 @@ class ModernMessageBox(ModernDialog):
                 font-size: 14px;
                 font-weight: 600;
                 min-width: 100px;
-                transition: all 0.2s ease;
             }}
             
             #dialogButton:hover {{
                 background: #F3F4F6;
                 border-color: #9CA3AF;
                 color: #111827;
-                transform: translateY(-1px);
             }}
             
             #dialogButton:pressed {{
                 background: #E5E7EB;
                 border-color: #6B7280;
                 color: #111827;
-                transform: translateY(0px);
             }}
             
             #dialogButton[primary="true"] {{
@@ -339,22 +336,17 @@ class ModernMessageBox(ModernDialog):
                 color: #FFFFFF;
                 border: none;
                 font-weight: 700;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             }}
             
             #dialogButton[primary="true"]:hover {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 {self._adjust_color(icon_color, 10)}, stop:1 {self._adjust_color(icon_color, -10)});
                 color: #FFFFFF;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-                transform: translateY(-1px);
             }}
             
             #dialogButton[primary="true"]:pressed {{
                 background: {self._adjust_color(icon_color, -30)};
                 color: #FFFFFF;
-                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-                transform: translateY(0px);
             }}
         """)
     
