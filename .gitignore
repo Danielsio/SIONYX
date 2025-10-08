@@ -236,3 +236,177 @@ functions/yarn-error.log*
 # ✅ functions/package.json
 # ✅ functions/.eslintrc.js
 # ✅ functions/.gitignore
+
+
+# ========================================
+# Admin Dashboard (React/Node.js)
+# ========================================
+# Dependencies
+admin-dashboard/node_modules/
+
+# Production build
+admin-dashboard/dist/
+admin-dashboard/build/
+
+# Environment variables (CRITICAL!)
+admin-dashboard/.env
+admin-dashboard/.env.local
+admin-dashboard/.env.*.local
+admin-dashboard/.env.production
+
+# Logs
+admin-dashboard/npm-debug.log*
+admin-dashboard/yarn-debug.log*
+admin-dashboard/yarn-error.log*
+admin-dashboard/pnpm-debug.log*
+
+# Editor directories and files
+admin-dashboard/.vscode/*
+!admin-dashboard/.vscode/extensions.json
+admin-dashboard/.idea
+admin-dashboard/.DS_Store
+admin-dashboard/*.suo
+admin-dashboard/*.ntvs*
+admin-dashboard/*.njsproj
+admin-dashboard/*.sln
+admin-dashboard/*.sw?
+
+# Testing
+admin-dashboard/coverage/
+admin-dashboard/.nyc_output/
+
+# Misc
+admin-dashboard/.cache/
+admin-dashboard/.parcel-cache/
+
+# ========================================
+# Environment Variables (CRITICAL!)
+# ========================================
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.env
+
+# ========================================
+# Application Logs
+# ========================================
+logs/
+*.log
+log_*.txt
+
+# ========================================
+# Database Files
+# ========================================
+*.db
+*.sqlite
+*.sqlite3
+local.db
+
+# ========================================
+# OS Files
+# ========================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ========================================
+# IDEs and Editors
+# ========================================
+*.swp
+*.swo
+*.swn
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ========================================
+# Project Specific
+# ========================================
+# Local database cache
+local_cache/
+cache/
+temp/
+tmp/
+
+# User data (if storing locally)
+user_data/
+session_data/
+
+# Build artifacts
+build/
+dist/
+*.exe
+*.app
+*.dmg
+
+# Test files
+test_output/
+*.test.json
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# ========================================
+# Documentation
+# ========================================
+# Ignore generated docs
+docs/_build/
+site/
+
+# ========================================
+# Security & Credentials (DOUBLE CHECK!)
+# ========================================
+# API keys and secrets
+*secret*
+*apikey*
+*credentials*
+*.pem
+*.key
+*.crt
+*.p12
+
+# Payment gateway configs
+nedarim-config.json
+payment-credentials.json
+
+# ========================================
+# Node.js (General - for Firebase Functions & Admin Dashboard)
+# ========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+package-lock.json
+
+# ========================================
+# Miscellaneous
+# ========================================
+.env.example  # Keep example, but ignore actual .env

@@ -132,7 +132,7 @@ class AuthService:
             'remainingTime': 0,  # Start with 0 seconds
             'remainingPrints': 0,  # Start with 0 prints
             'isActive': True,
-            'isAdmin': False,  # NEW FIELD - regular users are not admins
+            'isAdmin': False,  # Regular users are not admins
             'createdAt': datetime.now().isoformat(),
             'updatedAt': datetime.now().isoformat()
         }
