@@ -10,6 +10,12 @@ AUTH_WINDOW_QSS = """
             stop:0 #f6f5f7, stop:1 #e8e6e9);
     }
 
+    /* Ensure all labels have no borders */
+    QLabel {
+        border: none;
+        background: transparent;
+    }
+
     /* Main container - holds all panels */
     #authContainer {
         background-color: #ffffff;
@@ -97,23 +103,30 @@ AUTH_WINDOW_QSS = """
         border: none;
     }
 
-    #overlayPanel {
+    QWidget#overlayPanel {
         background: transparent;
+        background-color: transparent;
         border: none;
         border-radius: 0px;
     }
 
     #overlayTitle {
         color: #FFFFFF;
+        background: transparent;
+        border: none;
+        padding: 0px;
     }
 
     #overlayText {
         color: #FFFFFF;
         line-height: 24px;
+        background: transparent;
+        border: none;
+        padding: 0px;
     }
 
     /* Ghost button on overlay */
-    #overlayButton {
+    QPushButton#overlayButton {
         border-radius: 20px;
         border: 2px solid #FFFFFF;
         background-color: transparent;
@@ -125,11 +138,11 @@ AUTH_WINDOW_QSS = """
         text-transform: uppercase;
     }
 
-    #overlayButton:hover {
+    QPushButton#overlayButton:hover {
         background-color: rgba(255, 255, 255, 0.1);
     }
 
-    #overlayButton:pressed {
+    QPushButton#overlayButton:pressed {
         background-color: rgba(255, 255, 255, 0.2);
     }
 """

@@ -7,8 +7,6 @@ from .base import BASE_QSS
 from .main_window import MAIN_WINDOW_QSS
 from .home_page import HOME_PAGE_QSS
 from .packages_page import PACKAGES_PAGE_QSS
-from .login_window import LOGIN_WINDOW_QSS
-from .register_window import REGISTER_WINDOW_QSS
 from .auth_window import AUTH_WINDOW_QSS
 from .floating_timer import (
     FLOATING_TIMER_BASE_QSS,

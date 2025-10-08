@@ -89,7 +89,7 @@ class AuthWindow(BaseKioskWindow):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Subtitle
-        subtitle = QLabel("or use your account")
+        subtitle = QLabel("Enter your credentials")
         subtitle.setObjectName("formSubtitle")
         subtitle.setFont(QFont("Segoe UI", 11))
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -156,7 +156,7 @@ class AuthWindow(BaseKioskWindow):
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Subtitle
-        subtitle = QLabel("or use your email for registration")
+        subtitle = QLabel("Fill in your details to get started")
         subtitle.setObjectName("formSubtitle")
         subtitle.setFont(QFont("Segoe UI", 11))
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -244,7 +244,7 @@ class AuthWindow(BaseKioskWindow):
         self.overlay.setFixedSize(900, 600)
 
         # Left overlay panel (Welcome Back)
-        self.overlay_left = QFrame(self.overlay)
+        self.overlay_left = QWidget(self.overlay)
         self.overlay_left.setObjectName("overlayPanel")
         self.overlay_left.setFixedSize(450, 600)
 
@@ -278,7 +278,7 @@ class AuthWindow(BaseKioskWindow):
         left_layout.addWidget(self.left_button, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Right overlay panel (Hello Friend)
-        self.overlay_right = QFrame(self.overlay)
+        self.overlay_right = QWidget(self.overlay)
         self.overlay_right.setObjectName("overlayPanel")
         self.overlay_right.setFixedSize(450, 600)
 
