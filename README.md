@@ -1,6 +1,35 @@
 # 🖥️ SIONYX DESKTOP APPLICATION  
 *(Python 3.10+)*
 
+A modern kiosk management system with time-tracking, package purchases, and multi-tenant support.
+
+## 🚀 Quick Start
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Run the installer (creates organization, admin user, and .env)
+python install.py
+
+# 3. Launch the application
+python src/main.py
+
+# OR use the launcher (for multiple organizations)
+python launch_org.py
+```
+
+For detailed installation instructions, see **[INSTALL_README.md](INSTALL_README.md)** or the full **[Installation Guide](docs/INSTALLATION.md)**.
+
+### Multi-Organization Setup
+
+SIONYX supports multiple organizations in a single Firebase project:
+- **ONE Firebase project** serves all organizations
+- **Complete data isolation** via organization IDs
+- **Easy switching** between organizations
+
+See **[Multi-Organization Guide](docs/MULTI_ORGANIZATION_SUMMARY.md)** for details.
+
 ---
 
 ## 🔧 System Architecture

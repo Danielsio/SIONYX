@@ -409,4 +409,4 @@ package-lock.json
 # ========================================
 # Miscellaneous
 # ========================================
-.env.example  # Keep example, but ignore actual .env
+# Note: .env.example should be committed (not ignored)
