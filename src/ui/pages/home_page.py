@@ -44,6 +44,7 @@ class HomePage(QWidget):
 
         # Stats grid - ONLY 2 CARDS NOW
         stats_container = QWidget()
+        stats_container.setStyleSheet("background-color: transparent;")
         stats_layout = QHBoxLayout(stats_container)
         stats_layout.setSpacing(20)
 

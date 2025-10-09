@@ -117,17 +117,18 @@ class MainWindow(BaseKioskWindow):
 
         # Header bar (burger + brand)
         header = QWidget()
+        header.setStyleSheet("background-color: transparent; border: none;")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(20, 18, 20, 14)
         header_layout.setSpacing(10)
 
         burger = QLabel("≡")
         burger.setFont(QFont("Segoe UI", 18, QFont.Weight.Black))
-        burger.setStyleSheet("color: #111827;")
+        burger.setStyleSheet("color: #F1F5F9; background-color: transparent; border: none;")
 
         brand = QLabel(APP_NAME)
-        brand.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        brand.setStyleSheet("color: #111827;")
+        brand.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        brand.setStyleSheet("color: #F8FAFC; letter-spacing: 0.5px; background-color: transparent; border: none;")
 
         header_layout.addWidget(burger)
         header_layout.addWidget(brand)
@@ -135,6 +136,7 @@ class MainWindow(BaseKioskWindow):
 
         # Navigation section (no 'MENU' label to match mock)
         nav_section = QWidget()
+        nav_section.setStyleSheet("background-color: transparent;")
         nav_layout = QVBoxLayout(nav_section)
         nav_layout.setContentsMargins(12, 6, 12, 10)
         nav_layout.setSpacing(6)
@@ -157,6 +159,7 @@ class MainWindow(BaseKioskWindow):
 
         # Bottom section - Logout
         bottom_section = QWidget()
+        bottom_section.setStyleSheet("background-color: transparent;")
         bottom_layout = QVBoxLayout(bottom_section)
         bottom_layout.setContentsMargins(12, 6, 12, 20)
         bottom_layout.setSpacing(0)

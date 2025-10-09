@@ -1,95 +1,79 @@
 """Styles for MainWindow (sidebar + content)."""
 
 MAIN_WINDOW_QSS = """
-    /* Modern Sidebar */
+    /* Modern Dark Sidebar with strong contrast */
     #modernSidebar {
-        background-color: #FFFFFF;
-        border-right: 1px solid #E5E7EB;
-        border-top-right-radius: 16px;
-        border-bottom-right-radius: 16px;
+        background: qlineargradient(
+            x1:0, y1:0, x2:0, y2:1,
+            stop:0 #1E293B,
+            stop:1 #0F172A
+        );
+        border: none;
     }
 
-    /* User card */
+    /* User card in dark sidebar */
     #userCard {
-        background-color: #F9FAFB;
-        border: 1px solid #E5E7EB;
-        border-radius: 10px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    /* Nav buttons - pill style when active */
+    /* Nav buttons with modern styling */
     #modernNavButton {
         background-color: transparent;
-        color: #6B7280;
+        color: #94A3B8;
         border: none;
-        border-radius: 10px;
         text-align: left;
-        padding: 10px 12px;
-        font-size: 13px;
+        padding: 12px 14px;
+        font-size: 14px;
+        font-weight: 500;
     }
-    #modernNavButton:hover { background-color: #F3F4F6; color: #111827; }
-    #modernNavButton:focus { border: 1px solid #2563EB; }
+    #modernNavButton:hover { 
+        background-color: #334155; 
+        color: #E2E8F0; 
+    }
+    #modernNavButton:focus { 
+        border: none; 
+        outline: 2px solid #3B82F6;
+        outline-offset: -2px;
+    }
     #modernNavButton:checked {
-        background-color: #2563EB;
+        background-color: #3B82F6;
         color: #FFFFFF;
         font-weight: 600;
         border: none;
     }
-    #modernNavButton:checked:hover { background-color: #1D4ED8; }
+    #modernNavButton:checked:hover { 
+        background-color: #2563EB; 
+    }
 
-    /* Logout */
+    /* Logout button with better styling */
     #modernLogoutButton {
-        background-color: #FEE2E2;
-        color: #DC2626;
-        border: 1px solid #FCA5A5;
-        border-radius: 8px;
-        font-size: 12px;
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #F87171;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        font-size: 13px;
+        font-weight: 600;
     }
-    #modernLogoutButton:hover { background-color: #FECACA; border-color: #F87171; }
+    #modernLogoutButton:hover { 
+        background-color: rgba(239, 68, 68, 0.2); 
+        border-color: #F87171;
+        color: #FCA5A5;
+    }
 
-    /* Content area */
+    /* Content area with bright modern background */
     #contentStack {
-        background-color: #F3F4F6;
-        border-top-left-radius: 16px;
-        border-bottom-left-radius: 16px;
+        background: qlineargradient(
+            x1:0, y1:0, x2:0, y2:1,
+            stop:0 #F8FAFC,
+            stop:1 #E2E8F0
+        );
     }
 
-    #homePage, #contentPage { background-color: #F9FAFB; }
-
-    /* Stat cards */
-    #statCard {
-        background-color: #FFFFFF;
-        border-radius: 12px;
-        border: 1px solid #E5E7EB;
+    /* All pages with matching dark background */
+    #homePage, #contentPage, #helpPage, #historyPage { 
+        background-color: transparent;
     }
 
-    /* Action card */
-    #mainActionCard {
-        background-color: #FFFFFF;
-        border-radius: 16px;
-        border: 1px solid #E5E7EB;
-        min-height: 240px;
-    }
-
-    /* Start button */
-    #startButton {
-        background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10B981, stop:1 #059669);
-        color: #FFFFFF; border: none; border-radius: 12px;
-    }
-    #startButton:hover {
-        background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #059669, stop:1 #047857);
-    }
-
-    /* Package cards */
-    #packageCard { background-color: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 20px; }
-
-    /* Purchase button gradient (fallback if inline not set) */
-    #purchaseButton {
-        background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3B82F6, stop:1 #2563EB);
-        color: #FFFFFF; border: none; border-radius: 28px; padding: 16px 24px;
-    }
-    #purchaseButton:hover {
-        background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563EB, stop:1 #1D4ED8);
-    }
 """
 
 

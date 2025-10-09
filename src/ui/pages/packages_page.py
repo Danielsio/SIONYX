@@ -51,6 +51,7 @@ class PackagesPage(QWidget):
         subtitle.setStyleSheet("color: #6B7280;")
 
         header_container = QWidget()
+        header_container.setStyleSheet("background-color: transparent;")
         header_vlayout = QVBoxLayout(header_container)
         header_vlayout.setContentsMargins(0, 0, 0, 0)
         header_vlayout.setSpacing(5)
@@ -62,6 +63,7 @@ class PackagesPage(QWidget):
 
         # Packages grid container (will be populated after load)
         self.packages_container = QWidget()
+        self.packages_container.setStyleSheet("background-color: transparent;")
         self.packages_layout = QGridLayout(self.packages_container)
         self.packages_layout.setSpacing(20)
         self.packages_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
@@ -70,6 +72,7 @@ class PackagesPage(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setStyleSheet("background-color: transparent; border: none;")
         scroll.setWidget(self.packages_container)
 
         # Loading/empty state label
@@ -122,6 +125,7 @@ class PackagesPage(QWidget):
         # Update spacing for much larger cards
         self.packages_layout.setSpacing(40)
         self.packages_layout.setContentsMargins(20, 10, 20, 40)
+        self.packages_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center the grid
 
         # Display in grid (adjust columns for larger 380px cards)
         row, col = 0, 0
@@ -129,7 +133,7 @@ class PackagesPage(QWidget):
         
         for package in self.packages:
             card = self.create_package_card(package)
-            self.packages_layout.addWidget(card, row, col)
+            self.packages_layout.addWidget(card, row, col, Qt.AlignmentFlag.AlignCenter)
 
             col += 1
             if col >= max_columns:
@@ -137,29 +141,26 @@ class PackagesPage(QWidget):
                 row += 1
 
     def create_package_card(self, package: Dict) -> QFrame:
-        """Create an improved package display card with better visual hierarchy"""
+        """Create a clean, modern package card"""
         card = HoverFrame()
         card.setObjectName("packageCard")
-        card.setFixedSize(400, 520)  # Larger for readability and touch targets
+        card.setFixedSize(400, 680)  # Reduced from 820 to fit content better
         
-        # Add modern border radius to the main card
+        # Clean card styling
         card.setStyleSheet("""
             QFrame#packageCard {
                 background-color: white;
-                border-radius: 20px;
-                border: 1px solid #E5E7EB;
+                border-radius: 24px;
+                border: 1px solid #E2E8F0;
             }
         """)
         
-        # Determine package tier for styling
-        package_tier = self.get_package_tier(package)
-        
-        # Enhanced shadow
+        # Enhanced shadow for better depth
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(30)
+        shadow.setBlurRadius(40)
         shadow.setXOffset(0)
-        shadow.setYOffset(6)
-        shadow.setColor(QColor(0, 0, 0, 40))
+        shadow.setYOffset(8)
+        shadow.setColor(QColor(15, 23, 42, 60))  # Darker shadow for better contrast
         card.setGraphicsEffect(shadow)
 
         # Main layout
@@ -167,158 +168,149 @@ class PackagesPage(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Header accent bar
-        header = QFrame()
-        header.setFixedHeight(10)
-        header.setStyleSheet(f"""
-            background-color: {package_tier['accent_color']};
-            border-radius: 20px 20px 0 0;
-            border: none;
-        """)
-        
-        # Content container with better spacing
+        # Content container
         content = QWidget()
-        content.setStyleSheet("background-color: white; border-radius: 0 0 20px 20px;")
+        content.setStyleSheet("background-color: white; border-radius: 24px;")
         content_layout = QVBoxLayout(content)
-        content_layout.setContentsMargins(30, 24, 30, 30)
+        content_layout.setContentsMargins(32, 30, 32, 30)
         content_layout.setSpacing(20)
 
-        # Popular badge (for recommended packages) - improved design
-        if package_tier['is_popular']:
-            badge = QLabel("🔥 MOST POPULAR")
+        # Get pricing info to determine if it's a hot deal
+        pricing = self.package_service.calculate_final_price(package)
+        is_hot_deal = pricing['discount_percent'] >= 15  # 15% or more = Hot Deal
+
+        # Hot Deal badge
+        if is_hot_deal:
+            badge = QLabel("🔥 HOT DEAL")
             badge.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-            badge.setStyleSheet(f"""
+            badge.setStyleSheet("""
                 color: white;
-                background-color: {package_tier['accent_color']};
-                padding: 8px 16px;
-                border-radius: 16px;
-                margin-bottom: 10px;
+                background-color: #EF4444;
+                padding: 8px 18px;
+                border-radius: 20px;
             """)
             badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            badge.setMaximumHeight(32)
+            badge.setMaximumHeight(34)
             content_layout.addWidget(badge)
 
-        # Package name with better typography
+        # Package name
         name = QLabel(package.get('name', 'Package'))
-        name.setFont(QFont("Segoe UI", 26, QFont.Weight.Bold))
-        name.setStyleSheet("color: #111827; margin-bottom: 6px; padding: 0;")
+        name.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))
+        name.setStyleSheet("color: #111827;")
         name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name.setWordWrap(True)
+        name.setMinimumHeight(40)
+        name.setMaximumHeight(50)
 
-        # Description with better readability
+        # Description
         desc = QLabel(package.get('description', ''))
-        desc.setFont(QFont("Segoe UI", 13))
-        desc.setStyleSheet("color: #6B7280; line-height: 1.6; padding: 0;")
+        desc.setFont(QFont("Segoe UI", 14))
+        desc.setStyleSheet("color: #6B7280; line-height: 1.4;")
         desc.setWordWrap(True)
         desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        desc.setMinimumHeight(52)
-        desc.setMaximumHeight(66)
+        desc.setMinimumHeight(45)
+        desc.setMaximumHeight(60)
 
-        # Value proposition section with improved design
-        value_container = QFrame()
-        value_container.setStyleSheet("""
-            QFrame {
-                background-color: #F8FAFC;
-                border: 1px solid #E2E8F0;
-                border-radius: 16px;
-            }
-        """)
-        value_layout = QVBoxLayout(value_container)
-        value_layout.setContentsMargins(20, 18, 20, 18)
-        value_layout.setSpacing(14)
+        # Separator line
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setStyleSheet("background-color: #E5E7EB; max-height: 1px;")
 
-        # "What you get" header with better styling
-        get_label = QLabel("✨ What you get")
-        get_label.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
-        get_label.setStyleSheet("color: #374151; margin-bottom: 4px;")
+        # Time and Prints section
+        benefits_container = QWidget()
+        benefits_layout = QVBoxLayout(benefits_container)
+        benefits_layout.setContentsMargins(0, 0, 0, 0)
+        benefits_layout.setSpacing(14)
 
-        # Time benefit with prominent display
+        # Time display
         time_minutes = package.get('minutes', 0)
-        time_hours = time_minutes // 60
-        if time_hours > 0:
-            time_display = f"{time_hours}h {time_minutes % 60}m"
+        if time_minutes >= 60:
+            hours = time_minutes // 60
+            mins = time_minutes % 60
+            time_text = f"{hours}h {mins}m" if mins > 0 else f"{hours}h"
         else:
-            time_display = f"{time_minutes} min"
+            time_text = f"{time_minutes} min"
         
-        time_benefit = self.create_benefit_row("⏰", "Computing Time", time_display, package_tier['accent_color'])
+        time_widget = self.create_clean_benefit("⏰", "Computing Time", time_text)
         
-        # Prints benefit
+        # Prints display
         prints = package.get('prints', 0)
-        prints_benefit = self.create_benefit_row("🖨️", "Print Credits", f"{prints} prints", package_tier['accent_color'])
+        prints_widget = self.create_clean_benefit("🖨️", "Print Credits", f"{prints} prints")
 
-        value_layout.addWidget(get_label)
-        value_layout.addWidget(time_benefit)
-        value_layout.addWidget(prints_benefit)
+        benefits_layout.addWidget(time_widget)
+        benefits_layout.addWidget(prints_widget)
 
-        # Price section with better hierarchy and spacing
+        # Price section
         price_container = QWidget()
         price_layout = QVBoxLayout(price_container)
-        price_layout.setContentsMargins(0, 12, 0, 12)
-        price_layout.setSpacing(6)
+        price_layout.setContentsMargins(0, 20, 0, 20)
+        price_layout.setSpacing(10)
         price_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        pricing = self.package_service.calculate_final_price(package)
-
         if pricing['discount_percent'] > 0:
-            # Discount badge with better styling
+            # Discount badge
             discount_badge = QLabel(f"SAVE {pricing['discount_percent']:.0f}%")
-            discount_badge.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+            discount_badge.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
             discount_badge.setStyleSheet("""
                 color: #DC2626;
                 background-color: #FEF2F2;
-                border: 1px solid #FECACA;
-                padding: 6px 16px;
-                border-radius: 20px;
+                border: 2px solid #FECACA;
+                padding: 8px 20px;
+                border-radius: 24px;
             """)
             discount_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            discount_badge.setMaximumHeight(28)
+            discount_badge.setMaximumHeight(32)
 
-            # Original price (strikethrough) - larger and clearer
+            # Original price
             original_label = QLabel(f"₪{pricing['original_price']:.0f}")
-            original_label.setFont(QFont("Segoe UI", 16))
+            original_label.setFont(QFont("Segoe UI", 18))
             original_label.setStyleSheet("color: #9CA3AF; text-decoration: line-through;")
             original_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-            # Final price - hero element, much larger
+            # Final price
             final_label = QLabel(f"₪{pricing['final_price']:.0f}")
-            final_label.setFont(QFont("Segoe UI", 44, QFont.Weight.Bold))
-            final_label.setStyleSheet(f"color: {package_tier['accent_color']}; padding: 6px;")
+            final_label.setFont(QFont("Segoe UI", 48, QFont.Weight.Bold))
+            final_label.setStyleSheet("color: #2563EB;")
             final_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            final_label.setMinimumHeight(55)
+            final_label.setMinimumHeight(60)
 
             price_layout.addWidget(discount_badge)
             price_layout.addWidget(original_label)
             price_layout.addWidget(final_label)
         else:
-            # Just final price - hero element, very large and clear
+            # Just final price
             final_label = QLabel(f"₪{pricing['final_price']:.0f}")
-            final_label.setFont(QFont("Segoe UI", 48, QFont.Weight.Bold))
-            final_label.setStyleSheet("color: #1F2937; padding: 8px;")
+            final_label.setFont(QFont("Segoe UI", 52, QFont.Weight.Bold))
+            final_label.setStyleSheet("color: #111827;")
             final_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            final_label.setMinimumHeight(60)
+            final_label.setMinimumHeight(65)
             price_layout.addWidget(final_label)
 
-        # Enhanced purchase button with modern styling
+        # Purchase button
         purchase_btn = QPushButton("GET THIS PACKAGE")
         purchase_btn.setObjectName("purchaseButton")
-        purchase_btn.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        purchase_btn.setMinimumHeight(58)
+        purchase_btn.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
+        purchase_btn.setMinimumHeight(56)
         purchase_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        
+        # Button color based on hot deal status
+        btn_color = "#EF4444" if is_hot_deal else "#2563EB"
+        btn_hover = "#DC2626" if is_hot_deal else "#1D4ED8"
+        btn_pressed = "#B91C1C" if is_hot_deal else "#1E40AF"
+        
         purchase_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {package_tier['accent_color']};
+                background-color: {btn_color};
                 color: white;
                 border: none;
-                border-radius: 28px;
-                padding: 16px 32px;
-                font-weight: bold;
-                font-size: 14px;
+                border-radius: 32px;
+                padding: 18px 36px;
             }}
             QPushButton:hover {{
-                background-color: {package_tier['hover_color']};
+                background-color: {btn_hover};
             }}
             QPushButton:pressed {{
-                background-color: {package_tier['pressed_color']};
+                background-color: {btn_pressed};
             }}
         """)
         purchase_btn.clicked.connect(lambda: self.handle_purchase(package))
@@ -326,79 +318,60 @@ class PackagesPage(QWidget):
         # Assembly
         content_layout.addWidget(name)
         content_layout.addWidget(desc)
-        content_layout.addWidget(value_container)
+        content_layout.addWidget(separator)
+        content_layout.addWidget(benefits_container)
         content_layout.addWidget(price_container)
         content_layout.addStretch()
         content_layout.addWidget(purchase_btn)
 
-        layout.addWidget(header)
         layout.addWidget(content)
 
         return card
 
-    def create_benefit_row(self, icon: str, label: str, value: str, accent_color: str) -> QWidget:
-        """Create a benefit row with icon, label and value - improved readability"""
-        row = QWidget()
-        row_layout = QHBoxLayout(row)
-        row_layout.setContentsMargins(0, 0, 0, 0)
-        row_layout.setSpacing(14)
+    def create_clean_benefit(self, icon: str, label: str, value: str) -> QWidget:
+        """Create a clean benefit display"""
+        container = QFrame()
+        container.setStyleSheet("""
+            QFrame {
+                background-color: #F9FAFB;
+                border-radius: 16px;
+                padding: 4px;
+            }
+        """)
+        
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(16)
 
-        # Icon with better sizing
+        # Icon
         icon_label = QLabel(icon)
-        icon_label.setFont(QFont("Segoe UI", 18))
-        icon_label.setFixedSize(28, 28)
+        icon_label.setFont(QFont("Segoe UI", 24))
+        icon_label.setFixedSize(36, 36)
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Label with better typography
+        # Label and value container
+        text_container = QWidget()
+        text_layout = QVBoxLayout(text_container)
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setSpacing(4)
+
         label_widget = QLabel(label)
-        label_widget.setFont(QFont("Segoe UI", 12))
-        label_widget.setStyleSheet("color: #4B5563; font-weight: 500;")
+        label_widget.setFont(QFont("Segoe UI", 13))
+        label_widget.setStyleSheet("color: #6B7280;")
 
-        # Value (prominent and larger)
         value_widget = QLabel(value)
-        value_widget.setFont(QFont("Segoe UI", 14, QFont.Weight.Bold))
-        value_widget.setStyleSheet(f"color: {accent_color}; padding: 2px;")
+        value_widget.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        value_widget.setStyleSheet("color: #111827;")
 
-        row_layout.addWidget(icon_label)
-        row_layout.addWidget(label_widget)
-        row_layout.addStretch()
-        row_layout.addWidget(value_widget)
+        text_layout.addWidget(label_widget)
+        text_layout.addWidget(value_widget)
 
-        return row
+        layout.addWidget(icon_label)
+        layout.addWidget(text_container)
+        layout.addStretch()
 
-    def get_package_tier(self, package: Dict) -> Dict:
-        """Determine package tier for styling"""
-        name = package.get('name', '').lower()
-        
-        # Define tier characteristics
-        if 'power' in name or 'all-day' in name:
-            return {
-                'accent_color': '#7C3AED',  # Purple
-                'hover_color': '#6D28D9',
-                'pressed_color': '#5B21B6',
-                'is_popular': 'power' in name
-            }
-        elif 'standard' in name:
-            return {
-                'accent_color': '#2563EB',  # Blue
-                'hover_color': '#1D4ED8',
-                'pressed_color': '#1E40AF',
-                'is_popular': True
-            }
-        elif 'student' in name:
-            return {
-                'accent_color': '#059669',  # Green
-                'hover_color': '#047857',
-                'pressed_color': '#065F46',
-                'is_popular': False
-            }
-        else:
-            return {
-                'accent_color': '#DC2626',  # Red
-                'hover_color': '#B91C1C',
-                'pressed_color': '#991B1B',
-                'is_popular': False
-            }
+        return container
+
 
     def handle_purchase(self, package: Dict):
         """Handle package purchase"""
@@ -485,10 +458,10 @@ class HoverFrame(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._shadow = QGraphicsDropShadowEffect(self)
-        self._shadow.setBlurRadius(30)
+        self._shadow.setBlurRadius(40)
         self._shadow.setXOffset(0)
-        self._shadow.setYOffset(6)
-        self._shadow.setColor(QColor(0, 0, 0, 40))
+        self._shadow.setYOffset(8)
+        self._shadow.setColor(QColor(15, 23, 42, 60))
         self.setGraphicsEffect(self._shadow)
 
         # Enable hover events
@@ -498,16 +471,16 @@ class HoverFrame(QFrame):
         # Intensify elevation on hover
         if isinstance(self.graphicsEffect(), QGraphicsDropShadowEffect):
             eff: QGraphicsDropShadowEffect = self.graphicsEffect()
-            eff.setBlurRadius(40)
-            eff.setYOffset(10)
-            eff.setColor(QColor(0, 0, 0, 60))
+            eff.setBlurRadius(50)
+            eff.setYOffset(12)
+            eff.setColor(QColor(15, 23, 42, 80))
         super().enterEvent(event)
 
     def leaveEvent(self, event):
         # Restore elevation
         if isinstance(self.graphicsEffect(), QGraphicsDropShadowEffect):
             eff: QGraphicsDropShadowEffect = self.graphicsEffect()
-            eff.setBlurRadius(30)
-            eff.setYOffset(6)
-            eff.setColor(QColor(0, 0, 0, 40))
+            eff.setBlurRadius(40)
+            eff.setYOffset(8)
+            eff.setColor(QColor(15, 23, 42, 60))
         super().leaveEvent(event)

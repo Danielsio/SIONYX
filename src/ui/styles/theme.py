@@ -21,19 +21,14 @@ def build_base_qss(tokens: Dict[str, Dict[str, str]] = TOKENS) -> str:
     * {{ font-family: {ty['font_family']}; }}
 
     QWidget {{
-        background: qlineargradient(
-            x1:0, y1:0, x2:1, y2:1,
-            stop:0 {p['app_bg_0']},
-            stop:0.5 {p['app_bg_50']},
-            stop:1 {p['app_bg_100']}
-        );
+        background-color: {p['surface_alt']};
     }}
 
     /* Card styling */
     QFrame {{
         background-color: {p['surface']};
         border-radius: {r['xl']};
-        border: 1px solid {p['border']};
+        border: none;
     }}
 
     /* Inputs */
