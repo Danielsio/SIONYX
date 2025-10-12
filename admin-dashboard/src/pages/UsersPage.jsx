@@ -17,6 +17,7 @@ import {
   InputNumber,
   Dropdown
 } from 'antd';
+import { getStatusLabel, getStatusColor } from '../constants/purchaseStatus';
 import {
   SearchOutlined,
   UserOutlined,
@@ -38,6 +39,7 @@ import {
   grantAdminPermission,
   revokeAdminPermission 
 } from '../services/userService';
+import { formatTimeHebrewCompact } from '../utils/timeFormatter';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -112,7 +114,7 @@ const UsersPage = () => {
     setAdjustingUser(record);
     // Set current values as form initial values
     form.setFieldsValue({
-      timeMinutes: Math.floor((record.remainingTime || 0) / 60), // Convert seconds to minutes
+      minutes: Math.floor((record.remainingTime || 0) / 60), // Convert seconds to minutes
       prints: record.remainingPrints || 0
     });
     setAdjustBalanceVisible(true);
@@ -130,7 +132,7 @@ const UsersPage = () => {
       const currentPrints = adjustingUser.remainingPrints || 0;
       
       const adjustments = {
-        timeSeconds: (values.timeMinutes - currentTimeMinutes) * 60, // Difference in seconds
+        timeSeconds: (values.minutes - currentTimeMinutes) * 60, // Difference in seconds
         prints: values.prints - currentPrints // Difference in prints
       };
 
@@ -223,12 +225,7 @@ const UsersPage = () => {
   };
 
   const formatTime = (seconds) => {
-    if (!seconds || seconds === 0) return '0m';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    return formatTimeHebrewCompact(seconds);
   };
 
   const columns = [
@@ -397,17 +394,7 @@ const UsersPage = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
-        const colors = {
-          completed: 'success',
-          pending: 'processing',
-          failed: 'error',
-        };
-        const statusLabels = {
-          completed: 'הושלם',
-          pending: 'ממתין',
-          failed: 'נכשל',
-        };
-        return <Tag color={colors[status] || 'default'}>{statusLabels[status] || status}</Tag>;
+        return <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>;
       },
     },
   ];
@@ -501,7 +488,7 @@ const UsersPage = () => {
 
             <Form form={form} layout="vertical">
               <Form.Item
-                name="timeMinutes"
+                name="minutes"
                 label="Time Balance (minutes)"
                 tooltip="Edit the total minutes this user should have"
                 rules={[

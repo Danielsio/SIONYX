@@ -189,7 +189,7 @@ organizations/
       │       ├── description
       │       ├── price
       │       ├── discountPercent
-      │       ├── timeMinutes
+      │       ├── minutes
       │       └── prints
       └── purchases/
           └── {purchaseId}/

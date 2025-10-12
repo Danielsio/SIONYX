@@ -223,9 +223,9 @@ class MainWindow(BaseKioskWindow):
 
             self.close()
 
-            from ui.login_window import LoginWindow
-            self.login_window = LoginWindow(self.auth_service)
-            self.login_window.show()
+            from ui.auth_window import AuthWindow
+            self.auth_window = AuthWindow(self.auth_service)
+            self.auth_window.show()
 
     def apply_modern_styles(self):
         """Modern web-style design"""

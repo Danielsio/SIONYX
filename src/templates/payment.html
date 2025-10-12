@@ -326,16 +326,6 @@
                 <input type="text" id="clientName" placeholder="הזן שם מלא" required>
             </div>
 
-            <div class="form-group">
-                <label for="street">רחוב *</label>
-                <input type="text" id="street" placeholder="הזן כתובת" required>
-            </div>
-
-            <div class="form-group">
-                <label for="city">עיר *</label>
-                <input type="text" id="city" placeholder="הזן עיר" required>
-            </div>
-
             <div class="nedarim-iframe-container">
                 <div class="loading-iframe" id="loadingIframe">
                     <div style="width: 50px; height: 50px; margin: 0 auto 15px; border: 4px solid #E5E7EB; border-top-color: #3B82F6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -359,6 +349,12 @@
             <div style="width: 60px; height: 60px; margin: 0 auto 20px; border: 5px solid #E5E7EB; border-top-color: #10B981; border-radius: 50%; animation: spin 1s linear infinite;"></div>
             <h3 style="color: #374151; margin-bottom: 8px;">מעבד תשלום...</h3>
             <p style="color: #6B7280;">אנא המתן, התהליך עשוי לקחת מספר שניות</p>
+        </div>
+
+        <div id="processingMessage" class="processing-message" style="display: none;">
+            <div style="width: 60px; height: 60px; margin: 0 auto 20px; border: 5px solid #E5E7EB; border-top-color: #10B981; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <h3 style="color: #374151; margin-bottom: 8px;">מאמת תשלום...</h3>
+            <p style="color: #6B7280;">ממתין לאישור מהשרת, זה עשוי לקחת מספר שניות</p>
         </div>
 
         <div id="successMessage" class="success-message">
@@ -454,15 +450,17 @@
         }
 
         async function handlePayment() {
-            // Validate
+            // Validate - only require name
             const name = document.getElementById('clientName').value.trim();
-            const street = document.getElementById('street').value.trim();
-            const city = document.getElementById('city').value.trim();
 
-            if (!name || !street || !city) {
-                showError('נא למלא את כל השדות');
+            if (!name) {
+                showError('נא להזין שם מלא');
                 return;
             }
+
+            // Use empty values for address fields (not required for digital service)
+            const street = '';
+            const city = '';
 
             // Hide form, show loading
             document.getElementById('formSection').style.display = 'none';
@@ -541,22 +539,18 @@
                 document.getElementById('formSection').style.display = 'block';
                 showError(response.Message || 'התשלום נכשל. נסה שוב.');
             } else {
-                // Payment success
-                document.getElementById('successMessage').classList.add('show');
+                // Payment initiated successfully - show processing message
+                // Don't show success yet, wait for database confirmation
+                document.getElementById('processingMessage').style.display = 'block';
 
-                // Notify Python via QWebChannel
+                // Notify Python via QWebChannel that payment was initiated
                 if (typeof qt !== 'undefined' && qt.webChannelTransport) {
                     new QWebChannel(qt.webChannelTransport, function(channel) {
                         channel.objects.payment_bridge.paymentSuccess(JSON.stringify(response));
                     });
                 }
 
-                // Auto-close after 3 seconds
-                setTimeout(() => {
-                    if (typeof qt !== 'undefined') {
-                        window.close();
-                    }
-                }, 3000);
+                // Note: Success will be shown by Python when database confirms completion
             }
         }
 
@@ -564,6 +558,19 @@
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
             errorDiv.classList.add('show');
+        }
+
+        function showSuccess() {
+            // Hide processing message and show success
+            document.getElementById('processingMessage').style.display = 'none';
+            document.getElementById('successMessage').classList.add('show');
+            
+            // Auto-close after 3 seconds
+            setTimeout(() => {
+                if (typeof qt !== 'undefined') {
+                    window.close();
+                }
+            }, 3000);
         }
 
         function openConfirmDialog(message, onConfirm) {

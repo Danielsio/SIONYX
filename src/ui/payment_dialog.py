@@ -2,21 +2,21 @@
 Payment Dialog with Firebase Real-Time Listener
 """
 
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QApplication
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QApplication, QWidget, QLabel
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import Qt, QUrl, QTimer, QThread, pyqtSignal
+from PyQt6.QtGui import QFont
 from pathlib import Path
 import os
 import json
 import requests
-import threading
-import time
 import sseclient  # For Firebase streaming
 
 from services.payment_bridge import PaymentBridge
 from services.purchase_service import PurchaseService
 from utils.logger import get_logger
+from utils.purchase_constants import PURCHASE_STATUS, is_final_status
 from ui.web.local_server import LocalFileServer
 
 logger = get_logger(__name__)
@@ -62,7 +62,7 @@ class FirebaseStreamListener(QThread):
                         # Check if status changed to completed or failed
                         if isinstance(purchase_data, dict):
                             status = purchase_data.get('status')
-                            if status in ['completed', 'failed']:
+                            if is_final_status(status):
                                 logger.info(f"Purchase status changed to: {status}")
                                 self.status_changed.emit(purchase_data)
                                 self.running = False
@@ -181,7 +181,7 @@ class PaymentDialog(QDialog):
             if response.status_code == 200:
                 purchase = response.json()
 
-                if purchase and purchase.get('status') in ['completed', 'failed']:
+                if purchase and is_final_status(purchase.get('status')):
                     logger.info(f"Purchase status: {purchase.get('status')}")
                     self.status_timer.stop()
                     self.on_purchase_completed(purchase)
@@ -203,10 +203,92 @@ class PaymentDialog(QDialog):
         if status == 'completed':
             logger.info("Purchase completed successfully!")
             self.payment_response = purchase_data.get('rawResponse', {})
-            self.accept()
+            
+            # Show success message via JavaScript (not Python overlay)
+            self.show_success_via_javascript()
         elif status == 'failed':
             logger.error("Purchase failed")
             # Dialog stays open to show error
+
+    def show_success_via_javascript(self):
+        """Show success message via JavaScript (called when database confirms completion)"""
+        try:
+            # Call JavaScript showSuccess function
+            js_code = "showSuccess();"
+            self.web_view.page().runJavaScript(js_code)
+            logger.info("Success message displayed via JavaScript")
+        except Exception as e:
+            logger.error(f"Error calling JavaScript showSuccess: {e}")
+            # Fallback: use Python overlay
+            self.show_success_message()
+
+    def show_success_message(self):
+        """Show success message and auto-close dialog"""
+        try:
+            # Create success overlay
+            success_widget = QWidget()
+            success_widget.setObjectName("successOverlay")
+            success_widget.setStyleSheet("""
+                #successOverlay {
+                    background-color: rgba(16, 185, 129, 0.95);
+                    border-radius: 12px;
+                }
+            """)
+            
+            layout = QVBoxLayout(success_widget)
+            layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.setSpacing(20)
+            
+            # Success icon
+            icon_label = QLabel("✅")
+            icon_label.setFont(QFont("Segoe UI", 48, QFont.Weight.Bold))
+            icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            icon_label.setStyleSheet("color: #FFFFFF;")
+            
+            # Success message
+            message_label = QLabel("התשלום הושלם בהצלחה!")
+            message_label.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
+            message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            message_label.setStyleSheet("color: #FFFFFF;")
+            
+            # Sub message
+            sub_message = QLabel("ניתן לחזור לעמוד הבית ולראות את הזמן וההדפסות החדשים")
+            sub_message.setFont(QFont("Segoe UI", 14))
+            sub_message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            sub_message.setStyleSheet("color: #FFFFFF; opacity: 0.9;")
+            sub_message.setWordWrap(True)
+            
+            # Countdown message
+            countdown_label = QLabel("החלון ייסגר בעוד 3 שניות...")
+            countdown_label.setFont(QFont("Segoe UI", 12))
+            countdown_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            countdown_label.setStyleSheet("color: #FFFFFF; opacity: 0.8;")
+            
+            layout.addWidget(icon_label)
+            layout.addWidget(message_label)
+            layout.addWidget(sub_message)
+            layout.addWidget(countdown_label)
+            
+            # Replace web view with success message
+            self.web_view.hide()
+            self.layout().addWidget(success_widget)
+            
+            # Start countdown timer
+            self.countdown_timer = QTimer()
+            self.countdown_timer.timeout.connect(self.close_dialog)
+            self.countdown_timer.start(3000)  # 3 seconds
+            
+            logger.info("Success message displayed, dialog will close in 3 seconds")
+            
+        except Exception as e:
+            logger.error(f"Error showing success message: {e}")
+            # Fallback: close immediately
+            self.accept()
+    
+    def close_dialog(self):
+        """Close the dialog after countdown"""
+        self.countdown_timer.stop()
+        self.accept()
 
     def init_ui(self):
         """Initialize UI"""
@@ -361,5 +443,5 @@ class PaymentDialog(QDialog):
         if self._local_server is not None:
             self._local_server.stop()
             self._local_server = None
-            
+
         super().closeEvent(event)

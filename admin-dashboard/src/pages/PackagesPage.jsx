@@ -91,7 +91,7 @@ const PackagesPage = () => {
       description: record.description,
       price: record.price,
       discountPercent: record.discountPercent || 0,
-      timeMinutes: record.timeMinutes || 0,
+      minutes: record.minutes || 0,
       prints: record.prints || 0,
     });
     setModalVisible(true);
@@ -215,8 +215,8 @@ const PackagesPage = () => {
     },
     {
       title: 'זמן',
-      dataIndex: 'timeMinutes',
-      key: 'timeMinutes',
+      dataIndex: 'minutes',
+      key: 'minutes',
       render: (minutes) => {
         if (!minutes || minutes === 0) return '-';
         if (minutes < 60) return `${minutes}ד`;
@@ -224,7 +224,7 @@ const PackagesPage = () => {
         const mins = minutes % 60;
         return mins > 0 ? `${hours}ש ${mins}ד` : `${hours}ש`;
       },
-      sorter: (a, b) => (a.timeMinutes || 0) - (b.timeMinutes || 0),
+      sorter: (a, b) => (a.minutes || 0) - (b.minutes || 0),
     },
     {
       title: 'הדפסות',
@@ -237,7 +237,7 @@ const PackagesPage = () => {
       title: 'סטטוס',
       key: 'status',
       render: (_, record) => {
-        const hasTime = record.timeMinutes > 0;
+        const hasTime = record.minutes > 0;
         const hasPrints = record.prints > 0;
         return (
           <Space>
@@ -403,7 +403,7 @@ const PackagesPage = () => {
           </Form.Item>
 
           <Form.Item
-            name="timeMinutes"
+            name="minutes"
             label="Time (minutes)"
             rules={[
               { type: 'number', min: 0, message: 'Time must be positive' }
@@ -480,10 +480,10 @@ const PackagesPage = () => {
               )}
             </Descriptions.Item>
             <Descriptions.Item label="Time Included">
-              {viewingPackage.timeMinutes ? (
-                viewingPackage.timeMinutes < 60 
-                  ? `${viewingPackage.timeMinutes} minutes`
-                  : `${Math.floor(viewingPackage.timeMinutes / 60)} hours ${viewingPackage.timeMinutes % 60 > 0 ? `${viewingPackage.timeMinutes % 60} minutes` : ''}`
+              {viewingPackage.minutes ? (
+                viewingPackage.minutes < 60 
+                  ? `${viewingPackage.minutes} minutes`
+                  : `${Math.floor(viewingPackage.minutes / 60)} hours ${viewingPackage.minutes % 60 > 0 ? `${viewingPackage.minutes % 60} minutes` : ''}`
               ) : 'None'}
             </Descriptions.Item>
             <Descriptions.Item label="Prints Included">

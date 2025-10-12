@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
 import { getOrganizationStats } from '../services/organizationService';
+import { formatMinutesHebrew } from '../utils/timeFormatter';
 
 const { Title, Text } = Typography;
 
@@ -55,10 +56,7 @@ const OverviewPage = () => {
   }
 
   const formatTime = (minutes) => {
-    if (minutes < 60) return `${minutes}m`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    return formatMinutesHebrew(minutes);
   };
 
   return (
