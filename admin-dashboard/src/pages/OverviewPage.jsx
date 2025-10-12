@@ -62,15 +62,15 @@ const OverviewPage = () => {
   };
 
   return (
-    <div>
+    <div style={{ direction: 'rtl' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* Header */}
         <div>
           <Title level={2} style={{ marginBottom: 8 }}>
-            Dashboard Overview
+            סקירה כללית של לוח הבקרה
           </Title>
           <Text type="secondary">
-            Welcome back! Here's what's happening with <Text code>{user?.orgId || 'your organization'}</Text>.
+            ברוך השב! הנה מה שקורה עם <Text code>{user?.orgId || 'הארגון שלך'}</Text>.
           </Text>
         </div>
 
@@ -79,7 +79,7 @@ const OverviewPage = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card variant="borderless">
               <Statistic
-                title="Total Users"
+                title="סך משתמשים"
                 value={stats?.usersCount || 0}
                 prefix={<UserOutlined />}
                 valueStyle={{ color: '#3f8600' }}
@@ -90,7 +90,7 @@ const OverviewPage = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card variant="borderless">
               <Statistic
-                title="Packages"
+                title="חבילות"
                 value={stats?.packagesCount || 0}
                 prefix={<AppstoreOutlined />}
                 valueStyle={{ color: '#1890ff' }}
@@ -101,7 +101,7 @@ const OverviewPage = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card variant="borderless">
               <Statistic
-                title="Total Purchases"
+                title="סך רכישות"
                 value={stats?.purchasesCount || 0}
                 prefix={<ShoppingCartOutlined />}
                 valueStyle={{ color: '#cf1322' }}
@@ -112,7 +112,7 @@ const OverviewPage = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card variant="borderless">
               <Statistic
-                title="Revenue"
+                title="הכנסות"
                 value={stats?.totalRevenue || 0}
                 prefix="₪"
                 precision={2}
@@ -126,20 +126,20 @@ const OverviewPage = () => {
         <Row gutter={[16, 16]}>
           <Col xs={24} lg={12}>
             <Card 
-              title="Time Statistics" 
+              title="סטטיסטיקות זמן" 
               variant="borderless"
               extra={<ClockCircleOutlined />}
             >
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <div>
-                  <Text type="secondary">Total Time Purchased</Text>
+                  <Text type="secondary">סך זמן שנרכש</Text>
                   <br />
                   <Text strong style={{ fontSize: 24 }}>
                     {formatTime(stats?.totalTimeMinutes || 0)}
                   </Text>
                 </div>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  This represents the cumulative time purchased by all users in your organization.
+                  זה מייצג את הזמן המצטבר שנרכש על ידי כל המשתמשים בארגון שלך.
                 </Text>
               </Space>
             </Card>
@@ -147,24 +147,24 @@ const OverviewPage = () => {
 
           <Col xs={24} lg={12}>
             <Card 
-              title="Organization Info" 
+              title="מידע על הארגון" 
               variant="borderless"
             >
               <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                 <div>
-                  <Text type="secondary">Organization ID</Text>
+                  <Text type="secondary">מזהה ארגון</Text>
                   <br />
-                  <Text strong>{user?.orgId || 'N/A'}</Text>
+                  <Text strong>{user?.orgId || 'לא זמין'}</Text>
                 </div>
                 <div>
-                  <Text type="secondary">Organization Name</Text>
+                  <Text type="secondary">שם הארגון</Text>
                   <br />
-                  <Text strong code>{user?.orgId || 'N/A'}</Text>
+                  <Text strong code>{user?.orgId || 'לא זמין'}</Text>
                 </div>
                 <div>
-                  <Text type="secondary">Admin Email</Text>
+                  <Text type="secondary">אימייל מנהל</Text>
                   <br />
-                  <Text strong>{user?.email || 'N/A'}</Text>
+                  <Text strong>{user?.email || 'לא זמין'}</Text>
                 </div>
               </Space>
             </Card>
@@ -172,12 +172,12 @@ const OverviewPage = () => {
         </Row>
 
         {/* Quick Actions or Recent Activity */}
-        <Card title="Quick Stats" variant="borderless">
+        <Card title="סטטיסטיקות מהירות" variant="borderless">
           {stats && stats.usersCount > 0 ? (
             <Row gutter={16}>
               <Col span={8}>
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Text type="secondary">Avg. Time per User</Text>
+                  <Text type="secondary">זמן ממוצע למשתמש</Text>
                   <br />
                   <Title level={4}>
                     {formatTime(Math.round((stats.totalTimeMinutes || 0) / stats.usersCount))}
@@ -186,7 +186,7 @@ const OverviewPage = () => {
               </Col>
               <Col span={8}>
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Text type="secondary">Avg. Revenue per Purchase</Text>
+                  <Text type="secondary">הכנסה ממוצעת לרכישה</Text>
                   <br />
                   <Title level={4}>
                     ₪{stats.purchasesCount > 0 
@@ -198,7 +198,7 @@ const OverviewPage = () => {
               </Col>
               <Col span={8}>
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                  <Text type="secondary">Purchases per User</Text>
+                  <Text type="secondary">רכישות למשתמש</Text>
                   <br />
                   <Title level={4}>
                     {((stats.purchasesCount || 0) / stats.usersCount).toFixed(1)}
@@ -208,7 +208,7 @@ const OverviewPage = () => {
             </Row>
           ) : (
             <Empty 
-              description="No data available yet"
+              description="אין נתונים זמינים עדיין"
               image={Empty.PRESENTED_IMAGE_SIMPLE}
             />
           )}

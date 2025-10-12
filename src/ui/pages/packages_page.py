@@ -34,6 +34,9 @@ class PackagesPage(QWidget):
     def init_ui(self):
         """Initialize UI"""
         self.setObjectName("contentPage")
+        
+        # Set RTL layout direction for Hebrew support
+        self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(45, 35, 45, 35)
@@ -42,11 +45,11 @@ class PackagesPage(QWidget):
         # Header
         header_layout = QHBoxLayout()
 
-        title = QLabel("Available Packages")
+        title = QLabel("חבילות זמינות")
         title.setFont(QFont("Segoe UI", 30, QFont.Weight.Bold))
         title.setStyleSheet("color: #111827;")
 
-        subtitle = QLabel("Purchase additional time and print credits")
+        subtitle = QLabel("רכוש זמן נוסף וקרדיטי הדפסה")
         subtitle.setFont(QFont("Segoe UI", 14))
         subtitle.setStyleSheet("color: #6B7280;")
 
@@ -76,7 +79,7 @@ class PackagesPage(QWidget):
         scroll.setWidget(self.packages_container)
 
         # Loading/empty state label
-        self.state_label = QLabel("Loading packages...")
+        self.state_label = QLabel("טוען חבילות...")
         self.state_label.setFont(QFont("Segoe UI", 14))
         self.state_label.setStyleSheet("color: #9CA3AF;")
         self.state_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -102,14 +105,14 @@ class PackagesPage(QWidget):
 
         if not result.get('success'):
             logger.error(f"Failed to load packages: {result.get('error')}")
-            self.state_label.setText("❌ Failed to load packages")
+            self.state_label.setText("❌ נכשל בטעינת החבילות")
             return
 
         self.packages = result.get('packages', [])
 
         if len(self.packages) == 0:
             logger.warning("No packages available")
-            self.state_label.setText("📦 No packages available yet")
+            self.state_label.setText("📦 אין חבילות זמינות עדיין")
             return
 
         logger.info(f"Loaded {len(self.packages)} packages")
@@ -181,7 +184,7 @@ class PackagesPage(QWidget):
 
         # Hot Deal badge
         if is_hot_deal:
-            badge = QLabel("🔥 HOT DEAL")
+            badge = QLabel("🔥 עסקה חמה")
             badge.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
             badge.setStyleSheet("""
                 color: white;
@@ -231,11 +234,11 @@ class PackagesPage(QWidget):
         else:
             time_text = f"{time_minutes} min"
         
-        time_widget = self.create_clean_benefit("⏰", "Computing Time", time_text)
+        time_widget = self.create_clean_benefit("⏰", "זמן מחשוב", time_text)
         
         # Prints display
         prints = package.get('prints', 0)
-        prints_widget = self.create_clean_benefit("🖨️", "Print Credits", f"{prints} prints")
+        prints_widget = self.create_clean_benefit("🖨️", "קרדיטי הדפסה", f"{prints} הדפסות")
 
         benefits_layout.addWidget(time_widget)
         benefits_layout.addWidget(prints_widget)
@@ -249,7 +252,7 @@ class PackagesPage(QWidget):
 
         if pricing['discount_percent'] > 0:
             # Discount badge
-            discount_badge = QLabel(f"SAVE {pricing['discount_percent']:.0f}%")
+            discount_badge = QLabel(f"חיסכון {pricing['discount_percent']:.0f}%")
             discount_badge.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
             discount_badge.setStyleSheet("""
                 color: #DC2626;
@@ -287,7 +290,7 @@ class PackagesPage(QWidget):
             price_layout.addWidget(final_label)
 
         # Purchase button
-        purchase_btn = QPushButton("GET THIS PACKAGE")
+        purchase_btn = QPushButton("קבל את החבילה הזו")
         purchase_btn.setObjectName("purchaseButton")
         purchase_btn.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
         purchase_btn.setMinimumHeight(56)
@@ -393,7 +396,7 @@ class PackagesPage(QWidget):
                 # Get parent window to show dialog
                 parent_window = self.window()
                 if hasattr(parent_window, 'show_error'):
-                    parent_window.show_error("Payment Error", "Payment confirmation not received")
+                    parent_window.show_error("שגיאת תשלום", "לא התקבל אישור תשלום")
                 else:
                     QMessageBox.critical(self, "שגיאה", "לא התקבל אישור תשלום")
                 return
@@ -415,11 +418,11 @@ class PackagesPage(QWidget):
                 parent_window = self.window()
                 if hasattr(parent_window, 'show_success'):
                     parent_window.show_success(
-                        "Purchase Complete! 🎉",
-                        f"Your purchase was successful!",
-                        f"Added to your account:<br>"
-                        f"• <b>{package.get('minutes')} minutes</b> of session time<br>"
-                        f"• <b>{package.get('prints')} prints</b>"
+                        "הרכישה הושלמה! 🎉",
+                        f"הרכישה שלך בוצעה בהצלחה!",
+                        f"נוסף לחשבונך:<br>"
+                        f"• <b>{package.get('minutes')} דקות</b> של זמן הפעלה<br>"
+                        f"• <b>{package.get('prints')} הדפסות</b>"
                     )
                 else:
                     QMessageBox.information(
@@ -437,9 +440,9 @@ class PackagesPage(QWidget):
                 parent_window = self.window()
                 if hasattr(parent_window, 'show_error'):
                     parent_window.show_error(
-                        "Account Update Failed",
-                        "Payment was processed but account update failed",
-                        purchase_result.get('error', 'Unknown error')
+                        "נכשל עדכון החשבון",
+                        "התשלום בוצע אך נכשל עדכון החשבון",
+                        purchase_result.get('error', 'שגיאה לא ידועה')
                     )
                 else:
                     QMessageBox.critical(

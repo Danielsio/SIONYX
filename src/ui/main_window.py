@@ -61,7 +61,10 @@ class MainWindow(BaseKioskWindow):
 
     def init_ui(self):
         """Initialize UI"""
-        self.setWindowTitle(f"{APP_NAME} - Dashboard")
+        self.setWindowTitle(f"{APP_NAME} - לוח בקרה")
+        
+        # Set RTL layout direction for Hebrew support
+        self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         main_layout = self.create_main_layout()
 
@@ -144,10 +147,10 @@ class MainWindow(BaseKioskWindow):
         self.nav_buttons = []
 
         nav_items = [
-            ("🏠  Home", self.PAGES['HOME']),
-            ("🧩  Packages", self.PAGES['PACKAGES']),
-            ("🕘  History", self.PAGES['HISTORY']),
-            ("❓  Help", self.PAGES['HELP'])
+            ("🏠  בית", self.PAGES['HOME']),
+            ("🧩  חבילות", self.PAGES['PACKAGES']),
+            ("🕘  היסטוריה", self.PAGES['HISTORY']),
+            ("❓  עזרה", self.PAGES['HELP'])
         ]
 
         for label, index in nav_items:
@@ -164,7 +167,7 @@ class MainWindow(BaseKioskWindow):
         bottom_layout.setContentsMargins(12, 6, 12, 20)
         bottom_layout.setSpacing(0)
 
-        btn_logout = QPushButton("Logout")
+        btn_logout = QPushButton("התנתק")
         btn_logout.setObjectName("modernLogoutButton")
         btn_logout.setFont(QFont("Segoe UI", 10, QFont.Weight.Medium))
         btn_logout.setMinimumHeight(40)
@@ -205,10 +208,10 @@ class MainWindow(BaseKioskWindow):
         logger.warning("Logout requested")
 
         confirmed = self.show_confirm(
-            "Confirm Logout",
-            "Are you sure you want to logout?",
-            confirm_text="Yes, Logout",
-            cancel_text="Cancel"
+            "אשר התנתקות",
+            "האם אתה בטוח שברצונך להתנתק?",
+            confirm_text="כן, התנתק",
+            cancel_text="ביטול"
         )
 
         if confirmed:
@@ -238,8 +241,8 @@ class MainWindow(BaseKioskWindow):
         if not result['success']:
             QMessageBox.critical(
                 self,
-                "Session Error",
-                f"Failed to start session: {result['error']}"
+                "שגיאת הפעלה",
+                f"נכשל להתחיל הפעלה: {result['error']}"
             )
             return
 
@@ -303,11 +306,11 @@ class MainWindow(BaseKioskWindow):
         # Show appropriate message
         if reason == 'expired':
             purchase_more = self.show_question(
-                "Time Expired",
-                "Your session time has expired!",
-                "Would you like to purchase more time?",
-                yes_text="Buy More Time",
-                no_text="Not Now"
+                "הזמן פג",
+                "זמן הפעלה שלך פג!",
+                "האם תרצה לרכוש עוד זמן?",
+                yes_text="רכוש עוד זמן",
+                no_text="לא עכשיו"
             )
 
             if purchase_more:
@@ -316,7 +319,7 @@ class MainWindow(BaseKioskWindow):
     def on_warning_5min(self):
         """5 minute warning"""
         self.show_notification(
-            "⏰ 5 minutes remaining! Your session will end soon.",
+            "⏰ נותרו 5 דקות! הפעלה שלך תסתיים בקרוב.",
             message_type="warning",
             duration=4000
         )
@@ -324,7 +327,7 @@ class MainWindow(BaseKioskWindow):
     def on_warning_1min(self):
         """1 minute warning"""
         self.show_notification(
-            "🚨 URGENT: Only 1 minute remaining! Save your work now!",
+            "🚨 דחוף: נותרה דקה אחת! שמור את העבודה שלך עכשיו!",
             message_type="error",
             duration=6000
         )

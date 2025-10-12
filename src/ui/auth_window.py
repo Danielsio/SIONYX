@@ -27,8 +27,11 @@ class AuthWindow(BaseKioskWindow):
 
     def init_ui(self):
         """Initialize UI with sliding panels"""
-        self.setWindowTitle(f"{APP_NAME} - Authentication")
+        self.setWindowTitle(f"{APP_NAME} - אימות")
         self.setObjectName("AuthWindow")
+        
+        # Set RTL layout direction for Hebrew support
+        self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         # Use base class method for layout
         main_layout = self.create_main_layout()
@@ -83,13 +86,13 @@ class AuthWindow(BaseKioskWindow):
         layout.setContentsMargins(60, 60, 60, 60)
 
         # Title
-        title = QLabel("Sign In")
+        title = QLabel("התחברות")
         title.setObjectName("formTitle")
         title.setFont(QFont("Segoe UI", 32, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Subtitle
-        subtitle = QLabel("Enter your credentials")
+        subtitle = QLabel("הזן את פרטי ההתחברות שלך")
         subtitle.setObjectName("formSubtitle")
         subtitle.setFont(QFont("Segoe UI", 11))
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -97,26 +100,26 @@ class AuthWindow(BaseKioskWindow):
         # Phone/Email Input
         self.signin_email_input = QLineEdit()
         self.signin_email_input.setObjectName("authInput")
-        self.signin_email_input.setPlaceholderText("Phone Number")
+        self.signin_email_input.setPlaceholderText("מספר טלפון")
         self.signin_email_input.setFont(QFont("Segoe UI", 12))
         self.signin_email_input.setFixedHeight(50)
 
         # Password Input
         self.signin_password_input = QLineEdit()
         self.signin_password_input.setObjectName("authInput")
-        self.signin_password_input.setPlaceholderText("Password")
+        self.signin_password_input.setPlaceholderText("סיסמה")
         self.signin_password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.signin_password_input.setFont(QFont("Segoe UI", 12))
         self.signin_password_input.setFixedHeight(50)
 
         # Forgot password link
-        forgot_link = QLabel("<a href='#' style='color: #333; text-decoration: none; font-weight: 600;'>Forgot your password?</a>")
+        forgot_link = QLabel("<a href='#' style='color: #333; text-decoration: none; font-weight: 600;'>שכחת את הסיסמה?</a>")
         forgot_link.setFont(QFont("Segoe UI", 10))
         forgot_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
         forgot_link.linkActivated.connect(self.forgot_password_clicked)
 
         # Sign In button
-        self.signin_button = QPushButton("SIGN IN")
+        self.signin_button = QPushButton("התחבר")
         self.signin_button.setObjectName("authButton")
         self.signin_button.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         self.signin_button.setFixedHeight(50)
@@ -150,13 +153,13 @@ class AuthWindow(BaseKioskWindow):
         layout.setContentsMargins(60, 40, 60, 40)
 
         # Title
-        title = QLabel("Create Account")
+        title = QLabel("צור חשבון")
         title.setObjectName("formTitle")
         title.setFont(QFont("Segoe UI", 32, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Subtitle
-        subtitle = QLabel("Fill in your details to get started")
+        subtitle = QLabel("מלא את הפרטים שלך כדי להתחיל")
         subtitle.setObjectName("formSubtitle")
         subtitle.setFont(QFont("Segoe UI", 11))
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -164,35 +167,35 @@ class AuthWindow(BaseKioskWindow):
         # First Name
         self.signup_firstname_input = QLineEdit()
         self.signup_firstname_input.setObjectName("authInput")
-        self.signup_firstname_input.setPlaceholderText("First Name")
+        self.signup_firstname_input.setPlaceholderText("שם פרטי")
         self.signup_firstname_input.setFont(QFont("Segoe UI", 12))
         self.signup_firstname_input.setFixedHeight(48)
 
         # Last Name
         self.signup_lastname_input = QLineEdit()
         self.signup_lastname_input.setObjectName("authInput")
-        self.signup_lastname_input.setPlaceholderText("Last Name")
+        self.signup_lastname_input.setPlaceholderText("שם משפחה")
         self.signup_lastname_input.setFont(QFont("Segoe UI", 12))
         self.signup_lastname_input.setFixedHeight(48)
 
         # Phone
         self.signup_phone_input = QLineEdit()
         self.signup_phone_input.setObjectName("authInput")
-        self.signup_phone_input.setPlaceholderText("Phone Number")
+        self.signup_phone_input.setPlaceholderText("מספר טלפון")
         self.signup_phone_input.setFont(QFont("Segoe UI", 12))
         self.signup_phone_input.setFixedHeight(48)
 
         # Email (optional)
         self.signup_email_input = QLineEdit()
         self.signup_email_input.setObjectName("authInput")
-        self.signup_email_input.setPlaceholderText("Email (optional)")
+        self.signup_email_input.setPlaceholderText("אימייל (אופציונלי)")
         self.signup_email_input.setFont(QFont("Segoe UI", 12))
         self.signup_email_input.setFixedHeight(48)
 
         # Password
         self.signup_password_input = QLineEdit()
         self.signup_password_input.setObjectName("authInput")
-        self.signup_password_input.setPlaceholderText("Password")
+        self.signup_password_input.setPlaceholderText("סיסמה")
         self.signup_password_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.signup_password_input.setFont(QFont("Segoe UI", 12))
         self.signup_password_input.setFixedHeight(48)
@@ -200,13 +203,13 @@ class AuthWindow(BaseKioskWindow):
         # Confirm Password
         self.signup_confirm_input = QLineEdit()
         self.signup_confirm_input.setObjectName("authInput")
-        self.signup_confirm_input.setPlaceholderText("Confirm Password")
+        self.signup_confirm_input.setPlaceholderText("אשר סיסמה")
         self.signup_confirm_input.setEchoMode(QLineEdit.EchoMode.Password)
         self.signup_confirm_input.setFont(QFont("Segoe UI", 12))
         self.signup_confirm_input.setFixedHeight(48)
 
         # Sign Up button
-        self.signup_button = QPushButton("SIGN UP")
+        self.signup_button = QPushButton("הירשם")
         self.signup_button.setObjectName("authButton")
         self.signup_button.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         self.signup_button.setFixedHeight(50)
@@ -253,18 +256,18 @@ class AuthWindow(BaseKioskWindow):
         left_layout.setSpacing(20)
         left_layout.setContentsMargins(50, 50, 50, 50)
 
-        left_title = QLabel("Welcome Back!")
+        left_title = QLabel("ברוך השב!")
         left_title.setObjectName("overlayTitle")
         left_title.setFont(QFont("Segoe UI", 36, QFont.Weight.Bold))
         left_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        left_text = QLabel("To keep connected with us\nplease login with your personal info")
+        left_text = QLabel("כדי להישאר מחובר אלינו\nאנא התחבר עם הפרטים האישיים שלך")
         left_text.setObjectName("overlayText")
         left_text.setFont(QFont("Segoe UI", 13))
         left_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         left_text.setWordWrap(True)
 
-        self.left_button = QPushButton("SIGN IN")
+        self.left_button = QPushButton("התחבר")
         self.left_button.setObjectName("overlayButton")
         self.left_button.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         self.left_button.setFixedHeight(50)
@@ -287,18 +290,18 @@ class AuthWindow(BaseKioskWindow):
         right_layout.setSpacing(20)
         right_layout.setContentsMargins(50, 50, 50, 50)
 
-        right_title = QLabel("Hello, Friend!")
+        right_title = QLabel("שלום, חבר!")
         right_title.setObjectName("overlayTitle")
         right_title.setFont(QFont("Segoe UI", 36, QFont.Weight.Bold))
         right_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        right_text = QLabel("Enter your personal details\nand start your journey with us")
+        right_text = QLabel("הזן את הפרטים האישיים שלך\nוהתחל את המסע שלך איתנו")
         right_text.setObjectName("overlayText")
         right_text.setFont(QFont("Segoe UI", 13))
         right_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right_text.setWordWrap(True)
 
-        self.right_button = QPushButton("SIGN UP")
+        self.right_button = QPushButton("הירשם")
         self.right_button.setObjectName("overlayButton")
         self.right_button.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         self.right_button.setFixedHeight(50)
@@ -444,32 +447,32 @@ class AuthWindow(BaseKioskWindow):
         password = self.signin_password_input.text()
 
         if not phone:
-            self.show_error("Validation Error", "Please enter your phone number")
+            self.show_error("שגיאת אימות", "אנא הזן את מספר הטלפון שלך")
             self.signin_email_input.setFocus()
             self.shake_widget(self.signin_email_input)
             return
 
         if not password:
-            self.show_error("Validation Error", "Please enter your password")
+            self.show_error("שגיאת אימות", "אנא הזן את הסיסמה שלך")
             self.signin_password_input.setFocus()
             self.shake_widget(self.signin_password_input)
             return
 
         self.signin_button.setEnabled(False)
-        self.signin_button.setText("SIGNING IN...")
+        self.signin_button.setText("מתחבר...")
         QApplication.processEvents()
 
         result = self.auth_service.login(phone, password)
 
         self.signin_button.setEnabled(True)
-        self.signin_button.setText("SIGN IN")
+        self.signin_button.setText("התחבר")
 
         if result['success']:
-            self.show_success("Login Successful", "Welcome back!")
+            self.show_success("התחברות הצליחה", "ברוך השב!")
             self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
             self.login_success.emit()
         else:
-            self.show_error("Login Failed", result.get('error', 'Invalid credentials'))
+            self.show_error("התחברות נכשלה", result.get('error', 'פרטי התחברות לא תקינים'))
             self.signin_password_input.clear()
             self.signin_password_input.setFocus()
             self.shake_widget(self.signin_panel)
@@ -484,44 +487,44 @@ class AuthWindow(BaseKioskWindow):
         confirm_password = self.signup_confirm_input.text()
 
         if not first_name:
-            self.show_error("Validation Error", "Please enter your first name")
+            self.show_error("שגיאת אימות", "אנא הזן את השם הפרטי שלך")
             self.signup_firstname_input.setFocus()
             self.shake_widget(self.signup_firstname_input)
             return
 
         if not last_name:
-            self.show_error("Validation Error", "Please enter your last name")
+            self.show_error("שגיאת אימות", "אנא הזן את שם המשפחה שלך")
             self.signup_lastname_input.setFocus()
             self.shake_widget(self.signup_lastname_input)
             return
 
         if not phone:
-            self.show_error("Validation Error", "Please enter your phone number")
+            self.show_error("שגיאת אימות", "אנא הזן את מספר הטלפון שלך")
             self.signup_phone_input.setFocus()
             self.shake_widget(self.signup_phone_input)
             return
 
         if not password:
-            self.show_error("Validation Error", "Please enter a password")
+            self.show_error("שגיאת אימות", "אנא הזן סיסמה")
             self.signup_password_input.setFocus()
             self.shake_widget(self.signup_password_input)
             return
 
         if len(password) < 6:
-            self.show_error("Validation Error", "Password must be at least 6 characters")
+            self.show_error("שגיאת אימות", "הסיסמה חייבת להכיל לפחות 6 תווים")
             self.signup_password_input.setFocus()
             self.shake_widget(self.signup_password_input)
             return
 
         if password != confirm_password:
-            self.show_error("Validation Error", "Passwords do not match")
+            self.show_error("שגיאת אימות", "הסיסמאות אינן תואמות")
             self.signup_confirm_input.clear()
             self.signup_confirm_input.setFocus()
             self.shake_widget(self.signup_confirm_input)
             return
 
         self.signup_button.setEnabled(False)
-        self.signup_button.setText("CREATING...")
+        self.signup_button.setText("יוצר...")
         QApplication.processEvents()
 
         result = self.auth_service.register(
@@ -533,22 +536,22 @@ class AuthWindow(BaseKioskWindow):
         )
 
         self.signup_button.setEnabled(True)
-        self.signup_button.setText("SIGN UP")
+        self.signup_button.setText("הירשם")
 
         if result['success']:
-            self.show_success("Registration Successful", f"Welcome to {APP_NAME}!")
+            self.show_success("ההרשמה הצליחה", f"ברוך הבא ל-{APP_NAME}!")
             self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
             self.login_success.emit()
         else:
-            self.show_error("Registration Failed", result.get('error', 'Could not create account'))
+            self.show_error("ההרשמה נכשלה", result.get('error', 'לא ניתן ליצור חשבון'))
             self.shake_widget(self.signup_panel)
 
     def forgot_password_clicked(self):
         """Handle forgot password"""
         self.show_info(
-            "Password Reset",
-            "Forgot your password?",
-            "Please contact your system administrator.<br><br>"
-            "<b>Email:</b> support@sionyx.com<br>"
-            "<b>Phone:</b> +1 (555) 123-4567"
+            "איפוס סיסמה",
+            "שכחת את הסיסמה?",
+            "אנא פנה למנהל המערכת שלך.<br><br>"
+            "<b>אימייל:</b> support@sionyx.com<br>"
+            "<b>טלפון:</b> +1 (555) 123-4567"
         )

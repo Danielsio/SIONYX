@@ -32,13 +32,16 @@ class HomePage(QWidget):
     def init_ui(self):
         """Initialize UI"""
         self.setObjectName("homePage")
+        
+        # Set RTL layout direction for Hebrew support
+        self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(45, 35, 45, 35)
         layout.setSpacing(25)
 
         # Header
-        header = QLabel("Dashboard")
+        header = QLabel("לוח בקרה")
         header.setFont(QFont("Segoe UI", 30, QFont.Weight.Bold))
         header.setStyleSheet("color: #111827;")
 
@@ -50,8 +53,8 @@ class HomePage(QWidget):
 
         # Time card
         self.time_card = self.create_stat_card(
-            "Remaining Time",
-            "0h 0m 0s",
+            "זמן נותר",
+            "0ש 0ד 0שנ",
             "#10B981",
             "timeValue"
         )
@@ -59,7 +62,7 @@ class HomePage(QWidget):
         # Prints card
         prints = str(self.current_user.get('remainingPrints', 0))
         self.prints_card = self.create_stat_card(
-            "Prints Available",
+            "הדפסות זמינות",
             prints,
             "#3B82F6",
             "printsValue"
@@ -128,17 +131,17 @@ class HomePage(QWidget):
         layout.setContentsMargins(50, 40, 50, 40)
         layout.setSpacing(18)
 
-        welcome = QLabel(f"Welcome back, {self.current_user.get('firstName')}!")
+        welcome = QLabel(f"ברוך הבא, {self.current_user.get('firstName')}!")
         welcome.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
         welcome.setStyleSheet("color: #111827;")
 
         # Instruction text (will update based on time)
-        self.instruction = QLabel("Ready to start your session? Click below to begin.")
+        self.instruction = QLabel("מוכן להתחיל את הפעלתך? לחץ למטה כדי להתחיל.")
         self.instruction.setFont(QFont("Segoe UI", 14))
         self.instruction.setStyleSheet("color: #6B7280;")
 
         # Start button
-        self.start_btn = QPushButton("🚀  Start Using PC")
+        self.start_btn = QPushButton("🚀  התחל להשתמש במחשב")
         self.start_btn.setObjectName("startButton")
         self.start_btn.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         self.start_btn.setMinimumHeight(70)
@@ -160,7 +163,7 @@ class HomePage(QWidget):
         minutes = (remaining % 3600) // 60
         seconds = remaining % 60
 
-        time_str = f"{hours}h {minutes}m {seconds}s"
+        time_str = f"{hours}ש {minutes}ד {seconds}שנ"
 
         time_value = self.time_card.findChild(QLabel, "timeValue")
         if time_value:
@@ -179,8 +182,8 @@ class HomePage(QWidget):
         # Update button state
         if remaining <= 0:
             self.start_btn.setEnabled(False)
-            self.start_btn.setText("⏸  No Time Available")
-            self.instruction.setText("You have no time remaining. Purchase a package to continue.")
+            self.start_btn.setText("⏸  אין זמן זמין")
+            self.instruction.setText("אין לך זמן נותר. רכוש חבילה כדי להמשיך.")
             self.instruction.setStyleSheet("color: #DC2626; font-weight: 600;")
 
             # Update button style for disabled state
@@ -193,8 +196,8 @@ class HomePage(QWidget):
             """)
         else:
             self.start_btn.setEnabled(True)
-            self.start_btn.setText("🚀  Start Using PC")
-            self.instruction.setText("Ready to start your session? Click below to begin.")
+            self.start_btn.setText("🚀  התחל להשתמש במחשב")
+            self.instruction.setText("מוכן להתחיל את הפעלתך? לחץ למטה כדי להתחיל.")
             self.instruction.setStyleSheet("color: #6B7280;")
 
     def handle_start_session(self):

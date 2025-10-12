@@ -34,17 +34,17 @@ const MainLayout = () => {
     {
       key: '/',
       icon: <DashboardOutlined />,
-      label: 'Overview',
+      label: 'סקירה כללית',
     },
     {
       key: '/users',
       icon: <UserOutlined />,
-      label: 'Users',
+      label: 'משתמשים',
     },
     {
       key: '/packages',
       icon: <AppstoreOutlined />,
-      label: 'Packages',
+      label: 'חבילות',
     },
   ];
 
@@ -52,13 +52,13 @@ const MainLayout = () => {
     {
       key: 'profile',
       icon: <UserOutlined />,
-      label: 'Profile',
+      label: 'פרופיל',
       disabled: true,
     },
     {
       key: 'settings',
       icon: <SettingOutlined />,
-      label: 'Settings',
+      label: 'הגדרות',
       disabled: true,
     },
     {
@@ -67,14 +67,14 @@ const MainLayout = () => {
     {
       key: 'logout',
       icon: <LogoutOutlined />,
-      label: 'Logout',
+      label: 'התנתק',
       onClick: handleLogout,
       danger: true,
     },
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', direction: 'rtl' }}>
       <Sider 
         trigger={null} 
         collapsible 
@@ -83,7 +83,7 @@ const MainLayout = () => {
           overflow: 'auto',
           height: '100vh',
           position: 'fixed',
-          left: 0,
+          right: 0,
           top: 0,
           bottom: 0,
         }}
@@ -111,7 +111,7 @@ const MainLayout = () => {
         />
       </Sider>
 
-      <Layout style={{ marginLeft: collapsed ? 80 : 200, transition: 'all 0.2s' }}>
+      <Layout style={{ marginRight: collapsed ? 80 : 200, transition: 'all 0.2s' }}>
         <Header style={{
           padding: '0 24px',
           background: '#fff',
@@ -136,9 +136,9 @@ const MainLayout = () => {
 
           <Space size="large">
             <Space>
-              <Text type="secondary">Organization:</Text>
+              <Text type="secondary">ארגון:</Text>
               <Badge status="success" />
-              <Text strong>{user?.orgId || 'Unknown'}</Text>
+              <Text strong>{user?.orgId || 'לא ידוע'}</Text>
             </Space>
 
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">

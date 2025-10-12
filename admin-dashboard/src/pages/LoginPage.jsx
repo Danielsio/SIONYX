@@ -38,7 +38,8 @@ const LoginPage = () => {
       alignItems: 'center',
       justifyContent: 'center',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '20px'
+      padding: '20px',
+      direction: 'rtl'
     }}>
       <Card 
         style={{ 
@@ -50,10 +51,10 @@ const LoginPage = () => {
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <Title level={2} style={{ marginBottom: 8 }}>
-            SIONYX Admin
+            SIONYX מנהל
           </Title>
           <Text type="secondary">
-            Sign in to your admin dashboard
+            התחבר ללוח הבקרה של המנהל
           </Text>
         </div>
 
@@ -76,19 +77,19 @@ const LoginPage = () => {
         >
           <Form.Item
             name="orgId"
-            label="Organization ID"
+            label="מזהה ארגון"
             rules={[
-              { required: true, message: 'Please enter your organization ID' },
+              { required: true, message: 'אנא הזן את מזהה הארגון שלך' },
               { 
                 pattern: /^[a-z0-9-]+$/, 
-                message: 'Only lowercase letters, numbers, and hyphens allowed' 
+                message: 'רק אותיות קטנות, מספרים ומקפים מותרים' 
               }
             ]}
-            tooltip="Your organization ID from the .env file (e.g., my-org, tech-lab)"
+            tooltip="מזהה הארגון שלך מקובץ ה-.env (למשל, my-org, tech-lab)"
           >
             <Input
               prefix={<BankOutlined />}
-              placeholder="e.g., my-organization"
+              placeholder="למשל, my-organization"
               autoComplete="organization"
             />
           </Form.Item>
@@ -97,32 +98,32 @@ const LoginPage = () => {
 
           <Form.Item
             name="phone"
-            label="Phone Number"
+            label="מספר טלפון"
             rules={[
-              { required: true, message: 'Please enter your phone number' },
+              { required: true, message: 'אנא הזן את מספר הטלפון שלך' },
               { 
                 pattern: /^[\d\s\-\+\(\)]+$/, 
-                message: 'Please enter a valid phone number' 
+                message: 'אנא הזן מספר טלפון תקין' 
               }
             ]}
           >
             <Input
               prefix={<PhoneOutlined />}
-              placeholder="e.g., 1234567890"
+              placeholder="למשל, 1234567890"
               autoComplete="tel"
             />
           </Form.Item>
 
           <Form.Item
             name="password"
-            label="Password"
+            label="סיסמה"
             rules={[
-              { required: true, message: 'Please enter your password' }
+              { required: true, message: 'אנא הזן את הסיסמה שלך' }
             ]}
           >
             <Input.Password
               prefix={<LockOutlined />}
-              placeholder="Password"
+              placeholder="סיסמה"
               autoComplete="current-password"
             />
           </Form.Item>
@@ -135,29 +136,29 @@ const LoginPage = () => {
               block
               style={{ height: 45, fontSize: 16 }}
             >
-              Sign In
+              התחבר
             </Button>
           </Form.Item>
         </Form>
 
         <div style={{ marginTop: 24, padding: 16, background: '#f5f5f5', borderRadius: 8 }}>
           <Text type="secondary" style={{ fontSize: 13, display: 'block', marginBottom: 8 }}>
-            <strong>Where to find your Organization ID:</strong>
+            <strong>איפה למצוא את מזהה הארגון שלך:</strong>
           </Text>
           <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-            • Check your <code>.env</code> file: <code>ORG_ID=your-org-id</code>
+            • בדוק את קובץ ה-<code>.env</code> שלך: <code>ORG_ID=your-org-id</code>
           </Text>
           <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-            • Ask your system administrator
+            • שאל את מנהל המערכת שלך
           </Text>
           <Text type="secondary" style={{ fontSize: 12, display: 'block', marginTop: 8 }}>
-            Use the same phone and password as your desktop app.
+            השתמש באותו מספר טלפון וסיסמה כמו באפליקציית הדסקטופ.
           </Text>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            Contact your organization administrator if you need help
+            פנה למנהל הארגון שלך אם אתה זקוק לעזרה
           </Text>
         </div>
       </Card>

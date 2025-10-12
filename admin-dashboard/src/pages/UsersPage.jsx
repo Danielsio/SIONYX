@@ -233,31 +233,31 @@ const UsersPage = () => {
 
   const columns = [
     {
-      title: 'Name',
+      title: 'שם',
       key: 'name',
       render: (_, record) => (
         <Space>
           <UserOutlined style={{ color: '#1890ff' }} />
-          <span>{`${record.firstName || ''} ${record.lastName || ''}`.trim() || 'N/A'}</span>
+          <span>{`${record.firstName || ''} ${record.lastName || ''}`.trim() || 'לא זמין'}</span>
         </Space>
       ),
       sorter: (a, b) => 
         `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`),
     },
     {
-      title: 'Phone Number',
+      title: 'מספר טלפון',
       dataIndex: 'phoneNumber',
       key: 'phoneNumber',
-      render: (phone) => phone || 'N/A',
+      render: (phone) => phone || 'לא זמין',
     },
     {
-      title: 'Email',
+      title: 'אימייל',
       dataIndex: 'email',
       key: 'email',
-      render: (email) => email || 'N/A',
+      render: (email) => email || 'לא זמין',
     },
     {
-      title: 'Remaining Time',
+      title: 'זמן נותר',
       dataIndex: 'remainingTime',
       key: 'remainingTime',
       render: (time) => (
@@ -269,7 +269,7 @@ const UsersPage = () => {
       sorter: (a, b) => (a.remainingTime || 0) - (b.remainingTime || 0),
     },
     {
-      title: 'Prints',
+      title: 'הדפסות',
       dataIndex: 'remainingPrints',
       key: 'remainingPrints',
       render: (prints) => (
@@ -281,62 +281,62 @@ const UsersPage = () => {
       sorter: (a, b) => (a.remainingPrints || 0) - (b.remainingPrints || 0),
     },
     {
-      title: 'Status',
+      title: 'סטטוס',
       dataIndex: 'isActive',
       key: 'isActive',
       render: (isActive) => (
         <Tag color={isActive ? 'success' : 'default'}>
-          {isActive ? 'Active' : 'Inactive'}
+          {isActive ? 'פעיל' : 'לא פעיל'}
         </Tag>
       ),
       filters: [
-        { text: 'Active', value: true },
-        { text: 'Inactive', value: false },
+        { text: 'פעיל', value: true },
+        { text: 'לא פעיל', value: false },
       ],
       onFilter: (value, record) => record.isActive === value,
     },
     {
-      title: 'Created',
+      title: 'נוצר',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date) => date ? dayjs(date).format('MMM D, YYYY') : 'N/A',
+      render: (date) => date ? dayjs(date).format('MMM D, YYYY') : 'לא זמין',
       sorter: (a, b) => 
         new Date(a.createdAt || 0) - new Date(b.createdAt || 0),
     },
     {
-      title: 'Role',
+      title: 'תפקיד',
       dataIndex: 'isAdmin',
       key: 'isAdmin',
       render: (isAdmin) => (
         isAdmin ? (
           <Tag color="gold" icon={<CrownOutlined />}>
-            Admin
+            מנהל
           </Tag>
         ) : (
-          <Tag color="default">User</Tag>
+          <Tag color="default">משתמש</Tag>
         )
       ),
       filters: [
-        { text: 'Admin', value: true },
-        { text: 'User', value: false },
+        { text: 'מנהל', value: true },
+        { text: 'משתמש', value: false },
       ],
       onFilter: (value, record) => record.isAdmin === value,
     },
     {
-      title: 'Action',
+      title: 'פעולה',
       key: 'action',
       render: (_, record) => {
         const menuItems = [
           {
             key: 'view',
             icon: <EyeOutlined />,
-            label: 'View Details',
+            label: 'צפה בפרטים',
             onClick: () => handleViewUser(record)
           },
           {
             key: 'adjust',
             icon: <EditOutlined />,
-            label: 'Adjust Balance',
+            label: 'התאם יתרה',
             onClick: () => handleAdjustBalance(record)
           },
           {
@@ -345,13 +345,13 @@ const UsersPage = () => {
           record.isAdmin ? {
             key: 'revoke',
             icon: <MinusCircleOutlined />,
-            label: 'Revoke Admin',
+            label: 'הסר הרשאות מנהל',
             danger: true,
             onClick: () => handleRevokeAdmin(record)
           } : {
             key: 'grant',
             icon: <CrownOutlined />,
-            label: 'Grant Admin',
+            label: 'הענק הרשאות מנהל',
             onClick: () => handleGrantAdmin(record)
           }
         ];
@@ -363,7 +363,7 @@ const UsersPage = () => {
               icon={<EyeOutlined />}
               onClick={() => handleViewUser(record)}
             >
-              View
+              צפה
             </Button>
             <Dropdown menu={{ items: menuItems }} trigger={['click']}>
               <Button type="text" icon={<MoreOutlined />} />
@@ -376,24 +376,24 @@ const UsersPage = () => {
 
   const purchaseColumns = [
     {
-      title: 'Date',
+      title: 'תאריך',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date) => date ? dayjs(date).format('MMM D, YYYY HH:mm') : 'N/A',
+      render: (date) => date ? dayjs(date).format('MMM D, YYYY HH:mm') : 'לא זמין',
     },
     {
-      title: 'Package',
+      title: 'חבילה',
       dataIndex: 'packageName',
       key: 'packageName',
     },
     {
-      title: 'Amount',
+      title: 'סכום',
       dataIndex: 'finalPrice',
       key: 'finalPrice',
       render: (price) => `₪${price?.toFixed(2) || '0.00'}`,
     },
     {
-      title: 'Status',
+      title: 'סטטוס',
       dataIndex: 'status',
       key: 'status',
       render: (status) => {
@@ -402,7 +402,12 @@ const UsersPage = () => {
           pending: 'processing',
           failed: 'error',
         };
-        return <Tag color={colors[status] || 'default'}>{status}</Tag>;
+        const statusLabels = {
+          completed: 'הושלם',
+          pending: 'ממתין',
+          failed: 'נכשל',
+        };
+        return <Tag color={colors[status] || 'default'}>{statusLabels[status] || status}</Tag>;
       },
     },
   ];
@@ -420,16 +425,16 @@ const UsersPage = () => {
   });
 
   return (
-    <div>
+    <div style={{ direction: 'rtl' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <Title level={2} style={{ marginBottom: 8 }}>
-              Users
+              משתמשים
             </Title>
             <Text type="secondary">
-              Manage and view all users in your organization
+              נהל וצפה בכל המשתמשים בארגון שלך
             </Text>
           </div>
           <Button 
@@ -437,14 +442,14 @@ const UsersPage = () => {
             onClick={loadUsers}
             loading={loading}
           >
-            Refresh
+            רענן
           </Button>
         </div>
 
         {/* Search and Filters */}
         <Card>
           <Search
-            placeholder="Search by name, phone, or email"
+            placeholder="חפש לפי שם, טלפון או אימייל"
             allowClear
             size="large"
             prefix={<SearchOutlined />}
@@ -463,7 +468,7 @@ const UsersPage = () => {
             pagination={{
               pageSize: 10,
               showSizeChanger: true,
-              showTotal: (total) => `Total ${total} users`,
+              showTotal: (total) => `סך ${total} משתמשים`,
             }}
           />
         </Card>

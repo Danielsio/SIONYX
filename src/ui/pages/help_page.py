@@ -25,16 +25,19 @@ class HelpPage(QWidget):
     def init_ui(self):
         """Initialize UI"""
         self.setObjectName("contentPage")
+        
+        # Set RTL layout direction for Hebrew support
+        self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(45, 35, 45, 35)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        title = QLabel("Help & Support")
+        title = QLabel("עזרה ותמיכה")
         title.setFont(QFont("Segoe UI", 30, QFont.Weight.Bold))
         title.setStyleSheet("color: #1A1A1A;")
 
-        subtitle = QLabel("Get assistance and find answers to common questions")
+        subtitle = QLabel("קבל עזרה ומצא תשובות לשאלות נפוצות")
         subtitle.setFont(QFont("Segoe UI", 14))
         subtitle.setStyleSheet("color: #6B7280; margin-bottom: 25px;")
 

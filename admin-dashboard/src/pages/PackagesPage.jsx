@@ -171,7 +171,7 @@ const PackagesPage = () => {
 
   const columns = [
     {
-      title: 'Package Name',
+      title: 'שם החבילה',
       dataIndex: 'name',
       key: 'name',
       render: (name) => (
@@ -183,21 +183,21 @@ const PackagesPage = () => {
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
-      title: 'Price',
+      title: 'מחיר',
       dataIndex: 'price',
       key: 'price',
       render: (price) => `₪${price?.toFixed(2) || '0.00'}`,
       sorter: (a, b) => a.price - b.price,
     },
     {
-      title: 'Discount',
+      title: 'הנחה',
       dataIndex: 'discountPercent',
       key: 'discountPercent',
-      render: (discount) => discount ? `${discount}%` : 'None',
+      render: (discount) => discount ? `${discount}%` : 'אין',
       sorter: (a, b) => (a.discountPercent || 0) - (b.discountPercent || 0),
     },
     {
-      title: 'Final Price',
+      title: 'מחיר סופי',
       key: 'finalPrice',
       render: (_, record) => {
         const { finalPrice } = calculateFinalPrice(record.price, record.discountPercent);
@@ -214,42 +214,42 @@ const PackagesPage = () => {
       },
     },
     {
-      title: 'Time',
+      title: 'זמן',
       dataIndex: 'timeMinutes',
       key: 'timeMinutes',
       render: (minutes) => {
         if (!minutes || minutes === 0) return '-';
-        if (minutes < 60) return `${minutes}m`;
+        if (minutes < 60) return `${minutes}ד`;
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
-        return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+        return mins > 0 ? `${hours}ש ${mins}ד` : `${hours}ש`;
       },
       sorter: (a, b) => (a.timeMinutes || 0) - (b.timeMinutes || 0),
     },
     {
-      title: 'Prints',
+      title: 'הדפסות',
       dataIndex: 'prints',
       key: 'prints',
       render: (prints) => prints || 0,
       sorter: (a, b) => (a.prints || 0) - (b.prints || 0),
     },
     {
-      title: 'Status',
+      title: 'סטטוס',
       key: 'status',
       render: (_, record) => {
         const hasTime = record.timeMinutes > 0;
         const hasPrints = record.prints > 0;
         return (
           <Space>
-            {hasTime && <Tag color="blue">Time</Tag>}
-            {hasPrints && <Tag color="green">Prints</Tag>}
-            {!hasTime && !hasPrints && <Tag>Empty</Tag>}
+            {hasTime && <Tag color="blue">זמן</Tag>}
+            {hasPrints && <Tag color="green">הדפסות</Tag>}
+            {!hasTime && !hasPrints && <Tag>ריק</Tag>}
           </Space>
         );
       },
     },
     {
-      title: 'Action',
+      title: 'פעולה',
       key: 'action',
       render: (_, record) => (
         <Space>
@@ -259,7 +259,7 @@ const PackagesPage = () => {
             onClick={() => handleView(record)}
             size="small"
           >
-            View
+            צפה
           </Button>
           <Button 
             type="link" 
@@ -267,14 +267,14 @@ const PackagesPage = () => {
             onClick={() => handleEdit(record)}
             size="small"
           >
-            Edit
+            ערוך
           </Button>
           <Popconfirm
-            title="Delete package"
-            description="Are you sure you want to delete this package?"
+            title="מחק חבילה"
+            description="האם אתה בטוח שברצונך למחוק את החבילה הזו?"
             onConfirm={() => handleDelete(record)}
-            okText="Yes"
-            cancelText="No"
+            okText="כן"
+            cancelText="לא"
             okType="danger"
           >
             <Button 
@@ -283,7 +283,7 @@ const PackagesPage = () => {
               icon={<DeleteOutlined />}
               size="small"
             >
-              Delete
+              מחק
             </Button>
           </Popconfirm>
         </Space>
@@ -292,16 +292,16 @@ const PackagesPage = () => {
   ];
 
   return (
-    <div>
+    <div style={{ direction: 'rtl' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <Title level={2} style={{ marginBottom: 8 }}>
-              Packages
+              חבילות
             </Title>
             <Text type="secondary">
-              Manage packages available for purchase in your organization
+              נהל חבילות זמינות לרכישה בארגון שלך
             </Text>
           </div>
           <Space>
@@ -310,14 +310,14 @@ const PackagesPage = () => {
               onClick={loadPackages}
               loading={loading}
             >
-              Refresh
+              רענן
             </Button>
             <Button 
               type="primary" 
               icon={<PlusOutlined />}
               onClick={handleCreate}
             >
-              Add Package
+              הוסף חבילה
             </Button>
           </Space>
         </div>
