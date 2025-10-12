@@ -14,8 +14,6 @@ import OverviewPage from './pages/OverviewPage';
 import UsersPage from './pages/UsersPage';
 import PackagesPage from './pages/PackagesPage';
 
-// Components
-import NedarimCallback from './components/NedarimCallback';
 
 function App() {
   const { setUser, setLoading, isAuthenticated } = useAuthStore();
@@ -58,7 +56,6 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
-          <Route path="/api/nedarim/callback" element={<NedarimCallback />} />
 
           {/* Protected Routes */}
           <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>

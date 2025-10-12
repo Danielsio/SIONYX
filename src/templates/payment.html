@@ -561,9 +561,18 @@
         }
 
         function showSuccess() {
-            // Hide processing message and show success
-            document.getElementById('processingMessage').style.display = 'none';
-            document.getElementById('successMessage').classList.add('show');
+            // Hide all loading states and show success
+            const loadingPayment = document.getElementById('loadingPayment');
+            const processingMessage = document.getElementById('processingMessage');
+            const loadingIframe = document.getElementById('loadingIframe');
+            const successMessage = document.getElementById('successMessage');
+            
+            if (loadingPayment) loadingPayment.classList.remove('active');
+            if (processingMessage) processingMessage.style.display = 'none';
+            if (loadingIframe) loadingIframe.style.display = 'none';
+            if (successMessage) successMessage.classList.add('show');
+            
+            console.log('Success message displayed, all loading states hidden');
             
             // Auto-close after 3 seconds
             setTimeout(() => {

@@ -36,7 +36,7 @@ class FirebaseStreamListener(QThread):
         self.running = True
         
     def run(self):
-        """Listen for changes to purchase status"""
+        """Listen for changes to purchase status using Firebase REST streaming"""
         logger.info(f"Starting Firebase stream listener for purchase: {self.purchase_id}")
         
         try:
@@ -45,30 +45,43 @@ class FirebaseStreamListener(QThread):
             stream_url = f"{self.database_url}/{org_path}.json"
             params = {'auth': self.auth_token}
             
-            # Open streaming connection
+            # Open streaming connection - Firebase uses a different streaming format
             response = requests.get(stream_url, params=params, stream=True, timeout=300)
-            client = sseclient.SSEClient(response)
             
-            for event in client.events():
+            if response.status_code != 200:
+                logger.error(f"Firebase stream failed with status: {response.status_code}")
+                return
+                
+            # Firebase streaming sends data in chunks, not SSE format
+            buffer = ""
+            for chunk in response.iter_content(chunk_size=1, decode_unicode=True):
                 if not self.running:
                     break
                     
-                # Parse event data
-                if event.data and event.data != 'null':
-                    try:
-                        purchase_data = json.loads(event.data)
-                        logger.debug(f"Stream event: {event.event}, data: {purchase_data}")
+                if chunk:
+                    buffer += chunk
+                    
+                    # Look for complete JSON objects (Firebase sends them line by line)
+                    while '\n' in buffer:
+                        line, buffer = buffer.split('\n', 1)
+                        line = line.strip()
                         
-                        # Check if status changed to completed or failed
-                        if isinstance(purchase_data, dict):
-                            status = purchase_data.get('status')
-                            if is_final_status(status):
-                                logger.info(f"Purchase status changed to: {status}")
-                                self.status_changed.emit(purchase_data)
-                                self.running = False
-                                break
-                    except json.JSONDecodeError:
-                        logger.warning(f"Failed to parse stream data: {event.data}")
+                        if line and line != 'null':
+                            try:
+                                purchase_data = json.loads(line)
+                                logger.debug(f"Firebase stream data: {purchase_data}")
+                                
+                                # Check if status changed to completed or failed
+                                if isinstance(purchase_data, dict):
+                                    status = purchase_data.get('status')
+                                    logger.info(f"Received status: {status}")
+                                    if is_final_status(status):
+                                        logger.info(f"Purchase status changed to final status: {status}")
+                                        self.status_changed.emit(purchase_data)
+                                        self.running = False
+                                        return
+                            except json.JSONDecodeError as e:
+                                logger.warning(f"Failed to parse Firebase stream data: {line}, error: {e}")
                         
         except requests.exceptions.Timeout:
             logger.warning("Firebase stream timed out (5 minutes)")
@@ -80,6 +93,9 @@ class FirebaseStreamListener(QThread):
     def stop(self):
         """Stop the listener"""
         self.running = False
+        if self.isRunning():
+            self.quit()
+            self.wait(1000)  # Wait up to 1 second for thread to finish
 
 
 class PaymentDialog(QDialog):
@@ -120,7 +136,9 @@ class PaymentDialog(QDialog):
 
     def setup_purchase_listener(self):
         """Setup Firebase real-time listener with exponential backoff fallback"""
-        logger.info("Setting up purchase status listener")
+        logger.info(f"Setting up purchase status listener for purchase: {self.purchase_id}")
+        logger.info(f"Database URL: {self.auth_service.firebase.database_url}")
+        logger.info(f"Org ID: {self.auth_service.firebase.org_id}")
         
         # Try Firebase streaming first (cheapest option)
         try:
@@ -133,9 +151,14 @@ class PaymentDialog(QDialog):
             self.listener_thread.status_changed.connect(self.on_purchase_completed)
             self.listener_thread.start()
             self.listener_active = True
-            logger.info("Firebase stream listener started")
+            logger.info("Firebase stream listener started successfully")
+            
+            # Also start polling as a backup in case streaming fails
+            self.start_exponential_backoff_polling()
+            
         except Exception as e:
-            logger.warning(f"Failed to start stream listener, falling back to polling: {e}")
+            logger.error(f"Failed to start stream listener: {e}")
+            logger.info("Falling back to polling only")
             self.start_exponential_backoff_polling()
     
     def start_exponential_backoff_polling(self):
@@ -164,6 +187,7 @@ class PaymentDialog(QDialog):
     def check_purchase_status(self):
         """Check if purchase was completed via callback (with exponential backoff)"""
         self.check_count += 1
+        logger.debug(f"Polling purchase status (attempt {self.check_count})")
 
         if self.check_count >= len(self.poll_intervals):
             logger.warning("Purchase verification timeout (5 minutes)")
@@ -173,18 +197,35 @@ class PaymentDialog(QDialog):
         # Get purchase status from Firebase with multi-tenancy
         try:
             org_path = f"organizations/{self.auth_service.firebase.org_id}/purchases/{self.purchase_id}"
+            url = f"{self.auth_service.firebase.database_url}/{org_path}.json"
+            logger.debug(f"Polling URL: {url}")
+            
             response = requests.get(
-                f"{self.auth_service.firebase.database_url}/{org_path}.json",
-                params={'auth': self.auth_service.firebase.id_token}
+                url,
+                params={'auth': self.auth_service.firebase.id_token},
+                timeout=10
             )
 
+            logger.debug(f"Poll response status: {response.status_code}")
+            
             if response.status_code == 200:
                 purchase = response.json()
+                logger.debug(f"Purchase data from polling: {purchase}")
 
                 if purchase and is_final_status(purchase.get('status')):
-                    logger.info(f"Purchase status: {purchase.get('status')}")
+                    logger.info(f"Purchase status detected via polling: {purchase.get('status')}")
                     self.status_timer.stop()
+                    # Stop the stream listener if it's still running
+                    if self.listener_thread and self.listener_thread.isRunning():
+                        self.listener_thread.stop()
                     self.on_purchase_completed(purchase)
+                    return
+                elif purchase:
+                    logger.debug(f"Purchase status still pending: {purchase.get('status')}")
+                else:
+                    logger.warning("Purchase not found in database")
+            else:
+                logger.error(f"Failed to fetch purchase status: HTTP {response.status_code}")
 
         except Exception as e:
             logger.error(f"Failed to check purchase status: {e}")

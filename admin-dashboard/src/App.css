@@ -23,4 +23,71 @@
     margin: 16px !important;
     padding: 16px !important;
   }
+
+  /* Mobile header adjustments */
+  .ant-layout-header {
+    padding: 0 16px !important;
+  }
+
+  /* Mobile table responsiveness */
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .ant-table {
+    min-width: 600px;
+  }
+
+  /* Mobile card adjustments */
+  .ant-card {
+    margin-bottom: 16px;
+  }
+
+  /* Mobile spacing adjustments */
+  .ant-space-vertical > .ant-space-item {
+    margin-bottom: 16px !important;
+  }
+
+  /* Mobile typography adjustments */
+  .ant-typography h2 {
+    font-size: 20px !important;
+  }
+
+  .ant-typography h3 {
+    font-size: 18px !important;
+  }
+
+  .ant-typography h4 {
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .ant-layout-content {
+    margin: 8px !important;
+    padding: 12px !important;
+  }
+
+  .ant-card {
+    margin-bottom: 12px;
+  }
+
+  .ant-card-body {
+    padding: 16px !important;
+  }
+
+  /* Very small screens - stack everything */
+  .ant-row {
+    margin: 0 !important;
+  }
+
+  .ant-col {
+    padding: 0 !important;
+    margin-bottom: 12px;
+  }
+
+  /* Mobile drawer adjustments */
+  .ant-drawer-body {
+    padding: 0 !important;
+  }
 }

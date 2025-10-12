@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Typography, Space, Badge } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Typography, Space, Badge, Drawer } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
@@ -19,15 +19,46 @@ const { Text } = Typography;
 
 const MainLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileDrawerVisible, setMobileDrawerVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
+  // Check if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth >= 768) {
+        setMobileDrawerVisible(false);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const handleLogout = async () => {
     await signOut();
     logout();
     navigate('/login');
+  };
+
+  const handleMenuClick = ({ key }) => {
+    navigate(key);
+    if (isMobile) {
+      setMobileDrawerVisible(false);
+    }
+  };
+
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setMobileDrawerVisible(!mobileDrawerVisible);
+    } else {
+      setCollapsed(!collapsed);
+    }
   };
 
   const menuItems = [
@@ -73,73 +104,102 @@ const MainLayout = () => {
     },
   ];
 
+  const renderSidebar = () => (
+    <>
+      <div style={{
+        height: 64,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fff',
+        fontSize: collapsed ? 20 : 24,
+        fontWeight: 'bold',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+      }}>
+        {collapsed ? 'S' : 'SIONYX'}
+      </div>
+      
+      <Menu
+        theme="dark"
+        mode="inline"
+        selectedKeys={[location.pathname]}
+        items={menuItems}
+        onClick={handleMenuClick}
+        style={{ marginTop: 16 }}
+      />
+    </>
+  );
+
   return (
     <Layout style={{ minHeight: '100vh', direction: 'rtl' }}>
-      <Sider 
-        trigger={null} 
-        collapsible 
-        collapsed={collapsed}
-        style={{
-          overflow: 'auto',
-          height: '100vh',
-          position: 'fixed',
-          right: 0,
-          top: 0,
-          bottom: 0,
-        }}
-      >
-        <div style={{
-          height: 64,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#fff',
-          fontSize: collapsed ? 20 : 24,
-          fontWeight: 'bold',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-        }}>
-          {collapsed ? 'S' : 'SIONYX'}
-        </div>
-        
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={({ key }) => navigate(key)}
-          style={{ marginTop: 16 }}
-        />
-      </Sider>
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <Sider 
+          trigger={null} 
+          collapsible 
+          collapsed={collapsed}
+          style={{
+            overflow: 'auto',
+            height: '100vh',
+            position: 'fixed',
+            right: 0,
+            top: 0,
+            bottom: 0,
+          }}
+        >
+          {renderSidebar()}
+        </Sider>
+      )}
 
-      <Layout style={{ marginRight: collapsed ? 80 : 200, transition: 'all 0.2s' }}>
+      {/* Mobile Drawer */}
+      {isMobile && (
+        <Drawer
+          title="SIONYX"
+          placement="right"
+          onClose={() => setMobileDrawerVisible(false)}
+          open={mobileDrawerVisible}
+          width={280}
+          bodyStyle={{ padding: 0 }}
+          headerStyle={{ 
+            background: '#001529',
+            color: '#fff',
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+          }}
+        >
+          <div style={{ background: '#001529', height: '100%' }}>
+            {renderSidebar()}
+          </div>
+        </Drawer>
+      )}
+
+      <Layout style={{ 
+        marginRight: isMobile ? 0 : (collapsed ? 80 : 200), 
+        transition: 'all 0.2s' 
+      }}>
         <Header style={{
-          padding: '0 24px',
+          padding: isMobile ? '0 16px' : '0 24px',
           background: '#fff',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          boxShadow: '0 1px 4px rgba(0,21,41,.08)'
+          boxShadow: '0 1px 4px rgba(0,21,41,.08)',
+          minHeight: 64
         }}>
           <div>
-            {collapsed ? (
-              <MenuUnfoldOutlined
-                style={{ fontSize: 18, cursor: 'pointer' }}
-                onClick={() => setCollapsed(false)}
-              />
-            ) : (
-              <MenuFoldOutlined
-                style={{ fontSize: 18, cursor: 'pointer' }}
-                onClick={() => setCollapsed(true)}
-              />
-            )}
+            <MenuUnfoldOutlined
+              style={{ fontSize: 18, cursor: 'pointer' }}
+              onClick={toggleSidebar}
+            />
           </div>
 
-          <Space size="large">
-            <Space>
-              <Text type="secondary">ארגון:</Text>
-              <Badge status="success" />
-              <Text strong>{user?.orgId || 'לא ידוע'}</Text>
-            </Space>
+          <Space size={isMobile ? 'small' : 'large'} wrap>
+            {!isMobile && (
+              <Space>
+                <Text type="secondary">ארגון:</Text>
+                <Badge status="success" />
+                <Text strong>{user?.orgId || 'לא ידוע'}</Text>
+              </Space>
+            )}
 
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
               <Space style={{ cursor: 'pointer' }}>
@@ -147,9 +207,16 @@ const MainLayout = () => {
                   style={{ backgroundColor: '#667eea' }}
                   icon={<UserOutlined />}
                 />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                  <Text>{user?.displayName || 'Admin'}</Text>
-                  {user?.phone && (
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'flex-start',
+                  minWidth: isMobile ? 0 : 'auto'
+                }}>
+                  <Text style={{ fontSize: isMobile ? 14 : 16 }}>
+                    {user?.displayName || 'Admin'}
+                  </Text>
+                  {user?.phone && !isMobile && (
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       <PhoneOutlined style={{ marginRight: 4 }} />
                       {user.phone}
@@ -162,8 +229,8 @@ const MainLayout = () => {
         </Header>
 
         <Content style={{
-          margin: '24px',
-          padding: 24,
+          margin: isMobile ? '16px' : '24px',
+          padding: isMobile ? 16 : 24,
           minHeight: 'calc(100vh - 112px)',
           background: '#f0f2f5'
         }}>

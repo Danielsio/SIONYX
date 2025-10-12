@@ -452,11 +452,15 @@ const UsersPage = () => {
             dataSource={filteredUsers}
             rowKey="uid"
             loading={loading}
+            scroll={{ x: 800 }}
             pagination={{
               pageSize: 10,
               showSizeChanger: true,
               showTotal: (total) => `סך ${total} משתמשים`,
+              responsive: true,
+              showQuickJumper: false,
             }}
+            size="small"
           />
         </Card>
       </Space>

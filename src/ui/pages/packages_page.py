@@ -439,55 +439,32 @@ class PackagesPage(QWidget):
                     QMessageBox.critical(self, "שגיאה", "לא התקבל אישור תשלום")
                 return
 
-            # Record purchase and credit account
-            purchase_service = PurchaseService(self.auth_service.firebase)
-            purchase_result = purchase_service.record_purchase(
-                self.current_user['uid'],
-                package,
-                payment_response
-            )
-
-            if purchase_result.get('success'):
-                # Update local user data
-                self.current_user['remainingTime'] = purchase_result['new_time']
-                self.current_user['remainingPrints'] = purchase_result['new_prints']
-
-                # Show success with modern dialog
-                parent_window = self.window()
-                if hasattr(parent_window, 'show_success'):
-                    parent_window.show_success(
-                        "הרכישה הושלמה! 🎉",
-                        f"הרכישה שלך בוצעה בהצלחה!",
-                        f"נוסף לחשבונך:<br>"
-                        f"• <b>{package.get('minutes')} דקות</b> של זמן הפעלה<br>"
-                        f"• <b>{package.get('prints')} הדפסות</b>"
-                    )
-                else:
-                    QMessageBox.information(
-                        self,
-                        "רכישה הושלמה",
-                        f"הרכישה בוצעה בהצלחה!\n\n"
-                        f"נוספו לחשבונך:\n"
-                        f"• {package.get('minutes')} דקות\n"
-                        f"• {package.get('prints')} הדפסות"
-                    )
-
-                # Refresh packages page
-                self.load_packages()
+            # Payment was successful - the purchase is already recorded by the Cloud Function
+            # The user's account has been credited automatically
+            logger.info("Payment completed successfully - user account credited by Cloud Function")
+            
+            # Show success message
+            parent_window = self.window()
+            if hasattr(parent_window, 'show_success'):
+                parent_window.show_success(
+                    "הרכישה הושלמה! 🎉",
+                    f"הרכישה שלך בוצעה בהצלחה!",
+                    f"נוסף לחשבונך:<br>"
+                    f"• <b>{package.get('minutes')} דקות</b> של זמן הפעלה<br>"
+                    f"• <b>{package.get('prints')} הדפסות</b>"
+                )
             else:
-                parent_window = self.window()
-                if hasattr(parent_window, 'show_error'):
-                    parent_window.show_error(
-                        "נכשל עדכון החשבון",
-                        "התשלום בוצע אך נכשל עדכון החשבון",
-                        purchase_result.get('error', 'שגיאה לא ידועה')
-                    )
-                else:
-                    QMessageBox.critical(
-                        self,
-                        "שגיאה",
-                        f"התשלום בוצע אך נכשל עדכון החשבון.\n{purchase_result.get('error')}"
-                    )
+                QMessageBox.information(
+                    self,
+                    "רכישה הושלמה",
+                    f"הרכישה בוצעה בהצלחה!\n\n"
+                    f"נוספו לחשבונך:\n"
+                    f"• {package.get('minutes')} דקות\n"
+                    f"• {package.get('prints')} הדפסות"
+                )
+
+            # Refresh packages page
+            self.load_packages()
         else:
             # Payment cancelled
             logger.info("Payment cancelled by user")

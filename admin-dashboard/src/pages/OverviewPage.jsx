@@ -75,46 +75,46 @@ const OverviewPage = () => {
         {/* Statistics Cards */}
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} lg={6}>
-            <Card variant="borderless">
+            <Card variant="borderless" style={{ textAlign: 'center' }}>
               <Statistic
                 title="סך משתמשים"
                 value={stats?.usersCount || 0}
                 prefix={<UserOutlined />}
-                valueStyle={{ color: '#3f8600' }}
+                valueStyle={{ color: '#3f8600', fontSize: window.innerWidth < 768 ? 24 : 32 }}
               />
             </Card>
           </Col>
 
           <Col xs={24} sm={12} lg={6}>
-            <Card variant="borderless">
+            <Card variant="borderless" style={{ textAlign: 'center' }}>
               <Statistic
                 title="חבילות"
                 value={stats?.packagesCount || 0}
                 prefix={<AppstoreOutlined />}
-                valueStyle={{ color: '#1890ff' }}
+                valueStyle={{ color: '#1890ff', fontSize: window.innerWidth < 768 ? 24 : 32 }}
               />
             </Card>
           </Col>
 
           <Col xs={24} sm={12} lg={6}>
-            <Card variant="borderless">
+            <Card variant="borderless" style={{ textAlign: 'center' }}>
               <Statistic
                 title="סך רכישות"
                 value={stats?.purchasesCount || 0}
                 prefix={<ShoppingCartOutlined />}
-                valueStyle={{ color: '#cf1322' }}
+                valueStyle={{ color: '#cf1322', fontSize: window.innerWidth < 768 ? 24 : 32 }}
               />
             </Card>
           </Col>
 
           <Col xs={24} sm={12} lg={6}>
-            <Card variant="borderless">
+            <Card variant="borderless" style={{ textAlign: 'center' }}>
               <Statistic
                 title="הכנסות"
                 value={stats?.totalRevenue || 0}
                 prefix="₪"
                 precision={2}
-                valueStyle={{ color: '#faad14' }}
+                valueStyle={{ color: '#faad14', fontSize: window.innerWidth < 768 ? 24 : 32 }}
               />
             </Card>
           </Col>
@@ -172,21 +172,21 @@ const OverviewPage = () => {
         {/* Quick Actions or Recent Activity */}
         <Card title="סטטיסטיקות מהירות" variant="borderless">
           {stats && stats.usersCount > 0 ? (
-            <Row gutter={16}>
-              <Col span={8}>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} sm={8}>
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
                   <Text type="secondary">זמן ממוצע למשתמש</Text>
                   <br />
-                  <Title level={4}>
+                  <Title level={4} style={{ fontSize: window.innerWidth < 768 ? 18 : 24 }}>
                     {formatTime(Math.round((stats.totalTimeMinutes || 0) / stats.usersCount))}
                   </Title>
                 </div>
               </Col>
-              <Col span={8}>
+              <Col xs={24} sm={8}>
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
                   <Text type="secondary">הכנסה ממוצעת לרכישה</Text>
                   <br />
-                  <Title level={4}>
+                  <Title level={4} style={{ fontSize: window.innerWidth < 768 ? 18 : 24 }}>
                     ₪{stats.purchasesCount > 0 
                       ? ((stats.totalRevenue || 0) / stats.purchasesCount).toFixed(2)
                       : '0.00'
@@ -194,11 +194,11 @@ const OverviewPage = () => {
                   </Title>
                 </div>
               </Col>
-              <Col span={8}>
+              <Col xs={24} sm={8}>
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
                   <Text type="secondary">רכישות למשתמש</Text>
                   <br />
-                  <Title level={4}>
+                  <Title level={4} style={{ fontSize: window.innerWidth < 768 ? 18 : 24 }}>
                     {((stats.purchasesCount || 0) / stats.usersCount).toFixed(1)}
                   </Title>
                 </div>

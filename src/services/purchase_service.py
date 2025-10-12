@@ -98,3 +98,141 @@ class PurchaseService:
             'success': False,
             'error': 'Purchase not found'
         }
+
+    def get_user_purchase_history(self, user_id: str) -> Dict:
+        """
+        Get all purchases for a specific user
+        
+        Returns:
+            {'success': bool, 'purchases': list, 'error': str}
+        """
+        logger.info(f"Fetching purchase history for user {user_id}")
+        
+        # Check authentication
+        if not self.firebase.id_token:
+            logger.error("Firebase client not authenticated")
+            return {
+                'success': False,
+                'error': 'Not authenticated'
+            }
+        
+        try:
+            # Get all purchases for the organization
+            result = self.firebase.db_get('purchases')
+            
+            if not result.get('success'):
+                logger.error(f"Failed to fetch purchases: {result.get('error')}")
+                return {
+                    'success': False,
+                    'error': result.get('error', 'Failed to fetch purchases')
+                }
+            
+            purchases_data = result.get('data', {})
+            if not purchases_data:
+                return {
+                    'success': True,
+                    'purchases': []
+                }
+            
+            # Filter purchases for the specific user
+            user_purchases = []
+            for purchase_id, purchase_data in purchases_data.items():
+                if purchase_data.get('userId') == user_id:
+                    # Add the purchase ID to the data
+                    purchase_data['id'] = purchase_id
+                    user_purchases.append(purchase_data)
+            
+            # Sort by creation date (newest first)
+            user_purchases.sort(
+                key=lambda x: x.get('createdAt', ''), 
+                reverse=True
+            )
+            
+            logger.info(f"Found {len(user_purchases)} purchases for user {user_id}")
+            
+            return {
+                'success': True,
+                'purchases': user_purchases
+            }
+            
+        except Exception as e:
+            logger.exception("Failed to fetch user purchase history")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def get_purchase_statistics(self, user_id: str) -> Dict:
+        """
+        Get purchase statistics for a user
+        
+        Returns:
+            {'success': bool, 'stats': dict, 'error': str}
+        """
+        logger.info(f"Calculating purchase statistics for user {user_id}")
+        
+        try:
+            # Get user purchases
+            history_result = self.get_user_purchase_history(user_id)
+            
+            if not history_result.get('success'):
+                return {
+                    'success': False,
+                    'error': history_result.get('error', 'Failed to fetch purchases')
+                }
+            
+            purchases = history_result.get('purchases', [])
+            
+            # Calculate statistics
+            total_spent = sum(
+                self._safe_int(p.get('amount', 0)) for p in purchases 
+                if p.get('status') == 'completed'
+            )
+            
+            completed_purchases = len([
+                p for p in purchases 
+                if p.get('status') == 'completed'
+            ])
+            
+            pending_purchases = len([
+                p for p in purchases 
+                if p.get('status') == 'pending'
+            ])
+            
+            failed_purchases = len([
+                p for p in purchases 
+                if p.get('status') == 'failed'
+            ])
+            
+            total_purchases = len(purchases)
+            
+            stats = {
+                'total_spent': total_spent,
+                'completed_purchases': completed_purchases,
+                'pending_purchases': pending_purchases,
+                'failed_purchases': failed_purchases,
+                'total_purchases': total_purchases
+            }
+            
+            logger.info(f"Purchase stats calculated: {stats}")
+            
+            return {
+                'success': True,
+                'stats': stats
+            }
+            
+        except Exception as e:
+            logger.exception("Failed to calculate purchase statistics")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def _safe_int(self, value, default=0):
+        """Safely convert value to integer, handling strings and None"""
+        if value is None:
+            return default
+        try:
+            return int(float(str(value)))
+        except (ValueError, TypeError):
+            return default
