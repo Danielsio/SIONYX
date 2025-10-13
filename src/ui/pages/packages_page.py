@@ -22,7 +22,7 @@ class PackagesPage(QWidget):
     def __init__(self, auth_service, parent=None):
         super().__init__(parent)
         self.auth_service = auth_service
-        self.current_user = auth_service.get_current_user()
+        self.current_user = None  # Will be set when page is shown
         self.package_service = PackageService(auth_service.firebase)
 
         self.packages = []
@@ -37,7 +37,7 @@ class PackagesPage(QWidget):
         
         self.setStyleSheet("""
             QWidget {
-                background: #F8FAFC;
+                background: #F1F5F9;
             }
         """)
 
@@ -54,6 +54,14 @@ class PackagesPage(QWidget):
                 padding: 20px;
             }
         """)
+        
+        # Add shadow to header
+        header_shadow = QGraphicsDropShadowEffect()
+        header_shadow.setBlurRadius(40)
+        header_shadow.setXOffset(0)
+        header_shadow.setYOffset(12)
+        header_shadow.setColor(QColor(0, 0, 0, 55))
+        header_container.setGraphicsEffect(header_shadow)
         header_layout = QVBoxLayout(header_container)
         header_layout.setContentsMargins(30, 25, 30, 25)
         header_layout.setSpacing(8)
@@ -175,7 +183,27 @@ class PackagesPage(QWidget):
         self.state_label.hide()
         logger.info("About to call display_packages()")
         self.display_packages()
-        logger.info("display_packages() completed")
+
+    def refresh_user_data(self):
+        """Refresh user data and reload packages"""
+        logger.info("Refreshing user data in PackagesPage")
+        
+        # Get current user from auth service
+        self.current_user = self.auth_service.get_current_user()
+        
+        # Reload packages
+        self.load_packages()
+
+    def clear_user_data(self):
+        """Clear all user data (called on logout)"""
+        logger.info("Clearing user data in PackagesPage")
+        
+        self.current_user = None
+        self.packages = []
+        
+        # Show empty state
+        self.state_label.setText("📦 אין חבילות זמינות")
+        self.state_label.show()
 
     def display_packages(self):
         """Display packages in beautiful responsive grid"""
@@ -260,10 +288,10 @@ class PackagesPage(QWidget):
         
         # Add beautiful drop shadow for depth
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(25)
+        shadow.setBlurRadius(50)
         shadow.setXOffset(0)
-        shadow.setYOffset(8)
-        shadow.setColor(QColor(0, 0, 0, 25))
+        shadow.setYOffset(18)
+        shadow.setColor(QColor(0, 0, 0, 65))
         card.setGraphicsEffect(shadow)
 
         # Main layout with perfect spacing

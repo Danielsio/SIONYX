@@ -100,6 +100,7 @@ class MainWindow(BaseKioskWindow):
         self.apply_modern_styles()
         self.show_page(self.PAGES['HOME'])
 
+
     def create_modern_sidebar(self) -> QWidget:
         """Create modern, clean sidebar like the reference UI"""
         sidebar = QFrame()
@@ -108,10 +109,10 @@ class MainWindow(BaseKioskWindow):
 
         # Subtle elevation like the mock
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(24)
+        shadow.setBlurRadius(50)
         shadow.setXOffset(0)
-        shadow.setYOffset(2)
-        shadow.setColor(QColor(0, 0, 0, 30))
+        shadow.setYOffset(15)
+        shadow.setColor(QColor(0, 0, 0, 70))
         sidebar.setGraphicsEffect(shadow)
 
         layout = QVBoxLayout(sidebar)
@@ -202,6 +203,8 @@ class MainWindow(BaseKioskWindow):
 
         for i, btn in enumerate(self.nav_buttons):
             btn.setChecked(i == index)
+        
+        # Data is automatically updated, no need for manual refresh
 
     def handle_logout(self):
         """Logout"""
@@ -215,8 +218,15 @@ class MainWindow(BaseKioskWindow):
         )
 
         if confirmed:
+            # Clear data from all pages before logout
             if hasattr(self.home_page, 'cleanup'):
                 self.home_page.cleanup()
+            
+            if hasattr(self.history_page, 'clear_user_data'):
+                self.history_page.clear_user_data()
+            
+            if hasattr(self.packages_page, 'clear_user_data'):
+                self.packages_page.clear_user_data()
 
             self.auth_service.logout()
             logger.info("User logged out")

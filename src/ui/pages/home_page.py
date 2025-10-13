@@ -35,10 +35,10 @@ class HomePage(QWidget):
         # Set RTL layout direction for Hebrew support
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
-        # Set main background
+        # Set sophisticated grayish background
         self.setStyleSheet("""
             QWidget {
-                background: #F8FAFC;
+                background: #F1F5F9;
             }
         """)
 
@@ -46,30 +46,31 @@ class HomePage(QWidget):
         layout.setContentsMargins(40, 30, 40, 30)
         layout.setSpacing(30)
 
-        # Modern header with gradient background
+        # Clean header section matching packages page style
         header_container = QWidget()
         header_container.setStyleSheet("""
             QWidget {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #3B82F6, stop:1 #1E40AF);
+                background: #3B82F6;
                 border-radius: 20px;
                 padding: 20px;
             }
         """)
         
+        # Add shadow to header
+        header_shadow = QGraphicsDropShadowEffect()
+        header_shadow.setBlurRadius(40)
+        header_shadow.setXOffset(0)
+        header_shadow.setYOffset(12)
+        header_shadow.setColor(QColor(0, 0, 0, 55))
+        header_container.setGraphicsEffect(header_shadow)
+        
         header_layout = QVBoxLayout(header_container)
         header_layout.setContentsMargins(30, 25, 30, 25)
         header_layout.setSpacing(8)
         
-        # Top row with title and refresh button
-        top_row = QWidget()
-        top_row_layout = QHBoxLayout(top_row)
-        top_row_layout.setContentsMargins(0, 0, 0, 0)
-        top_row_layout.setSpacing(20)
-        
         # Main title with stunning typography
         header = QLabel("לוח בקרה")
-        header.setFont(QFont("Segoe UI", 32, QFont.Weight.Bold))
+        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header.setStyleSheet("""
             QLabel {
                 color: white;
@@ -79,48 +80,23 @@ class HomePage(QWidget):
             }
         """)
         
-        # Modern refresh button
-        self.refresh_btn = QPushButton("🔄 רענן")
-        self.refresh_btn.setObjectName("refreshButton")
-        self.refresh_btn.setFont(QFont("Segoe UI", 14, QFont.Weight.Medium))
-        self.refresh_btn.setFixedSize(140, 45)
-        self.refresh_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.refresh_btn.setStyleSheet("""
-            QPushButton {
-                background: rgba(255, 255, 255, 0.2);
-                color: white;
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                border-radius: 12px;
-                font-weight: 600;
-                padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.3);
-                border: 2px solid rgba(255, 255, 255, 0.5);
-            }
-            QPushButton:pressed {
-                background: rgba(255, 255, 255, 0.4);
-            }
-        """)
-        self.refresh_btn.clicked.connect(self.refresh_user_data)
-        
-        top_row_layout.addWidget(header)
-        top_row_layout.addStretch()
-        top_row_layout.addWidget(self.refresh_btn)
-        
         # Subtitle with elegant styling
-        subtitle = QLabel("סקירה כללית של החשבון שלך וזמן הפעלה זמין")
+        subtitle = QLabel("ניהול זמן והדפסות")
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle.setStyleSheet("""
             QLabel {
                 color: rgba(255, 255, 255, 0.9);
                 font-size: 16px;
                 font-weight: 400;
-                margin-top: 8px;
             }
         """)
         
-        header_layout.addWidget(top_row)
+        
+        header_layout.addWidget(header)
         header_layout.addWidget(subtitle)
+
+        # Add header to main layout
+        layout.addWidget(header_container)
 
         # Modern stats grid container with responsive design
         stats_container = QWidget()
@@ -163,7 +139,6 @@ class HomePage(QWidget):
         action_card = self.create_action_card()
 
         # Add some spacing and visual separation
-        layout.addWidget(header_container)
         layout.addSpacing(10)  # Add breathing room
         layout.addWidget(stats_container)
         layout.addSpacing(20)  # Add breathing room
@@ -189,10 +164,10 @@ class HomePage(QWidget):
         if card:
             # Significantly increase shadow on hover for dramatic effect
             shadow = QGraphicsDropShadowEffect()
-            shadow.setBlurRadius(50)
+            shadow.setBlurRadius(70)
             shadow.setXOffset(0)
-            shadow.setYOffset(16)
-            shadow.setColor(QColor(0, 0, 0, 45))
+            shadow.setYOffset(20)
+            shadow.setColor(QColor(0, 0, 0, 80))
             card.setGraphicsEffect(shadow)
 
     def card_hover_leave(self, card):
@@ -200,10 +175,10 @@ class HomePage(QWidget):
         if card:
             # Enhanced base shadow
             shadow = QGraphicsDropShadowEffect()
-            shadow.setBlurRadius(40)
+            shadow.setBlurRadius(50)
             shadow.setXOffset(0)
-            shadow.setYOffset(12)
-            shadow.setColor(QColor(0, 0, 0, 35))
+            shadow.setYOffset(15)
+            shadow.setColor(QColor(0, 0, 0, 60))
             card.setGraphicsEffect(shadow)
 
     def create_modern_stat_card(self, title: str, value: str, color: str, value_name: str, icon: str) -> QFrame:
@@ -214,10 +189,10 @@ class HomePage(QWidget):
 
         # Enhanced drop shadow for better elevation effect
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(40)
+        shadow.setBlurRadius(50)
         shadow.setXOffset(0)
-        shadow.setYOffset(12)
-        shadow.setColor(QColor(0, 0, 0, 35))
+        shadow.setYOffset(15)
+        shadow.setColor(QColor(0, 0, 0, 60))
         card.setGraphicsEffect(shadow)
 
         # Modern card styling with enhanced shadows
@@ -302,10 +277,10 @@ class HomePage(QWidget):
 
         # Enhanced shadow for dramatic depth effect
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(50)
+        shadow.setBlurRadius(60)
         shadow.setXOffset(0)
-        shadow.setYOffset(16)
-        shadow.setColor(QColor(0, 0, 0, 40))
+        shadow.setYOffset(20)
+        shadow.setColor(QColor(0, 0, 0, 70))
         card.setGraphicsEffect(shadow)
 
         # Modern card styling with gradient background
@@ -510,93 +485,22 @@ class HomePage(QWidget):
                 }
             """)
 
-    def refresh_user_data(self):
-        """Refresh user data from Firebase with modern feedback"""
-        logger.info("Refreshing user data...")
+
+    def clear_user_data(self):
+        """Clear all user data (called on logout)"""
+        logger.info("Clearing user data in HomePage")
         
-        try:
-            # Show loading state with modern styling
-            self.refresh_btn.setText("🔄 מרענן...")
-            self.refresh_btn.setEnabled(False)
-            self.refresh_btn.setStyleSheet("""
-                QPushButton {
-                    background: rgba(255, 255, 255, 0.3);
-                    color: white;
-                    border: 2px solid rgba(255, 255, 255, 0.4);
-                    border-radius: 12px;
-                    font-weight: 600;
-                    padding: 8px 16px;
-                }
-                QPushButton:disabled {
-                    background: rgba(255, 255, 255, 0.3);
-                    color: rgba(255, 255, 255, 0.8);
-                }
-            """)
-            
-            # Refresh user data from Firebase
-            self.current_user = self.auth_service.get_current_user()
-            
-            # Update the prints card immediately
-            prints = str(self.current_user.get('remainingPrints', 0))
-            prints_value = self.prints_card.findChild(QLabel, "printsValue")
-            if prints_value:
-                prints_value.setText(prints)
-            
-            # Update countdown will handle time display
-            self.update_countdown()
-            
-            logger.info("User data refreshed successfully")
-            
-            # Show success message with modern styling
-            self.refresh_btn.setText("✅ עודכן!")
-            self.refresh_btn.setStyleSheet("""
-                QPushButton {
-                    background: rgba(16, 185, 129, 0.3);
-                    color: white;
-                    border: 2px solid rgba(16, 185, 129, 0.5);
-                    border-radius: 12px;
-                    font-weight: 600;
-                    padding: 8px 16px;
-                }
-            """)
-            QTimer.singleShot(2000, self.reset_refresh_button)
-            
-        except Exception as e:
-            logger.error(f"Failed to refresh user data: {e}")
-            self.refresh_btn.setText("❌ שגיאה")
-            self.refresh_btn.setStyleSheet("""
-                QPushButton {
-                    background: rgba(239, 68, 68, 0.3);
-                    color: white;
-                    border: 2px solid rgba(239, 68, 68, 0.5);
-                    border-radius: 12px;
-                    font-weight: 600;
-                    padding: 8px 16px;
-                }
-            """)
-            QTimer.singleShot(2000, self.reset_refresh_button)
-    
-    def reset_refresh_button(self):
-        """Reset refresh button to normal state with modern styling"""
-        self.refresh_btn.setText("🔄 רענן")
-        self.refresh_btn.setEnabled(True)
-        self.refresh_btn.setStyleSheet("""
-            QPushButton {
-                background: rgba(255, 255, 255, 0.2);
-                color: white;
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                border-radius: 12px;
-                font-weight: 600;
-                padding: 8px 16px;
-            }
-            QPushButton:hover {
-                background: rgba(255, 255, 255, 0.3);
-                border: 2px solid rgba(255, 255, 255, 0.5);
-            }
-            QPushButton:pressed {
-                background: rgba(255, 255, 255, 0.4);
-            }
-        """)
+        self.current_user = None
+        
+        # Reset UI to default state
+        if hasattr(self, 'time_value'):
+            self.time_value.setText("00:00")
+        if hasattr(self, 'prints_value'):
+            self.prints_value.setText("0")
+        
+        # Disable session button
+        if hasattr(self, 'start_btn'):
+            self.start_btn.setEnabled(False)
 
     def handle_start_session(self):
         """Start session immediately without confirmation"""

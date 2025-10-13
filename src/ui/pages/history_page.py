@@ -49,12 +49,12 @@ class PurchaseCard(QFrame):
             }
         """)
         
-        # Add subtle shadow effect
+        # Enhanced shadow effect
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(25)
+        shadow.setBlurRadius(40)
         shadow.setXOffset(0)
-        shadow.setYOffset(6)
-        shadow.setColor(QColor(0, 0, 0, 15))
+        shadow.setYOffset(15)
+        shadow.setColor(QColor(0, 0, 0, 50))
         self.setGraphicsEffect(shadow)
         
         layout = QHBoxLayout(self)
@@ -227,44 +227,60 @@ class StatsCard(QFrame):
         self.setMinimumWidth(250)  # Much wider minimum width
         self.setMaximumWidth(300)  # Set maximum width to prevent over-stretching
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        
+        # Use consistent white background for all cards
         self.setStyleSheet(f"""
             QFrame#statsCard {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 {self.color}08, stop:1 {self.color}04);
-                border: 1px solid {self.color}20;
+                background-color: #FFFFFF;
+                border: 1px solid #E2E8F0;
                 border-radius: 16px;
                 margin: 4px;
             }}
+            QFrame#statsCard:hover {{
+                border: 1px solid {self.color}40;
+                background-color: #FAFAFA;
+            }}
         """)
         
-        # Add subtle shadow to stats cards
+        # Enhanced shadow effect for better hovering appearance
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(15)
+        shadow.setBlurRadius(50)
         shadow.setXOffset(0)
-        shadow.setYOffset(3)
-        shadow.setColor(QColor(0, 0, 0, 10))
+        shadow.setYOffset(18)
+        shadow.setColor(QColor(0, 0, 0, 65))
         self.setGraphicsEffect(shadow)
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(36, 32, 36, 32)  # Even more padding for better spacing
-        layout.setSpacing(14)  # Even more spacing between elements
+        layout.setContentsMargins(32, 28, 32, 28)  # Adjusted padding to prevent clipping
+        layout.setSpacing(12)  # Optimized spacing between elements
         
-        # Value
+        # Value - Fixed clipping issues with proper line height and padding
         value_label = QLabel(self.value)
-        value_label.setFont(QFont("Segoe UI", 32, QFont.Weight.Bold))  # Much larger font
-        value_label.setStyleSheet(f"color: {self.color};")
+        value_label.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))  # Slightly smaller to prevent clipping
+        value_label.setStyleSheet(f"""
+            color: {self.color};
+            padding: 4px 0px;
+            line-height: 1.2;
+        """)
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        value_label.setMinimumHeight(40)  # Ensure enough space for the number
         
         # Title
         title_label = QLabel(self.title)
-        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))  # Much larger font
-        title_label.setStyleSheet("color: #1E293B;")
+        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        title_label.setStyleSheet("""
+            color: #1E293B;
+            padding: 2px 0px;
+        """)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         # Subtitle
         subtitle_label = QLabel(self.subtitle)
-        subtitle_label.setFont(QFont("Segoe UI", 12))  # Much larger font
-        subtitle_label.setStyleSheet("color: #64748B;")
+        subtitle_label.setFont(QFont("Segoe UI", 12))
+        subtitle_label.setStyleSheet("""
+            color: #64748B;
+            padding: 2px 0px;
+        """)
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         layout.addWidget(value_label)
@@ -279,7 +295,7 @@ class HistoryPage(QWidget):
     def __init__(self, auth_service, parent=None):
         super().__init__(parent)
         self.auth_service = auth_service
-        self.current_user = auth_service.get_current_user()
+        self.current_user = None  # Will be set when page is shown
         self.purchases = []
         self.filtered_purchases = []
         
@@ -288,7 +304,6 @@ class HistoryPage(QWidget):
         self.purchase_service = PurchaseService(self.firebase_client)
         
         self.init_ui()
-        self.load_purchase_data()
         self.setup_animations()
 
     def init_ui(self):
@@ -320,24 +335,118 @@ class HistoryPage(QWidget):
 
         logger.debug("History page initialized")
 
+    def refresh_user_data(self):
+        """Refresh user data and reload purchase history"""
+        logger.info("Refreshing user data in HistoryPage")
+        
+        # Get current user from auth service
+        self.current_user = self.auth_service.get_current_user()
+        
+        # Clear existing data
+        self.purchases = []
+        self.filtered_purchases = []
+        
+        # Reload purchase data for the current user
+        self.load_purchase_data()
+
+    def clear_user_data(self):
+        """Clear all user data (called on logout)"""
+        logger.info("Clearing user data in HistoryPage")
+        
+        self.current_user = None
+        self.purchases = []
+        self.filtered_purchases = []
+        
+        # Clear the display
+        self.show_empty_state()
+
+    def show_empty_state(self):
+        """Show empty state when no data is available"""
+        # Clear existing content
+        for i in reversed(range(self.content_layout.count())):
+            child = self.content_layout.itemAt(i).widget()
+            if child:
+                child.setParent(None)
+        
+        # Create empty state message
+        empty_widget = QWidget()
+        empty_layout = QVBoxLayout(empty_widget)
+        empty_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_layout.setSpacing(20)
+        
+        # Empty state icon
+        empty_icon = QLabel("📋")
+        empty_icon.setFont(QFont("Segoe UI", 48))
+        empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_icon.setStyleSheet("color: #9CA3AF;")
+        
+        # Empty state message
+        empty_message = QLabel("אין רכישות להצגה")
+        empty_message.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
+        empty_message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_message.setStyleSheet("color: #6B7280; margin-bottom: 8px;")
+        
+        # Empty state description
+        empty_desc = QLabel("הרכישות שלך יופיעו כאן לאחר שתרכוש חבילות זמן")
+        empty_desc.setFont(QFont("Segoe UI", 14))
+        empty_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_desc.setStyleSheet("color: #9CA3AF;")
+        
+        empty_layout.addWidget(empty_icon)
+        empty_layout.addWidget(empty_message)
+        empty_layout.addWidget(empty_desc)
+        
+        self.content_layout.addWidget(empty_widget)
+
     def create_header(self, parent_layout):
         """Create page header"""
-        header_layout = QVBoxLayout()
+        # Clean header section matching packages page style
+        header_container = QWidget()
+        header_container.setStyleSheet("""
+            QWidget {
+                background: #3B82F6;
+                border-radius: 20px;
+                padding: 20px;
+            }
+        """)
+        
+        # Add shadow to header
+        header_shadow = QGraphicsDropShadowEffect()
+        header_shadow.setBlurRadius(40)
+        header_shadow.setXOffset(0)
+        header_shadow.setYOffset(12)
+        header_shadow.setColor(QColor(0, 0, 0, 55))
+        header_container.setGraphicsEffect(header_shadow)
+        header_layout = QVBoxLayout(header_container)
+        header_layout.setContentsMargins(30, 25, 30, 25)
         header_layout.setSpacing(8)
         
-        # Title
+        # Main title with stunning typography
         title = QLabel("היסטוריית רכישות")
-        title.setFont(QFont("Segoe UI", 32, QFont.Weight.Bold))
-        title.setStyleSheet("color: #0F172A; margin-bottom: 8px;")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 32px;
+                font-weight: 800;
+                margin-bottom: 8px;
+            }
+        """)
         
-        # Subtitle
+        # Subtitle with elegant styling
         subtitle = QLabel("צפה בכל הרכישות והעסקאות שביצעת")
-        subtitle.setFont(QFont("Segoe UI", 16))
-        subtitle.setStyleSheet("color: #64748B;")
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtitle.setStyleSheet("""
+            QLabel {
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 16px;
+                font-weight: 400;
+            }
+        """)
         
         header_layout.addWidget(title)
         header_layout.addWidget(subtitle)
-        parent_layout.addLayout(header_layout)
+        parent_layout.addWidget(header_container)
 
     def create_stats_section(self, parent_layout):
         """Create statistics cards section"""
@@ -386,6 +495,14 @@ class HistoryPage(QWidget):
         """)
         search_box.textChanged.connect(self.filter_purchases)
         
+        # Add shadow to search box
+        search_shadow = QGraphicsDropShadowEffect()
+        search_shadow.setBlurRadius(15)
+        search_shadow.setXOffset(0)
+        search_shadow.setYOffset(4)
+        search_shadow.setColor(QColor(0, 0, 0, 25))
+        search_box.setGraphicsEffect(search_shadow)
+        
         # Status filter
         status_filter = QComboBox()
         status_filter.setObjectName("statusFilter")
@@ -418,6 +535,14 @@ class HistoryPage(QWidget):
         """)
         status_filter.currentTextChanged.connect(self.filter_purchases)
         
+        # Add shadow to status filter
+        status_shadow = QGraphicsDropShadowEffect()
+        status_shadow.setBlurRadius(15)
+        status_shadow.setXOffset(0)
+        status_shadow.setYOffset(4)
+        status_shadow.setColor(QColor(0, 0, 0, 25))
+        status_filter.setGraphicsEffect(status_shadow)
+        
         # Sort button
         sort_button = QPushButton("מיון לפי תאריך")
         sort_button.setObjectName("sortButton")
@@ -442,33 +567,18 @@ class HistoryPage(QWidget):
         """)
         sort_button.clicked.connect(self.toggle_sort)
         
-        # Refresh button
-        refresh_button = QPushButton("רענן")
-        refresh_button.setObjectName("refreshButton")
-        refresh_button.setFixedHeight(40)
-        refresh_button.setStyleSheet("""
-            QPushButton#refreshButton {
-                background-color: #3B82F6;
-                color: #FFFFFF;
-                border: none;
-                border-radius: 12px;
-                padding: 8px 16px;
-                font-weight: 600;
-                font-size: 14px;
-            }
-            QPushButton#refreshButton:hover {
-                background-color: #2563EB;
-            }
-            QPushButton#refreshButton:pressed {
-                background-color: #1D4ED8;
-            }
-        """)
-        refresh_button.clicked.connect(self.refresh_data)
+        # Add shadow to sort button
+        sort_shadow = QGraphicsDropShadowEffect()
+        sort_shadow.setBlurRadius(15)
+        sort_shadow.setXOffset(0)
+        sort_shadow.setYOffset(4)
+        sort_shadow.setColor(QColor(0, 0, 0, 25))
+        sort_button.setGraphicsEffect(sort_shadow)
+        
         
         filters_layout.addWidget(search_box)
         filters_layout.addWidget(status_filter)
         filters_layout.addWidget(sort_button)
-        filters_layout.addWidget(refresh_button)
         filters_layout.addStretch()
         
         parent_layout.addLayout(filters_layout)
@@ -763,11 +873,6 @@ class HistoryPage(QWidget):
         self.filtered_purchases.reverse()
         self.update_purchases_display()
 
-    def refresh_data(self):
-        """Refresh purchase data from database"""
-        logger.info("Refreshing purchase data from database")
-        self.load_purchase_data()
-        self.animate_refresh()
 
     def update_stats_cards(self):
         """Update statistics cards with current data"""
@@ -803,7 +908,7 @@ class HistoryPage(QWidget):
             "ממתינות",
             str(pending_purchases),
             "עסקאות בהמתנה",
-            "#6B7280"  # Much more subtle gray color instead of orange
+            "#F59E0B"  # Amber color for pending status - more professional than gray
         )
         
         self.stats_layout.addWidget(spent_card)

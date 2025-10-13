@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 
 from utils.firebase_config import firebase_config
 from utils.logger import get_logger
+from utils.error_translations import translate_error
 
 logger = get_logger(__name__)
 
@@ -64,7 +65,7 @@ class FirebaseClient:
 
         except requests.exceptions.RequestException as e:
             error_msg = self._parse_error(e)
-            logger.error(f"Sign up failed: {error_msg}")
+            logger.error(f"Sign up failed: {str(e)}")
             return {
                 'success': False,
                 'error': error_msg
@@ -102,8 +103,8 @@ class FirebaseClient:
 
         except requests.exceptions.RequestException as e:
             error_msg = self._parse_error(e)
-            logger.debug(f"Sign in error: {error_msg}")
-            logger.error(f"Sign in failed: {error_msg}")
+            logger.debug(f"Sign in error: {str(e)}")
+            logger.error(f"Sign in failed: {str(e)}")
             return {
                 'success': False,
                 'error': error_msg
@@ -136,10 +137,11 @@ class FirebaseClient:
             }
 
         except Exception as e:
+            error_msg = self._parse_error(e)
             logger.error(f"Token refresh failed: {str(e)}")
             return {
                 'success': False,
-                'error': str(e)
+                'error': error_msg
             }
 
     def _store_auth_data(self, data: Dict):
@@ -319,18 +321,30 @@ class FirebaseClient:
                 if 'error' in error_data:
                     message = error_data['error'].get('message', '')
 
-                    # User-friendly error messages
+                    # Map Firebase errors to common error types for translation
                     if 'EMAIL_EXISTS' in message:
-                        return 'This phone number is already registered'
+                        return translate_error('email already exists')
                     elif 'INVALID_PASSWORD' in message or 'EMAIL_NOT_FOUND' in message:
-                        return 'Invalid phone number or password'
+                        return translate_error('invalid credentials')
+                    elif 'INVALID_LOGIN_CREDENTIALS' in message:
+                        return translate_error('invalid credentials')
                     elif 'WEAK_PASSWORD' in message:
-                        return 'Password must be at least 6 characters'
+                        return translate_error('password too weak')
                     elif 'TOO_MANY_ATTEMPTS' in message:
-                        return 'Too many attempts. Please try again later'
+                        return translate_error('too many attempts')
+                    elif 'USER_DISABLED' in message:
+                        return translate_error('account disabled')
+                    elif 'INVALID_EMAIL' in message:
+                        return translate_error('invalid input')
+                    elif 'MISSING_PASSWORD' in message:
+                        return translate_error('required field')
+                    elif 'OPERATION_NOT_ALLOWED' in message:
+                        return translate_error('access denied')
 
-                    return message
+                    # For any other Firebase error, try to translate it
+                    return translate_error(message)
             except:
                 pass
 
-        return str(exception)
+        # For non-Firebase errors, try to translate them too
+        return translate_error(str(exception))

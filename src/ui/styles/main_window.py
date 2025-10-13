@@ -60,11 +60,11 @@ MAIN_WINDOW_QSS = """
         color: #FCA5A5;
     }
 
-    /* Content area with bright modern background */
+    /* Content area with sophisticated grayish background */
     #contentStack {
         background: qlineargradient(
             x1:0, y1:0, x2:0, y2:1,
-            stop:0 #F8FAFC,
+            stop:0 #F1F5F9,
             stop:1 #E2E8F0
         );
     }

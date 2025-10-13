@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from services.firebase_client import FirebaseClient
 from database.local_db import LocalDatabase
 from utils.logger import get_logger
+from utils.error_translations import translate_error
 
 logger = get_logger(__name__)
 
@@ -63,6 +64,10 @@ class AuthService:
 
         if not result.get('success'):
             logger.warning(f"Login failed for {phone}")
+            # Translate error message to Hebrew
+            original_error = result.get('error', 'Unknown error')
+            translated_error = translate_error(original_error)
+            result['error'] = translated_error
             return result
 
         uid = result['uid']
@@ -74,7 +79,7 @@ class AuthService:
             logger.error(f"User data not found for {uid}")
             return {
                 'success': False,
-                'error': 'User data not found'
+                'error': translate_error('user data not found')
             }
 
         self.current_user = user_result['data']
@@ -108,7 +113,7 @@ class AuthService:
         if len(password) < 6:
             return {
                 'success': False,
-                'error': 'Password must be at least 6 characters'
+                'error': translate_error('password must be at least 6 characters')
             }
 
         # Convert phone to email format
@@ -119,6 +124,10 @@ class AuthService:
 
         if not result.get('success'):
             logger.warning(f"Registration failed for {phone}")
+            # Translate error message to Hebrew
+            original_error = result.get('error', 'Unknown error')
+            translated_error = translate_error(original_error)
+            result['error'] = translated_error
             return result
 
         uid = result['uid']
