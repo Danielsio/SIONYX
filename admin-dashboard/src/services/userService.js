@@ -43,64 +43,6 @@ export const getAllUsers = async (orgId) => {
   }
 };
 
-/**
- * Get a single user by ID
- */
-export const getUserById = async (orgId, userId) => {
-  try {
-    const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
-    const snapshot = await get(userRef);
-    
-    if (!snapshot.exists()) {
-      return {
-        success: false,
-        error: 'User not found'
-      };
-    }
-    
-    return {
-      success: true,
-      user: {
-        uid: userId,
-        ...snapshot.val()
-      }
-    };
-  } catch (error) {
-    console.error('Error getting user:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
-
-/**
- * Update user data
- */
-export const updateUser = async (orgId, userId, updates) => {
-  try {
-    const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
-    
-    // Add timestamp
-    const updateData = {
-      ...updates,
-      updatedAt: new Date().toISOString()
-    };
-    
-    await update(userRef, updateData);
-    
-    return {
-      success: true,
-      message: 'User updated successfully'
-    };
-  } catch (error) {
-    console.error('Error updating user:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
 
 /**
  * Get user's purchase history
@@ -316,31 +258,4 @@ export const kickUser = async (orgId, userId) => {
   }
 };
 
-/**
- * Reset force logout flag (called after user gets kicked and redirected to auth)
- */
-export const resetForceLogout = async (orgId, userId) => {
-  try {
-    const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
-    
-    const updates = {
-      forceLogout: false,
-      forceLogoutTimestamp: null,
-      updatedAt: new Date().toISOString()
-    };
-    
-    await update(userRef, updates);
-    
-    return {
-      success: true,
-      message: 'Force logout flag reset'
-    };
-  } catch (error) {
-    console.error('Error resetting force logout:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
 

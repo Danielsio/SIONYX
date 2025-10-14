@@ -43,36 +43,6 @@ export const getAllPackages = async (orgId) => {
   }
 };
 
-/**
- * Get a single package by ID
- */
-export const getPackageById = async (orgId, packageId) => {
-  try {
-    const packageRef = ref(database, `organizations/${orgId}/packages/${packageId}`);
-    const snapshot = await get(packageRef);
-    
-    if (!snapshot.exists()) {
-      return {
-        success: false,
-        error: 'Package not found'
-      };
-    }
-    
-    return {
-      success: true,
-      package: {
-        id: packageId,
-        ...snapshot.val()
-      }
-    };
-  } catch (error) {
-    console.error('Error getting package:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-};
 
 /**
  * Create a new package

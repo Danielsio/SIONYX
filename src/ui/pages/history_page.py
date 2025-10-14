@@ -5,18 +5,16 @@ View session history and transactions with modern UI/UX
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, 
-    QFrame, QPushButton, QComboBox, QLineEdit, QSpacerItem,
-    QSizePolicy, QGraphicsDropShadowEffect, QGridLayout
+    QFrame, QPushButton, QComboBox, QLineEdit,
+    QSizePolicy, QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect, QTimer, pyqtSignal
-from PyQt6.QtGui import QFont, QPixmap, QPainter, QColor, QLinearGradient, QBrush, QPen
+from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
+from PyQt6.QtGui import QFont, QColor
 
 from utils.logger import get_logger
-from utils.purchase_constants import get_status_label, get_status_color
+from utils.purchase_constants import get_status_label
 from services.purchase_service import PurchaseService
-from services.firebase_client import FirebaseClient
-from datetime import datetime, timedelta
-import random
+from datetime import datetime
 
 logger = get_logger(__name__)
 

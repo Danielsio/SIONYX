@@ -4,11 +4,11 @@ Browse and purchase time/print packages
 """
 
 from typing import Dict
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                             QPushButton, QFrame, QGridLayout, QMessageBox,
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel,
+                             QPushButton, QFrame, QGridLayout,
                              QScrollArea, QDialog, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QColor, QPalette
+from PyQt6.QtGui import QColor
 
 from services.package_service import PackageService
 from utils.logger import get_logger

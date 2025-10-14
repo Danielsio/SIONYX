@@ -4,10 +4,10 @@ Shows user stats and session controls
 """
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                              QPushButton, QFrame, QMessageBox,
+                              QPushButton, QFrame,
                               QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont, QColor, QIcon
+from PyQt6.QtGui import QFont, QColor
 
 from utils.logger import get_logger
 

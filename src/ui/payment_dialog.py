@@ -11,12 +11,11 @@ from pathlib import Path
 import os
 import json
 import requests
-import sseclient  # For Firebase streaming
 
 from services.payment_bridge import PaymentBridge
 from services.purchase_service import PurchaseService
 from utils.logger import get_logger
-from utils.purchase_constants import PURCHASE_STATUS, is_final_status
+from utils.purchase_constants import is_final_status
 from ui.web.local_server import LocalFileServer
 
 logger = get_logger(__name__)

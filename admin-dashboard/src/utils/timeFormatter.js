@@ -33,6 +33,5 @@ export const formatMinutesSimple = (minutes) => {
 };
 
 // Keep the old functions for backward compatibility but mark as deprecated
-export const formatTimeHebrew = formatTimeSimple;
 export const formatMinutesHebrew = formatMinutesSimple;
 export const formatTimeHebrewCompact = formatTimeSimple;

@@ -6,7 +6,6 @@ import {
   UserOutlined,
   AppstoreOutlined,
   LogoutOutlined,
-  MenuFoldOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
   PhoneOutlined
