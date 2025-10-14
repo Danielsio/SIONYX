@@ -536,6 +536,28 @@ class HistoryPage(QWidget):
                 border-top: 5px solid #64748B;
                 margin-right: 8px;
             }
+            QComboBox#statusFilter QAbstractItemView {
+                background-color: #FFFFFF;
+                border: 1px solid #E2E8F0;
+                border-radius: 8px;
+                selection-background-color: #3B82F6;
+                selection-color: #FFFFFF;
+                color: #1E293B;
+                font-size: 14px;
+                padding: 4px;
+            }
+            QComboBox#statusFilter QAbstractItemView::item {
+                height: 32px;
+                padding: 8px 12px;
+                border-radius: 4px;
+            }
+            QComboBox#statusFilter QAbstractItemView::item:hover {
+                background-color: #F1F5F9;
+            }
+            QComboBox#statusFilter QAbstractItemView::item:selected {
+                background-color: #3B82F6;
+                color: #FFFFFF;
+            }
         """)
         status_filter.currentTextChanged.connect(self.filter_purchases)
         
@@ -548,10 +570,10 @@ class HistoryPage(QWidget):
         status_filter.setGraphicsEffect(status_shadow)
         
         # Sort button
-        sort_button = QPushButton("מיון לפי תאריך")
-        sort_button.setObjectName("sortButton")
-        sort_button.setFixedHeight(40)
-        sort_button.setStyleSheet("""
+        self.sort_button = QPushButton("מיון לפי תאריך (חדש לישן)")
+        self.sort_button.setObjectName("sortButton")
+        self.sort_button.setFixedHeight(40)
+        self.sort_button.setStyleSheet("""
             QPushButton#sortButton {
                 background-color: #F1F5F9;
                 color: #475569;
@@ -569,7 +591,7 @@ class HistoryPage(QWidget):
                 background-color: #CBD5E1;
             }
         """)
-        sort_button.clicked.connect(self.toggle_sort)
+        self.sort_button.clicked.connect(self.toggle_sort)
         
         # Add shadow to sort button
         sort_shadow = QGraphicsDropShadowEffect()
@@ -577,12 +599,12 @@ class HistoryPage(QWidget):
         sort_shadow.setXOffset(0)
         sort_shadow.setYOffset(4)
         sort_shadow.setColor(QColor(0, 0, 0, 25))
-        sort_button.setGraphicsEffect(sort_shadow)
+        self.sort_button.setGraphicsEffect(sort_shadow)
         
         
         filters_layout.addWidget(search_box)
         filters_layout.addWidget(status_filter)
-        filters_layout.addWidget(sort_button)
+        filters_layout.addWidget(self.sort_button)
         filters_layout.addStretch()
         
         parent_layout.addLayout(filters_layout)
@@ -883,8 +905,36 @@ class HistoryPage(QWidget):
         self.update_purchases_display()
 
     def toggle_sort(self):
-        """Toggle sort order"""
-        self.filtered_purchases.reverse()
+        """Toggle sort order between newest first and oldest first"""
+        if not self.filtered_purchases:
+            logger.warning("No purchases to sort")
+            return
+        
+        # Check current sort order by looking at first two items
+        is_newest_first = True
+        if len(self.filtered_purchases) > 1:
+            first_date = self.filtered_purchases[0].get('createdAt', '')
+            second_date = self.filtered_purchases[1].get('createdAt', '')
+            is_newest_first = first_date > second_date
+        
+        # Toggle sort order
+        if is_newest_first:
+            # Currently the newest first, switch to the oldest first
+            self.filtered_purchases.sort(
+                key=lambda x: x.get('createdAt', ''), 
+                reverse=False
+            )
+            self.sort_button.setText("מיון לפי תאריך (ישן לחדש)")
+            logger.info("Sorted purchases: oldest first")
+        else:
+            # Currently the oldest first, switch to the newest first
+            self.filtered_purchases.sort(
+                key=lambda x: x.get('createdAt', ''), 
+                reverse=True
+            )
+            self.sort_button.setText("מיון לפי תאריך (חדש לישן)")
+            logger.info("Sorted purchases: newest first")
+        
         self.update_purchases_display()
 
 

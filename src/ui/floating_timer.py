@@ -37,12 +37,19 @@ class FloatingTimer(QWidget):
         )
 
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedSize(320, 120)  # Wider to accommodate two-column layout
+        self.setFixedSize(280, 140)  # Further increased height for perfect text display
 
-        # Position at top-right corner
+        # Position at top-center of screen
         from PyQt6.QtWidgets import QApplication
         screen = QApplication.primaryScreen().geometry()
-        self.move(screen.width() - 340, 20)
+        x = (screen.width() - 280) // 2  # Center horizontally with new width
+        y = 0  # Stick to the ceiling
+        self.move(x, y)
+        
+        # Debug positioning
+        logger.info(f"Screen size: {screen.width()}x{screen.height()}")
+        logger.info(f"Timer positioned at: {x}, {y}")
+        logger.info(f"Timer size: 280x140")
 
         # Main container
         self.container = QWidget()
@@ -52,21 +59,23 @@ class FloatingTimer(QWidget):
         main_layout = QHBoxLayout(self.container)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
+        main_layout.setStretch(0, 0)  # Left section fixed width
+        main_layout.setStretch(1, 1)  # Right section takes remaining space
 
         # Left section - Exit button and printer icon
         left_section = QFrame()
         left_section.setObjectName("leftSection")
-        left_section.setFixedWidth(80)
+        left_section.setFixedWidth(90)  # Increased width to prevent יציאה button cutoff
         
         left_layout = QVBoxLayout(left_section)
-        left_layout.setContentsMargins(12, 12, 12, 12)
-        left_layout.setSpacing(8)
+        left_layout.setContentsMargins(14, 14, 14, 14)  # Increased padding
+        left_layout.setSpacing(10)  # Increased spacing
         left_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Exit button
         self.exit_button = QPushButton("יציאה")
         self.exit_button.setObjectName("exitButton")
-        self.exit_button.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        self.exit_button.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
         self.exit_button.setFixedHeight(32)
         self.exit_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.exit_button.clicked.connect(self.return_clicked.emit)
@@ -84,59 +93,78 @@ class FloatingTimer(QWidget):
         # Right section - Time information
         right_section = QFrame()
         right_section.setObjectName("rightSection")
+        right_section.setMinimumWidth(180)  # Further reduced minimum width for more compact design
         
         right_layout = QVBoxLayout(right_section)
-        right_layout.setContentsMargins(16, 12, 16, 12)
-        right_layout.setSpacing(4)
+        right_layout.setContentsMargins(12, 20, 12, 20)  # Further increased vertical padding for perfect text fit
+        right_layout.setSpacing(10)  # Increased spacing between elements for better text fit
         right_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
-        # Time remaining
-        self.time_remaining_label = QLabel("זמן שנותר")
-        self.time_remaining_label.setObjectName("timeRemainingLabel")
-        self.time_remaining_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        self.time_remaining_label.setAlignment(Qt.AlignmentFlag.AlignRight)
-
+        # Time remaining row
+        time_remaining_row = QHBoxLayout()
+        time_remaining_row.setSpacing(8)
+        time_remaining_row.setAlignment(Qt.AlignmentFlag.AlignRight)
+        
         self.time_remaining_value = QLabel("07:33:37")
         self.time_remaining_value.setObjectName("timeRemainingValue")
         self.time_remaining_value.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        self.time_remaining_value.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.time_remaining_value.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        # Usage time
-        self.usage_time_label = QLabel("זמן שימוש")
-        self.usage_time_label.setObjectName("usageTimeLabel")
-        self.usage_time_label.setFont(QFont("Segoe UI", 9))
-        self.usage_time_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.time_remaining_label = QLabel("זמן שנותר")
+        self.time_remaining_label.setObjectName("timeRemainingLabel")
+        self.time_remaining_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        self.time_remaining_label.setAlignment(Qt.AlignmentFlag.AlignRight)
 
+        time_remaining_row.addWidget(self.time_remaining_value)
+        time_remaining_row.addWidget(self.time_remaining_label)
+
+        # Usage time row
+        usage_time_row = QHBoxLayout()
+        usage_time_row.setSpacing(8)
+        usage_time_row.setAlignment(Qt.AlignmentFlag.AlignRight)
+        
         self.usage_time_value = QLabel("00:00:03")
         self.usage_time_value.setObjectName("usageTimeValue")
-        self.usage_time_value.setFont(QFont("Segoe UI", 11))
-        self.usage_time_value.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.usage_time_value.setFont(QFont("Segoe UI", 14))
+        self.usage_time_value.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        # Print balance
-        self.print_balance_label = QLabel("יתרת הדפסות")
-        self.print_balance_label.setObjectName("printBalanceLabel")
-        self.print_balance_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
-        self.print_balance_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.usage_time_label = QLabel("זמן שימוש")
+        self.usage_time_label.setObjectName("usageTimeLabel")
+        self.usage_time_label.setFont(QFont("Segoe UI", 14))
+        self.usage_time_label.setAlignment(Qt.AlignmentFlag.AlignRight)
 
+        usage_time_row.addWidget(self.usage_time_value)
+        usage_time_row.addWidget(self.usage_time_label)
+
+        # Print balance row
+        print_balance_row = QHBoxLayout()
+        print_balance_row.setSpacing(8)
+        print_balance_row.setAlignment(Qt.AlignmentFlag.AlignRight)
+        
         self.print_balance_value = QLabel("0₪")
         self.print_balance_value.setObjectName("printBalanceValue")
         self.print_balance_value.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        self.print_balance_value.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.print_balance_value.setAlignment(Qt.AlignmentFlag.AlignLeft)
+
+        self.print_balance_label = QLabel("יתרת הדפסות")
+        self.print_balance_label.setObjectName("printBalanceLabel")
+        self.print_balance_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        self.print_balance_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        print_balance_row.addWidget(self.print_balance_value)
+        print_balance_row.addWidget(self.print_balance_label)
 
         # My Account button
         self.account_button = QPushButton("החשבון שלי")
         self.account_button.setObjectName("accountButton")
-        self.account_button.setFont(QFont("Segoe UI", 9))
-        self.account_button.setFixedHeight(28)
+        self.account_button.setFont(QFont("Segoe UI", 12))
+        self.account_button.setFixedHeight(30)
         self.account_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.account_button.clicked.connect(self.return_clicked.emit)
 
-        right_layout.addWidget(self.time_remaining_label)
-        right_layout.addWidget(self.time_remaining_value)
-        right_layout.addWidget(self.usage_time_label)
-        right_layout.addWidget(self.usage_time_value)
-        right_layout.addWidget(self.print_balance_label)
-        right_layout.addWidget(self.print_balance_value)
+        right_layout.addLayout(time_remaining_row)
+        right_layout.addLayout(usage_time_row)
+        right_layout.addLayout(print_balance_row)
         right_layout.addStretch()
         right_layout.addWidget(self.account_button)
 
@@ -149,15 +177,8 @@ class FloatingTimer(QWidget):
         main_widget_layout.setContentsMargins(0, 0, 0, 0)
         main_widget_layout.addWidget(self.container)
 
-        # Shadow effect
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(20)
-        shadow.setXOffset(0)
-        shadow.setYOffset(4)
-        shadow.setColor(QColor(0, 0, 0, 80))
-        self.container.setGraphicsEffect(shadow)
-
-        self.apply_styles()
+        # Apply professional styling
+        self.apply_professional_styles()
 
         # Enable mouse tracking for hover
         self.setMouseTracking(True)
@@ -218,264 +239,304 @@ class FloatingTimer(QWidget):
         """Show offline indicator"""
         if offline:
             self.time_remaining_value.setText("⚠ Offline")
-            self.time_remaining_value.setStyleSheet("color: #FFA500;")
         else:
             # Reset to normal state
             self.is_warning = False
             self.is_critical = False
-            self.apply_styles()
+            self.apply_professional_styles()
 
-    def apply_styles(self):
-        """Apply base styles"""
+    def apply_professional_styles(self):
+        """Apply professional dark theme styling to match the design"""
         self.container.setStyleSheet("""
-            #timerContainer { 
-                background-color: #363636; 
-                border: 1px solid #555555; 
-                border-radius: 8px; 
+            #timerContainer {
+                background-color: #363636;
+                border: 1px solid #555555;
+                border-radius: 8px;
             }
             
-            #leftSection { 
-                background-color: #363636; 
-                border-right: 1px solid #555555; 
+            #leftSection {
+                background-color: #363636;
+                border-right: 1px solid #555555;
             }
             
-            #rightSection { 
-                background-color: #363636; 
+            #rightSection {
+                background-color: #363636;
             }
             
-            #exitButton { 
-                background-color: #FF0000; 
-                color: #FFFFFF; 
-                border: none; 
-                border-radius: 4px; 
+            #exitButton {
+                background-color: #FF0000;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 4px;
                 font-weight: bold;
+                font-size: 12px;
+                padding: 8px 12px;
             }
             
-            #exitButton:hover { 
-                background-color: #FF3333; 
+            #exitButton:hover {
+                background-color: #FF3333;
             }
             
-            #exitButton:pressed { 
-                background-color: #CC0000; 
+            #exitButton:pressed {
+                background-color: #CC0000;
             }
             
-            #printerIcon { 
-                color: #FFFFFF; 
-                background-color: #363636; 
-                border: 1px solid #AAAAAA; 
-                border-radius: 4px; 
+            #printerIcon {
+                color: #FFFFFF;
+                background-color: #363636;
+                border: 1px solid #AAAAAA;
+                border-radius: 4px;
+                padding: 8px;
             }
             
-            #timeRemainingLabel { 
-                color: #FFFFFF; 
-                font-weight: bold; 
+            #timeRemainingLabel {
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #timeRemainingValue { 
-                color: #FFFFFF; 
-                font-weight: bold; 
+            #timeRemainingValue {
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #usageTimeLabel { 
-                color: #CCCCCC; 
+            #usageTimeLabel {
+                color: #CCCCCC;
+                font-size: 14px;
             }
             
-            #usageTimeValue { 
-                color: #CCCCCC; 
+            #usageTimeValue {
+                color: #CCCCCC;
+                font-size: 14px;
             }
             
-            #printBalanceLabel { 
-                color: #FFFFFF; 
-                font-weight: bold; 
+            #printBalanceLabel {
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #printBalanceValue { 
-                color: #FFFFFF; 
-                font-weight: bold; 
+            #printBalanceValue {
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #accountButton { 
-                background-color: #363636; 
-                color: #FFFFFF; 
-                border: 1px solid #AAAAAA; 
-                border-radius: 4px; 
+            #accountButton {
+                background-color: #363636;
+                color: #FFFFFF;
+                border: 1px solid #AAAAAA;
+                border-radius: 4px;
+                font-size: 12px;
+                padding: 6px 12px;
             }
             
-            #accountButton:hover { 
-                background-color: #4A4A4A; 
+            #accountButton:hover {
+                background-color: #4A4A4A;
             }
             
-            #accountButton:pressed { 
-                background-color: #2A2A2A; 
+            #accountButton:pressed {
+                background-color: #2A2A2A;
             }
         """)
+        
+        # Add professional shadow effect
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)
+        shadow.setXOffset(0)
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(0, 0, 0, 80))
+        self.container.setGraphicsEffect(shadow)
 
     def apply_warning_styles(self):
-        """Apply warning styles (5 min remaining)"""
+        """Apply warning styles (5 min remaining) - orange accent"""
         self.container.setStyleSheet("""
-            #timerContainer { 
-                background-color: #4A3A00; 
-                border: 1px solid #FFA500; 
-                border-radius: 8px; 
+            #timerContainer {
+                background-color: #4A3A00;
+                border: 1px solid #FFA500;
+                border-radius: 8px;
             }
             
-            #leftSection { 
-                background-color: #4A3A00; 
-                border-right: 1px solid #FFA500; 
+            #leftSection {
+                background-color: #4A3A00;
+                border-right: 1px solid #FFA500;
             }
             
-            #rightSection { 
-                background-color: #4A3A00; 
+            #rightSection {
+                background-color: #4A3A00;
             }
             
-            #exitButton { 
-                background-color: #FF0000; 
-                color: #FFFFFF; 
-                border: none; 
-                border-radius: 4px; 
+            #exitButton {
+                background-color: #FF0000;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 4px;
                 font-weight: bold;
+                font-size: 12px;
+                padding: 8px 12px;
             }
             
-            #exitButton:hover { 
-                background-color: #FF3333; 
+            #exitButton:hover {
+                background-color: #FF3333;
             }
             
-            #exitButton:pressed { 
-                background-color: #CC0000; 
+            #exitButton:pressed {
+                background-color: #CC0000;
             }
             
-            #printerIcon { 
-                color: #FFFFFF; 
-                background-color: #4A3A00; 
-                border: 1px solid #FFA500; 
-                border-radius: 4px; 
+            #printerIcon {
+                color: #FFFFFF;
+                background-color: #4A3A00;
+                border: 1px solid #FFA500;
+                border-radius: 4px;
+                padding: 8px;
             }
             
-            #timeRemainingLabel { 
-                color: #FFFFFF; 
-                font-weight: bold; 
+            #timeRemainingLabel {
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #timeRemainingValue { 
-                color: #FFA500; 
-                font-weight: bold; 
+            #timeRemainingValue {
+                color: #FFA500;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #usageTimeLabel { 
-                color: #CCCCCC; 
+            #usageTimeLabel {
+                color: #CCCCCC;
+                font-size: 14px;
             }
             
-            #usageTimeValue { 
-                color: #CCCCCC; 
+            #usageTimeValue {
+                color: #CCCCCC;
+                font-size: 14px;
             }
             
-            #printBalanceLabel { 
-                color: #FFFFFF; 
-                font-weight: bold; 
+            #printBalanceLabel {
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #printBalanceValue { 
-                color: #FFFFFF; 
-                font-weight: bold; 
+            #printBalanceValue {
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #accountButton { 
-                background-color: #4A3A00; 
-                color: #FFFFFF; 
-                border: 1px solid #FFA500; 
-                border-radius: 4px; 
+            #accountButton {
+                background-color: #4A3A00;
+                color: #FFFFFF;
+                border: 1px solid #FFA500;
+                border-radius: 4px;
+                font-size: 9px;
+                padding: 6px 12px;
             }
             
-            #accountButton:hover { 
-                background-color: #5A4A00; 
+            #accountButton:hover {
+                background-color: #5A4A00;
             }
             
-            #accountButton:pressed { 
-                background-color: #3A2A00; 
+            #accountButton:pressed {
+                background-color: #3A2A00;
             }
         """)
 
     def apply_critical_styles(self):
-        """Apply critical styles (1 min remaining)"""
+        """Apply critical styles (1 min remaining) - red accent"""
         self.container.setStyleSheet("""
-            #timerContainer { 
-                background-color: #4A0000; 
-                border: 1px solid #FF0000; 
-                border-radius: 8px; 
+            #timerContainer {
+                background-color: #4A0000;
+                border: 1px solid #FF0000;
+                border-radius: 8px;
             }
             
-            #leftSection { 
-                background-color: #4A0000; 
-                border-right: 1px solid #FF0000; 
+            #leftSection {
+                background-color: #4A0000;
+                border-right: 1px solid #FF0000;
             }
             
-            #rightSection { 
-                background-color: #4A0000; 
+            #rightSection {
+                background-color: #4A0000;
             }
             
-            #exitButton { 
-                background-color: #FF0000; 
-                color: #FFFFFF; 
-                border: none; 
-                border-radius: 4px; 
+            #exitButton {
+                background-color: #FF0000;
+                color: #FFFFFF;
+                border: none;
+                border-radius: 4px;
                 font-weight: bold;
+                font-size: 12px;
+                padding: 8px 12px;
             }
             
-            #exitButton:hover { 
-                background-color: #FF3333; 
+            #exitButton:hover {
+                background-color: #FF3333;
             }
             
-            #exitButton:pressed { 
-                background-color: #CC0000; 
+            #exitButton:pressed {
+                background-color: #CC0000;
             }
             
-            #printerIcon { 
-                color: #FFFFFF; 
-                background-color: #4A0000; 
-                border: 1px solid #FF0000; 
-                border-radius: 4px; 
+            #printerIcon {
+                color: #FFFFFF;
+                background-color: #4A0000;
+                border: 1px solid #FF0000;
+                border-radius: 4px;
+                padding: 8px;
             }
             
-            #timeRemainingLabel { 
-                color: #FFFFFF; 
-                font-weight: bold; 
+            #timeRemainingLabel {
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #timeRemainingValue { 
-                color: #FF0000; 
-                font-weight: bold; 
+            #timeRemainingValue {
+                color: #FF0000;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #usageTimeLabel { 
-                color: #CCCCCC; 
+            #usageTimeLabel {
+                color: #CCCCCC;
+                font-size: 14px;
             }
             
-            #usageTimeValue { 
-                color: #CCCCCC; 
+            #usageTimeValue {
+                color: #CCCCCC;
+                font-size: 14px;
             }
             
-            #printBalanceLabel { 
-                color: #FFFFFF; 
-                font-weight: bold; 
+            #printBalanceLabel {
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #printBalanceValue { 
-                color: #FFFFFF; 
-                font-weight: bold; 
+            #printBalanceValue {
+                color: #FFFFFF;
+                font-weight: bold;
+                font-size: 16px;
             }
             
-            #accountButton { 
-                background-color: #4A0000; 
-                color: #FFFFFF; 
-                border: 1px solid #FF0000; 
-                border-radius: 4px; 
+            #accountButton {
+                background-color: #4A0000;
+                color: #FFFFFF;
+                border: 1px solid #FF0000;
+                border-radius: 4px;
+                font-size: 9px;
+                padding: 6px 12px;
             }
             
-            #accountButton:hover { 
-                background-color: #5A0000; 
+            #accountButton:hover {
+                background-color: #5A0000;
             }
             
-            #accountButton:pressed { 
-                background-color: #3A0000; 
+            #accountButton:pressed {
+                background-color: #3A0000;
             }
         """)
