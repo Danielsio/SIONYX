@@ -340,6 +340,12 @@ class HistoryPage(QWidget):
         # Get current user from auth service
         self.current_user = self.auth_service.get_current_user()
         
+        if not self.current_user:
+            logger.warning("No current user found in HistoryPage refresh")
+            return
+        
+        logger.info(f"Current user: {self.current_user.get('uid', 'Unknown')}")
+        
         # Clear existing data
         self.purchases = []
         self.filtered_purchases = []
@@ -607,6 +613,8 @@ class HistoryPage(QWidget):
 
     def load_purchase_data(self):
         """Load purchase data from Firebase database"""
+        logger.info("load_purchase_data called")
+        
         if not self.current_user:
             logger.warning("No current user, cannot load purchase data")
             self.show_error_state("לא מחובר למשתמש")
@@ -626,18 +634,26 @@ class HistoryPage(QWidget):
             self.show_error_state("לא מחובר לשרת")
             return
         
+        logger.info("Firebase client is authenticated, proceeding with data fetch")
+        
         # Show loading state
         self.show_loading_state()
         
         try:
             # Fetch purchase history from database
+            logger.info("Calling purchase_service.get_user_purchase_history")
             result = self.purchase_service.get_user_purchase_history(user_id)
+            
+            logger.info(f"Purchase service result: {result}")
             
             if result.get('success'):
                 self.purchases = result.get('purchases', [])
                 self.filtered_purchases = self.purchases.copy()
                 
                 logger.info(f"Loaded {len(self.purchases)} purchases from database")
+                
+                if len(self.purchases) > 0:
+                    logger.info(f"First purchase: {self.purchases[0]}")
                 
                 # Update stats and display
                 self.update_stats_cards()

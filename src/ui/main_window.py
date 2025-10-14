@@ -101,6 +101,9 @@ class MainWindow(BaseKioskWindow):
 
         self.apply_modern_styles()
         self.show_page(self.PAGES['HOME'])
+        
+        # Refresh all pages after UI is initialized
+        self.refresh_all_pages()
 
 
     def create_modern_sidebar(self) -> QWidget:
@@ -206,7 +209,42 @@ class MainWindow(BaseKioskWindow):
         for i, btn in enumerate(self.nav_buttons):
             btn.setChecked(i == index)
         
-        # Data is automatically updated, no need for manual refresh
+        # Refresh the current page data
+        self.refresh_current_page()
+
+    def refresh_current_page(self):
+        """Refresh data for the current page"""
+        current_widget = self.content_stack.currentWidget()
+        
+        if hasattr(current_widget, 'refresh_user_data'):
+            logger.info(f"Refreshing data for {current_widget.__class__.__name__}")
+            current_widget.refresh_user_data()
+
+    def refresh_all_pages(self):
+        """Refresh data for all pages"""
+        logger.info("Refreshing all pages with user data")
+        
+        # Check if UI is initialized
+        if not hasattr(self, 'content_stack'):
+            logger.warning("UI not initialized yet, skipping page refresh")
+            return
+        
+        # Refresh each page that has the refresh_user_data method
+        for i in range(self.content_stack.count()):
+            page = self.content_stack.widget(i)
+            if hasattr(page, 'refresh_user_data'):
+                logger.info(f"Refreshing {page.__class__.__name__}")
+                page.refresh_user_data()
+
+    def showEvent(self, event):
+        """Handle window show event"""
+        super().showEvent(event)
+        
+        logger.info("Main window showEvent triggered - refreshing all pages")
+        
+        # Refresh all pages when the window is shown
+        # This ensures data is loaded when the user logs in
+        self.refresh_all_pages()
 
     def handle_logout(self):
         """Logout"""

@@ -3,17 +3,12 @@ Floating Timer Overlay
 Always-on-top timer displayed during sessions
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel,
-                             QPushButton, QGraphicsDropShadowEffect)
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+                             QPushButton, QGraphicsDropShadowEffect, QFrame)
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QColor
 
 from utils.logger import get_logger
-from ui.styles import (
-    FLOATING_TIMER_BASE_QSS,
-    FLOATING_TIMER_WARNING_QSS,
-    FLOATING_TIMER_CRITICAL_QSS,
-)
 
 logger = get_logger(__name__)
 
@@ -42,57 +37,124 @@ class FloatingTimer(QWidget):
         )
 
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedSize(180, 80)
+        self.setFixedSize(320, 120)  # Wider to accommodate two-column layout
 
         # Position at top-right corner
         from PyQt6.QtWidgets import QApplication
         screen = QApplication.primaryScreen().geometry()
-        self.move(screen.width() - 200, 20)
+        self.move(screen.width() - 340, 20)
 
         # Main container
         self.container = QWidget()
         self.container.setObjectName("timerContainer")
 
-        layout = QVBoxLayout(self.container)
-        layout.setContentsMargins(15, 12, 15, 12)
-        layout.setSpacing(8)
+        # Main horizontal layout
+        main_layout = QHBoxLayout(self.container)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
-        # Time display
-        self.time_label = QLabel("0h 00m 00s")
-        self.time_label.setObjectName("timeDisplay")
-        self.time_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        self.time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Left section - Exit button and printer icon
+        left_section = QFrame()
+        left_section.setObjectName("leftSection")
+        left_section.setFixedWidth(80)
+        
+        left_layout = QVBoxLayout(left_section)
+        left_layout.setContentsMargins(12, 12, 12, 12)
+        left_layout.setSpacing(8)
+        left_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Status label
-        self.status_label = QLabel("Session Active")
-        self.status_label.setObjectName("statusLabel")
-        self.status_label.setFont(QFont("Segoe UI", 9))
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Exit button
+        self.exit_button = QPushButton("יציאה")
+        self.exit_button.setObjectName("exitButton")
+        self.exit_button.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        self.exit_button.setFixedHeight(32)
+        self.exit_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.exit_button.clicked.connect(self.return_clicked.emit)
 
-        # Return button (hidden by default)
-        self.return_button = QPushButton("Return to App")
-        self.return_button.setObjectName("returnButton")
-        self.return_button.setFont(QFont("Segoe UI", 10, QFont.Weight.DemiBold))
-        self.return_button.setMinimumHeight(32)
-        self.return_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.return_button.clicked.connect(self.return_clicked.emit)
-        self.return_button.hide()
+        # Printer icon area
+        self.printer_icon = QLabel("🖨️")
+        self.printer_icon.setObjectName("printerIcon")
+        self.printer_icon.setFont(QFont("Segoe UI", 16))
+        self.printer_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.printer_icon.setFixedHeight(40)
 
-        layout.addWidget(self.time_label)
-        layout.addWidget(self.status_label)
-        layout.addWidget(self.return_button)
+        left_layout.addWidget(self.exit_button)
+        left_layout.addWidget(self.printer_icon)
+
+        # Right section - Time information
+        right_section = QFrame()
+        right_section.setObjectName("rightSection")
+        
+        right_layout = QVBoxLayout(right_section)
+        right_layout.setContentsMargins(16, 12, 16, 12)
+        right_layout.setSpacing(4)
+        right_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        # Time remaining
+        self.time_remaining_label = QLabel("זמן שנותר")
+        self.time_remaining_label.setObjectName("timeRemainingLabel")
+        self.time_remaining_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        self.time_remaining_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        self.time_remaining_value = QLabel("07:33:37")
+        self.time_remaining_value.setObjectName("timeRemainingValue")
+        self.time_remaining_value.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        self.time_remaining_value.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        # Usage time
+        self.usage_time_label = QLabel("זמן שימוש")
+        self.usage_time_label.setObjectName("usageTimeLabel")
+        self.usage_time_label.setFont(QFont("Segoe UI", 9))
+        self.usage_time_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        self.usage_time_value = QLabel("00:00:03")
+        self.usage_time_value.setObjectName("usageTimeValue")
+        self.usage_time_value.setFont(QFont("Segoe UI", 11))
+        self.usage_time_value.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        # Print balance
+        self.print_balance_label = QLabel("יתרת הדפסות")
+        self.print_balance_label.setObjectName("printBalanceLabel")
+        self.print_balance_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        self.print_balance_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        self.print_balance_value = QLabel("0₪")
+        self.print_balance_value.setObjectName("printBalanceValue")
+        self.print_balance_value.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        self.print_balance_value.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+        # My Account button
+        self.account_button = QPushButton("החשבון שלי")
+        self.account_button.setObjectName("accountButton")
+        self.account_button.setFont(QFont("Segoe UI", 9))
+        self.account_button.setFixedHeight(28)
+        self.account_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.account_button.clicked.connect(self.return_clicked.emit)
+
+        right_layout.addWidget(self.time_remaining_label)
+        right_layout.addWidget(self.time_remaining_value)
+        right_layout.addWidget(self.usage_time_label)
+        right_layout.addWidget(self.usage_time_value)
+        right_layout.addWidget(self.print_balance_label)
+        right_layout.addWidget(self.print_balance_value)
+        right_layout.addStretch()
+        right_layout.addWidget(self.account_button)
+
+        # Add sections to main layout
+        main_layout.addWidget(left_section)
+        main_layout.addWidget(right_section)
 
         # Main layout
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.addWidget(self.container)
+        main_widget_layout = QVBoxLayout(self)
+        main_widget_layout.setContentsMargins(0, 0, 0, 0)
+        main_widget_layout.addWidget(self.container)
 
         # Shadow effect
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(30)
+        shadow.setBlurRadius(20)
         shadow.setXOffset(0)
-        shadow.setYOffset(5)
-        shadow.setColor(QColor(0, 0, 0, 100))
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(0, 0, 0, 80))
         self.container.setGraphicsEffect(shadow)
 
         self.apply_styles()
@@ -107,8 +169,9 @@ class FloatingTimer(QWidget):
         minutes = (seconds % 3600) // 60
         secs = seconds % 60
 
-        time_str = f"{hours}h {minutes:02d}m {secs:02d}s"
-        self.time_label.setText(time_str)
+        # Update time remaining display
+        time_str = f"{hours:02d}:{minutes:02d}:{secs:02d}"
+        self.time_remaining_value.setText(time_str)
 
         # Update warning states
         if seconds <= 60:
@@ -118,18 +181,28 @@ class FloatingTimer(QWidget):
             if not self.is_warning:
                 self.set_warning_mode()
 
+    def update_usage_time(self, seconds: int):
+        """Update usage time display"""
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+        secs = seconds % 60
+        usage_str = f"{hours:02d}:{minutes:02d}:{secs:02d}"
+        self.usage_time_value.setText(usage_str)
+
+    def update_print_balance(self, balance: int):
+        """Update print balance display"""
+        self.print_balance_value.setText(f"{balance}₪")
+
     def set_warning_mode(self):
         """Set warning appearance (5 min remaining)"""
         self.is_warning = True
-        self.status_label.setText("⚠ Low Time")
-        self.container.setStyleSheet(FLOATING_TIMER_WARNING_QSS)
+        self.apply_warning_styles()
         logger.warning("Timer in warning mode")
 
     def set_critical_mode(self):
         """Set critical appearance (1 min remaining)"""
         self.is_critical = True
-        self.status_label.setText("🔥 CRITICAL")
-        self.container.setStyleSheet(FLOATING_TIMER_CRITICAL_QSS)
+        self.apply_critical_styles()
 
         # Start pulse animation
         self.pulse_animation()
@@ -144,23 +217,265 @@ class FloatingTimer(QWidget):
     def set_offline_mode(self, offline: bool):
         """Show offline indicator"""
         if offline:
-            self.status_label.setText("⚠ Offline")
+            self.time_remaining_value.setText("⚠ Offline")
+            self.time_remaining_value.setStyleSheet("color: #FFA500;")
         else:
-            self.status_label.setText("Session Active")
-
-    def enterEvent(self, event):
-        """Mouse entered widget"""
-        self.is_hovered = True
-        self.return_button.show()
-        self.setFixedHeight(120)
-        logger.debug("Timer hovered")
-
-    def leaveEvent(self, event):
-        """Mouse left widget"""
-        self.is_hovered = False
-        self.return_button.hide()
-        self.setFixedHeight(80)
+            # Reset to normal state
+            self.is_warning = False
+            self.is_critical = False
+            self.apply_styles()
 
     def apply_styles(self):
-        """Apply styles"""
-        self.container.setStyleSheet(FLOATING_TIMER_BASE_QSS)
+        """Apply base styles"""
+        self.container.setStyleSheet("""
+            #timerContainer { 
+                background-color: #363636; 
+                border: 1px solid #555555; 
+                border-radius: 8px; 
+            }
+            
+            #leftSection { 
+                background-color: #363636; 
+                border-right: 1px solid #555555; 
+            }
+            
+            #rightSection { 
+                background-color: #363636; 
+            }
+            
+            #exitButton { 
+                background-color: #FF0000; 
+                color: #FFFFFF; 
+                border: none; 
+                border-radius: 4px; 
+                font-weight: bold;
+            }
+            
+            #exitButton:hover { 
+                background-color: #FF3333; 
+            }
+            
+            #exitButton:pressed { 
+                background-color: #CC0000; 
+            }
+            
+            #printerIcon { 
+                color: #FFFFFF; 
+                background-color: #363636; 
+                border: 1px solid #AAAAAA; 
+                border-radius: 4px; 
+            }
+            
+            #timeRemainingLabel { 
+                color: #FFFFFF; 
+                font-weight: bold; 
+            }
+            
+            #timeRemainingValue { 
+                color: #FFFFFF; 
+                font-weight: bold; 
+            }
+            
+            #usageTimeLabel { 
+                color: #CCCCCC; 
+            }
+            
+            #usageTimeValue { 
+                color: #CCCCCC; 
+            }
+            
+            #printBalanceLabel { 
+                color: #FFFFFF; 
+                font-weight: bold; 
+            }
+            
+            #printBalanceValue { 
+                color: #FFFFFF; 
+                font-weight: bold; 
+            }
+            
+            #accountButton { 
+                background-color: #363636; 
+                color: #FFFFFF; 
+                border: 1px solid #AAAAAA; 
+                border-radius: 4px; 
+            }
+            
+            #accountButton:hover { 
+                background-color: #4A4A4A; 
+            }
+            
+            #accountButton:pressed { 
+                background-color: #2A2A2A; 
+            }
+        """)
+
+    def apply_warning_styles(self):
+        """Apply warning styles (5 min remaining)"""
+        self.container.setStyleSheet("""
+            #timerContainer { 
+                background-color: #4A3A00; 
+                border: 1px solid #FFA500; 
+                border-radius: 8px; 
+            }
+            
+            #leftSection { 
+                background-color: #4A3A00; 
+                border-right: 1px solid #FFA500; 
+            }
+            
+            #rightSection { 
+                background-color: #4A3A00; 
+            }
+            
+            #exitButton { 
+                background-color: #FF0000; 
+                color: #FFFFFF; 
+                border: none; 
+                border-radius: 4px; 
+                font-weight: bold;
+            }
+            
+            #exitButton:hover { 
+                background-color: #FF3333; 
+            }
+            
+            #exitButton:pressed { 
+                background-color: #CC0000; 
+            }
+            
+            #printerIcon { 
+                color: #FFFFFF; 
+                background-color: #4A3A00; 
+                border: 1px solid #FFA500; 
+                border-radius: 4px; 
+            }
+            
+            #timeRemainingLabel { 
+                color: #FFFFFF; 
+                font-weight: bold; 
+            }
+            
+            #timeRemainingValue { 
+                color: #FFA500; 
+                font-weight: bold; 
+            }
+            
+            #usageTimeLabel { 
+                color: #CCCCCC; 
+            }
+            
+            #usageTimeValue { 
+                color: #CCCCCC; 
+            }
+            
+            #printBalanceLabel { 
+                color: #FFFFFF; 
+                font-weight: bold; 
+            }
+            
+            #printBalanceValue { 
+                color: #FFFFFF; 
+                font-weight: bold; 
+            }
+            
+            #accountButton { 
+                background-color: #4A3A00; 
+                color: #FFFFFF; 
+                border: 1px solid #FFA500; 
+                border-radius: 4px; 
+            }
+            
+            #accountButton:hover { 
+                background-color: #5A4A00; 
+            }
+            
+            #accountButton:pressed { 
+                background-color: #3A2A00; 
+            }
+        """)
+
+    def apply_critical_styles(self):
+        """Apply critical styles (1 min remaining)"""
+        self.container.setStyleSheet("""
+            #timerContainer { 
+                background-color: #4A0000; 
+                border: 1px solid #FF0000; 
+                border-radius: 8px; 
+            }
+            
+            #leftSection { 
+                background-color: #4A0000; 
+                border-right: 1px solid #FF0000; 
+            }
+            
+            #rightSection { 
+                background-color: #4A0000; 
+            }
+            
+            #exitButton { 
+                background-color: #FF0000; 
+                color: #FFFFFF; 
+                border: none; 
+                border-radius: 4px; 
+                font-weight: bold;
+            }
+            
+            #exitButton:hover { 
+                background-color: #FF3333; 
+            }
+            
+            #exitButton:pressed { 
+                background-color: #CC0000; 
+            }
+            
+            #printerIcon { 
+                color: #FFFFFF; 
+                background-color: #4A0000; 
+                border: 1px solid #FF0000; 
+                border-radius: 4px; 
+            }
+            
+            #timeRemainingLabel { 
+                color: #FFFFFF; 
+                font-weight: bold; 
+            }
+            
+            #timeRemainingValue { 
+                color: #FF0000; 
+                font-weight: bold; 
+            }
+            
+            #usageTimeLabel { 
+                color: #CCCCCC; 
+            }
+            
+            #usageTimeValue { 
+                color: #CCCCCC; 
+            }
+            
+            #printBalanceLabel { 
+                color: #FFFFFF; 
+                font-weight: bold; 
+            }
+            
+            #printBalanceValue { 
+                color: #FFFFFF; 
+                font-weight: bold; 
+            }
+            
+            #accountButton { 
+                background-color: #4A0000; 
+                color: #FFFFFF; 
+                border: 1px solid #FF0000; 
+                border-radius: 4px; 
+            }
+            
+            #accountButton:hover { 
+                background-color: #5A0000; 
+            }
+            
+            #accountButton:pressed { 
+                background-color: #3A0000; 
+            }
+        """)

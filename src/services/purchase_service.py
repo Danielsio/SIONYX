@@ -118,7 +118,10 @@ class PurchaseService:
         
         try:
             # Get all purchases for the organization
+            logger.info(f"Fetching purchases from Firebase for org: {self.org_id}")
             result = self.firebase.db_get('purchases')
+            
+            logger.info(f"Firebase db_get result: {result}")
             
             if not result.get('success'):
                 logger.error(f"Failed to fetch purchases: {result.get('error')}")
@@ -128,7 +131,10 @@ class PurchaseService:
                 }
             
             purchases_data = result.get('data', {})
+            logger.info(f"Raw purchases data: {purchases_data}")
+            
             if not purchases_data:
+                logger.info("No purchases found in database")
                 return {
                     'success': True,
                     'purchases': []
@@ -137,10 +143,12 @@ class PurchaseService:
             # Filter purchases for the specific user
             user_purchases = []
             for purchase_id, purchase_data in purchases_data.items():
+                logger.info(f"Checking purchase {purchase_id}: userId={purchase_data.get('userId')}, target_user={user_id}")
                 if purchase_data.get('userId') == user_id:
                     # Add the purchase ID to the data
                     purchase_data['id'] = purchase_id
                     user_purchases.append(purchase_data)
+                    logger.info(f"Added purchase {purchase_id} for user {user_id}")
             
             # Sort by creation date (newest first)
             user_purchases.sort(
