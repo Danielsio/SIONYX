@@ -1,12 +1,10 @@
 """
 Main Window - Modern Web-Style Navigation
 """
-from typing import Dict
-
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QFrame, QStackedWidget, QMessageBox,
                               QGraphicsDropShadowEffect)
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont, QColor
 
 from ui.base_window import BaseKioskWindow
@@ -55,6 +53,10 @@ class MainWindow(BaseKioskWindow):
         self.session_service.warning_1min.connect(self.on_warning_1min)
         self.session_service.sync_failed.connect(self.on_sync_failed)
         self.session_service.sync_restored.connect(self.on_sync_restored)
+
+        # Initialize force logout listener
+        self.force_logout_listener = None
+        self.setup_force_logout_listener()
 
         logger.info(f"Dashboard opened: {self.current_user.get('firstName')}")
         self.init_ui()
@@ -353,5 +355,82 @@ class MainWindow(BaseKioskWindow):
         logger.info("Sync restored")
         if self.floating_timer:
             self.floating_timer.set_offline_mode(False)
+
+    def setup_force_logout_listener(self):
+        """Setup Firebase listener for force logout"""
+        try:
+            from ui.force_logout_listener import ForceLogoutListener
+            
+            self.force_logout_listener = ForceLogoutListener(
+                self.auth_service.firebase,
+                self.current_user['uid']
+            )
+            self.force_logout_listener.force_logout_detected.connect(self.on_force_logout)
+            self.force_logout_listener.start()
+            
+            logger.info("Force logout listener started")
+        except Exception as e:
+            logger.error(f"Failed to setup force logout listener: {e}")
+
+    def on_force_logout(self):
+        """Handle force logout from admin"""
+        logger.warning("Force logout detected - user was kicked by admin")
+        
+        # End current session
+        if self.session_service.is_session_active():
+            self.session_service.end_session('admin_kick')
+        
+        # Show message
+        self.show_notification(
+            "🚫 הותקנת מהמערכת על ידי מנהל",
+            message_type="error",
+            duration=5000
+        )
+        
+        # Reset force logout flag in database
+        self.reset_force_logout_flag()
+        
+        # Close main window and return to auth
+        self.close()
+        from ui.auth_window import AuthWindow
+        auth_window = AuthWindow(self.auth_service)
+        auth_window.show()
+
+    def reset_force_logout_flag(self):
+        """Reset forceLogout flag to false after user gets kicked"""
+        try:
+            from datetime import datetime
+            result = self.auth_service.firebase.db_update(
+                f'users/{self.current_user["uid"]}',
+                {
+                    'forceLogout': False,
+                    'forceLogoutTimestamp': None,
+                    'updatedAt': datetime.now().isoformat()
+                }
+            )
+            
+            if result.get('success'):
+                logger.info("Force logout flag reset successfully")
+            else:
+                logger.error(f"Failed to reset force logout flag: {result.get('error')}")
+        except Exception as e:
+            logger.error(f"Error resetting force logout flag: {e}")
+
+    def closeEvent(self, event):
+        """Handle window close event"""
+        # Stop force logout listener
+        if self.force_logout_listener:
+            self.force_logout_listener.stop()
+            self.force_logout_listener.wait(3000)  # Wait up to 3 seconds
+        
+        # End session if active
+        if self.session_service.is_session_active():
+            self.session_service.end_session('user')
+        
+        # Close floating timer
+        if self.floating_timer:
+            self.floating_timer.close()
+        
+        event.accept()
 
     # Session summary method removed - users go directly back to home page

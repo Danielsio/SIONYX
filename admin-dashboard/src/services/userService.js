@@ -270,3 +270,77 @@ export const revokeAdminPermission = async (orgId, userId) => {
   }
 };
 
+/**
+ * Kick a user (force logout)
+ */
+export const kickUser = async (orgId, userId) => {
+  try {
+    const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
+    const snapshot = await get(userRef);
+    
+    if (!snapshot.exists()) {
+      return {
+        success: false,
+        error: 'User not found'
+      };
+    }
+    
+    const currentUser = snapshot.val();
+    
+    // Check if user is already kicked (prevent spam clicking)
+    if (currentUser.forceLogout === true) {
+      return {
+        success: false,
+        error: 'User has already been kicked'
+      };
+    }
+    
+    const updates = {
+      forceLogout: true,
+      forceLogoutTimestamp: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await update(userRef, updates);
+    
+    return {
+      success: true,
+      message: 'User has been kicked successfully'
+    };
+  } catch (error) {
+    console.error('Error kicking user:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Reset force logout flag (called after user gets kicked and redirected to auth)
+ */
+export const resetForceLogout = async (orgId, userId) => {
+  try {
+    const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
+    
+    const updates = {
+      forceLogout: false,
+      forceLogoutTimestamp: null,
+      updatedAt: new Date().toISOString()
+    };
+    
+    await update(userRef, updates);
+    
+    return {
+      success: true,
+      message: 'Force logout flag reset'
+    };
+  } catch (error) {
+    console.error('Error resetting force logout:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+

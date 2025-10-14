@@ -37,7 +37,8 @@ import {
   getUserPurchaseHistory, 
   adjustUserBalance,
   grantAdminPermission,
-  revokeAdminPermission 
+  revokeAdminPermission,
+  kickUser
 } from '../services/userService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
 import dayjs from 'dayjs';
@@ -55,6 +56,7 @@ const UsersPage = () => {
   const [adjustBalanceVisible, setAdjustBalanceVisible] = useState(false);
   const [adjustingUser, setAdjustingUser] = useState(null);
   const [adjusting, setAdjusting] = useState(false);
+  const [kicking, setKicking] = useState(false);
   const [form] = Form.useForm();
 
   const user = useAuthStore((state) => state.user);
@@ -224,6 +226,36 @@ const UsersPage = () => {
     });
   };
 
+  const handleKickUser = (record) => {
+    Modal.confirm({
+      title: 'Kick User',
+      content: `Are you sure you want to kick ${record.firstName} ${record.lastName}? This will force them to log out immediately.`,
+      icon: <MinusCircleOutlined style={{ color: '#ff4d4f' }} />,
+      okText: 'Kick User',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        setKicking(true);
+        try {
+          const orgId = user?.orgId || localStorage.getItem('adminOrgId');
+          const result = await kickUser(orgId, record.uid);
+          
+          if (result.success) {
+            message.success(result.message);
+            await loadUsers();
+          } else {
+            message.error(result.error || 'Failed to kick user');
+          }
+        } catch (error) {
+          console.error('Error kicking user:', error);
+          message.error('An error occurred while kicking user');
+        } finally {
+          setKicking(false);
+        }
+      }
+    });
+  };
+
   const formatTime = (seconds) => {
     return formatTimeHebrewCompact(seconds);
   };
@@ -320,6 +352,34 @@ const UsersPage = () => {
       onFilter: (value, record) => record.isAdmin === value,
     },
     {
+      title: 'סטטוס התקנה',
+      dataIndex: 'forceLogout',
+      key: 'forceLogout',
+      render: (forceLogout, record) => {
+        if (forceLogout === true) {
+          return (
+            <Tag color="red" icon={<MinusCircleOutlined />}>
+              הותקן
+            </Tag>
+          );
+        }
+        return (
+          <Tag color="green">
+            פעיל
+          </Tag>
+        );
+      },
+      filters: [
+        { text: 'פעיל', value: false },
+        { text: 'הותקן', value: true },
+      ],
+      onFilter: (value, record) => {
+        if (value === true) return record.forceLogout === true;
+        if (value === false) return record.forceLogout !== true;
+        return true;
+      },
+    },
+    {
       title: 'פעולה',
       key: 'action',
       render: (_, record) => {
@@ -338,6 +398,20 @@ const UsersPage = () => {
           },
           {
             type: 'divider'
+          },
+          // Only show kick button if user is not already kicked
+          record.forceLogout !== true ? {
+            key: 'kick',
+            icon: <MinusCircleOutlined />,
+            label: 'נתק משתמש',
+            danger: true,
+            onClick: () => handleKickUser(record),
+            disabled: kicking
+          } : {
+            key: 'kicked',
+            icon: <MinusCircleOutlined />,
+            label: 'הותקן',
+            disabled: true
           },
           record.isAdmin ? {
             key: 'revoke',

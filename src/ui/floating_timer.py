@@ -3,9 +3,9 @@ Floating Timer Overlay
 Always-on-top timer displayed during sessions
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel,
                              QPushButton, QGraphicsDropShadowEffect)
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPropertyAnimation, QRect
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QColor
 
 from utils.logger import get_logger

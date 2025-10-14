@@ -6,8 +6,8 @@ Professional UI/UX for all app dialogs
 from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
                             QPushButton, QFrame, QGraphicsOpacityEffect,
                             QGraphicsDropShadowEffect)
-from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, pyqtSignal
-from PyQt6.QtGui import QFont, QIcon, QColor
+from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
+from PyQt6.QtGui import QFont, QColor
 
 
 class ModernDialog(QDialog):

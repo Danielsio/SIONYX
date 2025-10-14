@@ -2,10 +2,9 @@
 Base Window - Shared functionality for all fullscreen kiosk windows
 """
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication, QMessageBox, QInputDialog, QLineEdit
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication, QInputDialog, QLineEdit
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QKeySequence, QShortcut
-import sys
 
 from ui.styles import BASE_QSS
 from ui.modern_dialogs import ModernMessageBox, ModernConfirmDialog, ModernNotification

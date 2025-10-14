@@ -3,7 +3,7 @@ Unified Authentication Window - Sign In / Sign Up with sliding panels
 Inspired by modern web design with smooth animations
 """
 
-from PyQt6.QtWidgets import (QVBoxLayout, QHBoxLayout, QLabel,
+from PyQt6.QtWidgets import (QVBoxLayout, QLabel,
                              QLineEdit, QPushButton, QFrame, QWidget,
                              QApplication, QGraphicsDropShadowEffect)
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve, QRect, QParallelAnimationGroup
