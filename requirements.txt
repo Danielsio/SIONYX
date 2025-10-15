@@ -25,3 +25,6 @@ colorlog
 
 # JSON Web Tokens
 PyJWT
+
+# Global Hotkey Support
+keyboard

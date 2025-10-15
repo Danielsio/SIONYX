@@ -2,12 +2,14 @@
 Base Window - Shared functionality for all fullscreen kiosk windows
 """
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication, QInputDialog, QLineEdit
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
-from PyQt6.QtGui import QKeySequence, QShortcut
 
 from ui.styles import BASE_QSS
 from ui.modern_dialogs import ModernMessageBox, ModernConfirmDialog, ModernNotification
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 class BaseKioskWindow(QWidget):
     """Base class for fullscreen kiosk windows"""
@@ -33,9 +35,7 @@ class BaseKioskWindow(QWidget):
         # Modal
         self.setWindowModality(Qt.WindowModality.ApplicationModal)
 
-        # Admin exit shortcut
-        self.exit_shortcut = QShortcut(QKeySequence("Ctrl+Alt+Q"), self)
-        self.exit_shortcut.activated.connect(self.admin_exit)
+        # Admin exit is now handled by global hotkey service
 
         # Prevent closing
         self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, False)
@@ -47,68 +47,6 @@ class BaseKioskWindow(QWidget):
         main_layout.setSpacing(0)
         return main_layout
 
-    def admin_exit(self):
-        """Admin exit with password - FORCE closes entire application"""
-        dialog = QInputDialog(self)
-        dialog.setWindowTitle("Administrator Access")
-        dialog.setLabelText("Enter administrator password to exit:")
-        dialog.setTextEchoMode(QLineEdit.EchoMode.Password)
-        dialog.setStyleSheet("""
-            QInputDialog {
-                background-color: white;
-            }
-            QLabel {
-                color: #212121;
-                font-size: 14px;
-                font-weight: 600;
-                padding: 10px;
-            }
-            QLineEdit {
-                padding: 14px;
-                border: 2px solid #1976D2;
-                border-radius: 10px;
-                background-color: #FAFAFA;
-                color: #212121;
-                font-size: 14px;
-                min-width: 300px;
-            }
-            QPushButton {
-                background-color: #1976D2;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 12px 24px;
-                font-weight: 600;
-                min-width: 80px;
-            }
-            QPushButton:hover {
-                background-color: #1565C0;
-            }
-        """)
-
-        ok = dialog.exec()
-        password = dialog.textValue()
-
-        if ok and password == "admin123":
-            # Force close ALL windows and exit application immediately
-            import sys
-
-            # Close all windows
-            for widget in QApplication.topLevelWidgets():
-                widget.close()
-
-            # Force quit application
-            QApplication.quit()
-
-            # Nuclear option - force exit the Python process
-            sys.exit(0)
-
-        elif ok:
-            ModernMessageBox.error(
-                self,
-                "Access Denied",
-                "Incorrect administrator password"
-            )
 
     def keyPressEvent(self, event):
         """Prevent Escape key from closing"""
