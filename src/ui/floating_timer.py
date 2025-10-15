@@ -105,7 +105,7 @@ class FloatingTimer(QWidget):
         time_remaining_row.setSpacing(8)
         time_remaining_row.setAlignment(Qt.AlignmentFlag.AlignRight)
         
-        self.time_remaining_value = QLabel("07:33:37")
+        self.time_remaining_value = QLabel("00:00:00")
         self.time_remaining_value.setObjectName("timeRemainingValue")
         self.time_remaining_value.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         self.time_remaining_value.setAlignment(Qt.AlignmentFlag.AlignLeft)
@@ -123,7 +123,7 @@ class FloatingTimer(QWidget):
         usage_time_row.setSpacing(8)
         usage_time_row.setAlignment(Qt.AlignmentFlag.AlignRight)
         
-        self.usage_time_value = QLabel("00:00:03")
+        self.usage_time_value = QLabel("00:00:00")
         self.usage_time_value.setObjectName("usageTimeValue")
         self.usage_time_value.setFont(QFont("Segoe UI", 14))
         self.usage_time_value.setAlignment(Qt.AlignmentFlag.AlignLeft)

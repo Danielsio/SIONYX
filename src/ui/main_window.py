@@ -299,6 +299,11 @@ class MainWindow(BaseKioskWindow):
         # Create and show floating timer
         self.floating_timer = FloatingTimer()
         self.floating_timer.return_clicked.connect(self.return_from_session)
+        
+        # Initialize timer with current values
+        self.floating_timer.update_time(remaining_time)
+        self.floating_timer.update_usage_time(0)  # Start with 0 usage time
+        
         self.floating_timer.show()
 
         # Minimize main window
@@ -339,6 +344,9 @@ class MainWindow(BaseKioskWindow):
         """Update floating timer display"""
         if self.floating_timer:
             self.floating_timer.update_time(remaining_seconds)
+            # Also update usage time
+            time_used = self.session_service.get_time_used()
+            self.floating_timer.update_usage_time(time_used)
 
     def on_session_ended(self, reason: str):
         """Handle session end"""
