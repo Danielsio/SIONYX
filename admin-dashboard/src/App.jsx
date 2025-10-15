@@ -13,6 +13,7 @@ import LoginPage from './pages/LoginPage';
 import OverviewPage from './pages/OverviewPage';
 import UsersPage from './pages/UsersPage';
 import PackagesPage from './pages/PackagesPage';
+import MessagesPage from './pages/MessagesPage';
 
 
 function App() {
@@ -62,6 +63,7 @@ function App() {
             <Route index element={<OverviewPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="packages" element={<PackagesPage />} />
+            <Route path="messages" element={<MessagesPage />} />
           </Route>
 
           {/* Catch all - redirect to home */}

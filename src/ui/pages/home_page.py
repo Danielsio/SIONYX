@@ -10,6 +10,8 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor
 
 from utils.logger import get_logger
+from services.chat_service import ChatService
+from ui.components.message_display import MessageDisplay
 
 logger = get_logger(__name__)
 
@@ -25,8 +27,21 @@ class HomePage(QWidget):
         self.countdown_timer = QTimer()
         self.countdown_timer.timeout.connect(self.update_countdown)
 
+        # Initialize chat service
+        self.chat_service = ChatService(
+            auth_service.firebase,
+            self.current_user['uid'],
+            auth_service.firebase.org_id
+        )
+        
+        # Initialize message display
+        self.message_display = None
+
         self.init_ui()
         self.countdown_timer.start(1000)
+        
+        # Start listening for messages
+        self.start_message_listening()
 
     def init_ui(self):
         """Initialize modern UI with professional styling"""
@@ -98,6 +113,13 @@ class HomePage(QWidget):
         # Add header to main layout
         layout.addWidget(header_container)
 
+        # Initialize message display
+        self.message_display = MessageDisplay(self.auth_service, self)
+        self.message_display.set_chat_service(self.chat_service)
+        
+        # Load initial messages
+        self.load_messages()
+
         # Modern stats grid container with responsive design
         stats_container = QWidget()
         stats_container.setStyleSheet("""
@@ -140,6 +162,12 @@ class HomePage(QWidget):
 
         # Add some spacing and visual separation
         layout.addSpacing(10)  # Add breathing room
+        
+        # Add message display if there are messages
+        if self.message_display and self.message_display.messages:
+            layout.addWidget(self.message_display)
+            layout.addSpacing(20)
+        
         layout.addWidget(stats_container)
         layout.addSpacing(20)  # Add breathing room
         layout.addWidget(action_card)
@@ -525,6 +553,76 @@ class HomePage(QWidget):
             # Cards will maintain their fixed size but layout will adjust
             pass
 
+    def start_message_listening(self):
+        """Start listening for new messages"""
+        if self.chat_service:
+            self.chat_service.start_listening(self.handle_new_messages)
+            logger.info("Started listening for messages")
+    
+    def load_messages(self):
+        """Load initial unread messages"""
+        if self.chat_service:
+            result = self.chat_service.get_unread_messages()
+            if result.get('success'):
+                messages = result.get('messages', [])
+                if self.message_display:
+                    self.message_display.update_messages(messages)
+                    # Show message display if there are messages
+                    if messages:
+                        self.show_message_display()
+                logger.info(f"Loaded {len(messages)} unread messages")
+            else:
+                logger.error(f"Failed to load messages: {result.get('error')}")
+    
+    def handle_new_messages(self, result):
+        """Handle new messages from chat service"""
+        if result.get('success'):
+            messages = result.get('messages', [])
+            if self.message_display:
+                self.message_display.update_messages(messages)
+                # Show message display if there are new messages
+                if messages:
+                    self.show_message_display()
+                    
+            # Show notification for new messages
+            if messages:
+                for message in messages:
+                    if not message.get('read', False):
+                        self.message_display.show_message_notification(message)
+        else:
+            logger.error(f"Error receiving messages: {result.get('error')}")
+    
+    def show_message_display(self):
+        """Show the message display in the layout"""
+        if self.message_display and self.message_display.messages:
+            # Find the layout and insert message display after header
+            main_layout = self.layout()
+            if main_layout:
+                # Remove if already exists
+                for i in range(main_layout.count()):
+                    item = main_layout.itemAt(i)
+                    if item and item.widget() == self.message_display:
+                        main_layout.removeItem(item)
+                        break
+                
+                # Insert after header (index 1)
+                main_layout.insertWidget(1, self.message_display)
+    
+    def hide_message_display(self):
+        """Hide the message display"""
+        if self.message_display:
+            main_layout = self.layout()
+            if main_layout:
+                for i in range(main_layout.count()):
+                    item = main_layout.itemAt(i)
+                    if item and item.widget() == self.message_display:
+                        main_layout.removeItem(item)
+                        break
+
     def cleanup(self):
         """Cleanup"""
         self.countdown_timer.stop()
+        if self.chat_service:
+            self.chat_service.cleanup()
+        if self.message_display:
+            self.message_display.cleanup()

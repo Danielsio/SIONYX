@@ -8,7 +8,8 @@ import {
   LogoutOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
-  PhoneOutlined
+  PhoneOutlined,
+  MessageOutlined
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { signOut } from '../services/authService';
@@ -75,6 +76,11 @@ const MainLayout = () => {
       key: '/packages',
       icon: <AppstoreOutlined />,
       label: 'חבילות',
+    },
+    {
+      key: '/messages',
+      icon: <MessageOutlined />,
+      label: 'הודעות',
     },
   ];
 

@@ -28,7 +28,9 @@ import {
   EditOutlined,
   CrownOutlined,
   MoreOutlined,
-  MinusCircleOutlined
+  MinusCircleOutlined,
+  MessageOutlined,
+  SendOutlined
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -40,6 +42,7 @@ import {
   revokeAdminPermission,
   kickUser
 } from '../services/userService';
+import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
 import dayjs from 'dayjs';
 
@@ -58,6 +61,13 @@ const UsersPage = () => {
   const [adjusting, setAdjusting] = useState(false);
   const [kicking, setKicking] = useState(false);
   const [form] = Form.useForm();
+  
+  // Chat related state
+  const [userMessages, setUserMessages] = useState([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sendMessageVisible, setSendMessageVisible] = useState(false);
+  const [messageForm] = Form.useForm();
+  const [sending, setSending] = useState(false);
 
   const user = useAuthStore((state) => state.user);
   const { users, setUsers } = useDataStore();
@@ -97,19 +107,30 @@ const UsersPage = () => {
     setSelectedUser(record);
     setDrawerVisible(true);
     setLoadingPurchases(true);
+    setLoadingMessages(true);
 
     // Get orgId
     const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     // Load user's purchase history
-    const result = await getUserPurchaseHistory(orgId, record.uid);
-    if (result.success) {
-      setUserPurchases(result.purchases);
-      console.log(`Loaded ${result.purchases.length} purchases for user ${record.uid}`);
+    const purchaseResult = await getUserPurchaseHistory(orgId, record.uid);
+    if (purchaseResult.success) {
+      setUserPurchases(purchaseResult.purchases);
+      console.log(`Loaded ${purchaseResult.purchases.length} purchases for user ${record.uid}`);
     } else {
-      console.error('Failed to load user purchases:', result.error);
+      console.error('Failed to load user purchases:', purchaseResult.error);
     }
     setLoadingPurchases(false);
+
+    // Load user's messages
+    const messageResult = await getMessagesForUser(orgId, record.uid);
+    if (messageResult.success) {
+      setUserMessages(messageResult.messages);
+      console.log(`Loaded ${messageResult.messages.length} messages for user ${record.uid}`);
+    } else {
+      console.error('Failed to load user messages:', messageResult.error);
+    }
+    setLoadingMessages(false);
   };
 
   const handleAdjustBalance = (record) => {
@@ -260,6 +281,43 @@ const UsersPage = () => {
     return formatTimeHebrewCompact(seconds);
   };
 
+  const handleSendMessageToUser = (record) => {
+    setSelectedUser(record);
+    setSendMessageVisible(true);
+  };
+
+  const handleSendMessage = async (values) => {
+    try {
+      const { message } = values;
+      setSending(true);
+
+      const orgId = user?.orgId || localStorage.getItem('adminOrgId');
+      
+      const result = await sendMessage(orgId, selectedUser.uid, message, user.uid);
+      
+      if (result.success) {
+        message.success('הודעה נשלחה בהצלחה');
+        setSendMessageVisible(false);
+        messageForm.resetFields();
+        
+        // Reload messages if viewing user details
+        if (drawerVisible) {
+          const messageResult = await getMessagesForUser(orgId, selectedUser.uid);
+          if (messageResult.success) {
+            setUserMessages(messageResult.messages);
+          }
+        }
+      } else {
+        message.error(result.error || 'נכשל בשליחת ההודעה');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      message.error('שגיאה בשליחת ההודעה');
+    } finally {
+      setSending(false);
+    }
+  };
+
   const columns = [
     {
       title: 'שם',
@@ -391,6 +449,12 @@ const UsersPage = () => {
             onClick: () => handleViewUser(record)
           },
           {
+            key: 'message',
+            icon: <MessageOutlined />,
+            label: 'שלח הודעה',
+            onClick: () => handleSendMessageToUser(record)
+          },
+          {
             key: 'adjust',
             icon: <EditOutlined />,
             label: 'התאם יתרה',
@@ -473,6 +537,55 @@ const UsersPage = () => {
     },
   ];
 
+  const messageColumns = [
+    {
+      title: 'הודעה',
+      dataIndex: 'message',
+      key: 'message',
+      render: (text) => (
+        <Text style={{ maxWidth: 200 }} ellipsis={{ tooltip: text }}>
+          {text}
+        </Text>
+      ),
+    },
+    {
+      title: 'סטטוס',
+      dataIndex: 'read',
+      key: 'status',
+      render: (read, record) => (
+        <Space>
+          {read ? (
+            <Tag color="green" icon={<ClockCircleOutlined />}>
+              נקרא
+            </Tag>
+          ) : (
+            <Tag color="orange" icon={<ClockCircleOutlined />}>
+              לא נקרא
+            </Tag>
+          )}
+          {read && record.readAt && (
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              {dayjs(record.readAt).format('HH:mm')}
+            </Text>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: 'נשלח',
+      dataIndex: 'timestamp',
+      key: 'timestamp',
+      render: (timestamp) => (
+        <Space direction="vertical" size={0}>
+          <Text>{dayjs(timestamp).format('DD/MM/YYYY')}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>
+            {dayjs(timestamp).format('HH:mm:ss')}
+          </Text>
+        </Space>
+      ),
+    },
+  ];
+
   // Filter users based on search
   const filteredUsers = users.filter(u => {
     if (!searchText) return true;
@@ -544,7 +657,7 @@ const UsersPage = () => {
         title={
           <Space>
             <EditOutlined />
-            <span>Adjust Balance</span>
+            <span>התאם יתרה</span>
           </Space>
         }
         open={adjustBalanceVisible}
@@ -554,29 +667,30 @@ const UsersPage = () => {
           form.resetFields();
         }}
         confirmLoading={adjusting}
-        okText="Update"
+        okText="עדכן"
+        cancelText="ביטול"
         width={500}
       >
         {adjustingUser && (
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <div>
-              <Text strong>User: </Text>
+              <Text strong>משתמש: </Text>
               <Text>{`${adjustingUser.firstName} ${adjustingUser.lastName}`}</Text>
             </div>
 
             <Form form={form} layout="vertical">
               <Form.Item
                 name="minutes"
-                label="Time Balance (minutes)"
-                tooltip="Edit the total minutes this user should have"
+                label="יתרת זמן (דקות)"
+                tooltip="ערוך את סך הדקות שהמשתמש צריך לקבל"
                 rules={[
-                  { required: true, message: 'Please enter time' },
-                  { type: 'number', min: 0, message: 'Time cannot be negative' }
+                  { required: true, message: 'אנא הכנס זמן' },
+                  { type: 'number', min: 0, message: 'הזמן לא יכול להיות שלילי' }
                 ]}
               >
                 <InputNumber
                   style={{ width: '100%' }}
-                  placeholder="e.g., 120 (2 hours)"
+                  placeholder="למשל, 120 (שעתיים)"
                   prefix={<ClockCircleOutlined />}
                   min={0}
                 />
@@ -584,16 +698,16 @@ const UsersPage = () => {
 
               <Form.Item
                 name="prints"
-                label="Prints Balance"
-                tooltip="Edit the total prints this user should have"
+                label="יתרת הדפסות"
+                tooltip="ערוך את סך ההדפסות שהמשתמש צריך לקבל"
                 rules={[
-                  { required: true, message: 'Please enter prints' },
-                  { type: 'number', min: 0, message: 'Prints cannot be negative' }
+                  { required: true, message: 'אנא הכנס הדפסות' },
+                  { type: 'number', min: 0, message: 'הדפסות לא יכולות להיות שליליות' }
                 ]}
               >
                 <InputNumber
                   style={{ width: '100%' }}
-                  placeholder="e.g., 50"
+                  placeholder="למשל, 50"
                   prefix={<PrinterOutlined />}
                   min={0}
                 />
@@ -602,7 +716,7 @@ const UsersPage = () => {
 
             <div style={{ padding: '8px', backgroundColor: '#e6f7ff', borderRadius: '4px', border: '1px solid #91d5ff' }}>
               <Text type="secondary" style={{ fontSize: '12px' }}>
-                💡 Tip: Current values are shown. Edit them to set the new balance. You can increase, decrease, or set to any value.
+                💡 טיפ: הערכים הנוכחיים מוצגים. ערוך אותם כדי לקבוע את היתרה החדשה. תוכל להגדיל, להקטין או לקבוע כל ערך.
               </Text>
             </div>
           </Space>
@@ -611,7 +725,7 @@ const UsersPage = () => {
 
       {/* User Detail Drawer */}
       <Drawer
-        title="User Details"
+        title="פרטי משתמש"
         placement="right"
         width={600}
         onClose={() => setDrawerVisible(false)}
@@ -621,58 +735,58 @@ const UsersPage = () => {
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <Card>
               <Descriptions column={1} bordered>
-                <Descriptions.Item label="Name">
-                  {`${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() || 'N/A'}
+                <Descriptions.Item label="שם">
+                  {`${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() || 'לא זמין'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Phone">
-                  {selectedUser.phoneNumber || 'N/A'}
+                <Descriptions.Item label="טלפון">
+                  {selectedUser.phoneNumber || 'לא זמין'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Email">
-                  {selectedUser.email || 'N/A'}
+                <Descriptions.Item label="אימייל">
+                  {selectedUser.email || 'לא זמין'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Status">
+                <Descriptions.Item label="סטטוס">
                   <Badge 
                     status={selectedUser.isActive ? 'success' : 'default'} 
-                    text={selectedUser.isActive ? 'Active' : 'Inactive'} 
+                    text={selectedUser.isActive ? 'פעיל' : 'לא פעיל'} 
                   />
                 </Descriptions.Item>
-                <Descriptions.Item label="Role">
+                <Descriptions.Item label="תפקיד">
                   {selectedUser.isAdmin ? (
                     <Tag color="gold" icon={<CrownOutlined />}>
-                      Admin
+                      מנהל
                     </Tag>
                   ) : (
-                    <Tag color="default">User</Tag>
+                    <Tag color="default">משתמש</Tag>
                   )}
                 </Descriptions.Item>
-                <Descriptions.Item label="Remaining Time">
+                <Descriptions.Item label="זמן נותר">
                   <Space>
                     <ClockCircleOutlined />
                     {formatTime(selectedUser.remainingTime || 0)}
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label="Remaining Prints">
+                <Descriptions.Item label="הדפסות נותרות">
                   <Space>
                     <PrinterOutlined />
                     {selectedUser.remainingPrints || 0}
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label="Created">
+                <Descriptions.Item label="נוצר">
                   {selectedUser.createdAt 
                     ? dayjs(selectedUser.createdAt).format('MMMM D, YYYY HH:mm')
-                    : 'N/A'
+                    : 'לא זמין'
                   }
                 </Descriptions.Item>
-                <Descriptions.Item label="Last Updated">
+                <Descriptions.Item label="עודכן לאחרונה">
                   {selectedUser.updatedAt 
                     ? dayjs(selectedUser.updatedAt).format('MMMM D, YYYY HH:mm')
-                    : 'N/A'
+                    : 'לא זמין'
                   }
                 </Descriptions.Item>
               </Descriptions>
             </Card>
 
-            <Card title="Purchase History">
+            <Card title="היסטוריית רכישות">
               {loadingPurchases ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <Spin />
@@ -687,9 +801,98 @@ const UsersPage = () => {
                 />
               )}
             </Card>
+
+            <Card 
+              title={
+                <Space>
+                  <MessageOutlined />
+                  <span>היסטוריית הודעות</span>
+                  <Button 
+                    type="primary" 
+                    size="small" 
+                    icon={<SendOutlined />}
+                    onClick={() => setSendMessageVisible(true)}
+                  >
+                    שלח הודעה
+                  </Button>
+                </Space>
+              }
+            >
+              {loadingMessages ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <Spin />
+                </div>
+              ) : (
+                <Table
+                  columns={messageColumns}
+                  dataSource={userMessages}
+                  rowKey="id"
+                  size="small"
+                  pagination={{ pageSize: 5 }}
+                  locale={{ emptyText: 'אין הודעות' }}
+                />
+              )}
+            </Card>
           </Space>
         )}
       </Drawer>
+
+      {/* Send Message Modal */}
+      <Modal
+        title={
+          <Space>
+            <MessageOutlined />
+            <span>
+              שלח הודעה {selectedUser && `ל${selectedUser.firstName} ${selectedUser.lastName}`}
+            </span>
+          </Space>
+        }
+        open={sendMessageVisible}
+        onCancel={() => {
+          setSendMessageVisible(false);
+          messageForm.resetFields();
+        }}
+        footer={null}
+        width={500}
+      >
+        <Form
+          form={messageForm}
+          layout="vertical"
+          onFinish={handleSendMessage}
+        >
+          <Form.Item
+            name="message"
+            label="הודעה"
+            rules={[
+              { required: true, message: 'אנא הכנס הודעה' },
+              { max: 500, message: 'ההודעה חייבת להיות פחות מ-500 תווים' }
+            ]}
+          >
+            <Input.TextArea
+              rows={4}
+              placeholder="הכנס את ההודעה שלך כאן..."
+              showCount
+              maxLength={500}
+            />
+          </Form.Item>
+          
+          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+            <Space>
+              <Button onClick={() => setSendMessageVisible(false)}>
+                ביטול
+              </Button>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                icon={<SendOutlined />}
+                loading={sending}
+              >
+                שלח הודעה
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
