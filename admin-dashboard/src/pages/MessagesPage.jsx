@@ -10,7 +10,7 @@ import {
   Typography,
   Modal,
   Form,
-  message as antMessage,
+  App,
   Tag,
   Tooltip,
   Badge,
@@ -62,6 +62,7 @@ const MessagesPage = () => {
   });
 
   const { user } = useAuthStore();
+  const { message } = App.useApp();
 
   useEffect(() => {
     loadData();
@@ -84,7 +85,7 @@ const MessagesPage = () => {
       await loadMessages();
     } catch (error) {
       console.error('Error loading data:', error);
-      antMessage.error('Failed to load data');
+      message.error('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -143,21 +144,21 @@ const MessagesPage = () => {
 
   const handleSendMessage = async (values) => {
     try {
-      const { toUserId, message } = values;
+      const { toUserId, message: messageText } = values;
       
-      const result = await sendMessage(user.orgId, toUserId, message, user.uid);
+      const result = await sendMessage(user.orgId, toUserId, messageText, user.uid);
       
       if (result.success) {
-        antMessage.success('Message sent successfully');
+        message.success('Message sent successfully');
         setMessageModalVisible(false);
         messageForm.resetFields();
         loadMessages();
       } else {
-        antMessage.error(result.error || 'Failed to send message');
+        message.error(result.error || 'Failed to send message');
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      antMessage.error('Failed to send message');
+      message.error('Failed to send message');
     }
   };
 
@@ -392,11 +393,13 @@ const MessagesPage = () => {
         }}
         footer={null}
         width={600}
+        dir="rtl"
       >
         <Form
           form={messageForm}
           layout="vertical"
           onFinish={handleSendMessage}
+          dir="rtl"
         >
           <Form.Item
             name="toUserId"
@@ -409,6 +412,7 @@ const MessagesPage = () => {
               filterOption={(input, option) =>
                 option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
               }
+              style={{ textAlign: 'right' }}
             >
               {users.map(user => (
                 <Select.Option key={user.uid} value={user.uid}>
@@ -431,6 +435,7 @@ const MessagesPage = () => {
               placeholder="הכנס את ההודעה שלך כאן..."
               showCount
               maxLength={500}
+              style={{ textAlign: 'right', direction: 'rtl' }}
             />
           </Form.Item>
           

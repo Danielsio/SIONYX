@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, theme, App as AntApp } from 'antd';
 import { useAuthStore } from './store/authStore';
 import { onAuthChange, getCurrentAdminData } from './services/authService';
 
@@ -52,24 +52,27 @@ function App() {
           borderRadius: 6,
         },
       }}
+      direction="rtl"
     >
-      <Router>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+      <AntApp>
+        <Router>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
 
-          {/* Protected Routes */}
-          <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
-            <Route index element={<OverviewPage />} />
-            <Route path="users" element={<UsersPage />} />
-            <Route path="packages" element={<PackagesPage />} />
-            <Route path="messages" element={<MessagesPage />} />
-          </Route>
+            {/* Protected Routes */}
+            <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+              <Route index element={<OverviewPage />} />
+              <Route path="users" element={<UsersPage />} />
+              <Route path="packages" element={<PackagesPage />} />
+              <Route path="messages" element={<MessagesPage />} />
+            </Route>
 
-          {/* Catch all - redirect to home */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
+            {/* Catch all - redirect to home */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </AntApp>
     </ConfigProvider>
   );
 }

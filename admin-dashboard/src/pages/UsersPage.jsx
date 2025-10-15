@@ -10,7 +10,7 @@ import {
   Drawer,
   Descriptions,
   Badge,
-  message,
+  App,
   Spin,
   Modal,
   Form,
@@ -71,6 +71,7 @@ const UsersPage = () => {
 
   const user = useAuthStore((state) => state.user);
   const { users, setUsers } = useDataStore();
+  const { message } = App.useApp();
 
   useEffect(() => {
     loadUsers();
@@ -854,11 +855,13 @@ const UsersPage = () => {
         }}
         footer={null}
         width={500}
+        dir="rtl"
       >
         <Form
           form={messageForm}
           layout="vertical"
           onFinish={handleSendMessage}
+          dir="rtl"
         >
           <Form.Item
             name="message"
@@ -873,6 +876,7 @@ const UsersPage = () => {
               placeholder="הכנס את ההודעה שלך כאן..."
               showCount
               maxLength={500}
+              style={{ textAlign: 'right', direction: 'rtl' }}
             />
           </Form.Item>
           

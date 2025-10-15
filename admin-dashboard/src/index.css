@@ -11,6 +11,8 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  direction: rtl;
+  text-align: right;
 }
 
 code {
@@ -31,6 +33,44 @@ code {
 .ant-table-wrapper {
   background: white;
   border-radius: 8px;
+}
+
+/* RTL Support for Hebrew */
+.ant-form-item-label {
+  text-align: right !important;
+}
+
+.ant-input,
+.ant-input-number,
+.ant-select-selector,
+.ant-picker {
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+.ant-select-selection-item {
+  text-align: right !important;
+}
+
+.ant-modal-title {
+  text-align: right !important;
+}
+
+.ant-modal-body {
+  text-align: right !important;
+}
+
+/* Ensure proper RTL alignment for all text elements */
+.ant-typography,
+.ant-typography p,
+.ant-typography h1,
+.ant-typography h2,
+.ant-typography h3,
+.ant-typography h4,
+.ant-typography h5,
+.ant-typography h6 {
+  text-align: right !important;
+  direction: rtl !important;
 }
 
 /* Scrollbar styling */
