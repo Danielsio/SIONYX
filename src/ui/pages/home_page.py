@@ -42,6 +42,10 @@ class HomePage(QWidget):
         
         # Start listening for messages
         self.start_message_listening()
+        
+        # Connect to chat service signals for thread-safe updates
+        if self.chat_service:
+            self.chat_service.messages_received.connect(self.handle_new_messages)
 
     def init_ui(self):
         """Initialize modern UI with professional styling"""
@@ -116,6 +120,9 @@ class HomePage(QWidget):
         # Initialize message display
         self.message_display = MessageDisplay(self.auth_service, self)
         self.message_display.set_chat_service(self.chat_service)
+        
+        # Connect message display signals
+        self.message_display.message_read.connect(self.on_message_read)
         
         # Load initial messages
         self.load_messages()
@@ -514,6 +521,23 @@ class HomePage(QWidget):
             """)
 
 
+    def refresh_user_data(self):
+        """Refresh user data (called by main window)"""
+        logger.info("Refreshing user data in HomePage")
+        
+        # Get current user from auth service
+        self.current_user = self.auth_service.get_current_user()
+        
+        if not self.current_user:
+            logger.warning("No current user found in HomePage refresh")
+            return
+        
+        # Update UI with current user data
+        self.update_countdown()  # This will update the display
+        
+        # Don't reload messages here - they're already loaded during initialization
+        # This prevents duplicate message loading
+
     def clear_user_data(self):
         """Clear all user data (called on logout)"""
         logger.info("Clearing user data in HomePage")
@@ -555,9 +579,11 @@ class HomePage(QWidget):
 
     def start_message_listening(self):
         """Start listening for new messages"""
-        if self.chat_service:
-            self.chat_service.start_listening(self.handle_new_messages)
+        if self.chat_service and not self.chat_service.is_listening:
+            self.chat_service.start_listening()  # No callback needed, using signals
             logger.info("Started listening for messages")
+        elif self.chat_service and self.chat_service.is_listening:
+            logger.debug("Chat service already listening, skipping")
     
     def load_messages(self):
         """Load initial unread messages"""
@@ -591,6 +617,12 @@ class HomePage(QWidget):
                         self.message_display.show_message_notification(message)
         else:
             logger.error(f"Error receiving messages: {result.get('error')}")
+    
+    def on_message_read(self, message_id):
+        """Handle message read signal from MessageDisplay"""
+        logger.info(f"Message {message_id} marked as read")
+        # The MessageDisplay component handles the actual marking as read
+        # This is just for logging and any additional cleanup if needed
     
     def show_message_display(self):
         """Show the message display in the layout"""

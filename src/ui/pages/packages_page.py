@@ -191,8 +191,8 @@ class PackagesPage(QWidget):
         # Get current user from auth service
         self.current_user = self.auth_service.get_current_user()
         
-        # Reload packages
-        self.load_packages()
+        # Don't reload packages here - they're already loaded during initialization
+        # This prevents duplicate package loading
 
     def clear_user_data(self):
         """Clear all user data (called on logout)"""

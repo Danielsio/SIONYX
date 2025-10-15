@@ -7,16 +7,22 @@ from datetime import datetime, timedelta
 import threading
 import time
 
+from PyQt6.QtCore import QObject, pyqtSignal
+
 from services.firebase_client import FirebaseClient
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-class ChatService:
+class ChatService(QObject):
     """Service for handling chat messages on client side"""
+    
+    # Qt signals for thread-safe communication
+    messages_received = pyqtSignal(dict)  # Emitted when new messages are received
 
     def __init__(self, firebase_client: FirebaseClient, user_id: str, org_id: str):
+        super().__init__()
         self.firebase = firebase_client
         self.user_id = user_id
         self.org_id = org_id
@@ -167,13 +173,12 @@ class ChatService:
             'success': True
         }
 
-    def start_listening(self, callback: Callable[[Dict], None]) -> bool:
+    def start_listening(self, callback: Callable[[Dict], None] = None) -> bool:
         """
         Start listening for new messages in real-time
         
         Args:
-            callback: Function to call when new messages arrive
-                     Should accept: callback({'success': bool, 'messages': List[Dict], 'error': str})
+            callback: Optional callback function (deprecated, use signals instead)
         
         Returns:
             bool: True if started successfully, False otherwise
@@ -183,7 +188,7 @@ class ChatService:
             return False
         
         self.is_listening = True
-        self.message_callback = callback
+        self.message_callback = callback  # Keep for backward compatibility
         
         # Start listening thread
         self.listen_thread = threading.Thread(target=self._listen_loop, daemon=True)
@@ -218,7 +223,11 @@ class ChatService:
                     
                     # Check if there are new messages
                     if last_check is None or len(messages) != last_check:
-                        if hasattr(self, 'message_callback'):
+                        # Emit signal for thread-safe UI updates
+                        self.messages_received.emit(result)
+                        
+                        # Also call callback for backward compatibility
+                        if hasattr(self, 'message_callback') and self.message_callback:
                             self.message_callback(result)
                         last_check = len(messages)
                 

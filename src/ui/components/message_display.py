@@ -127,7 +127,27 @@ class MessageCard(QFrame):
         
     def mark_as_read(self):
         """Emit signal to mark message as read"""
-        self.parent().parent().message_read.emit(self.message_data.get('id'))
+        # Find the MessageDisplay parent and emit the signal
+        parent = self.parent()
+        while parent and not hasattr(parent, 'message_read'):
+            parent = parent.parent()
+        
+        if parent and hasattr(parent, 'message_read'):
+            parent.message_read.emit(self.message_data.get('id'))
+        else:
+            # Fallback: try to find the message display in the widget hierarchy
+            message_display = self.find_message_display()
+            if message_display:
+                message_display.message_read.emit(self.message_data.get('id'))
+    
+    def find_message_display(self):
+        """Find the MessageDisplay widget in the hierarchy"""
+        widget = self.parent()
+        while widget:
+            if hasattr(widget, 'message_read'):
+                return widget
+            widget = widget.parent()
+        return None
 
 
 class MessageDisplay(QWidget):
