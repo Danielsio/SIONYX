@@ -11,14 +11,12 @@ from PyQt6.QtGui import QFont, QColor
 
 from utils.logger import get_logger
 from services.chat_service import ChatService
-from ui.components.message_display import MessageDisplay
 
 logger = get_logger(__name__)
 
 # Optional modal system imports
 try:
     from ui.components.message_modal import MessageModal
-    from ui.components.message_notification import MessageNotification
     MODAL_SYSTEM_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Modal system not available: {e}")
@@ -45,12 +43,8 @@ class HomePage(QWidget):
             auth_service.firebase.org_id
         )
         
-        # Initialize message display
-        self.message_display = None
 
-        # Message modal and notification
         self.message_modal = None
-        self.message_notification = None
         self.pending_messages = []
 
         self.init_ui()
@@ -133,12 +127,6 @@ class HomePage(QWidget):
         # Add header to main layout
         layout.addWidget(header_container)
 
-        # Initialize message display
-        self.message_display = MessageDisplay(self.auth_service, self)
-        self.message_display.set_chat_service(self.chat_service)
-        
-        # Connect message display signals
-        self.message_display.message_read.connect(self.on_message_read)
 
         # Load initial messages
         self.load_messages()
@@ -174,10 +162,14 @@ class HomePage(QWidget):
             "🖨️"
         )
 
+        self.message_card = self.create_message_notification_card()
+        self.message_card.hide()  # Start hidden until messages arrive
+
         # Add cards with proper alignment
         stats_layout.addStretch()
         stats_layout.addWidget(self.time_card)
         stats_layout.addWidget(self.prints_card)
+        stats_layout.addWidget(self.message_card)
         stats_layout.addStretch()
 
         # Main action card
@@ -185,11 +177,6 @@ class HomePage(QWidget):
 
         # Add some spacing and visual separation
         layout.addSpacing(10)  # Add breathing room
-        
-        # Add message display if there are messages
-        if self.message_display and self.message_display.messages:
-            layout.addWidget(self.message_display)
-            layout.addSpacing(20)
         
         layout.addWidget(stats_container)
         layout.addSpacing(20)  # Add breathing room
@@ -318,6 +305,102 @@ class HomePage(QWidget):
 
         layout.addWidget(icon_title_row)
         layout.addWidget(value_label)
+
+        return card
+
+    def create_message_notification_card(self) -> QFrame:
+        """Create message notification card integrated into the dashboard"""
+        card = QFrame()
+        card.setObjectName("messageNotificationCard")
+        card.setFixedSize(400, 160)  # Same size as other cards
+
+        # Enhanced drop shadow
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(50)
+        shadow.setXOffset(0)
+        shadow.setYOffset(15)
+        shadow.setColor(QColor(0, 0, 0, 60))
+        card.setGraphicsEffect(shadow)
+
+        # Message card styling
+        card.setStyleSheet("""
+            QFrame {
+                background: #FFFFFF;
+                border-radius: 20px;
+                border: 2px solid #E2E8F0;
+            }
+            QLabel {
+                border: none;
+                background: transparent;
+            }
+            QPushButton {
+                border: none;
+                background: transparent;
+                border-radius: 12px;
+                padding: 8px 16px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: rgba(245, 158, 11, 0.1);
+            }
+        """)
+
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(25, 18, 25, 18)  # Reduced margins for better text fit
+        layout.setSpacing(10)
+
+        # Icon and title row
+        icon_title_row = QWidget()
+        icon_title_layout = QHBoxLayout(icon_title_row)
+        icon_title_layout.setContentsMargins(0, 0, 0, 0)
+        icon_title_layout.setSpacing(12)
+
+        # Message icon
+        icon_label = QLabel("💬")
+        icon_label.setFont(QFont("Segoe UI", 24))
+        icon_label.setStyleSheet("color: #F59E0B;")
+
+        # Title
+        title_label = QLabel("הודעות חדשות")
+        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: #1E293B;")
+
+        icon_title_layout.addWidget(icon_label)
+        icon_title_layout.addWidget(title_label)
+        icon_title_layout.addStretch()
+
+        # Message count and action
+        self.message_count_label = QLabel("0 הודעות")
+        self.message_count_label.setFont(QFont("Segoe UI", 14, QFont.Weight.Medium))
+        self.message_count_label.setStyleSheet("color: #64748B;")
+        self.message_count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # View messages button
+        self.view_messages_button = QPushButton("👁️ צפה בהודעות")
+        self.view_messages_button.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
+        self.view_messages_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.view_messages_button.clicked.connect(self.show_message_modal)
+        self.view_messages_button.setFixedHeight(45)  # Fixed height to ensure text fits
+        self.view_messages_button.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #F59E0B, stop:1 #D97706);
+                color: white;
+                border: none;
+                border-radius: 15px;
+                padding: 12px 25px;
+                font-weight: 700;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #D97706, stop:1 #B45309);
+            }
+        """)
+
+        layout.addWidget(icon_title_row)
+        layout.addWidget(self.message_count_label)
+        layout.addWidget(self.view_messages_button)
 
         return card
 
@@ -610,7 +693,6 @@ class HomePage(QWidget):
                 self.pending_messages = messages
 
                 if messages:
-                    # Show notification first
                     self.show_message_notification(len(messages))
                     logger.info(f"Loaded {len(messages)} unread messages")
                 else:
@@ -625,7 +707,6 @@ class HomePage(QWidget):
             self.pending_messages = messages
 
             if messages:
-                # Show notification for new messages
                 self.show_message_notification(len(messages))
                 logger.info(f"Received {len(messages)} new messages")
         else:
@@ -637,25 +718,76 @@ class HomePage(QWidget):
         # The MessageDisplay component handles the actual marking as read
         # This is just for logging and any additional cleanup if needed
 
-    def show_message_display(self):
-        """Show the message display in the layout (legacy method)"""
-        # This method is kept for backward compatibility
-        # The new modal system replaces this functionality
-        pass
-    
-    def hide_message_display(self):
-        """Hide the message display (legacy method)"""
-        # This method is kept for backward compatibility
-        pass
+    def show_message_notification(self, message_count):
+        """Update message notification card with new message count"""
+        logger.info(f"show_message_notification called with {message_count} messages")
+        
+        if message_count <= 0:
+            # Hide the message card if no messages
+            if hasattr(self, 'message_card'):
+                self.message_card.hide()
+            return
+        
+        # Show the message card and update count
+        if hasattr(self, 'message_card'):
+            self.message_card.show()
+            if message_count == 1:
+                self.message_count_label.setText("הודעה חדשה")
+            else:
+                self.message_count_label.setText(f"{message_count} הודעות")
+            
+            # Update button text
+            if message_count == 1:
+                self.view_messages_button.setText("👁️ צפה בהודעה")
+            else:
+                self.view_messages_button.setText("👁️ צפה בהודעות")
+        
+        logger.info(f"Message card updated with {message_count} messages")
+
+    def show_message_modal(self):
+        """Show the message modal with pending messages"""
+        logger.info(f"show_message_modal called with {len(self.pending_messages)} messages")
+        
+        if not self.pending_messages:
+            logger.warning("No pending messages to show")
+            return
+            
+        # Close existing modal if any
+        if self.message_modal:
+            self.message_modal.close()
+        
+        # Create new modal with pending messages
+        logger.info("Creating MessageModal...")
+        self.message_modal = MessageModal(self.pending_messages, self.chat_service, self)
+        self.message_modal.message_read.connect(self.on_message_read)
+        self.message_modal.all_messages_read.connect(self.on_all_messages_read)
+        
+        # Show the modal with animation (centered)
+        logger.info("Showing modal with animation...")
+        self.message_modal.show_animated()
+        
+        # Ensure the modal gets focus and appears on top after animation
+        QTimer.singleShot(500, lambda: self._focus_modal())
+
+    def _focus_modal(self):
+        """Focus the message modal after animation"""
+        if self.message_modal:
+            self.message_modal.raise_()
+            self.message_modal.activateWindow()
+            self.message_modal.setFocus()
+
+    def on_all_messages_read(self):
+        """Handle when all messages are read"""
+        self.pending_messages = []
+        # Hide the message card since no messages are pending
+        if hasattr(self, 'message_card'):
+            self.message_card.hide()
+        logger.info("All messages have been read")
 
     def cleanup(self):
         """Cleanup"""
         self.countdown_timer.stop()
         if self.chat_service:
             self.chat_service.cleanup()
-        if self.message_display:
-            self.message_display.cleanup()
         if self.message_modal:
             self.message_modal.close()
-        if self.message_notification:
-            self.message_notification.close()

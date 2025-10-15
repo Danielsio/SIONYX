@@ -45,8 +45,8 @@ class ChatService(QObject):
         """
         logger.info("Fetching unread messages")
         
-        # Get all messages for this user
-        result = self.firebase.db_get(f'messages')
+        # Get all messages for this user (Firebase client handles org path)
+        result = self.firebase.db_get('messages')
         
         if not result.get('success'):
             logger.error(f"Failed to fetch messages: {result.get('error')}")

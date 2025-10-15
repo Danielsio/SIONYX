@@ -41,9 +41,9 @@ class FloatingTimer(QWidget):
 
         # Position at top-center of screen
         from PyQt6.QtWidgets import QApplication
-        screen = QApplication.primaryScreen().geometry()
+        screen = QApplication.primaryScreen().availableGeometry()
         x = (screen.width() - 280) // 2  # Center horizontally with new width
-        y = 0  # Stick to the ceiling
+        y = 20  # Add some margin from top
         self.move(x, y)
         
         # Debug positioning

@@ -289,12 +289,12 @@ const UsersPage = () => {
 
   const handleSendMessage = async (values) => {
     try {
-      const { message } = values;
+      const { message: messageText } = values;
       setSending(true);
 
       const orgId = user?.orgId || localStorage.getItem('adminOrgId');
       
-      const result = await sendMessage(orgId, selectedUser.uid, message, user.uid);
+      const result = await sendMessage(orgId, selectedUser.uid, messageText, user.uid);
       
       if (result.success) {
         message.success('הודעה נשלחה בהצלחה');
@@ -414,7 +414,7 @@ const UsersPage = () => {
       title: 'סטטוס התקנה',
       dataIndex: 'forceLogout',
       key: 'forceLogout',
-      render: (forceLogout, record) => {
+      render: (forceLogout) => {
         if (forceLogout === true) {
           return (
             <Tag color="red" icon={<MinusCircleOutlined />}>
@@ -524,9 +524,12 @@ const UsersPage = () => {
     },
     {
       title: 'סכום',
-      dataIndex: 'finalPrice',
-      key: 'finalPrice',
-      render: (price) => `₪${price?.toFixed(2) || '0.00'}`,
+      dataIndex: 'amount',
+      key: 'amount',
+      render: (price) => {
+        const numPrice = parseFloat(price) || 0;
+        return `₪${numPrice.toFixed(2)}`;
+      },
     },
     {
       title: 'סטטוס',

@@ -15,6 +15,9 @@
       ]
     }
   ],
+  "database": {
+    "rules": "database.rules.json"
+  },
   "hosting": {
     "public": "admin-dashboard/dist",
     "ignore": [

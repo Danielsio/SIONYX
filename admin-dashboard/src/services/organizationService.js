@@ -36,7 +36,7 @@ export const getOrganizationStats = async (orgId) => {
       Object.values(purchases).forEach(purchase => {
         if (purchase.status === 'completed') {
           totalTimeMinutes += purchase.minutes || 0;
-          totalRevenue += purchase.finalPrice || 0;
+          totalRevenue += parseFloat(purchase.amount) || 0;
         }
       });
     }
