@@ -15,6 +15,17 @@ from ui.components.message_display import MessageDisplay
 
 logger = get_logger(__name__)
 
+# Optional modal system imports
+try:
+    from ui.components.message_modal import MessageModal
+    from ui.components.message_notification import MessageNotification
+    MODAL_SYSTEM_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Modal system not available: {e}")
+    MessageModal = None
+    MessageNotification = None
+    MODAL_SYSTEM_AVAILABLE = False
+
 
 class HomePage(QWidget):
     """Home dashboard with stats and session controls"""
@@ -37,12 +48,17 @@ class HomePage(QWidget):
         # Initialize message display
         self.message_display = None
 
+        # Message modal and notification
+        self.message_modal = None
+        self.message_notification = None
+        self.pending_messages = []
+
         self.init_ui()
         self.countdown_timer.start(1000)
         
         # Start listening for messages
         self.start_message_listening()
-        
+
         # Connect to chat service signals for thread-safe updates
         if self.chat_service:
             self.chat_service.messages_received.connect(self.handle_new_messages)
@@ -123,7 +139,7 @@ class HomePage(QWidget):
         
         # Connect message display signals
         self.message_display.message_read.connect(self.on_message_read)
-        
+
         # Load initial messages
         self.load_messages()
 
@@ -524,17 +540,17 @@ class HomePage(QWidget):
     def refresh_user_data(self):
         """Refresh user data (called by main window)"""
         logger.info("Refreshing user data in HomePage")
-        
+
         # Get current user from auth service
         self.current_user = self.auth_service.get_current_user()
-        
+
         if not self.current_user:
             logger.warning("No current user found in HomePage refresh")
             return
-        
+
         # Update UI with current user data
         self.update_countdown()  # This will update the display
-        
+
         # Don't reload messages here - they're already loaded during initialization
         # This prevents duplicate message loading
 
@@ -584,19 +600,21 @@ class HomePage(QWidget):
             logger.info("Started listening for messages")
         elif self.chat_service and self.chat_service.is_listening:
             logger.debug("Chat service already listening, skipping")
-    
+
     def load_messages(self):
         """Load initial unread messages"""
         if self.chat_service:
             result = self.chat_service.get_unread_messages()
             if result.get('success'):
                 messages = result.get('messages', [])
-                if self.message_display:
-                    self.message_display.update_messages(messages)
-                    # Show message display if there are messages
-                    if messages:
-                        self.show_message_display()
-                logger.info(f"Loaded {len(messages)} unread messages")
+                self.pending_messages = messages
+
+                if messages:
+                    # Show notification first
+                    self.show_message_notification(len(messages))
+                    logger.info(f"Loaded {len(messages)} unread messages")
+                else:
+                    logger.info("No unread messages")
             else:
                 logger.error(f"Failed to load messages: {result.get('error')}")
     
@@ -604,17 +622,12 @@ class HomePage(QWidget):
         """Handle new messages from chat service"""
         if result.get('success'):
             messages = result.get('messages', [])
-            if self.message_display:
-                self.message_display.update_messages(messages)
-                # Show message display if there are new messages
-                if messages:
-                    self.show_message_display()
-                    
-            # Show notification for new messages
+            self.pending_messages = messages
+
             if messages:
-                for message in messages:
-                    if not message.get('read', False):
-                        self.message_display.show_message_notification(message)
+                # Show notification for new messages
+                self.show_message_notification(len(messages))
+                logger.info(f"Received {len(messages)} new messages")
         else:
             logger.error(f"Error receiving messages: {result.get('error')}")
     
@@ -623,33 +636,17 @@ class HomePage(QWidget):
         logger.info(f"Message {message_id} marked as read")
         # The MessageDisplay component handles the actual marking as read
         # This is just for logging and any additional cleanup if needed
-    
+
     def show_message_display(self):
-        """Show the message display in the layout"""
-        if self.message_display and self.message_display.messages:
-            # Find the layout and insert message display after header
-            main_layout = self.layout()
-            if main_layout:
-                # Remove if already exists
-                for i in range(main_layout.count()):
-                    item = main_layout.itemAt(i)
-                    if item and item.widget() == self.message_display:
-                        main_layout.removeItem(item)
-                        break
-                
-                # Insert after header (index 1)
-                main_layout.insertWidget(1, self.message_display)
+        """Show the message display in the layout (legacy method)"""
+        # This method is kept for backward compatibility
+        # The new modal system replaces this functionality
+        pass
     
     def hide_message_display(self):
-        """Hide the message display"""
-        if self.message_display:
-            main_layout = self.layout()
-            if main_layout:
-                for i in range(main_layout.count()):
-                    item = main_layout.itemAt(i)
-                    if item and item.widget() == self.message_display:
-                        main_layout.removeItem(item)
-                        break
+        """Hide the message display (legacy method)"""
+        # This method is kept for backward compatibility
+        pass
 
     def cleanup(self):
         """Cleanup"""
@@ -658,3 +655,7 @@ class HomePage(QWidget):
             self.chat_service.cleanup()
         if self.message_display:
             self.message_display.cleanup()
+        if self.message_modal:
+            self.message_modal.close()
+        if self.message_notification:
+            self.message_notification.close()
