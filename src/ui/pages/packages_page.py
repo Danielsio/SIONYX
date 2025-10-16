@@ -1,6 +1,7 @@
 """
 Packages Page
 Browse and purchase time/print packages
+Refactored to use centralized constants and base components
 """
 
 from typing import Dict
@@ -10,6 +11,13 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel,
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor
 
+from ui.components.base_components import (
+    HeaderSection, ActionButton, BaseCard, LoadingSpinner, EmptyState
+)
+from ui.constants.ui_constants import (
+    Dimensions, Spacing, BorderRadius, Colors, Gradients, 
+    Typography, Shadows, UIStrings, get_shadow_effect
+)
 from services.package_service import PackageService
 from utils.logger import get_logger
 
@@ -31,124 +39,68 @@ class PackagesPage(QWidget):
         self.load_packages()
 
     def init_ui(self):
-        """Initialize beautiful modern UI"""
+        """Initialize modern UI using base components and constants"""
         # Set RTL layout direction for Hebrew support
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         
-        self.setStyleSheet("""
-            QWidget {
-                background: #F1F5F9;
-            }
+        # Set background using constants
+        self.setStyleSheet(f"""
+            QWidget {{
+                background: {Colors.BG_PRIMARY};
+            }}
         """)
 
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(40, 30, 40, 30)
-        main_layout.setSpacing(30)
+        main_layout.setContentsMargins(Spacing.PAGE_MARGIN, Spacing.SECTION_MARGIN, 
+                                     Spacing.PAGE_MARGIN, Spacing.SECTION_MARGIN)
+        main_layout.setSpacing(Spacing.SECTION_SPACING)
 
-        # Clean header section
-        header_container = QWidget()
-        header_container.setStyleSheet("""
-            QWidget {
-                background: #3B82F6;
-                border-radius: 20px;
-                padding: 20px;
-            }
-        """)
-        
-        # Add shadow to header
-        header_shadow = QGraphicsDropShadowEffect()
-        header_shadow.setBlurRadius(40)
-        header_shadow.setXOffset(0)
-        header_shadow.setYOffset(12)
-        header_shadow.setColor(QColor(0, 0, 0, 55))
-        header_container.setGraphicsEffect(header_shadow)
-        header_layout = QVBoxLayout(header_container)
-        header_layout.setContentsMargins(30, 25, 30, 25)
-        header_layout.setSpacing(8)
+        # Create header using base component
+        header_section = HeaderSection(UIStrings.PACKAGES_TITLE, "רכוש זמן נוסף וקרדיטי הדפסה")
+        main_layout.addWidget(header_section)
 
-        # Main title with stunning typography
-        title = QLabel("חבילות זמינות")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("""
-            QLabel {
-                color: white;
-                font-size: 32px;
-                font-weight: 800;
-                margin-bottom: 8px;
-            }
-        """)
-
-        # Subtitle with elegant styling
-        subtitle = QLabel("רכוש זמן נוסף וקרדיטי הדפסה")
-        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet("""
-            QLabel {
-                color: rgba(255, 255, 255, 0.9);
-                font-size: 16px;
-                font-weight: 400;
-            }
-        """)
-
-        header_layout.addWidget(title)
-        header_layout.addWidget(subtitle)
-
-        # Packages grid container with modern styling
+        # Packages grid container using constants
         self.packages_container = QWidget()
-        self.packages_container.setStyleSheet("""
-            QWidget {
-                background: transparent;
-            }
-        """)
+        self.packages_container.setStyleSheet("background: transparent;")
         self.packages_layout = QGridLayout(self.packages_container)
-        self.packages_layout.setSpacing(25)
-        self.packages_layout.setContentsMargins(20, 20, 20, 20)
+        self.packages_layout.setSpacing(Spacing.CARD_SPACING)
+        self.packages_layout.setContentsMargins(Spacing.CARD_MARGIN, Spacing.CARD_MARGIN, 
+                                              Spacing.CARD_MARGIN, Spacing.CARD_MARGIN)
         self.packages_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logger.info("Created packages grid layout")
 
-        # Beautiful scroll area
+        # Scroll area using constants
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.packages_container)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setMinimumHeight(500)
-        scroll.setStyleSheet("""
-            QScrollArea {
+        scroll.setMinimumHeight(Dimensions.CONTENT_MIN_HEIGHT)
+        scroll.setStyleSheet(f"""
+            QScrollArea {{
                 border: none;
                 background: transparent;
-            }
-            QScrollBar:vertical {
-                background: #E2E8F0;
-                width: 12px;
-                border-radius: 6px;
-            }
-            QScrollBar::handle:vertical {
-                background: #94A3B8;
-                border-radius: 6px;
+            }}
+            QScrollBar:vertical {{
+                background: {Colors.BORDER_LIGHT};
+                width: {Dimensions.SCROLL_BAR_WIDTH}px;
+                border-radius: {Dimensions.SCROLL_BAR_RADIUS}px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {Colors.TEXT_MUTED};
+                border-radius: {Dimensions.SCROLL_BAR_RADIUS}px;
                 min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover {
-                background: #64748B;
-            }
+            }}
+            QScrollBar::handle:vertical:hover {{
+                background: {Colors.TEXT_SECONDARY};
+            }}
         """)
 
-        # Loading/empty state label with beautiful styling
-        self.state_label = QLabel("טוען חבילות...")
-        self.state_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.state_label.setStyleSheet("""
-            QLabel {
-                color: #64748B;
-                font-size: 18px;
-                font-weight: 500;
-                padding: 40px;
-                background: white;
-                border-radius: 16px;
-                border: 2px dashed #E2E8F0;
-            }
-        """)
+        # Loading state using base component
+        self.loading_spinner = LoadingSpinner("טוען חבילות...")
 
-        main_layout.addWidget(header_container)
-        main_layout.addWidget(self.state_label)
+        main_layout.addWidget(header_section)
+        main_layout.addWidget(self.loading_spinner)
         main_layout.addWidget(scroll, 1)
 
         logger.debug("Packages page initialized with modern styling")
@@ -166,23 +118,33 @@ class PackagesPage(QWidget):
 
         if not result.get('success'):
             logger.error(f"Failed to load packages: {result.get('error')}")
-            self.state_label.setText("❌ נכשל בטעינת החבילות")
+            self.show_error_state("❌ נכשל בטעינת החבילות")
             return
 
-        self.packages = result.get('packages', [])
+        self.packages = result.get('data', [])
 
         if len(self.packages) == 0:
             logger.warning("No packages available")
-            self.state_label.setText("📦 אין חבילות זמינות עדיין")
+            self.show_empty_state()
             return
 
         logger.info(f"Loaded {len(self.packages)} packages")
         logger.info(f"Packages data: {self.packages}")
         
-        # Hide loading label and show packages
-        self.state_label.hide()
+        # Hide loading spinner and show packages
+        self.loading_spinner.hide()
         logger.info("About to call display_packages()")
         self.display_packages()
+    
+    def show_error_state(self, message: str):
+        """Show error state with message"""
+        self.loading_spinner.hide()
+        # Could implement error state component here
+    
+    def show_empty_state(self):
+        """Show empty state when no packages available"""
+        self.loading_spinner.hide()
+        # Could implement empty state component here
 
     def refresh_user_data(self):
         """Refresh user data and reload packages"""
@@ -263,7 +225,7 @@ class PackagesPage(QWidget):
         self.repaint()
 
     def create_package_card(self, package: Dict) -> QFrame:
-        """Create a clean, simple package card - no tier logic"""
+        """Create package card using base components and constants"""
         # Validate package data
         if not isinstance(package, dict):
             logger.error(f"Invalid package data: {package} (type: {type(package)})")
@@ -271,161 +233,143 @@ class PackagesPage(QWidget):
         
         logger.info(f"Creating card for: {package.get('name', 'Unknown')}")
         
-        # Main card container - clean and simple
-        card = QFrame()
-        card.setFixedSize(320, 480)  # Perfect card dimensions
-        card.setStyleSheet("""
-            QFrame {
-                background: #FFFFFF;
-                border-radius: 20px;
-                border: 2px solid #E2E8F0;
-            }
-            QFrame:hover {
-                border: 2px solid #3B82F6;
-                background: #F8FAFC;
-            }
+        # Create base card with package-specific styling
+        card = BaseCard("package")
+        card.setFixedSize(Dimensions.PACKAGE_CARD_WIDTH, Dimensions.PACKAGE_CARD_HEIGHT)
+        card.setStyleSheet(f"""
+            QFrame {{
+                background: {Colors.WHITE};
+                border-radius: {BorderRadius.EXTRA_LARGE}px;
+                border: 2px solid {Colors.BORDER_LIGHT};
+            }}
+            QFrame:hover {{
+                border: 2px solid {Colors.PRIMARY};
+                background: {Colors.GRAY_50};
+            }}
         """)
         
-        # Add beautiful drop shadow for depth
+        # Apply shadow using constants
+        shadow_config = get_shadow_effect(Shadows.LARGE_BLUR, Shadows.Y_OFFSET_LARGE)
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(50)
-        shadow.setXOffset(0)
-        shadow.setYOffset(18)
-        shadow.setColor(QColor(0, 0, 0, 65))
+        shadow.setBlurRadius(shadow_config['blur_radius'])
+        shadow.setXOffset(shadow_config['x_offset'])
+        shadow.setYOffset(shadow_config['y_offset'])
+        shadow.setColor(QColor(shadow_config['color']))
         card.setGraphicsEffect(shadow)
 
-        # Main layout with perfect spacing
+        # Main layout using constants
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(16)
+        layout.setContentsMargins(Spacing.CARD_PADDING, Spacing.CARD_PADDING, 
+                                 Spacing.CARD_PADDING, Spacing.CARD_PADDING)
+        layout.setSpacing(Spacing.COMPONENT_MARGIN)
 
-        # Package name with beautiful typography
+        # Package name using constants
         name = QLabel(package.get('name', 'חבילה'))
         name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name.setWordWrap(True)
-        name.setStyleSheet("""
-            QLabel {
-                color: #1E293B;
-                font-size: 24px;
-                font-weight: 700;
-                line-height: 1.2;
-                margin-bottom: 8px;
-            }
+        name.setStyleSheet(f"""
+            QLabel {{
+                color: {Colors.TEXT_PRIMARY};
+                font-size: {Typography.SIZE_2XL}px;
+                font-weight: {Typography.WEIGHT_BOLD};
+                line-height: {Typography.LINE_HEIGHT_TIGHT};
+                margin-bottom: {Spacing.TIGHT_SPACING}px;
+            }}
         """)
 
-        # Description with elegant styling
+        # Description using constants
         desc = QLabel(package.get('description', 'תיאור החבילה'))
         desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         desc.setWordWrap(True)
-        desc.setStyleSheet("""
-            QLabel {
-                color: #64748B;
-                font-size: 14px;
-                font-weight: 400;
-                line-height: 1.4;
-                margin-bottom: 16px;
-            }
+        desc.setStyleSheet(f"""
+            QLabel {{
+                color: {Colors.TEXT_SECONDARY};
+                font-size: {Typography.SIZE_MD}px;
+                font-weight: {Typography.WEIGHT_NORMAL};
+                line-height: {Typography.LINE_HEIGHT_NORMAL};
+                margin-bottom: {Spacing.COMPONENT_MARGIN}px;
+            }}
         """)
 
-        # Elegant separator
+        # Elegant separator using constants
         separator = QFrame()
         separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setStyleSheet("""
-            QFrame {
-                color: #E2E8F0;
-                background-color: #E2E8F0;
+        separator.setStyleSheet(f"""
+            QFrame {{
+                color: {Colors.BORDER_LIGHT};
+                background-color: {Colors.BORDER_LIGHT};
                 border: none;
                 height: 1px;
-                margin: 8px 0;
-            }
+                margin: {Spacing.TIGHT_SPACING}px 0;
+            }}
         """)
 
-        # Features container - simplified and always visible
+        # Features container using constants
         features_container = QWidget()
         features_layout = QVBoxLayout(features_container)
         features_layout.setContentsMargins(0, 0, 0, 0)
-        features_layout.setSpacing(12)
+        features_layout.setSpacing(Spacing.ELEMENT_SPACING)
 
-        # Time feature - always display
+        # Time feature using constants
         time_minutes = package.get('minutes', 0)
         hours = time_minutes // 60
         mins = time_minutes % 60
         time_text = f"⏰ {hours}:{mins:02d} שעות" if time_minutes > 0 else "⏰ ללא הגבלת זמן"
         time_label = QLabel(time_text)
         time_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        time_label.setStyleSheet("""
-            QLabel {
-                background-color: #F1F5F9;
-                color: #475569;
-                font-size: 15px;
-                font-weight: 600;
-                padding: 12px 16px;
-                border-radius: 12px;
-                border-left: 4px solid #3B82F6;
-            }
+        time_label.setStyleSheet(f"""
+            QLabel {{
+                background-color: {Colors.BG_PRIMARY};
+                color: {Colors.GRAY_600};
+                font-size: {Typography.SIZE_MD}px;
+                font-weight: {Typography.WEIGHT_SEMIBOLD};
+                padding: {Spacing.ELEMENT_SPACING}px {Spacing.COMPONENT_MARGIN}px;
+                border-radius: {BorderRadius.MEDIUM}px;
+                border-left: 4px solid {Colors.PRIMARY};
+            }}
         """)
         
-        # Prints feature - always display
+        # Prints feature using constants
         prints = package.get('prints', 0)
         prints_text = f"🖨️ {prints} הדפסות" if prints > 0 else "🖨️ ללא הגבלת הדפסות"
         prints_label = QLabel(prints_text)
         prints_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        prints_label.setStyleSheet("""
-            QLabel {
-                background-color: #F0FDF4;
-                color: #166534;
-                font-size: 15px;
-                font-weight: 600;
-                padding: 12px 16px;
-                border-radius: 12px;
-                border-left: 4px solid #10B981;
-            }
+        prints_label.setStyleSheet(f"""
+            QLabel {{
+                background-color: {Colors.SUCCESS_LIGHT};
+                color: {Colors.SUCCESS_HOVER};
+                font-size: {Typography.SIZE_MD}px;
+                font-weight: {Typography.WEIGHT_SEMIBOLD};
+                padding: {Spacing.ELEMENT_SPACING}px {Spacing.COMPONENT_MARGIN}px;
+                border-radius: {BorderRadius.MEDIUM}px;
+                border-left: 4px solid {Colors.SUCCESS};
+            }}
         """)
 
         features_layout.addWidget(time_label)
         features_layout.addWidget(prints_label)
 
-        # Price section - completely simplified
+        # Price section using constants
         price_container = QWidget()
         price_layout = QVBoxLayout(price_container)
-        price_layout.setContentsMargins(0, 20, 0, 20)
-        price_layout.setSpacing(8)
+        price_layout.setContentsMargins(0, Spacing.CARD_MARGIN, 0, Spacing.CARD_MARGIN)
+        price_layout.setSpacing(Spacing.TIGHT_SPACING)
 
-        # Simple price display - no tier logic
+        # Price display using constants
         price = package.get('price', 0)
         price_label = QLabel(f"₪{price}")
         price_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        price_label.setStyleSheet("""
-            QLabel {
-                color: #1E40AF;
-                font-size: 36px;
-                font-weight: 800;
-            }
+        price_label.setStyleSheet(f"""
+            QLabel {{
+                color: {Colors.PRIMARY};
+                font-size: {Typography.SIZE_3XL}px;
+                font-weight: {Typography.WEIGHT_EXTRABOLD};
+            }}
         """)
         price_layout.addWidget(price_label)
 
-        # Clean purchase button
-        purchase_btn = QPushButton("קנה עכשיו")
-        purchase_btn.setMinimumHeight(52)
-        purchase_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        purchase_btn.setStyleSheet("""
-            QPushButton {
-                background: #3B82F6;
-                color: white;
-                font-size: 16px;
-                font-weight: 700;
-                border: none;
-                border-radius: 16px;
-                padding: 16px 24px;
-                margin-top: 8px;
-            }
-            QPushButton:hover {
-                background: #2563EB;
-            }
-            QPushButton:pressed {
-                background: #1D4ED8;
-            }
-        """)
+        # Purchase button using base component
+        purchase_btn = ActionButton(UIStrings.BUY_NOW, "primary", "medium")
         purchase_btn.clicked.connect(lambda: self.handle_purchase(package))
 
         # Assemble the card

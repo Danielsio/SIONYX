@@ -1,5 +1,6 @@
 """
 Main Window - Modern Web-Style Navigation
+Refactored to use centralized constants and base components
 """
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
                               QPushButton, QFrame, QStackedWidget, QMessageBox,
@@ -12,6 +13,11 @@ from ui.pages.home_page import HomePage
 from ui.pages.packages_page import PackagesPage
 from ui.pages.history_page import HistoryPage
 from ui.pages.help_page import HelpPage
+from ui.components.base_components import ActionButton, HeaderSection
+from ui.constants.ui_constants import (
+    Dimensions, Spacing, BorderRadius, Colors, Gradients, 
+    Typography, Shadows, UIStrings, get_shadow_effect
+)
 from utils.logger import get_logger
 from ui.floating_timer import FloatingTimer
 from services.session_service import SessionService
@@ -51,6 +57,11 @@ class MainWindow(BaseKioskWindow):
         self.session_service.session_ended.connect(self.on_session_ended)
         self.session_service.warning_5min.connect(self.on_warning_5min)
         self.session_service.warning_1min.connect(self.on_warning_1min)
+        
+        # Data refresh optimization
+        self.page_data_ages = {}  # Track when each page was last refreshed
+        self.data_max_age_seconds = 30  # Maximum age before forcing refresh
+        self.last_user_data = None  # Track last user data to detect changes
         self.session_service.sync_failed.connect(self.on_sync_failed)
         self.session_service.sync_restored.connect(self.on_sync_restored)
 
@@ -107,17 +118,18 @@ class MainWindow(BaseKioskWindow):
 
 
     def create_modern_sidebar(self) -> QWidget:
-        """Create modern, clean sidebar like the reference UI"""
+        """Create modern, clean sidebar using constants and base components"""
         sidebar = QFrame()
         sidebar.setObjectName("modernSidebar")
-        sidebar.setFixedWidth(240)
+        sidebar.setFixedWidth(Dimensions.SIDEBAR_WIDTH)
 
-        # Subtle elevation like the mock
+        # Apply shadow using constants
+        shadow_config = get_shadow_effect(Shadows.LARGE_BLUR, Shadows.Y_OFFSET_LARGE)
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(50)
-        shadow.setXOffset(0)
-        shadow.setYOffset(15)
-        shadow.setColor(QColor(0, 0, 0, 70))
+        shadow.setBlurRadius(shadow_config['blur_radius'])
+        shadow.setXOffset(shadow_config['x_offset'])
+        shadow.setYOffset(shadow_config['y_offset'])
+        shadow.setColor(QColor(shadow_config['color']))
         sidebar.setGraphicsEffect(shadow)
 
         layout = QVBoxLayout(sidebar)
@@ -125,30 +137,54 @@ class MainWindow(BaseKioskWindow):
         layout.setSpacing(0)
 
         # Header bar (burger + brand)
+        header = self.create_sidebar_header()
+        
+        # Navigation section
+        nav_section = self.create_navigation_section()
+        
+        # Bottom section - Logout
+        bottom_section = self.create_sidebar_footer()
+
+        # Compose sidebar
+        layout.addWidget(header)
+        layout.addWidget(nav_section, 1)
+        layout.addWidget(bottom_section)
+
+        return sidebar
+    
+    def create_sidebar_header(self) -> QWidget:
+        """Create sidebar header with brand and menu icon"""
         header = QWidget()
         header.setStyleSheet("background-color: transparent; border: none;")
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(20, 18, 20, 14)
-        header_layout.setSpacing(10)
+        header_layout.setContentsMargins(Spacing.CARD_MARGIN, Spacing.COMPONENT_MARGIN, 
+                                        Spacing.CARD_MARGIN, Spacing.COMPONENT_MARGIN)
+        header_layout.setSpacing(Spacing.ELEMENT_SPACING)
 
+        # Menu icon
         burger = QLabel("≡")
-        burger.setFont(QFont("Segoe UI", 18, QFont.Weight.Black))
-        burger.setStyleSheet("color: #F1F5F9; background-color: transparent; border: none;")
+        burger.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_XL, Typography.WEIGHT_EXTRABOLD))
+        burger.setStyleSheet(f"color: {Colors.GRAY_100}; background-color: transparent; border: none;")
 
+        # Brand name
         brand = QLabel(APP_NAME)
-        brand.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
-        brand.setStyleSheet("color: #F8FAFC; letter-spacing: 0.5px; background-color: transparent; border: none;")
+        brand.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_MD, Typography.WEIGHT_BOLD))
+        brand.setStyleSheet(f"color: {Colors.WHITE}; letter-spacing: 0.5px; background-color: transparent; border: none;")
 
         header_layout.addWidget(burger)
         header_layout.addWidget(brand)
         header_layout.addStretch()
 
-        # Navigation section (no 'MENU' label to match mock)
+        return header
+    
+    def create_navigation_section(self) -> QWidget:
+        """Create navigation section with menu items"""
         nav_section = QWidget()
         nav_section.setStyleSheet("background-color: transparent;")
         nav_layout = QVBoxLayout(nav_section)
-        nav_layout.setContentsMargins(12, 6, 12, 10)
-        nav_layout.setSpacing(6)
+        nav_layout.setContentsMargins(Spacing.ELEMENT_SPACING, Spacing.TIGHT_SPACING, 
+                                    Spacing.ELEMENT_SPACING, Spacing.ELEMENT_SPACING)
+        nav_layout.setSpacing(Spacing.TIGHT_SPACING)
 
         self.nav_buttons = []
 
@@ -165,35 +201,31 @@ class MainWindow(BaseKioskWindow):
             nav_layout.addWidget(btn)
 
         nav_layout.addStretch()
-
-        # Bottom section - Logout
+        return nav_section
+    
+    def create_sidebar_footer(self) -> QWidget:
+        """Create sidebar footer with logout button"""
         bottom_section = QWidget()
         bottom_section.setStyleSheet("background-color: transparent;")
         bottom_layout = QVBoxLayout(bottom_section)
-        bottom_layout.setContentsMargins(12, 6, 12, 20)
+        bottom_layout.setContentsMargins(Spacing.ELEMENT_SPACING, Spacing.TIGHT_SPACING, 
+                                       Spacing.ELEMENT_SPACING, Spacing.CARD_MARGIN)
         bottom_layout.setSpacing(0)
 
-        btn_logout = QPushButton("התנתק")
+        # Use base component for logout button
+        btn_logout = ActionButton(UIStrings.LOGOUT, "danger", "small")
         btn_logout.setObjectName("modernLogoutButton")
-        btn_logout.setFont(QFont("Segoe UI", 10, QFont.Weight.Medium))
-        btn_logout.setMinimumHeight(40)
-        btn_logout.setCursor(Qt.CursorShape.PointingHandCursor)
         btn_logout.clicked.connect(self.handle_logout)
         bottom_layout.addWidget(btn_logout)
 
-        # Compose sidebar
-        layout.addWidget(header)
-        layout.addWidget(nav_section, 1)
-        layout.addWidget(bottom_section)
-
-        return sidebar
+        return bottom_section
 
     def create_modern_nav_button(self, text: str, page_index: int) -> QPushButton:
-        """Create modern navigation button"""
+        """Create modern navigation button using constants"""
         btn = QPushButton(text)
         btn.setObjectName("modernNavButton")
-        btn.setFont(QFont("Segoe UI", 11, QFont.Weight.Medium))
-        btn.setMinimumHeight(40)
+        btn.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_MEDIUM))
+        btn.setMinimumHeight(Dimensions.BUTTON_HEIGHT_SMALL)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setCheckable(True)
         btn.clicked.connect(lambda: self.show_page(page_index))
@@ -212,16 +244,26 @@ class MainWindow(BaseKioskWindow):
         # Refresh the current page data
         self.refresh_current_page()
 
-    def refresh_current_page(self):
-        """Refresh data for the current page"""
+    def refresh_current_page(self, force: bool = False):
+        """Refresh data for the current page with smart caching"""
         current_widget = self.content_stack.currentWidget()
         
         if hasattr(current_widget, 'refresh_user_data'):
-            logger.info(f"Refreshing data for {current_widget.__class__.__name__}")
+            page_name = current_widget.__class__.__name__
+            
+            # Check if we need to refresh based on data age
+            if not force and self._should_skip_refresh(page_name):
+                logger.debug(f"Skipping refresh for {page_name} (data is fresh)")
+                return
+                
+            logger.info(f"Refreshing data for {page_name}")
             current_widget.refresh_user_data()
+            
+            # Update data age tracking
+            self._update_page_data_age(page_name)
 
-    def refresh_all_pages(self):
-        """Refresh data for all pages"""
+    def refresh_all_pages(self, force: bool = False):
+        """Refresh data for all pages with smart caching"""
         logger.info("Refreshing all pages with user data")
         
         # Check if UI is initialized
@@ -229,12 +271,64 @@ class MainWindow(BaseKioskWindow):
             logger.warning("UI not initialized yet, skipping page refresh")
             return
         
+        # Check if user data has changed
+        current_user_data = self._get_current_user_data()
+        if not force and self._user_data_unchanged(current_user_data):
+            logger.debug("User data unchanged, skipping page refresh")
+            return
+        
+        # Update last user data
+        self.last_user_data = current_user_data
+        
         # Refresh each page that has the refresh_user_data method
         for i in range(self.content_stack.count()):
             page = self.content_stack.widget(i)
             if hasattr(page, 'refresh_user_data'):
-                logger.info(f"Refreshing {page.__class__.__name__}")
-                page.refresh_user_data()
+                page_name = page.__class__.__name__
+                
+                # Only refresh if data is stale or forced
+                if force or self._should_skip_refresh(page_name):
+                    logger.info(f"Refreshing {page_name}")
+                    page.refresh_user_data()
+                    self._update_page_data_age(page_name)
+                else:
+                    logger.debug(f"Skipping refresh for {page_name} (data is fresh)")
+
+    def _should_skip_refresh(self, page_name: str) -> bool:
+        """Check if we should skip refreshing a page based on data age"""
+        if page_name not in self.page_data_ages:
+            return False  # Never refreshed, so refresh it
+        
+        from datetime import datetime, timedelta
+        last_refresh = self.page_data_ages[page_name]
+        age_seconds = (datetime.now() - last_refresh).total_seconds()
+        
+        return age_seconds < self.data_max_age_seconds
+    
+    def _update_page_data_age(self, page_name: str):
+        """Update the data age for a specific page"""
+        from datetime import datetime
+        self.page_data_ages[page_name] = datetime.now()
+    
+    def _get_current_user_data(self) -> dict:
+        """Get current user data for change detection"""
+        if not self.current_user:
+            return {}
+        
+        # Return a simplified version of user data for comparison
+        return {
+            'uid': self.current_user.get('uid'),
+            'timeRemaining': self.current_user.get('timeRemaining', 0),
+            'printsRemaining': self.current_user.get('printsRemaining', 0),
+            'lastSeen': self.current_user.get('lastSeen')
+        }
+    
+    def _user_data_unchanged(self, current_data: dict) -> bool:
+        """Check if user data has changed since last refresh"""
+        if not self.last_user_data:
+            return False
+        
+        return self.last_user_data == current_data
 
     def showEvent(self, event):
         """Handle window show event"""
@@ -244,7 +338,7 @@ class MainWindow(BaseKioskWindow):
         
         # Refresh all pages when the window is shown
         # This ensures data is loaded when the user logs in
-        self.refresh_all_pages()
+        self.refresh_all_pages(force=True)  # Force refresh on show
 
     def handle_logout(self):
         """Logout"""

@@ -30,12 +30,31 @@ class ChatService(QObject):
         self.is_listening = False
         self.listen_thread = None
         
+        # Smart polling configuration
+        self.base_poll_interval = 5  # Base interval in seconds
+        self.max_poll_interval = 60  # Maximum interval in seconds
+        self.current_poll_interval = self.base_poll_interval
+        self.consecutive_empty_polls = 0
+        self.max_empty_polls = 3  # After 3 empty polls, increase interval
+        
+        # Last seen update optimization
+        self.last_seen_update_time = None
+        self.last_seen_debounce_seconds = 30  # Only update every 30 seconds
+        
+        # Data caching
+        self.cached_messages = []
+        self.cache_timestamp = None
+        self.cache_duration_seconds = 10  # Cache for 10 seconds
+        
         logger.info(f"Chat service initialized for user {user_id}")
 
-    def get_unread_messages(self) -> Dict:
+    def get_unread_messages(self, use_cache: bool = True) -> Dict:
         """
-        Get all unread messages for the current user
+        Get all unread messages for the current user with caching
         
+        Args:
+            use_cache: Whether to use cached data if available
+            
         Returns:
             {
                 'success': bool,
@@ -43,6 +62,14 @@ class ChatService(QObject):
                 'error': str (if failed)
             }
         """
+        # Check cache first if enabled
+        if use_cache and self._is_cache_valid():
+            logger.debug("Using cached messages")
+            return {
+                'success': True,
+                'messages': self.cached_messages
+            }
+        
         logger.info("Fetching unread messages")
         
         # Get all messages for this user (Firebase client handles org path)
@@ -58,6 +85,7 @@ class ChatService(QObject):
         
         data = result.get('data')
         if not data:
+            self._update_cache([])
             return {
                 'success': True,
                 'messages': []
@@ -73,6 +101,9 @@ class ChatService(QObject):
         
         # Sort by timestamp (oldest first for display)
         user_messages.sort(key=lambda x: x.get('timestamp', ''))
+        
+        # Update cache
+        self._update_cache(user_messages)
         
         logger.info(f"Found {len(user_messages)} unread messages")
         return {
@@ -147,19 +178,32 @@ class ChatService(QObject):
             'success': True
         }
 
-    def update_last_seen(self) -> Dict:
+    def update_last_seen(self, force: bool = False) -> Dict:
         """
         Update user's last seen timestamp to indicate they're active
+        Uses debouncing to avoid excessive API calls
         
+        Args:
+            force: Force update regardless of debounce timing
+            
         Returns:
             {
                 'success': bool,
                 'error': str (if failed)
             }
         """
+        now = datetime.now()
+        
+        # Check if we should skip this update due to debouncing
+        if not force and self.last_seen_update_time:
+            time_since_last_update = (now - self.last_seen_update_time).total_seconds()
+            if time_since_last_update < self.last_seen_debounce_seconds:
+                logger.debug(f"Skipping last seen update (debounced, {time_since_last_update:.1f}s since last)")
+                return {'success': True, 'skipped': True}
+        
         logger.debug("Updating last seen timestamp")
         
-        last_seen = datetime.now().isoformat()
+        last_seen = now.isoformat()
         result = self.firebase.db_set(f'users/{self.user_id}/lastSeen', last_seen)
         
         if not result.get('success'):
@@ -168,6 +212,9 @@ class ChatService(QObject):
                 'success': False,
                 'error': result.get('error', 'Unknown error')
             }
+        
+        # Update our tracking timestamp
+        self.last_seen_update_time = now
         
         return {
             'success': True
@@ -210,36 +257,53 @@ class ChatService(QObject):
         logger.info("Stopped listening for messages")
 
     def _listen_loop(self):
-        """Internal method for listening loop"""
+        """Internal method for listening loop with smart polling"""
         last_check = None
         
         while self.is_listening:
             try:
-                # Get current messages
-                result = self.get_unread_messages()
+                # Get current messages (use cache for efficiency)
+                result = self.get_unread_messages(use_cache=True)
                 
                 if result.get('success'):
                     messages = result.get('messages', [])
+                    message_count = len(messages)
                     
                     # Check if there are new messages
-                    if last_check is None or len(messages) != last_check:
+                    if last_check is None or message_count != last_check:
                         # Emit signal for thread-safe UI updates
                         self.messages_received.emit(result)
                         
                         # Also call callback for backward compatibility
                         if hasattr(self, 'message_callback') and self.message_callback:
                             self.message_callback(result)
-                        last_check = len(messages)
+                        last_check = message_count
+                        
+                        # Reset polling interval when we find messages
+                        self.current_poll_interval = self.base_poll_interval
+                        self.consecutive_empty_polls = 0
+                    else:
+                        # No new messages, increment empty poll counter
+                        self.consecutive_empty_polls += 1
+                        
+                        # Increase polling interval if we've had many empty polls
+                        if self.consecutive_empty_polls >= self.max_empty_polls:
+                            self.current_poll_interval = min(
+                                self.current_poll_interval * 1.5, 
+                                self.max_poll_interval
+                            )
+                            logger.debug(f"Increased polling interval to {self.current_poll_interval:.1f}s")
                 
-                # Update last seen to show user is active
+                # Update last seen to show user is active (with debouncing)
                 self.update_last_seen()
                 
-                # Wait before next check (5 seconds)
-                time.sleep(5)
+                # Wait before next check with dynamic interval
+                time.sleep(self.current_poll_interval)
                 
             except Exception as e:
                 logger.error(f"Error in message listening loop: {str(e)}")
-                time.sleep(5)  # Wait before retrying
+                # Use base interval for retry
+                time.sleep(self.base_poll_interval)
 
     def is_user_active(self, last_seen: str) -> bool:
         """
@@ -264,6 +328,27 @@ class ChatService(QObject):
             logger.error(f"Error parsing last seen timestamp: {str(e)}")
             return False
 
+    def _is_cache_valid(self) -> bool:
+        """Check if cached data is still valid"""
+        if not self.cache_timestamp or not self.cached_messages:
+            return False
+        
+        now = datetime.now()
+        cache_age = (now - self.cache_timestamp).total_seconds()
+        return cache_age < self.cache_duration_seconds
+    
+    def _update_cache(self, messages: List[Dict]):
+        """Update the message cache with new data"""
+        self.cached_messages = messages
+        self.cache_timestamp = datetime.now()
+        logger.debug(f"Updated message cache with {len(messages)} messages")
+    
+    def invalidate_cache(self):
+        """Invalidate the message cache to force fresh data on next request"""
+        self.cached_messages = []
+        self.cache_timestamp = None
+        logger.debug("Message cache invalidated")
+    
     def cleanup(self):
         """Cleanup resources"""
         self.stop_listening()

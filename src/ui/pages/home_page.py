@@ -1,6 +1,7 @@
 """
 Home Dashboard Page
 Shows user stats and session controls
+Refactored to use centralized constants and base components
 """
 
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
@@ -9,6 +10,13 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QFont, QColor
 
+from ui.components.base_components import (
+    StatCard, ActionButton, HeaderSection, LoadingSpinner, EmptyState
+)
+from ui.constants.ui_constants import (
+    Dimensions, Spacing, BorderRadius, Colors, Gradients, 
+    Typography, Shadows, UIStrings, get_shadow_effect
+)
 from utils.logger import get_logger
 from services.chat_service import ChatService
 
@@ -58,111 +66,62 @@ class HomePage(QWidget):
             self.chat_service.messages_received.connect(self.handle_new_messages)
 
     def init_ui(self):
-        """Initialize modern UI with professional styling"""
+        """Initialize modern UI using base components and constants"""
         self.setObjectName("homePage")
         
         # Set RTL layout direction for Hebrew support
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
-        # Set sophisticated grayish background
-        self.setStyleSheet("""
-            QWidget {
-                background: #F1F5F9;
-            }
+        # Set background using constants
+        self.setStyleSheet(f"""
+            QWidget {{
+                background: {Colors.BG_PRIMARY};
+            }}
         """)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(40, 30, 40, 30)
-        layout.setSpacing(30)
+        layout.setContentsMargins(Spacing.PAGE_MARGIN, Spacing.SECTION_MARGIN,
+                                     Spacing.PAGE_MARGIN, Spacing.SECTION_MARGIN)
+        layout.setSpacing(Spacing.SECTION_SPACING)
 
-        # Clean header section matching packages page style
-        header_container = QWidget()
-        header_container.setStyleSheet("""
-            QWidget {
-                background: #3B82F6;
-                border-radius: 20px;
-                padding: 20px;
-            }
-        """)
-        
-        # Add shadow to header
-        header_shadow = QGraphicsDropShadowEffect()
-        header_shadow.setBlurRadius(40)
-        header_shadow.setXOffset(0)
-        header_shadow.setYOffset(12)
-        header_shadow.setColor(QColor(0, 0, 0, 55))
-        header_container.setGraphicsEffect(header_shadow)
-        
-        header_layout = QVBoxLayout(header_container)
-        header_layout.setContentsMargins(30, 25, 30, 25)
-        header_layout.setSpacing(8)
-        
-        # Main title with stunning typography
-        header = QLabel("לוח בקרה")
-        header.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        header.setStyleSheet("""
-            QLabel {
-                color: white;
-                font-size: 32px;
-                font-weight: 800;
-                margin-bottom: 8px;
-            }
-        """)
-        
-        # Subtitle with elegant styling
-        subtitle = QLabel("ניהול זמן והדפסות")
-        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet("""
-            QLabel {
-                color: rgba(255, 255, 255, 0.9);
-                font-size: 16px;
-                font-weight: 400;
-            }
-        """)
-        
-        
-        header_layout.addWidget(header)
-        header_layout.addWidget(subtitle)
-
-        # Add header to main layout
-        layout.addWidget(header_container)
+        # Create header using base component
+        header_section = HeaderSection(UIStrings.HOME_TITLE, "ניהול זמן והדפסות")
+        layout.addWidget(header_section)
 
 
-        # Load initial messages
-        self.load_messages()
-
-        # Modern stats grid container with responsive design
+        # Modern stats grid container using constants
         stats_container = QWidget()
-        stats_container.setStyleSheet("""
-            QWidget {
-                background: transparent;
-            }
-        """)
+        stats_container.setStyleSheet("background: transparent;")
         stats_layout = QHBoxLayout(stats_container)
-        stats_layout.setSpacing(25)
+        stats_layout.setSpacing(5)  # Very minimal spacing between cards
         stats_layout.setContentsMargins(0, 0, 0, 0)
-        stats_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center the cards
+        stats_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # Time card with modern styling
-        self.time_card = self.create_modern_stat_card(
-            "זמן נותר",
+        # Time card using base component
+        self.time_card = StatCard(
+            UIStrings.TIME_REMAINING,
             "0:00:00",
-            "#10B981",
-            "timeValue",
+            "",
+            Colors.SUCCESS,
             "⏰"
         )
+        self.time_card.setObjectName("timeCard")
 
-        # Prints card with modern styling
+        # Prints card using base component
         prints = str(self.current_user.get('remainingPrints', 0))
-        self.prints_card = self.create_modern_stat_card(
-            "הדפסות זמינות",
+        self.prints_card = StatCard(
+            UIStrings.PRINTS_AVAILABLE,
             prints,
-            "#3B82F6",
-            "printsValue",
+            "",
+            Colors.PRIMARY,
             "🖨️"
         )
+        self.prints_card.setObjectName("printsCard")
 
+        # Message notification card
         self.message_card = self.create_message_notification_card()
+        logger.info(f"Message card created: {self.message_card is not None}")
+        logger.info(f"Message card object name: {self.message_card.objectName()}")
         self.message_card.hide()  # Start hidden until messages arrive
 
         # Add cards with proper alignment
@@ -172,14 +131,16 @@ class HomePage(QWidget):
         stats_layout.addWidget(self.message_card)
         stats_layout.addStretch()
 
+        # Load initial messages after message card is created
+        self.load_messages()
+
         # Main action card
         action_card = self.create_action_card()
 
-        # Add some spacing and visual separation
-        layout.addSpacing(10)  # Add breathing room
-        
+        # Add minimal spacing between components - closer together
+        layout.addSpacing(8)  # Small spacing after header
         layout.addWidget(stats_container)
-        layout.addSpacing(20)  # Add breathing room
+        layout.addSpacing(8)  # Small spacing between cards and action
         layout.addWidget(action_card)
         layout.addStretch()
 
@@ -190,34 +151,7 @@ class HomePage(QWidget):
 
     def setup_animations(self):
         """Setup subtle animations and effects for better UX"""
-        # Add hover effects to stat cards
-        for card in [self.time_card, self.prints_card]:
-            if card:
-                # Add subtle hover animation
-                card.enterEvent = lambda event, c=card: self.card_hover_enter(c)
-                card.leaveEvent = lambda event, c=card: self.card_hover_leave(c)
-
-    def card_hover_enter(self, card):
-        """Handle card hover enter with enhanced shadow"""
-        if card:
-            # Significantly increase shadow on hover for dramatic effect
-            shadow = QGraphicsDropShadowEffect()
-            shadow.setBlurRadius(70)
-            shadow.setXOffset(0)
-            shadow.setYOffset(20)
-            shadow.setColor(QColor(0, 0, 0, 80))
-            card.setGraphicsEffect(shadow)
-
-    def card_hover_leave(self, card):
-        """Handle card hover leave with enhanced base shadow"""
-        if card:
-            # Enhanced base shadow
-            shadow = QGraphicsDropShadowEffect()
-            shadow.setBlurRadius(50)
-            shadow.setXOffset(0)
-            shadow.setYOffset(15)
-            shadow.setColor(QColor(0, 0, 0, 60))
-            card.setGraphicsEffect(shadow)
+        # Cards use static styling - no hover effects needed
 
     def create_modern_stat_card(self, title: str, value: str, color: str, value_name: str, icon: str) -> QFrame:
         """Create modern stat card with professional styling"""
@@ -240,15 +174,7 @@ class HomePage(QWidget):
                 border-radius: 20px;
                 border: 2px solid #E2E8F0;
             }}
-            QFrame:hover {{
-                border: 2px solid {color};
-                background: #F8FAFC;
-            }}
             QLabel {{
-                border: none;
-                background: transparent;
-            }}
-            QLabel:hover {{
                 border: none;
                 background: transparent;
             }}
@@ -295,10 +221,6 @@ class HomePage(QWidget):
                 border: none;
                 background: transparent;
             }}
-            QLabel:hover {{
-                border: none;
-                background: transparent;
-            }}
         """)
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         value_label.setWordWrap(False)
@@ -312,14 +234,16 @@ class HomePage(QWidget):
         """Create message notification card integrated into the dashboard"""
         card = QFrame()
         card.setObjectName("messageNotificationCard")
-        card.setFixedSize(400, 160)  # Same size as other cards
+        card.setFixedSize(400, 200)  # Increased height for better content visibility
 
-        # Enhanced drop shadow
+        # Apply same shadow as stat cards for consistency
+        from ui.constants.ui_constants import get_shadow_effect, Shadows
+        shadow_config = get_shadow_effect(Shadows.LARGE_BLUR, Shadows.Y_OFFSET_LARGE, Shadows.DARK)
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(50)
-        shadow.setXOffset(0)
-        shadow.setYOffset(15)
-        shadow.setColor(QColor(0, 0, 0, 60))
+        shadow.setBlurRadius(shadow_config['blur_radius'])
+        shadow.setXOffset(shadow_config['x_offset'])
+        shadow.setYOffset(shadow_config['y_offset'])
+        shadow.setColor(QColor(shadow_config['color']))
         card.setGraphicsEffect(shadow)
 
         # Message card styling
@@ -346,8 +270,8 @@ class HomePage(QWidget):
         """)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(25, 18, 25, 18)  # Reduced margins for better text fit
-        layout.setSpacing(10)
+        layout.setContentsMargins(25, 30, 25, 20)  # Extra top margin to match stat cards
+        layout.setSpacing(12)  # Increased spacing for better layout
 
         # Icon and title row
         icon_title_row = QWidget()
@@ -380,7 +304,7 @@ class HomePage(QWidget):
         self.view_messages_button.setFont(QFont("Segoe UI", 13, QFont.Weight.Bold))
         self.view_messages_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.view_messages_button.clicked.connect(self.show_message_modal)
-        self.view_messages_button.setFixedHeight(45)  # Fixed height to ensure text fits
+        self.view_messages_button.setFixedHeight(40)  # Comfortable height for increased card size
         self.view_messages_button.setStyleSheet("""
             QPushButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -405,117 +329,87 @@ class HomePage(QWidget):
         return card
 
     def create_action_card(self) -> QFrame:
-        """Create modern action card with professional styling"""
+        """Create modern action card using base components and constants"""
         card = QFrame()
         card.setObjectName("modernActionCard")
 
-        # Enhanced shadow for dramatic depth effect
+        # Apply shadow using constants
+        shadow_config = get_shadow_effect(Shadows.EXTRA_LARGE_BLUR, Shadows.Y_OFFSET_EXTRA_LARGE)
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(60)
-        shadow.setXOffset(0)
-        shadow.setYOffset(20)
-        shadow.setColor(QColor(0, 0, 0, 70))
+        shadow.setBlurRadius(shadow_config['blur_radius'])
+        shadow.setXOffset(shadow_config['x_offset'])
+        shadow.setYOffset(shadow_config['y_offset'])
+        shadow.setColor(QColor(shadow_config['color']))
         card.setGraphicsEffect(shadow)
 
-        # Modern card styling with gradient background
-        card.setStyleSheet("""
-            QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #FFFFFF, stop:1 #F8FAFC);
-                border-radius: 24px;
-                border: 2px solid #E2E8F0;
-            }
+        # Apply card styling using constants
+        card.setStyleSheet(f"""
+            QFrame {{
+                background: {Gradients.CARD_GRADIENT};
+                border-radius: {BorderRadius.EXTRA_LARGE}px;
+                border: 2px solid {Colors.BORDER_LIGHT};
+            }}
         """)
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(60, 50, 60, 50)
-        layout.setSpacing(25)
+        layout.setContentsMargins(Spacing.SECTION_MARGIN * 2, Spacing.SECTION_MARGIN * 2, 
+                                 Spacing.SECTION_MARGIN * 2, Spacing.SECTION_MARGIN * 2)
+        layout.setSpacing(Spacing.CARD_SPACING)
 
-        # Welcome section with modern typography
-        welcome_container = QWidget()
-        welcome_layout = QVBoxLayout(welcome_container)
-        welcome_layout.setContentsMargins(0, 0, 0, 0)
-        welcome_layout.setSpacing(8)
-
-        welcome = QLabel(f"ברוך הבא, {self.current_user.get('firstName')}! 👋")
-        welcome.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))
-        welcome.setStyleSheet("""
-            QLabel {
-                color: #1E293B;
-                font-weight: 800;
-                text-align: center;
-            }
-        """)
-        welcome.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Subtitle
-        subtitle = QLabel("התחל את הפעלתך במחשב עכשיו")
-        subtitle.setFont(QFont("Segoe UI", 16, QFont.Weight.Medium))
-        subtitle.setStyleSheet("""
-            QLabel {
-                color: #64748B;
-                font-weight: 500;
-                text-align: center;
-            }
-        """)
-        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        welcome_layout.addWidget(welcome)
-        welcome_layout.addWidget(subtitle)
-
-        # Instruction text with modern styling
-        self.instruction = QLabel("מוכן להתחיל את הפעלתך? לחץ למטה כדי להתחיל.")
-        self.instruction.setFont(QFont("Segoe UI", 16, QFont.Weight.Medium))
-        self.instruction.setStyleSheet("""
-            QLabel {
-                color: #475569;
-                font-weight: 500;
-                text-align: center;
-                background: #F1F5F9;
-                padding: 16px 24px;
-                border-radius: 12px;
-                border-left: 4px solid #3B82F6;
-            }
-        """)
-        self.instruction.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Modern start button with gradient
-        self.start_btn = QPushButton("🚀  התחל להשתמש במחשב")
+        # Welcome section
+        welcome_container = self.create_welcome_section()
+        
+        # Instruction text
+        self.instruction = self.create_instruction_text()
+        
+        # Start button using base component
+        self.start_btn = ActionButton("🚀  התחל להשתמש במחשב", "primary", "large")
         self.start_btn.setObjectName("modernStartButton")
-        self.start_btn.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
-        self.start_btn.setMinimumHeight(80)
-        self.start_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.start_btn.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #3B82F6, stop:1 #1E40AF);
-                color: white;
-                border: none;
-                border-radius: 16px;
-                font-weight: 700;
-                font-size: 18px;
-                padding: 20px 40px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #2563EB, stop:1 #1D4ED8);
-            }
-            QPushButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #1D4ED8, stop:1 #1E3A8A);
-            }
-        """)
         self.start_btn.clicked.connect(self.handle_start_session)
 
         layout.addWidget(welcome_container)
         layout.addWidget(self.instruction)
-        layout.addSpacing(20)
+        layout.addSpacing(Spacing.CARD_MARGIN)
         layout.addWidget(self.start_btn)
 
         return card
+    
+    def create_welcome_section(self) -> QWidget:
+        """Create welcome section with user greeting"""
+        welcome_container = QWidget()
+        welcome_layout = QVBoxLayout(welcome_container)
+        welcome_layout.setContentsMargins(0, 0, 0, 0)
+        welcome_layout.setSpacing(Spacing.TIGHT_SPACING)
+
+        # Welcome message
+        welcome = QLabel(f"ברוך הבא, {self.current_user.get('firstName')}! 👋")
+        welcome.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_EXTRABOLD))
+        welcome.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
+        welcome.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        welcome_layout.addWidget(welcome)
+
+        return welcome_container
+    
+    def create_instruction_text(self) -> QLabel:
+        """Create instruction text with styling"""
+        instruction = QLabel("מוכן להתחיל את הפעלתך? לחץ למטה כדי להתחיל.")
+        instruction.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_MEDIUM))
+        instruction.setStyleSheet(f"""
+            QLabel {{
+                color: {Colors.GRAY_600};
+                text-align: center;
+                background: {Colors.BG_PRIMARY};
+                padding: {Spacing.COMPONENT_MARGIN}px {Spacing.CARD_MARGIN}px;
+                border-radius: {BorderRadius.MEDIUM}px;
+                border-left: 4px solid {Colors.PRIMARY};
+            }}
+        """)
+        instruction.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        return instruction
 
     def update_countdown(self):
-        """Update time display and button state with modern styling"""
+        """Update time display and button state using constants"""
         remaining = self.current_user.get('remainingTime', 0)
 
         hours = remaining // 3600
@@ -524,99 +418,97 @@ class HomePage(QWidget):
 
         time_str = f"{hours}:{minutes:02d}:{seconds:02d}"
 
+        # Update time card value
         time_value = self.time_card.findChild(QLabel, "timeValue")
         if time_value:
             time_value.setText(time_str)
 
-            # Dynamic color based on time remaining
+            # Dynamic color based on time remaining using constants
             if remaining <= 0:
-                color = "#EF4444"
+                color = Colors.ERROR
             elif remaining < 300:  # Less than 5 minutes
-                color = "#EF4444"
+                color = Colors.ERROR
             elif remaining < 1800:  # Less than 30 minutes
-                color = "#F59E0B"
+                color = Colors.WARNING
             else:
-                color = "#10B981"
+                color = Colors.SUCCESS
 
-            # Update value color
+            # Update value color using constants
             time_value.setStyleSheet(f"""
                 QLabel {{
                     color: {color};
-                    font-weight: 800;
-                    font-size: 28px;
+                    font-weight: {Typography.WEIGHT_EXTRABOLD};
+                    font-size: {Typography.SIZE_3XL}px;
                 }}
             """)
 
-        # Update button state with modern styling
+        # Update button state using constants
         if remaining <= 0:
             self.start_btn.setEnabled(False)
             self.start_btn.setText("⏸  אין זמן זמין")
             self.instruction.setText("אין לך זמן נותר. רכוש חבילה כדי להמשיך.")
-            self.instruction.setStyleSheet("""
-                QLabel {
-                    color: #DC2626;
-                    font-weight: 600;
+            self.instruction.setStyleSheet(f"""
+                QLabel {{
+                    color: {Colors.ERROR_HOVER};
+                    font-weight: {Typography.WEIGHT_SEMIBOLD};
                     text-align: center;
-                    background: #FEF2F2;
-                    padding: 16px 24px;
-                    border-radius: 12px;
-                    border-left: 4px solid #EF4444;
-                }
+                    background: {Colors.ERROR_LIGHT};
+                    padding: {Spacing.COMPONENT_MARGIN}px {Spacing.CARD_MARGIN}px;
+                    border-radius: {BorderRadius.MEDIUM}px;
+                    border-left: 4px solid {Colors.ERROR};
+                }}
             """)
 
-            # Modern disabled button style
-            self.start_btn.setStyleSheet("""
-                QPushButton {
-                    background: #E2E8F0;
-                    color: #94A3B8;
+            # Disabled button style using constants
+            self.start_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {Colors.GRAY_200};
+                    color: {Colors.TEXT_MUTED};
                     border: none;
-                    border-radius: 16px;
-                    font-weight: 700;
-                    font-size: 18px;
-                    padding: 20px 40px;
-                }
-                QPushButton:disabled {
-                    background: #E2E8F0;
-                    color: #94A3B8;
+                    border-radius: {BorderRadius.LARGE}px;
+                    font-weight: {Typography.WEIGHT_BOLD};
+                    font-size: {Typography.SIZE_XL}px;
+                    padding: {Spacing.CARD_MARGIN}px {Spacing.SECTION_MARGIN}px;
+                }}
+                QPushButton:disabled {{
+                    background: {Colors.GRAY_200};
+                    color: {Colors.TEXT_MUTED};
                     cursor: not-allowed;
-                }
+                }}
             """)
         else:
             self.start_btn.setEnabled(True)
             self.start_btn.setText("🚀  התחל להשתמש במחשב")
             self.instruction.setText("מוכן להתחיל את הפעלתך? לחץ למטה כדי להתחיל.")
-            self.instruction.setStyleSheet("""
-                QLabel {
-                    color: #475569;
-                    font-weight: 500;
+            self.instruction.setStyleSheet(f"""
+                QLabel {{
+                    color: {Colors.GRAY_600};
+                    font-weight: {Typography.WEIGHT_MEDIUM};
                     text-align: center;
-                    background: #F1F5F9;
-                    padding: 16px 24px;
-                    border-radius: 12px;
-                    border-left: 4px solid #3B82F6;
-                }
+                    background: {Colors.BG_PRIMARY};
+                    padding: {Spacing.COMPONENT_MARGIN}px {Spacing.CARD_MARGIN}px;
+                    border-radius: {BorderRadius.MEDIUM}px;
+                    border-left: 4px solid {Colors.PRIMARY};
+                }}
             """)
 
-            # Modern enabled button style
-            self.start_btn.setStyleSheet("""
-                QPushButton {
-                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                        stop:0 #3B82F6, stop:1 #1E40AF);
-                    color: white;
+            # Enabled button style using constants
+            self.start_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {Gradients.PRIMARY_GRADIENT};
+                    color: {Colors.WHITE};
                     border: none;
-                    border-radius: 16px;
-                    font-weight: 700;
-                    font-size: 18px;
-                    padding: 20px 40px;
-                }
-                QPushButton:hover {
-                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                        stop:0 #2563EB, stop:1 #1D4ED8);
-                }
-                QPushButton:pressed {
-                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                        stop:0 #1D4ED8, stop:1 #1E3A8A);
-                }
+                    border-radius: {BorderRadius.LARGE}px;
+                    font-weight: {Typography.WEIGHT_BOLD};
+                    font-size: {Typography.SIZE_XL}px;
+                    padding: {Spacing.CARD_MARGIN}px {Spacing.SECTION_MARGIN}px;
+                }}
+                QPushButton:hover {{
+                    background: {Gradients.PRIMARY_GRADIENT.replace('#3B82F6', '#2563EB')};
+                }}
+                QPushButton:pressed {{
+                    background: {Gradients.PRIMARY_GRADIENT.replace('#3B82F6', '#1D4ED8')};
+                }}
             """)
 
 
@@ -687,7 +579,8 @@ class HomePage(QWidget):
     def load_messages(self):
         """Load initial unread messages"""
         if self.chat_service:
-            result = self.chat_service.get_unread_messages()
+            result = self.chat_service.get_unread_messages(use_cache=False)  # Force fresh data
+            logger.info(f"load_messages result: {result}")
             if result.get('success'):
                 messages = result.get('messages', [])
                 self.pending_messages = messages
@@ -721,16 +614,21 @@ class HomePage(QWidget):
     def show_message_notification(self, message_count):
         """Update message notification card with new message count"""
         logger.info(f"show_message_notification called with {message_count} messages")
+        logger.info(f"hasattr(self, 'message_card'): {hasattr(self, 'message_card')}")
         
         if message_count <= 0:
             # Hide the message card if no messages
             if hasattr(self, 'message_card'):
+                logger.info("Hiding message card - no messages")
                 self.message_card.hide()
             return
         
         # Show the message card and update count
         if hasattr(self, 'message_card'):
+            logger.info(f"Showing message card with {message_count} messages")
+            logger.info(f"Message card visible before show(): {self.message_card.isVisible()}")
             self.message_card.show()
+            logger.info(f"Message card visible after show(): {self.message_card.isVisible()}")
             if message_count == 1:
                 self.message_count_label.setText("הודעה חדשה")
             else:
@@ -741,6 +639,8 @@ class HomePage(QWidget):
                 self.view_messages_button.setText("👁️ צפה בהודעה")
             else:
                 self.view_messages_button.setText("👁️ צפה בהודעות")
+        else:
+            logger.error("Message card not found!")
         
         logger.info(f"Message card updated with {message_count} messages")
 

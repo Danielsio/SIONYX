@@ -1,10 +1,12 @@
 """
 Purchase Service
 Handle package purchases with pending state
+Refactored to use base service for consistency
 """
 
 from typing import Dict
 from datetime import datetime
+from services.base_service import DatabaseService
 from services.firebase_client import FirebaseClient
 from utils.logger import get_logger
 import requests
@@ -12,13 +14,17 @@ import requests
 logger = get_logger(__name__)
 
 
-class PurchaseService:
+class PurchaseService(DatabaseService):
     """Manage package purchases with callback verification"""
 
     def __init__(self, firebase_client: FirebaseClient):
-        self.firebase = firebase_client
+        super().__init__(firebase_client)
         # MULTI-TENANCY: Get org_id for direct requests
         self.org_id = firebase_client.org_id
+    
+    def get_collection_name(self) -> str:
+        """Return the collection name for purchases"""
+        return 'purchases'
 
     def create_pending_purchase(self, user_id: str, package: Dict) -> Dict:
         """
@@ -101,99 +107,58 @@ class PurchaseService:
 
     def get_user_purchase_history(self, user_id: str) -> Dict:
         """
-        Get all purchases for a specific user
+        Get all purchases for a specific user using base service
         
         Returns:
             {'success': bool, 'purchases': list, 'error': str}
         """
-        logger.info(f"Fetching purchase history for user {user_id}")
+        self.log_operation("get_user_purchase_history", f"User ID: {user_id}")
         
-        # Check authentication
-        if not self.firebase.id_token:
-            logger.error("Firebase client not authenticated")
-            return {
-                'success': False,
-                'error': 'Not authenticated'
-            }
+        # Use base service to get all purchases
+        result = self.get_all_documents()
         
-        try:
-            # Get all purchases for the organization
-            logger.info(f"Fetching purchases from Firebase for org: {self.org_id}")
-            result = self.firebase.db_get('purchases')
-            
-            logger.info(f"Firebase db_get result: {result}")
-            
-            if not result.get('success'):
-                logger.error(f"Failed to fetch purchases: {result.get('error')}")
-                return {
-                    'success': False,
-                    'error': result.get('error', 'Failed to fetch purchases')
-                }
-            
-            purchases_data = result.get('data', {})
-            logger.info(f"Raw purchases data: {purchases_data}")
-            
-            if not purchases_data:
-                logger.info("No purchases found in database")
-                return {
-                    'success': True,
-                    'purchases': []
-                }
-            
-            # Filter purchases for the specific user
-            user_purchases = []
-            for purchase_id, purchase_data in purchases_data.items():
-                logger.info(f"Checking purchase {purchase_id}: userId={purchase_data.get('userId')}, target_user={user_id}")
-                if purchase_data.get('userId') == user_id:
-                    # Add the purchase ID to the data
-                    purchase_data['id'] = purchase_id
-                    user_purchases.append(purchase_data)
-                    logger.info(f"Added purchase {purchase_id} for user {user_id}")
-            
-            # Sort by creation date (newest first)
-            user_purchases.sort(
-                key=lambda x: x.get('createdAt', ''), 
-                reverse=True
-            )
-            
-            logger.info(f"Found {len(user_purchases)} purchases for user {user_id}")
-            
-            return {
-                'success': True,
-                'purchases': user_purchases
-            }
-            
-        except Exception as e:
-            logger.exception("Failed to fetch user purchase history")
-            return {
-                'success': False,
-                'error': str(e)
-            }
+        if not result.get('success'):
+            return result
+        
+        all_purchases = result.get('data', [])
+        
+        # Filter purchases for the specific user
+        user_purchases = [
+            purchase for purchase in all_purchases 
+            if purchase.get('userId') == user_id
+        ]
+        
+        # Sort by creation date (newest first)
+        user_purchases.sort(
+            key=lambda x: x.get('createdAt', ''), 
+            reverse=True
+        )
+        
+        self.log_operation("get_user_purchase_history", f"Found {len(user_purchases)} purchases for user {user_id}")
+        
+        return self.create_success_response(user_purchases, f"Found {len(user_purchases)} purchases")
 
     def get_purchase_statistics(self, user_id: str) -> Dict:
         """
-        Get purchase statistics for a user
+        Get purchase statistics for a user using base service
         
         Returns:
             {'success': bool, 'stats': dict, 'error': str}
         """
-        logger.info(f"Calculating purchase statistics for user {user_id}")
+        self.log_operation("get_purchase_statistics", f"User ID: {user_id}")
         
         try:
-            # Get user purchases
+            # Get user purchases using base service
             history_result = self.get_user_purchase_history(user_id)
             
             if not history_result.get('success'):
-                return {
-                    'success': False,
-                    'error': history_result.get('error', 'Failed to fetch purchases')
-                }
+                return history_result
             
-            purchases = history_result.get('purchases', [])
+            purchases = history_result.get('data', [])
             
-            # Calculate statistics
+            # Calculate statistics using base service methods
             total_spent = sum(
-                self._safe_int(p.get('amount', 0)) for p in purchases 
+                self.safe_int(p.get('amount', 0)) for p in purchases 
                 if p.get('status') == 'completed'
             )
             
@@ -222,25 +187,9 @@ class PurchaseService:
                 'total_purchases': total_purchases
             }
             
-            logger.info(f"Purchase stats calculated: {stats}")
+            self.log_operation("get_purchase_statistics", f"Stats calculated: {stats}")
             
-            return {
-                'success': True,
-                'stats': stats
-            }
+            return self.create_success_response(stats, f"Statistics calculated for {total_purchases} purchases")
             
         except Exception as e:
-            logger.exception("Failed to calculate purchase statistics")
-            return {
-                'success': False,
-                'error': str(e)
-            }
-
-    def _safe_int(self, value, default=0):
-        """Safely convert value to integer, handling strings and None"""
-        if value is None:
-            return default
-        try:
-            return int(float(str(value)))
-        except (ValueError, TypeError):
-            return default
+            return self.handle_firebase_error(e, f"calculate purchase statistics for user {user_id}")
