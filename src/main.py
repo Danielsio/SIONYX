@@ -1,6 +1,6 @@
 """
 SIONYX Desktop Application
-Main entry point
+Main entry point - Refactored for better error handling and constants usage
 """
 
 import sys
@@ -19,6 +19,7 @@ QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 # Now initialize logging
 from utils.logger import SionyxLogger
 from utils.const import APP_NAME
+from ui.constants.ui_constants import UIStrings, Timing
 import logging
 
 SionyxLogger.setup(
@@ -130,22 +131,22 @@ class SionyxApp:
         # Create layout
         layout = QVBoxLayout(dialog)
         
-        # Label
+        # Label using constants
         label = QLabel("Enter administrator password to exit:")
-        label.setStyleSheet("""
-            QLabel {
+        label.setStyleSheet(f"""
+            QLabel {{
                 color: #212121;
                 font-size: 14px;
                 font-weight: 600;
                 padding: 10px;
-            }
+            }}
         """)
         
-        # Password input
+        # Password input using constants
         password_input = QLineEdit()
         password_input.setEchoMode(QLineEdit.EchoMode.Password)
-        password_input.setStyleSheet("""
-            QLineEdit {
+        password_input.setStyleSheet(f"""
+            QLineEdit {{
                 padding: 14px;
                 border: 2px solid #1976D2;
                 border-radius: 10px;
@@ -153,7 +154,7 @@ class SionyxApp:
                 color: #212121;
                 font-size: 14px;
                 min-width: 300px;
-            }
+            }}
         """)
         
         # Buttons

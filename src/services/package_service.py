@@ -1,86 +1,61 @@
 """
 Package Service
 Fetch and manage packages from Firebase
+Refactored to use base service for consistency
 """
 
 from typing import List, Dict, Optional
+from services.base_service import DatabaseService
 from services.firebase_client import FirebaseClient
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 
-class PackageService:
+class PackageService(DatabaseService):
     """Service for managing packages"""
 
     def __init__(self, firebase_client: FirebaseClient):
-        self.firebase = firebase_client
+        super().__init__(firebase_client)
+
+    def get_collection_name(self) -> str:
+        """Return the collection name for packages"""
+        return 'packages'
 
     def get_all_packages(self) -> Dict:
         """
-        Fetch all packages from Firebase
+        Fetch all packages from Firebase using base service
 
         Returns:
             {
                 'success': bool,
-                'packages': List[Dict] or [],
+                'data': List[Dict] or [],
                 'error': str (if failed)
             }
         """
-        logger.info("Fetching packages from Firebase")
-
-        result = self.firebase.db_get('packages')
-
-        if not result.get('success'):
-            logger.error(f"Failed to fetch packages: {result.get('error')}")
-            return {
-                'success': False,
-                'packages': [],
-                'error': result.get('error', 'Unknown error')
-            }
-
-        data = result.get('data')
-
-        # Handle empty database
-        if data is None:
-            logger.warning("No packages found in database")
-            return {
-                'success': True,
-                'packages': []
-            }
-
-        # Convert Firebase dict to list with IDs
-        packages = []
-        for pkg_id, pkg_data in data.items():
-            pkg_data['id'] = pkg_id
-            packages.append(pkg_data)
-
-        logger.info(f"Fetched {len(packages)} packages")
-        return {
-            'success': True,
-            'packages': packages
-        }
+        self.log_operation("get_all_packages")
+        
+        result = self.get_all_documents()
+        
+        if result.get('success'):
+            packages = result.get('data', [])
+            return self.create_success_response(packages, f"Fetched {len(packages)} packages")
+        else:
+            return result
 
     def get_package_by_id(self, package_id: str) -> Dict:
-        """Get single package by ID"""
-        logger.info(f"Fetching package: {package_id}")
-
-        result = self.firebase.db_get(f'packages/{package_id}')
-
-        if not result.get('success'):
-            return {
-                'success': False,
-                'error': result.get('error')
-            }
-
-        package = result.get('data')
-        if package:
-            package['id'] = package_id
-
-        return {
-            'success': True,
-            'package': package
-        }
+        """Get single package by ID using base service"""
+        self.log_operation("get_package_by_id", f"ID: {package_id}")
+        
+        result = self.get_document(package_id)
+        
+        if result.get('success'):
+            package = result.get('data')
+            if package:
+                package['id'] = package_id
+            return self.create_success_response(package, f"Package {package_id} retrieved")
+        else:
+            return result
 
     @staticmethod
     def calculate_final_price(package: Dict) -> Dict:

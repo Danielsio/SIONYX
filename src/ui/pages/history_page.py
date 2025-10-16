@@ -301,6 +301,12 @@ class HistoryPage(QWidget):
         self.firebase_client = auth_service.firebase
         self.purchase_service = PurchaseService(self.firebase_client)
         
+        # Data caching for optimization
+        self.cached_purchases = []
+        self.cache_timestamp = None
+        self.cache_duration_seconds = 60  # Cache for 1 minute
+        self.last_user_id = None
+        
         self.init_ui()
         self.setup_animations()
 
@@ -333,8 +339,8 @@ class HistoryPage(QWidget):
 
         logger.debug("History page initialized")
 
-    def refresh_user_data(self):
-        """Refresh user data and reload purchase history"""
+    def refresh_user_data(self, force: bool = False):
+        """Refresh user data and reload purchase history with caching"""
         logger.info("Refreshing user data in HistoryPage")
         
         # Get current user from auth service
@@ -346,12 +352,37 @@ class HistoryPage(QWidget):
         
         logger.info(f"Current user: {self.current_user.get('uid', 'Unknown')}")
         
-        # Clear existing data
-        self.purchases = []
-        self.filtered_purchases = []
+        # Clear existing data only if forcing refresh
+        if force:
+            self.purchases = []
+            self.filtered_purchases = []
         
-        # Reload purchase data for the current user
-        self.load_purchase_data()
+        # Reload purchase data for the current user (with caching unless forced)
+        self.load_purchase_data(use_cache=not force)
+
+    def _is_cache_valid(self, user_id: str) -> bool:
+        """Check if cached data is still valid for the current user"""
+        if not self.cached_purchases or not self.cache_timestamp or self.last_user_id != user_id:
+            return False
+        
+        from datetime import datetime
+        cache_age = (datetime.now() - self.cache_timestamp).total_seconds()
+        return cache_age < self.cache_duration_seconds
+    
+    def _update_cache(self, purchases: list, user_id: str):
+        """Update the purchase cache with new data"""
+        from datetime import datetime
+        self.cached_purchases = purchases.copy()
+        self.cache_timestamp = datetime.now()
+        self.last_user_id = user_id
+        logger.debug(f"Updated purchase cache with {len(purchases)} purchases for user {user_id}")
+    
+    def invalidate_cache(self):
+        """Invalidate the purchase cache to force fresh data on next request"""
+        self.cached_purchases = []
+        self.cache_timestamp = None
+        self.last_user_id = None
+        logger.debug("Purchase cache invalidated")
 
     def clear_user_data(self):
         """Clear all user data (called on logout)"""
@@ -360,6 +391,9 @@ class HistoryPage(QWidget):
         self.current_user = None
         self.purchases = []
         self.filtered_purchases = []
+        
+        # Clear cache
+        self.invalidate_cache()
         
         # Clear the display
         self.show_empty_state()
@@ -633,8 +667,8 @@ class HistoryPage(QWidget):
         scroll_area.setWidget(self.content_widget)
         parent_layout.addWidget(scroll_area)
 
-    def load_purchase_data(self):
-        """Load purchase data from Firebase database"""
+    def load_purchase_data(self, use_cache: bool = True):
+        """Load purchase data from Firebase database with caching"""
         logger.info("load_purchase_data called")
         
         if not self.current_user:
@@ -646,6 +680,15 @@ class HistoryPage(QWidget):
         if not user_id:
             logger.warning("No user ID found")
             self.show_error_state("מזהה משתמש לא נמצא")
+            return
+        
+        # Check if we can use cached data
+        if use_cache and self._is_cache_valid(user_id):
+            logger.debug("Using cached purchase data")
+            self.purchases = self.cached_purchases.copy()
+            self.filtered_purchases = self.purchases.copy()
+            self.update_stats_cards()
+            self.update_purchases_display()
             return
         
         logger.info(f"Loading purchase data for user: {user_id}")
@@ -669,8 +712,11 @@ class HistoryPage(QWidget):
             logger.info(f"Purchase service result: {result}")
             
             if result.get('success'):
-                self.purchases = result.get('purchases', [])
+                self.purchases = result.get('data', [])  # Updated to use 'data' key
                 self.filtered_purchases = self.purchases.copy()
+                
+                # Update cache
+                self._update_cache(self.purchases, user_id)
                 
                 logger.info(f"Loaded {len(self.purchases)} purchases from database")
                 
