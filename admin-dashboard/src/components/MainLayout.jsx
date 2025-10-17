@@ -9,7 +9,8 @@ import {
   MenuUnfoldOutlined,
   SettingOutlined,
   PhoneOutlined,
-  MessageOutlined
+  MessageOutlined,
+  DesktopOutlined
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { signOut } from '../services/authService';
@@ -81,6 +82,11 @@ const MainLayout = () => {
       key: '/messages',
       icon: <MessageOutlined />,
       label: 'הודעות',
+    },
+    {
+      key: '/computers',
+      icon: <DesktopOutlined />,
+      label: 'מחשבים',
     },
   ];
 

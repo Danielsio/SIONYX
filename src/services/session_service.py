@@ -9,6 +9,7 @@ import time
 from PyQt6.QtCore import QTimer, QObject, pyqtSignal
 
 from services.firebase_client import FirebaseClient
+from services.computer_service import ComputerService
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -28,6 +29,7 @@ class SessionService(QObject):
     def __init__(self, firebase_client: FirebaseClient, user_id: str):
         super().__init__()
         self.firebase = firebase_client
+        self.computer_service = ComputerService(firebase_client)
         self.user_id = user_id
 
         # Session state
@@ -86,10 +88,19 @@ class SessionService(QObject):
         # Store everything on user record to save 50% more writes
         now = datetime.now().isoformat()
         
+        # Get current computer info for session tracking
+        computer_info = self.computer_service.get_computer_info(
+            self._get_current_computer_id()
+        )
+        computer_name = "Unknown PC"
+        if computer_info.get('success') and computer_info.get('data'):
+            computer_name = computer_info['data'].get('computerName', 'Unknown PC')
+        
         result = self.firebase.db_update(f'users/{self.user_id}', {
             'isSessionActive': True,
             'sessionStartTime': now,
             'lastActivity': now,
+            'sessionComputerName': computer_name,
             'updatedAt': now
         })
 
@@ -138,6 +149,14 @@ class SessionService(QObject):
         # Stop timers
         self.countdown_timer.stop()
         self.sync_timer.stop()
+
+        # Disassociate user from computer if logging out
+        if reason in ['user', 'expired']:
+            computer_id = self._get_current_computer_id()
+            if computer_id != 'unknown':
+                self.computer_service.disassociate_user_from_computer(
+                    self.user_id, computer_id
+                )
 
         # Final sync
         self._final_sync(reason)
@@ -243,6 +262,17 @@ class SessionService(QObject):
         })
         
         logger.info(f"Session ended. Reason: {reason}, Time used: {self.time_used}s")
+
+    def _get_current_computer_id(self) -> str:
+        """Get the current computer ID from user data"""
+        try:
+            user_result = self.firebase.db_get(f'users/{self.user_id}')
+            if user_result.get('success') and user_result.get('data'):
+                return user_result['data'].get('currentComputerId', 'unknown')
+            return 'unknown'
+        except Exception as e:
+            logger.warning(f"Failed to get current computer ID: {e}")
+            return 'unknown'
 
     def get_remaining_time(self) -> int:
         """Get current remaining time in seconds"""

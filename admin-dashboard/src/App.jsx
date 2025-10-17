@@ -14,6 +14,7 @@ import OverviewPage from './pages/OverviewPage';
 import UsersPage from './pages/UsersPage';
 import PackagesPage from './pages/PackagesPage';
 import MessagesPage from './pages/MessagesPage';
+import ComputersPage from './pages/ComputersPage';
 
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
               <Route path="users" element={<UsersPage />} />
               <Route path="packages" element={<PackagesPage />} />
               <Route path="messages" element={<MessagesPage />} />
+              <Route path="computers" element={<ComputersPage />} />
             </Route>
 
             {/* Catch all - redirect to home */}

@@ -6,6 +6,7 @@ from typing import Dict, Optional
 from datetime import datetime, timedelta
 
 from services.firebase_client import FirebaseClient
+from services.computer_service import ComputerService
 from database.local_db import LocalDatabase
 from utils.logger import get_logger
 from utils.error_translations import translate_error
@@ -20,6 +21,7 @@ class AuthService:
         self.config = config
         self.firebase = FirebaseClient()
         self.local_db = LocalDatabase()
+        self.computer_service = ComputerService(self.firebase)
         self.current_user = None
         logger.info("Auth service initialized")
 
@@ -44,6 +46,9 @@ class AuthService:
                 
                 # Check for crashed/orphaned session and recover time
                 self._recover_orphaned_session(self.firebase.user_id)
+                
+                # Register/update computer and associate with user
+                self._handle_computer_registration(self.firebase.user_id)
                 
                 return True
 
@@ -87,6 +92,9 @@ class AuthService:
 
         # Check for crashed/orphaned session and recover time
         self._recover_orphaned_session(uid)
+
+        # Register/update computer and associate with user
+        self._handle_computer_registration(uid)
 
         # Store credentials locally (encrypted)
         self.local_db.store_credentials(
@@ -282,6 +290,37 @@ class AuthService:
         except Exception as e:
             logger.error(f"Failed to recover orphaned session: {e}")
             # Don't fail login if recovery fails
+
+    def _handle_computer_registration(self, user_id: str):
+        """
+        Handle computer registration and user association
+        Called during login to track which PC the user is using
+        """
+        try:
+            logger.info("Handling computer registration for user login")
+            
+            # Register or update computer
+            computer_result = self.computer_service.register_computer()
+            
+            if computer_result.get('success'):
+                computer_id = computer_result['computer_id']
+                logger.info(f"Computer registered/updated: {computer_id}")
+                
+                # Associate user with computer
+                association_result = self.computer_service.associate_user_with_computer(
+                    user_id, computer_id
+                )
+                
+                if association_result.get('success'):
+                    logger.info(f"User {user_id} associated with computer {computer_id}")
+                else:
+                    logger.warning(f"Failed to associate user with computer: {association_result.get('error')}")
+            else:
+                logger.warning(f"Computer registration failed: {computer_result.get('error')}")
+                
+        except Exception as e:
+            logger.error(f"Computer registration failed: {e}")
+            # Don't fail login if computer registration fails
 
     @staticmethod
     def _phone_to_email(phone: str) -> str:

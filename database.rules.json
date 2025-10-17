@@ -59,6 +59,16 @@
               ".write": "data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid"
             }
           }
+        },
+        
+        "computers": {
+          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
+          ".indexOn": ["isActive", "lastSeen", "computerName"],
+          
+          "$computerId": {
+            ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
+            ".write": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)"
+          }
         }
       }
     }
