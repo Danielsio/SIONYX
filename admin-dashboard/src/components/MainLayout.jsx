@@ -125,9 +125,19 @@ const MainLayout = () => {
         color: '#fff',
         fontSize: collapsed ? 20 : 24,
         fontWeight: 'bold',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        gap: collapsed ? 0 : 8
       }}>
-        {collapsed ? 'S' : 'SIONYX'}
+        <img 
+          src="/logo.png" 
+          alt="SIONYX Logo" 
+          style={{
+            height: collapsed ? 24 : 32,
+            width: collapsed ? 24 : 32,
+            objectFit: 'contain'
+          }}
+        />
+        {!collapsed && <span>SIONYX</span>}
       </div>
       
       <Menu
@@ -165,7 +175,20 @@ const MainLayout = () => {
       {/* Mobile Drawer */}
       {isMobile && (
         <Drawer
-          title="SIONYX"
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <img 
+                src="/logo.png" 
+                alt="SIONYX Logo" 
+                style={{
+                  height: 24,
+                  width: 24,
+                  objectFit: 'contain'
+                }}
+              />
+              <span>SIONYX</span>
+            </div>
+          }
           placement="right"
           onClose={() => setMobileDrawerVisible(false)}
           open={mobileDrawerVisible}

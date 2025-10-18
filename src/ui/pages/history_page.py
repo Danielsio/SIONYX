@@ -448,12 +448,12 @@ class HistoryPage(QWidget):
             }
         """)
         
-        # Add shadow to header
+        # Add shadow to header - FIXED: Enhanced shadow effect
         header_shadow = QGraphicsDropShadowEffect()
-        header_shadow.setBlurRadius(40)
+        header_shadow.setBlurRadius(50)
         header_shadow.setXOffset(0)
-        header_shadow.setYOffset(12)
-        header_shadow.setColor(QColor(0, 0, 0, 55))
+        header_shadow.setYOffset(15)
+        header_shadow.setColor(QColor(0, 0, 0, 65))
         header_container.setGraphicsEffect(header_shadow)
         header_layout = QVBoxLayout(header_container)
         header_layout.setContentsMargins(30, 25, 30, 25)

@@ -84,9 +84,8 @@ class HomePage(QWidget):
                                      Spacing.PAGE_MARGIN, Spacing.SECTION_MARGIN)
         layout.setSpacing(Spacing.SECTION_SPACING)
 
-        # Create header using base component
-        header_section = HeaderSection(UIStrings.HOME_TITLE, "ניהול זמן והדפסות")
-        layout.addWidget(header_section)
+        # Create header matching history page style
+        self.create_header(layout)
 
 
         # Modern stats grid container using constants
@@ -148,6 +147,56 @@ class HomePage(QWidget):
         self.setup_animations()
 
         self.update_countdown()
+
+    def create_header(self, parent_layout):
+        """Create page header matching history page style"""
+        # Clean header section matching history page style
+        header_container = QWidget()
+        header_container.setStyleSheet("""
+            QWidget {
+                background: #3B82F6;
+                border-radius: 20px;
+                padding: 20px;
+            }
+        """)
+        
+        # Add shadow to header - Enhanced shadow effect
+        header_shadow = QGraphicsDropShadowEffect()
+        header_shadow.setBlurRadius(50)
+        header_shadow.setXOffset(0)
+        header_shadow.setYOffset(15)
+        header_shadow.setColor(QColor(0, 0, 0, 65))
+        header_container.setGraphicsEffect(header_shadow)
+        header_layout = QVBoxLayout(header_container)
+        header_layout.setContentsMargins(30, 25, 30, 25)
+        header_layout.setSpacing(8)
+        
+        # Main title with stunning typography
+        title = QLabel("ניהול זמן והדפסות")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title.setStyleSheet("""
+            QLabel {
+                color: white;
+                font-size: 32px;
+                font-weight: 800;
+                margin-bottom: 8px;
+            }
+        """)
+        
+        # Subtitle with elegant styling
+        subtitle = QLabel("לוח בקרה")
+        subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        subtitle.setStyleSheet("""
+            QLabel {
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 16px;
+                font-weight: 400;
+            }
+        """)
+        
+        header_layout.addWidget(title)
+        header_layout.addWidget(subtitle)
+        parent_layout.addWidget(header_container)
 
     def setup_animations(self):
         """Setup subtle animations and effects for better UX"""

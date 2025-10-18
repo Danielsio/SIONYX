@@ -315,6 +315,18 @@ class ComputerService:
                         'computer_name': computer_data.get('computerName', 'Unknown'),
                         'login_time': computer_data.get('lastUserLogin', '')
                     })
+                else:
+                    # Computer without user
+                    stats['computer_details'].append({
+                        'computer_id': computer_id,
+                        'computer_name': computer_data.get('computerName', 'Unknown'),
+                        'location': computer_data.get('location', ''),
+                        'is_active': is_active,
+                        'current_user_id': None,
+                        'current_user_name': None,
+                        'last_seen': computer_data.get('lastSeen', ''),
+                        'os_info': computer_data.get('osInfo', {})
+                    })
             
             return {
                 'success': True,

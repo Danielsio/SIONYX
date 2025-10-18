@@ -352,24 +352,70 @@ class MainWindow(BaseKioskWindow):
         )
 
         if confirmed:
-            # Clear data from all pages before logout
-            if hasattr(self.home_page, 'cleanup'):
-                self.home_page.cleanup()
-            
-            if hasattr(self.history_page, 'clear_user_data'):
-                self.history_page.clear_user_data()
-            
-            if hasattr(self.packages_page, 'clear_user_data'):
-                self.packages_page.clear_user_data()
+            try:
+                # Stop session service first to prevent crashes
+                if hasattr(self, 'session_service') and self.session_service:
+                    self.session_service.end_session('user')
+                
+                # Clear data from all pages before logout
+                if hasattr(self.home_page, 'cleanup'):
+                    self.home_page.cleanup()
+                
+                if hasattr(self.history_page, 'clear_user_data'):
+                    self.history_page.clear_user_data()
+                
+                if hasattr(self.packages_page, 'clear_user_data'):
+                    self.packages_page.clear_user_data()
 
-            self.auth_service.logout()
-            logger.info("User logged out")
+                # Close floating timer if exists
+                if hasattr(self, 'floating_timer') and self.floating_timer:
+                    self.floating_timer.close()
 
-            self.close()
+                self.auth_service.logout()
+                logger.info("User logged out")
 
-            from ui.auth_window import AuthWindow
-            self.auth_window = AuthWindow(self.auth_service)
-            self.auth_window.show()
+                # Hide main window and show auth window instead of closing
+                self.hide()
+
+                from ui.auth_window import AuthWindow
+                self.auth_window = AuthWindow(self.auth_service)
+                # Connect login success to show main window again
+                self.auth_window.login_success.connect(self.show_main_window_after_login)
+                self.auth_window.show()
+                
+            except Exception as e:
+                logger.error(f"Error during logout: {e}")
+                # Still try to logout even if cleanup fails
+                self.auth_service.logout()
+                # Hide main window and show auth window instead of closing
+                self.hide()
+                from ui.auth_window import AuthWindow
+                self.auth_window = AuthWindow(self.auth_service)
+                # Connect login success to show main window again
+                self.auth_window.login_success.connect(self.show_main_window_after_login)
+                self.auth_window.show()
+
+    def show_main_window_after_login(self):
+        """Show main window after successful login from logout flow"""
+        logger.info("User logged in again, showing main window")
+        
+        # Close the auth window
+        if hasattr(self, 'auth_window') and self.auth_window:
+            self.auth_window.close()
+            self.auth_window = None
+        
+        # Refresh user data and show main window
+        self.current_user = self.auth_service.get_current_user()
+        
+        # Update session service with new user
+        if hasattr(self, 'session_service') and self.session_service:
+            self.session_service.user_id = self.current_user['uid']
+        
+        # Refresh all pages with new user data
+        self.refresh_all_pages(force=True)
+        
+        # Show the main window
+        self.show()
 
     def apply_modern_styles(self):
         """Modern web-style design"""
@@ -397,6 +443,10 @@ class MainWindow(BaseKioskWindow):
         # Initialize timer with current values
         self.floating_timer.update_time(remaining_time)
         self.floating_timer.update_usage_time(0)  # Start with 0 usage time
+        
+        # Update print balance with user's actual prints
+        print_balance = self.current_user.get('remainingPrints', 0)
+        self.floating_timer.update_print_balance(print_balance)
         
         self.floating_timer.show()
 
@@ -441,6 +491,9 @@ class MainWindow(BaseKioskWindow):
             # Also update usage time
             time_used = self.session_service.get_time_used()
             self.floating_timer.update_usage_time(time_used)
+            # Update print balance in case it changed
+            print_balance = self.current_user.get('remainingPrints', 0)
+            self.floating_timer.update_print_balance(print_balance)
 
     def on_session_ended(self, reason: str):
         """Handle session end"""

@@ -39,11 +39,11 @@ class FloatingTimer(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFixedSize(280, 140)  # Further increased height for perfect text display
 
-        # Position at top-center of screen
+        # Position at top-center of screen - stick to ceiling
         from PyQt6.QtWidgets import QApplication
         screen = QApplication.primaryScreen().availableGeometry()
         x = (screen.width() - 280) // 2  # Center horizontally with new width
-        y = 20  # Add some margin from top
+        y = 0  # Stick to the ceiling (top of screen)
         self.move(x, y)
         
         # Debug positioning

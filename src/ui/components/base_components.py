@@ -133,6 +133,7 @@ class StatCard(BaseCard):
     def create_value_label(self) -> QLabel:
         """Create value label - match message card styling"""
         value_label = QLabel(self.value)
+        value_label.setObjectName("timeValue")  # Set objectName for time updates
         value_label.setFont(QFont("Segoe UI", 14, QFont.Weight.Medium))  # Match message card font
         value_label.setStyleSheet("color: #64748B;")  # Match message card color
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

@@ -1,5 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { 
+  Card, 
+  Table, 
+  Tabs, 
+  Statistic, 
+  Row, 
+  Col, 
+  Tag, 
+  Button, 
+  Space, 
+  Typography, 
+  Spin, 
+  Empty,
+  Modal,
+  message,
+  Tooltip,
+  Badge
+} from 'antd';
+import {
+  DesktopOutlined,
+  UserOutlined,
+  ClockCircleOutlined,
+  LogoutOutlined,
+  DeleteOutlined,
+  ReloadOutlined
+} from '@ant-design/icons';
+import { 
   getAllComputers, 
   getComputerUsageStats, 
   getActiveComputerUsers,
@@ -9,13 +35,15 @@ import {
 } from '../services/computerService';
 import { formatDistanceToNow } from 'date-fns';
 
+const { Title, Text } = Typography;
+
 const ComputersPage = () => {
   const [computers, setComputers] = useState([]);
   const [activeUsers, setActiveUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedTab, setSelectedTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
     loadData();
@@ -45,7 +73,7 @@ const ComputersPage = () => {
       }
 
     } catch (err) {
-      setError('Failed to load computer data');
+      setError('נכשל בטעינת נתוני המחשבים');
       console.error('Error loading data:', err);
     } finally {
       setLoading(false);
@@ -53,61 +81,56 @@ const ComputersPage = () => {
   };
 
   const handleForceLogout = async (userId, computerId) => {
-    if (!window.confirm('Are you sure you want to force logout this user?')) {
-      return;
-    }
-
-    try {
-      const result = await forceLogoutUser(userId, computerId);
-      if (result.success) {
-        await loadData(); // Refresh data
-        alert('User logged out successfully');
-      } else {
-        alert('Failed to logout user: ' + result.error);
+    Modal.confirm({
+      title: 'התנתקות כפויה',
+      content: 'האם אתה בטוח שברצונך להתנתק את המשתמש הזה?',
+      okText: 'כן, התנתק',
+      cancelText: 'ביטול',
+      onOk: async () => {
+        try {
+          const result = await forceLogoutUser(userId, computerId);
+          if (result.success) {
+            message.success('המשתמש התנתק בהצלחה');
+            await loadData();
+          } else {
+            message.error('נכשל בהתנתקות המשתמש: ' + result.error);
+          }
+        } catch (err) {
+          message.error('שגיאה בהתנתקות המשתמש: ' + err.message);
+        }
       }
-    } catch (err) {
-      alert('Error logging out user: ' + err.message);
-    }
-  };
-
-  const handleUpdateComputer = async (computerId, updates) => {
-    try {
-      const result = await updateComputer(computerId, updates);
-      if (result.success) {
-        await loadData(); // Refresh data
-        alert('Computer updated successfully');
-      } else {
-        alert('Failed to update computer: ' + result.error);
-      }
-    } catch (err) {
-      alert('Error updating computer: ' + err.message);
-    }
+    });
   };
 
   const handleDeleteComputer = async (computerId) => {
-    if (!window.confirm('Are you sure you want to delete this computer? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      const result = await deleteComputer(computerId);
-      if (result.success) {
-        await loadData(); // Refresh data
-        alert('Computer deleted successfully');
-      } else {
-        alert('Failed to delete computer: ' + result.error);
+    Modal.confirm({
+      title: 'מחיקת מחשב',
+      content: 'האם אתה בטוח שברצונך למחוק את המחשב הזה? פעולה זו לא ניתנת לביטול.',
+      okText: 'כן, מחק',
+      cancelText: 'ביטול',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          const result = await deleteComputer(computerId);
+          if (result.success) {
+            message.success('המחשב נמחק בהצלחה');
+            await loadData();
+          } else {
+            message.error('נכשל במחיקת המחשב: ' + result.error);
+          }
+        } catch (err) {
+          message.error('שגיאה במחיקת המחשב: ' + err.message);
+        }
       }
-    } catch (err) {
-      alert('Error deleting computer: ' + err.message);
-    }
+    });
   };
 
   const formatTime = (timeString) => {
-    if (!timeString) return 'Never';
+    if (!timeString) return 'לעולם לא';
     try {
       return formatDistanceToNow(new Date(timeString), { addSuffix: true });
     } catch {
-      return 'Invalid date';
+      return 'תאריך לא תקין';
     }
   };
 
@@ -118,334 +141,389 @@ const ComputersPage = () => {
     const secs = seconds % 60;
     
     if (hours > 0) {
-      return `${hours}h ${minutes}m ${secs}s`;
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     } else if (minutes > 0) {
-      return `${minutes}m ${secs}s`;
+      return `${minutes}:${secs.toString().padStart(2, '0')}`;
     } else {
       return `${secs}s`;
     }
   };
 
+  const formatSessionTime = (loginTime) => {
+    if (!loginTime) return '0:00:00';
+    const now = new Date();
+    const login = new Date(loginTime);
+    const diffMs = now - login;
+    const diffSeconds = Math.floor(diffMs / 1000);
+    return formatDuration(diffSeconds);
+  };
+
+  // Active Users Table Columns
+  const activeUsersColumns = [
+    {
+      title: 'משתמש',
+      dataIndex: 'userName',
+      key: 'userName',
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{text}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>
+            {record.userPhone}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'מחשב',
+      dataIndex: 'computerName',
+      key: 'computerName',
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{text}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>
+            {record.computerLocation}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'זמן הפעלה נוכחי',
+      key: 'currentSession',
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
+            {formatSessionTime(record.loginTime)}
+          </Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>
+            התחבר ב: {formatTime(record.loginTime)}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'זמן נותר',
+      dataIndex: 'remainingTime',
+      key: 'remainingTime',
+      render: (time) => (
+        <Text style={{ color: time > 3600 ? '#52c41a' : time > 1800 ? '#faad14' : '#ff4d4f' }}>
+          {formatDuration(time)}
+        </Text>
+      ),
+    },
+    {
+      title: 'סטטוס',
+      dataIndex: 'sessionActive',
+      key: 'sessionActive',
+      render: (active) => (
+        <Tag color={active ? 'green' : 'default'}>
+          {active ? 'פעיל' : 'לא פעיל'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'פעולות',
+      key: 'actions',
+      render: (_, record) => (
+        <Button
+          type="text"
+          danger
+          icon={<LogoutOutlined />}
+          onClick={() => handleForceLogout(record.userId, record.computerId)}
+        >
+          התנתק
+        </Button>
+      ),
+    },
+  ];
+
+  // Computers Table Columns
+  const computersColumns = [
+    {
+      title: 'שם המחשב',
+      dataIndex: 'computerName',
+      key: 'computerName',
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{text}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>
+            {record.location || 'ללא מיקום'}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'כתובת MAC',
+      dataIndex: 'macAddress',
+      key: 'macAddress',
+      render: (text) => <Text code>{text || 'לא ידוע'}</Text>,
+    },
+    {
+      title: 'כתובת IP',
+      dataIndex: ['networkInfo', 'local_ip'],
+      key: 'ip',
+      render: (text) => <Text code>{text || 'לא ידוע'}</Text>,
+    },
+    {
+      title: 'מערכת הפעלה',
+      dataIndex: 'osInfo',
+      key: 'os',
+      render: (osInfo) => (
+        <Text>{osInfo?.system || 'לא ידוע'} {osInfo?.release || ''}</Text>
+      ),
+    },
+    {
+      title: 'סטטוס',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      render: (active) => (
+        <Tag color={active ? 'green' : 'default'}>
+          {active ? 'פעיל' : 'לא פעיל'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'נראה לאחרונה',
+      dataIndex: 'lastSeen',
+      key: 'lastSeen',
+      render: (time) => <Text type="secondary">{formatTime(time)}</Text>,
+    },
+    {
+      title: 'פעולות',
+      key: 'actions',
+      render: (_, record) => (
+        <Button
+          type="text"
+          danger
+          icon={<DeleteOutlined />}
+          onClick={() => handleDeleteComputer(record.id)}
+        >
+          מחק
+        </Button>
+      ),
+    },
+  ];
+
+  // Overview Table Columns
+  const overviewColumns = [
+    {
+      title: 'מחשב',
+      dataIndex: 'computerName',
+      key: 'computerName',
+      render: (text, record) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{text}</Text>
+          <Text type="secondary" style={{ fontSize: '12px' }}>
+            {record.macAddress}
+          </Text>
+        </Space>
+      ),
+    },
+    {
+      title: 'מיקום',
+      dataIndex: 'location',
+      key: 'location',
+      render: (text) => <Text>{text || 'לא צוין'}</Text>,
+    },
+    {
+      title: 'סטטוס',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      render: (active) => (
+        <Tag color={active ? 'green' : 'default'}>
+          {active ? 'פעיל' : 'לא פעיל'}
+        </Tag>
+      ),
+    },
+    {
+      title: 'משתמש נוכחי',
+      dataIndex: 'currentUserName',
+      key: 'currentUser',
+      render: (text) => <Text>{text || 'זמין'}</Text>,
+    },
+    {
+      title: 'נראה לאחרונה',
+      dataIndex: 'lastSeen',
+      key: 'lastSeen',
+      render: (time) => <Text type="secondary">{formatTime(time)}</Text>,
+    },
+    {
+      title: 'פעולות',
+      key: 'actions',
+      render: (_, record) => (
+        record.currentUserId && (
+          <Button
+            type="text"
+            danger
+            icon={<LogoutOutlined />}
+            onClick={() => handleForceLogout(record.currentUserId, record.computerId)}
+          >
+            התנתק
+          </Button>
+        )
+      ),
+    },
+  ];
+
+  const tabItems = [
+    {
+      key: 'overview',
+      label: 'סקירה כללית',
+      children: (
+        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          {/* Active Users Table */}
+          <Card title="משתמשים פעילים" extra={<Badge count={activeUsers.length} showZero color="#52c41a" />}>
+            <Table
+              columns={activeUsersColumns}
+              dataSource={activeUsers}
+              rowKey={(record) => `${record.userId}-${record.computerId}`}
+              pagination={{ pageSize: 5 }}
+              locale={{ emptyText: 'אין משתמשים פעילים' }}
+              size="small"
+            />
+          </Card>
+          
+          {/* Computer Overview Table */}
+          <Card title="סקירת מחשבים">
+            <Table
+              columns={overviewColumns}
+              dataSource={stats?.computerDetails || []}
+              rowKey="computerId"
+              pagination={{ pageSize: 10 }}
+              locale={{ emptyText: 'אין נתונים זמינים' }}
+            />
+          </Card>
+        </Space>
+      ),
+    },
+    {
+      key: 'active',
+      label: (
+        <Space>
+          משתמשים פעילים
+          <Badge count={activeUsers.length} showZero color="#52c41a" />
+        </Space>
+      ),
+      children: (
+        <Table
+          columns={activeUsersColumns}
+          dataSource={activeUsers}
+          rowKey={(record) => `${record.userId}-${record.computerId}`}
+          pagination={{ pageSize: 10 }}
+          locale={{ emptyText: 'אין משתמשים פעילים' }}
+        />
+      ),
+    },
+    {
+      key: 'computers',
+      label: 'כל המחשבים',
+      children: (
+        <Table
+          columns={computersColumns}
+          dataSource={computers}
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+          locale={{ emptyText: 'אין מחשבים זמינים' }}
+        />
+      ),
+    },
+  ];
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading computer data...</div>
+      <div style={{ textAlign: 'center', padding: '100px 0' }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>
+          <Text>טוען נתוני מחשבים...</Text>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-red-600">{error}</div>
+      <div style={{ textAlign: 'center', padding: '100px 0' }}>
+        <Text type="danger">{error}</Text>
+        <br />
+        <Button type="primary" icon={<ReloadOutlined />} onClick={loadData} style={{ marginTop: 16 }}>
+          נסה שוב
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Computer Management</h1>
-        <p className="text-gray-600">Monitor and manage computers in your organization</p>
-      </div>
-
-      {/* Stats Overview */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="text-2xl font-bold text-blue-600">{stats.totalComputers}</div>
-            <div className="text-sm text-gray-600">Total Computers</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="text-2xl font-bold text-green-600">{stats.activeComputers}</div>
-            <div className="text-sm text-gray-600">Active Computers</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="text-2xl font-bold text-orange-600">{stats.computersWithUsers}</div>
-            <div className="text-sm text-gray-600">In Use</div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="text-2xl font-bold text-purple-600">{activeUsers.length}</div>
-            <div className="text-sm text-gray-600">Active Users</div>
-          </div>
+    <div style={{ direction: 'rtl' }}>
+      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        {/* Header */}
+        <div>
+          <Title level={2} style={{ marginBottom: 8 }}>
+            ניהול מחשבים
+          </Title>
+          <Text type="secondary">
+            צפה ונתח מחשבים בארגון שלך
+          </Text>
         </div>
-      )}
 
-      {/* Tabs */}
-      <div className="mb-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setSelectedTab('overview')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                selectedTab === 'overview'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setSelectedTab('active')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                selectedTab === 'active'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Active Users
-            </button>
-            <button
-              onClick={() => setSelectedTab('computers')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                selectedTab === 'computers'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              All Computers
-            </button>
-          </nav>
-        </div>
-      </div>
+        {/* Stats Overview */}
+        {stats && (
+          <Row gutter={[16, 16]}>
+            <Col xs={24} sm={12} lg={6}>
+              <Card variant="borderless" style={{ textAlign: 'center' }}>
+                <Statistic
+                  title="סך מחשבים"
+                  value={stats.totalComputers}
+                  prefix={<DesktopOutlined />}
+                  valueStyle={{ color: '#1890ff' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card variant="borderless" style={{ textAlign: 'center' }}>
+                <Statistic
+                  title="מחשבים פעילים"
+                  value={stats.activeComputers}
+                  prefix={<DesktopOutlined />}
+                  valueStyle={{ color: '#52c41a' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card variant="borderless" style={{ textAlign: 'center' }}>
+                <Statistic
+                  title="בשימוש"
+                  value={stats.computersWithUsers}
+                  prefix={<UserOutlined />}
+                  valueStyle={{ color: '#faad14' }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={6}>
+              <Card variant="borderless" style={{ textAlign: 'center' }}>
+                <Statistic
+                  title="משתמשים פעילים"
+                  value={activeUsers.length}
+                  prefix={<UserOutlined />}
+                  valueStyle={{ color: '#722ed1' }}
+                />
+              </Card>
+            </Col>
+          </Row>
+        )}
 
-      {/* Overview Tab */}
-      {selectedTab === 'overview' && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Computer Usage Overview</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Computer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Current User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Seen
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {stats?.computerDetails?.map((computer) => (
-                  <tr key={computer.computerId}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {computer.computerName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {computer.macAddress}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {computer.location || 'Not specified'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        computer.isActive 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {computer.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {computer.currentUserName || 'Available'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatTime(computer.lastSeen)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {computer.currentUserId && (
-                        <button
-                          onClick={() => handleForceLogout(computer.currentUserId, computer.computerId)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Force Logout
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Active Users Tab */}
-      {selectedTab === 'active' && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Currently Active Users</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Computer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Session Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Remaining Time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Login Time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {activeUsers.map((user) => (
-                  <tr key={`${user.userId}-${user.computerId}`}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {user.userName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {user.userPhone}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {user.computerName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {user.computerLocation}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        user.sessionActive 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {user.sessionActive ? 'Active Session' : 'No Session'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDuration(user.remainingTime)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatTime(user.loginTime)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleForceLogout(user.userId, user.computerId)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Force Logout
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* All Computers Tab */}
-      {selectedTab === 'computers' && (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">All Computers</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Computer Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    MAC Address
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    IP Address
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    OS
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Seen
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {computers.map((computer) => (
-                  <tr key={computer.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {computer.computerName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {computer.location || 'No location'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {computer.macAddress || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {computer.networkInfo?.local_ip || 'Unknown'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {computer.osInfo?.system || 'Unknown'} {computer.osInfo?.release || ''}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        computer.isActive 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {computer.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {formatTime(computer.lastSeen)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleDeleteComputer(computer.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        {/* Tabs */}
+        <Card>
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={tabItems}
+            tabBarExtraContent={
+              <Button icon={<ReloadOutlined />} onClick={loadData}>
+                רענן
+              </Button>
+            }
+          />
+        </Card>
+      </Space>
     </div>
   );
 };
