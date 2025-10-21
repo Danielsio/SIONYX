@@ -5,6 +5,31 @@
       ".write": false
     },
     
+    "org": {
+      "metadata": {
+        "$orgId": {
+          ".write": "!data.exists()", // Only allow write if doesn't exist (prevent overwrites)
+          ".read": "auth != null", // Allow read for authenticated users
+          ".validate": "newData.hasChildren(['name', 'nedarim_mosad_id', 'nedarim_api_valid', 'created_at', 'status'])",
+          "name": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+          },
+          "nedarim_mosad_id": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "nedarim_api_valid": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "created_at": {
+            ".validate": "newData.isString()"
+          },
+          "status": {
+            ".validate": "newData.isString() && newData.val() === 'active'"
+          }
+        }
+      }
+    },
+    
     "organizations": {
       ".read": "root.child('config/superAdminUid').val() == auth.uid",
       ".write": "root.child('config/superAdminUid').val() == auth.uid",

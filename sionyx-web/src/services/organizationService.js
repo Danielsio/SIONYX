@@ -1,7 +1,16 @@
 import { database } from '../config/firebase';
 import { ref, set, get } from 'firebase/database';
 
-// Simple base64 encoding for now (can be upgraded to proper encryption later)
+/**
+ * Organization Service
+ * 
+ * This service handles organization-related operations including:
+ * - Registration of new organizations
+ * - Retrieving organization metadata (including NEDARIM credentials)
+ * - Getting organization statistics for the admin dashboard
+ */
+
+// Simple base64 encoding for sensitive data (can be upgraded to proper encryption later)
 const encodeData = (data) => {
   return btoa(JSON.stringify(data));
 };
@@ -15,9 +24,36 @@ const decodeData = (encodedData) => {
   }
 };
 
+/**
+ * Register a new organization
+ * 
+ * WHY NEEDED: Landing page needs this to register new organizations
+ * with their NEDARIM credentials for payment processing
+ * 
+ * @param {Object} organizationData - Organization details including NEDARIM credentials
+ * @returns {Object} Success status and organization ID
+ */
 export const registerOrganization = async (organizationData) => {
   try {
     const { organizationName, nedarimMosadId, nedarimApiValid } = organizationData;
+    
+    // Check if organization name already exists
+    const orgsRef = ref(database, 'org/metadata');
+    const snapshot = await get(orgsRef);
+    
+    if (snapshot.exists()) {
+      const organizations = snapshot.val();
+      const existingOrg = Object.values(organizations).find(org => 
+        org.name && org.name.toLowerCase() === organizationName.toLowerCase()
+      );
+      
+      if (existingOrg) {
+        return {
+          success: false,
+          error: 'Organization name already exists'
+        };
+      }
+    }
     
     // Generate organization ID (simple timestamp-based for now)
     const orgId = `org_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -31,7 +67,7 @@ export const registerOrganization = async (organizationData) => {
       status: 'active'
     };
     
-    // Save to Firebase
+    // Save to Firebase (will be validated by database rules)
     const orgRef = ref(database, `org/metadata/${orgId}`);
     await set(orgRef, metadata);
     
@@ -43,6 +79,15 @@ export const registerOrganization = async (organizationData) => {
     
   } catch (error) {
     console.error('Error registering organization:', error);
+    
+    // Handle specific Firebase errors
+    if (error.message && error.message.includes('permission')) {
+      return {
+        success: false,
+        error: 'Permission denied. Please contact support.'
+      };
+    }
+    
     return {
       success: false,
       error: 'Failed to register organization'
@@ -50,6 +95,15 @@ export const registerOrganization = async (organizationData) => {
   }
 };
 
+/**
+ * Get organization metadata including NEDARIM credentials
+ * 
+ * WHY NEEDED: Python client needs this to fetch NEDARIM credentials
+ * from database instead of environment variables for payment processing
+ * 
+ * @param {string} orgId - Organization ID
+ * @returns {Object} Success status and decoded metadata
+ */
 export const getOrganizationMetadata = async (orgId) => {
   try {
     const orgRef = ref(database, `org/metadata/${orgId}`);
@@ -80,33 +134,66 @@ export const getOrganizationMetadata = async (orgId) => {
   }
 };
 
-export const getAllOrganizations = async () => {
+/**
+ * Get organization statistics for admin dashboard
+ * 
+ * WHY NEEDED: OverviewPage needs this to display dashboard statistics
+ * including user count, package count, purchases, revenue, and time metrics
+ * 
+ * @param {string} orgId - Organization ID
+ * @returns {Object} Success status and statistics data
+ */
+export const getOrganizationStats = async (orgId) => {
   try {
-    const orgsRef = ref(database, 'org/metadata');
-    const snapshot = await get(orgsRef);
+    // Get users count
+    const usersRef = ref(database, `organizations/${orgId}/users`);
+    const usersSnapshot = await get(usersRef);
+    const usersCount = usersSnapshot.exists() ? Object.keys(usersSnapshot.val()).length : 0;
+
+    // Get packages count
+    const packagesRef = ref(database, `organizations/${orgId}/packages`);
+    const packagesSnapshot = await get(packagesRef);
+    const packagesCount = packagesSnapshot.exists() ? Object.keys(packagesSnapshot.val()).length : 0;
+
+    // Get purchases count and total revenue
+    const purchasesRef = ref(database, `organizations/${orgId}/purchases`);
+    const purchasesSnapshot = await get(purchasesRef);
     
-    if (snapshot.exists()) {
-      const organizations = snapshot.val();
-      return {
-        success: true,
-        organizations: Object.keys(organizations).map(orgId => ({
-          orgId,
-          name: organizations[orgId].name,
-          created_at: organizations[orgId].created_at,
-          status: organizations[orgId].status
-        }))
-      };
-    } else {
-      return {
-        success: true,
-        organizations: []
-      };
+    let purchasesCount = 0;
+    let totalRevenue = 0;
+    let totalTimeMinutes = 0;
+
+    if (purchasesSnapshot.exists()) {
+      const purchases = purchasesSnapshot.val();
+      purchasesCount = Object.keys(purchases).length;
+      
+      // Calculate totals
+      Object.values(purchases).forEach(purchase => {
+        if (purchase.status === 'completed' && purchase.amount) {
+          totalRevenue += parseFloat(purchase.amount) || 0;
+        }
+        if (purchase.minutes) {
+          totalTimeMinutes += parseInt(purchase.minutes) || 0;
+        }
+      });
     }
+
+    return {
+      success: true,
+      stats: {
+        usersCount,
+        packagesCount,
+        purchasesCount,
+        totalRevenue,
+        totalTimeMinutes
+      }
+    };
+
   } catch (error) {
-    console.error('Error getting all organizations:', error);
+    console.error('Error getting organization stats:', error);
     return {
       success: false,
-      error: 'Failed to get organizations'
+      error: 'Failed to get organization statistics'
     };
   }
 };
