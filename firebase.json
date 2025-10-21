@@ -19,7 +19,7 @@
     "rules": "database.rules.json"
   },
   "hosting": {
-    "public": "admin-dashboard/dist",
+    "public": "sionyx-web/dist",
     "ignore": [
       "firebase.json",
       "**/.*",

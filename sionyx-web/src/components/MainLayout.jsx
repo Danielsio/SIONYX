@@ -44,7 +44,7 @@ const MainLayout = () => {
   const handleLogout = async () => {
     await signOut();
     logout();
-    navigate('/login');
+    navigate('/admin/login');
   };
 
   const handleMenuClick = ({ key }) => {
@@ -64,27 +64,27 @@ const MainLayout = () => {
 
   const menuItems = [
     {
-      key: '/',
+      key: '/admin',
       icon: <DashboardOutlined />,
       label: 'סקירה כללית',
     },
     {
-      key: '/users',
+      key: '/admin/users',
       icon: <UserOutlined />,
       label: 'משתמשים',
     },
     {
-      key: '/packages',
+      key: '/admin/packages',
       icon: <AppstoreOutlined />,
       label: 'חבילות',
     },
     {
-      key: '/messages',
+      key: '/admin/messages',
       icon: <MessageOutlined />,
       label: 'הודעות',
     },
     {
-      key: '/computers',
+      key: '/admin/computers',
       icon: <DesktopOutlined />,
       label: 'מחשבים',
     },

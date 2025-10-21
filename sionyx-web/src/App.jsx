@@ -9,6 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/MainLayout';
 
 // Pages
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import OverviewPage from './pages/OverviewPage';
 import UsersPage from './pages/UsersPage';
@@ -58,11 +59,14 @@ function App() {
       <AntApp>
         <Router>
           <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+            {/* Landing Page */}
+            <Route path="/" element={<LandingPage />} />
 
-            {/* Protected Routes */}
-            <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+            {/* Admin Login */}
+            <Route path="/admin/login" element={isAuthenticated ? <Navigate to="/admin" replace /> : <LoginPage />} />
+
+            {/* Protected Admin Routes */}
+            <Route path="/admin" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route index element={<OverviewPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="packages" element={<PackagesPage />} />

@@ -22,7 +22,7 @@ const LoginPage = () => {
     if (result.success) {
       setUser(result.user);
       message.success(`Welcome to ${values.orgId}!`);
-      navigate('/');
+      navigate('/admin');
     } else {
       setError(result.error);
       message.error(result.error);

@@ -14,6 +14,7 @@ import requests
 
 from services.payment_bridge import PaymentBridge
 from services.purchase_service import PurchaseService
+from services.organization_metadata_service import OrganizationMetadataService
 from utils.logger import get_logger
 from utils.purchase_constants import is_final_status
 from ui.web.local_server import LocalFileServer
@@ -413,10 +414,18 @@ class PaymentDialog(QDialog):
             logger.error("Failed to load payment page")
             return
 
-        # Get credentials
-        mosad_id = os.getenv('NEDARIM_MOSAD_ID', '')
-        api_valid = os.getenv('NEDARIM_API_VALID', '')
-        callback_url = os.getenv('NEDARIM_CALLBACK_URL', '')
+        # Get credentials from organization metadata
+        org_metadata_service = OrganizationMetadataService(self.auth_service.firebase)
+        credentials_result = org_metadata_service.get_nedarim_credentials(self.auth_service.firebase.org_id)
+        
+        if not credentials_result['success']:
+            logger.error(f"Failed to get NEDARIM credentials: {credentials_result['error']}")
+            return
+
+        credentials = credentials_result['credentials']
+        mosad_id = credentials['mosad_id']
+        api_valid = credentials['api_valid']
+        callback_url = os.getenv('NEDARIM_CALLBACK_URL', '')  # Keep callback URL from env for now
 
         if not mosad_id or not api_valid:
             logger.error("Missing Nedarim Plus credentials")
