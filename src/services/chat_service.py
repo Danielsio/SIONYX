@@ -70,7 +70,7 @@ class ChatService(QObject):
                 'messages': self.cached_messages
             }
         
-        logger.info("Fetching unread messages")
+        logger.debug("Fetching unread messages", action="get_messages")
         
         # Get all messages for this user (Firebase client handles org path)
         result = self.firebase.db_get('messages')
@@ -105,7 +105,7 @@ class ChatService(QObject):
         # Update cache
         self._update_cache(user_messages)
         
-        logger.info(f"Found {len(user_messages)} unread messages")
+        logger.debug("Found unread messages", count=len(user_messages), action="get_messages")
         return {
             'success': True,
             'messages': user_messages
@@ -124,7 +124,7 @@ class ChatService(QObject):
                 'error': str (if failed)
             }
         """
-        logger.info(f"Marking message {message_id} as read")
+        logger.debug("Marking message as read", message_id=message_id, action="mark_read")
         
         result = self.firebase.db_set(f'messages/{message_id}/read', True)
         
@@ -142,7 +142,7 @@ class ChatService(QObject):
         if not timestamp_result.get('success'):
             logger.warning(f"Failed to set read timestamp: {timestamp_result.get('error')}")
         
-        logger.info(f"Message {message_id} marked as read")
+        logger.debug("Message marked as read", message_id=message_id, action="mark_read")
         return {
             'success': True
         }
@@ -157,7 +157,7 @@ class ChatService(QObject):
                 'error': str (if failed)
             }
         """
-        logger.info("Marking all messages as read")
+        logger.debug("Marking all messages as read", action="mark_all_read")
         
         # Get unread messages first
         unread_result = self.get_unread_messages()
@@ -173,7 +173,7 @@ class ChatService(QObject):
             if message_id:
                 self.mark_message_as_read(message_id)
         
-        logger.info(f"Marked {len(messages)} messages as read")
+        logger.debug("Marked all messages as read", count=len(messages), action="mark_all_read")
         return {
             'success': True
         }
@@ -241,7 +241,7 @@ class ChatService(QObject):
         self.listen_thread = threading.Thread(target=self._listen_loop, daemon=True)
         self.listen_thread.start()
         
-        logger.info("Started listening for messages")
+        logger.debug("Started listening for messages", action="start_listening")
         return True
 
     def stop_listening(self):
@@ -254,7 +254,7 @@ class ChatService(QObject):
         if self.listen_thread and self.listen_thread.is_alive():
             self.listen_thread.join(timeout=1)
         
-        logger.info("Stopped listening for messages")
+        logger.debug("Stopped listening for messages", action="stop_listening")
 
     def _listen_loop(self):
         """Internal method for listening loop with smart polling"""

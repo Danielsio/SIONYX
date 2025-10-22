@@ -68,7 +68,7 @@ class SessionService(QObject):
         Returns:
             {'success': bool, 'session_id': str, 'error': str}
         """
-        logger.info("Starting new session")
+        logger.debug("Starting new session", action="session_start")
 
         if self.is_active:
             logger.warning("Session already active")
@@ -114,7 +114,7 @@ class SessionService(QObject):
         # Generate local session ID for tracking
         import uuid
         self.session_id = str(uuid.uuid4())
-        logger.info(f"Session started (local ID: {self.session_id})")
+        logger.debug("Session started", session_id=self.session_id, action="session_start")
 
         # Initialize local state
         self.remaining_time = initial_remaining_time
@@ -128,7 +128,7 @@ class SessionService(QObject):
         self.countdown_timer.start(1000)  # Every second (local countdown, free)
         self.sync_timer.start(60000)  # Every 60 seconds (83% cost reduction!)
 
-        logger.info(f"Session started with {initial_remaining_time}s")
+        logger.info("Session started successfully", remaining_time=initial_remaining_time, action="session_start")
         return {
             'success': True,
             'session_id': self.session_id
@@ -144,7 +144,7 @@ class SessionService(QObject):
         if not self.is_active:
             return {'success': False, 'error': 'No active session'}
 
-        logger.info(f"Ending session: {self.session_id} (reason: {reason})")
+        logger.info("Ending session", session_id=self.session_id, reason=reason, action="session_end")
 
         # Stop timers
         self.countdown_timer.stop()
@@ -167,7 +167,7 @@ class SessionService(QObject):
         # Emit signal
         self.session_ended.emit(reason)
 
-        logger.info(f"Session ended. Time used: {self.time_used}s")
+        logger.info("Session ended", time_used=self.time_used, action="session_end")
         return {
             'success': True,
             'time_used': self.time_used,
@@ -207,7 +207,7 @@ class SessionService(QObject):
         if not self.is_active:
             return
 
-        logger.debug("Syncing user state to Firebase")
+        logger.debug("Syncing user state", action="session_sync")
 
         # OPTIMIZATION: Only update user record!
         # No separate session table = 50% fewer writes
@@ -223,7 +223,7 @@ class SessionService(QObject):
         )
 
         if user_result.get('success'):
-            logger.debug("Sync successful")
+            logger.debug("Sync successful", action="session_sync")
 
             # Reset failure counter
             if self.consecutive_sync_failures > 0:
@@ -234,7 +234,7 @@ class SessionService(QObject):
         else:
             # Handle sync failure
             self.consecutive_sync_failures += 1
-            logger.error(f"Sync failed ({self.consecutive_sync_failures} times)")
+            logger.error("Sync failed", failures=self.consecutive_sync_failures, action="session_sync")
 
             if self.consecutive_sync_failures >= 3:
                 self.is_online = False
@@ -248,7 +248,7 @@ class SessionService(QObject):
 
     def _final_sync(self, reason: str):
         """Final sync when ending session"""
-        logger.info("Final session sync")
+        logger.debug("Final session sync", action="session_end")
 
         # OPTIMIZATION: Only update user record, no separate session
         now = datetime.now().isoformat()
@@ -261,7 +261,7 @@ class SessionService(QObject):
             'updatedAt': now
         })
         
-        logger.info(f"Session ended. Reason: {reason}, Time used: {self.time_used}s")
+        logger.debug("Session final sync completed", reason=reason, time_used=self.time_used, action="session_end")
 
     def _get_current_computer_id(self) -> str:
         """Get the current computer ID from user data"""

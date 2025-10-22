@@ -66,7 +66,7 @@ class PackagesPage(QWidget):
         self.packages_layout.setContentsMargins(Spacing.CARD_MARGIN, Spacing.CARD_MARGIN, 
                                               Spacing.CARD_MARGIN, Spacing.CARD_MARGIN)
         self.packages_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        logger.info("Created packages grid layout")
+        logger.debug("Packages grid layout created", component="packages_page")
 
         # Scroll area using constants
         scroll = QScrollArea()
@@ -101,7 +101,7 @@ class PackagesPage(QWidget):
         main_layout.addWidget(self.loading_spinner)
         main_layout.addWidget(scroll, 1)
 
-        logger.debug("Packages page initialized with modern styling")
+        logger.debug("Packages page initialized", component="packages_page")
 
     def create_header(self, parent_layout):
         """Create page header matching history page style"""
@@ -155,7 +155,7 @@ class PackagesPage(QWidget):
 
     def load_packages(self):
         """Load packages from Firebase"""
-        logger.info("Loading packages from database")
+        logger.debug("Loading packages from database", action="load_packages")
 
         # Simulate async load with QTimer
         QTimer.singleShot(500, self._fetch_packages)
@@ -165,23 +165,21 @@ class PackagesPage(QWidget):
         result = self.package_service.get_all_packages()
 
         if not result.get('success'):
-            logger.error(f"Failed to load packages: {result.get('error')}")
+            logger.error("Failed to load packages", error=result.get('error'), action="load_packages")
             self.show_error_state("❌ נכשל בטעינת החבילות")
             return
 
         self.packages = result.get('data', [])
 
         if len(self.packages) == 0:
-            logger.warning("No packages available")
+            logger.warning("No packages available", action="load_packages")
             self.show_empty_state()
             return
 
-        logger.info(f"Loaded {len(self.packages)} packages")
-        logger.info(f"Packages data: {self.packages}")
+        logger.info("Packages loaded successfully", count=len(self.packages), action="load_packages")
         
         # Hide loading spinner and show packages
         self.loading_spinner.hide()
-        logger.info("About to call display_packages()")
         self.display_packages()
     
     def show_error_state(self, message: str):
@@ -196,7 +194,7 @@ class PackagesPage(QWidget):
 
     def refresh_user_data(self):
         """Refresh user data and reload packages"""
-        logger.info("Refreshing user data in PackagesPage")
+        logger.debug("Refreshing user data", component="packages_page")
         
         # Get current user from auth service
         self.current_user = self.auth_service.get_current_user()
@@ -206,7 +204,7 @@ class PackagesPage(QWidget):
 
     def clear_user_data(self):
         """Clear all user data (called on logout)"""
-        logger.info("Clearing user data in PackagesPage")
+        logger.debug("Clearing user data", component="packages_page")
         
         self.current_user = None
         self.packages = []
@@ -217,7 +215,7 @@ class PackagesPage(QWidget):
 
     def display_packages(self):
         """Display packages in beautiful responsive grid"""
-        logger.info(f"Displaying {len(self.packages)} packages")
+        logger.debug("Displaying packages", count=len(self.packages), action="display_packages")
         
         # Clear existing widgets
         for i in reversed(range(self.packages_layout.count())):
@@ -242,29 +240,21 @@ class PackagesPage(QWidget):
         for package in self.packages:
             if isinstance(package, dict) and 'name' in package:
                 valid_packages.append(package)
-            else:
-                logger.warning(f"Skipping invalid package: {package} (type: {type(package)})")
-        
-        logger.info(f"Found {len(valid_packages)} valid packages out of {len(self.packages)} total")
         
         if len(valid_packages) == 0:
-            logger.warning("No valid packages to display")
+            logger.warning("No valid packages to display", action="display_packages")
             return
 
         for package in valid_packages:
-            logger.info(f"Creating card for package: {package.get('name', 'Unknown')}")
             card = self.create_package_card(package)
             
             # Add card to grid with proper alignment
             self.packages_layout.addWidget(card, row, col, Qt.AlignmentFlag.AlignCenter)
-            logger.info(f"Added card to grid at row {row}, col {col}")
 
             col += 1
             if col >= max_columns:
                 col = 0
                 row += 1
-        
-        logger.info(f"Finished displaying packages. Grid has {self.packages_layout.count()} items")
         
         # Force UI refresh and repaint
         self.packages_container.update()
@@ -276,10 +266,8 @@ class PackagesPage(QWidget):
         """Create package card using base components and constants"""
         # Validate package data
         if not isinstance(package, dict):
-            logger.error(f"Invalid package data: {package} (type: {type(package)})")
+            logger.error("Invalid package data", package_type=type(package).__name__, action="create_card")
             return QFrame()  # Return empty frame for invalid data
-        
-        logger.info(f"Creating card for: {package.get('name', 'Unknown')}")
         
         # Create base card with package-specific styling
         card = BaseCard("package")
@@ -429,14 +417,13 @@ class PackagesPage(QWidget):
         layout.addWidget(price_container)
         layout.addWidget(purchase_btn)
 
-        logger.info(f"Card created successfully for: {package.get('name', 'Unknown')}")
         return card
 
 
 
     def handle_purchase(self, package: Dict):
         """Handle package purchase"""
-        logger.info(f"Purchase initiated: {package.get('name')}")
+        logger.info("Purchase initiated", package_name=package.get('name'), action="purchase_initiated")
 
         from ui.payment_dialog import PaymentDialog
         from services.purchase_service import PurchaseService
@@ -461,7 +448,7 @@ class PackagesPage(QWidget):
 
             # Payment was successful - the purchase is already recorded by the Cloud Function
             # The user's account has been credited automatically
-            logger.info("Payment completed successfully - user account credited by Cloud Function")
+            logger.info("Payment completed successfully", action="payment_success")
             
             # Show success message
             parent_window = self.window()
@@ -487,5 +474,5 @@ class PackagesPage(QWidget):
             self.load_packages()
         else:
             # Payment cancelled
-            logger.info("Payment cancelled by user")
+            logger.info("Payment cancelled by user", action="payment_cancelled")
 

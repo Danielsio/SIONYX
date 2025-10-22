@@ -1,12 +1,61 @@
 """
-Professional Logging System with Colors
+Professional Structured Logging System
 """
 
 import logging
 import sys
+import json
+import uuid
 from pathlib import Path
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict, Any
+from contextvars import ContextVar
+
+
+# Context variables for request tracking
+_request_id: ContextVar[str] = ContextVar('request_id', default='')
+_user_id: ContextVar[str] = ContextVar('user_id', default='')
+_org_id: ContextVar[str] = ContextVar('org_id', default='')
+
+
+class StructuredFormatter(logging.Formatter):
+    """Structured JSON formatter for production logging"""
+
+    def format(self, record):
+        """Format log record as structured JSON"""
+        # Base log structure
+        log_entry = {
+            'timestamp': datetime.fromtimestamp(record.created).isoformat(),
+            'level': record.levelname,
+            'logger': record.name,
+            'message': record.getMessage(),
+            'module': record.module,
+            'function': record.funcName,
+            'line': record.lineno
+        }
+
+        # Add context if available
+        if _request_id.get():
+            log_entry['request_id'] = _request_id.get()
+        if _user_id.get():
+            log_entry['user_id'] = _user_id.get()
+        if _org_id.get():
+            log_entry['org_id'] = _org_id.get()
+
+        # Add extra fields from record
+        if hasattr(record, 'extra_data'):
+            log_entry.update(record.extra_data)
+
+        # Add exception info if present
+        if record.exc_info:
+            import traceback
+            log_entry['exception'] = {
+                'type': record.exc_info[0].__name__,
+                'message': str(record.exc_info[1]),
+                'traceback': ''.join(traceback.format_exception(*record.exc_info))
+            }
+
+        return json.dumps(log_entry, ensure_ascii=False)
 
 
 class ColoredFormatter(logging.Formatter):
@@ -46,6 +95,14 @@ class ColoredFormatter(logging.Formatter):
         # Format module name (shortened)
         module = record.name.split('.')[-1][:15]
 
+        # Build context info
+        context_parts = []
+        if _request_id.get():
+            context_parts.append(f"req:{_request_id.get()[:8]}")
+        if _user_id.get():
+            context_parts.append(f"user:{_user_id.get()[:8]}")
+        context_str = f"[{':'.join(context_parts)}] " if context_parts else ""
+
         # Build colored output
         colored_output = (
             f"{self.DIM}{timestamp}{self.RESET} "
@@ -53,7 +110,7 @@ class ColoredFormatter(logging.Formatter):
             f"{self.DIM}│{self.RESET} "
             f"{self.BOLD}{module:15}{self.RESET} "
             f"{self.DIM}│{self.RESET} "
-            f"{record.getMessage()}"
+            f"{context_str}{record.getMessage()}"
         )
 
         # Add exception info if present
@@ -70,27 +127,43 @@ class ColoredFormatter(logging.Formatter):
 
 
 class FileFormatter(logging.Formatter):
-    """Detailed formatter for file output (no colors)"""
+    """Structured formatter for file output"""
 
     def format(self, record):
-        """Format log record for file"""
-        timestamp = datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        """Format log record for file with structured data"""
+        # Base log structure
+        log_entry = {
+            'timestamp': datetime.fromtimestamp(record.created).isoformat(),
+            'level': record.levelname,
+            'logger': record.name,
+            'message': record.getMessage(),
+            'module': record.module,
+            'function': record.funcName,
+            'line': record.lineno
+        }
 
-        output = (
-            f"{timestamp} | "
-            f"{record.levelname:8} | "
-            f"{record.name:30} | "
-            f"{record.funcName:20} | "
-            f"Line {record.lineno:4} | "
-            f"{record.getMessage()}"
-        )
+        # Add context if available
+        if _request_id.get():
+            log_entry['request_id'] = _request_id.get()
+        if _user_id.get():
+            log_entry['user_id'] = _user_id.get()
+        if _org_id.get():
+            log_entry['org_id'] = _org_id.get()
 
+        # Add extra fields from record
+        if hasattr(record, 'extra_data'):
+            log_entry.update(record.extra_data)
+
+        # Add exception info if present
         if record.exc_info:
             import traceback
-            tb = ''.join(traceback.format_exception(*record.exc_info))
-            output += f"\n{tb}"
+            log_entry['exception'] = {
+                'type': record.exc_info[0].__name__,
+                'message': str(record.exc_info[1]),
+                'traceback': ''.join(traceback.format_exception(*record.exc_info))
+            }
 
-        return output
+        return json.dumps(log_entry, ensure_ascii=False)
 
 
 class SionyxLogger:
@@ -128,6 +201,10 @@ class SionyxLogger:
         # Console Handler (colored, INFO and above)
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(log_level)
+        
+        # Set UTF-8 encoding for console output
+        if hasattr(console_handler.stream, 'reconfigure'):
+            console_handler.stream.reconfigure(encoding='utf-8')
 
         if enable_colors and sys.stdout.isatty():
             console_handler.setFormatter(ColoredFormatter())
@@ -183,19 +260,82 @@ class SionyxLogger:
                 logging.getLogger(__name__).debug(f"Deleted old log: {log_file.name}")
 
 
-def get_logger(name: str) -> logging.Logger:
+def set_context(request_id: str = None, user_id: str = None, org_id: str = None):
+    """Set logging context for request tracking"""
+    if request_id:
+        _request_id.set(request_id)
+    if user_id:
+        _user_id.set(user_id)
+    if org_id:
+        _org_id.set(org_id)
+
+
+def clear_context():
+    """Clear all logging context"""
+    _request_id.set('')
+    _user_id.set('')
+    _org_id.set('')
+
+
+def generate_request_id() -> str:
+    """Generate a unique request ID"""
+    return str(uuid.uuid4())[:8]
+
+
+class StructuredLogger:
+    """Enhanced logger with structured logging capabilities"""
+    
+    def __init__(self, name: str):
+        self.logger = logging.getLogger(name)
+    
+    def _log_with_context(self, level: int, message: str, extra_data: Dict[str, Any] = None):
+        """Log with structured context data"""
+        extra = {}
+        if extra_data:
+            extra['extra_data'] = extra_data
+        
+        self.logger.log(level, message, extra=extra)
+    
+    def debug(self, message: str, **kwargs):
+        """Debug level logging with structured data"""
+        self._log_with_context(logging.DEBUG, message, kwargs)
+    
+    def info(self, message: str, **kwargs):
+        """Info level logging with structured data"""
+        self._log_with_context(logging.INFO, message, kwargs)
+    
+    def warning(self, message: str, **kwargs):
+        """Warning level logging with structured data"""
+        self._log_with_context(logging.WARNING, message, kwargs)
+    
+    def error(self, message: str, **kwargs):
+        """Error level logging with structured data"""
+        self._log_with_context(logging.ERROR, message, kwargs)
+    
+    def critical(self, message: str, **kwargs):
+        """Critical level logging with structured data"""
+        self._log_with_context(logging.CRITICAL, message, kwargs)
+    
+    def exception(self, message: str, **kwargs):
+        """Exception logging with traceback"""
+        self._log_with_context(logging.ERROR, message, kwargs)
+        self.logger.exception(message)
+
+
+def get_logger(name: str) -> StructuredLogger:
     """
-    Get logger for a module
+    Get structured logger for a module
 
     Usage:
-        from utils.logger import get_logger
+        from utils.logger import get_logger, set_context
         logger = get_logger(__name__)
 
-        logger.debug("Detailed debug info")
-        logger.info("General information")
-        logger.warning("Warning message")
-        logger.error("Error occurred")
-        logger.critical("Critical failure")
-        logger.exception("Error with traceback")  # Use in except blocks
+        # Set context for request tracking
+        set_context(request_id="req123", user_id="user456", org_id="org789")
+
+        # Structured logging
+        logger.info("User authenticated", user_id="user123", action="login")
+        logger.error("Database error", operation="create_user", error_code="DB001")
+        logger.debug("Processing request", request_data={"param": "value"})
     """
-    return logging.getLogger(name)
+    return StructuredLogger(name)

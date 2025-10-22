@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from services.firebase_client import FirebaseClient
 from services.computer_service import ComputerService
 from database.local_db import LocalDatabase
-from utils.logger import get_logger
+from utils.logger import get_logger, set_context
 from utils.error_translations import translate_error
 
 logger = get_logger(__name__)
@@ -23,7 +23,7 @@ class AuthService:
         self.local_db = LocalDatabase()
         self.computer_service = ComputerService(self.firebase)
         self.current_user = None
-        logger.info("Auth service initialized")
+        logger.info("Auth service initialized", component="auth_service")
 
     def is_logged_in(self) -> bool:
         """Check if user is already logged in"""
@@ -42,7 +42,7 @@ class AuthService:
             if user_result.get('success') and user_result.get('data'):
                 self.current_user = user_result['data']
                 self.current_user['uid'] = self.firebase.user_id
-                logger.info("User auto-logged in")
+                logger.info("User auto-logged in", user_id=self.firebase.user_id, action="auto_login")
                 
                 # Check for crashed/orphaned session and recover time
                 self._recover_orphaned_session(self.firebase.user_id)

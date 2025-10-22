@@ -30,7 +30,7 @@ SionyxLogger.setup(
 
 SionyxLogger.cleanup_old_logs(days_to_keep=7)
 
-from utils.logger import get_logger
+from utils.logger import get_logger, set_context, generate_request_id
 logger = get_logger(__name__)
 
 from PyQt6.QtWidgets import QApplication, QInputDialog, QLineEdit
@@ -45,7 +45,11 @@ class SionyxApp:
     """Main application class"""
 
     def __init__(self):
-        logger.info("Initializing application components")
+        # Generate request ID for this application session
+        request_id = generate_request_id()
+        set_context(request_id=request_id)
+        
+        logger.info("Initializing application", request_id=request_id, component="main_app")
 
         self.auth_window = None
         self.main_window = None
@@ -61,57 +65,49 @@ class SionyxApp:
             self.app = QApplication(sys.argv)
             self.app.setApplicationName(APP_NAME)
             self.app.setOrganizationName(APP_NAME)
-            logger.debug("Qt Application created with high DPI scaling enabled")
 
             # Initialize services
             self.config = FirebaseConfig()
-            logger.debug("Configuration loaded")
-
             self.auth_service = AuthService(self.config)
-            logger.debug("Authentication service initialized")
 
             # Initialize global hotkey service
             self.global_hotkey_service = GlobalHotkeyService()
             self.global_hotkey_service.admin_exit_requested.connect(self.handle_admin_exit)
             self.global_hotkey_service.start()
-            logger.debug("Global hotkey service initialized")
 
             # Show appropriate window
             if self.auth_service.is_logged_in():
-                logger.info("User session restored from cache")
+                logger.info("User session restored", action="session_restore")
                 self.show_main_window()
             else:
-                logger.info("No active session, showing auth screen")
+                logger.info("No active session", action="show_auth")
                 self.show_auth_window()
 
         except Exception as e:
-            logger.exception("Failed to initialize application")
+            logger.exception("Application initialization failed", error=str(e), component="main_app")
             raise
 
     def show_auth_window(self):
         """Display authentication window"""
-        logger.info("Opening auth window")
+        logger.info("Opening auth window", action="show_auth_window")
         self.auth_window = AuthWindow(self.auth_service)
         self.auth_window.login_success.connect(self.show_main_window)
         self.auth_window.show()
-        logger.debug("Auth window displayed")
 
     def show_main_window(self):
         """Display main dashboard"""
-        logger.info("Opening main dashboard")
+        logger.info("Opening main dashboard", action="show_main_window")
 
         if self.auth_window is not None:
             self.auth_window.close()
             self.auth_window = None
-            logger.debug("Auth window closed")
 
         self.main_window = MainWindow(self.auth_service, self.config)
         self.main_window.show()
-        logger.debug("Main dashboard displayed")
 
     def handle_admin_exit(self):
         """Handle global admin exit hotkey"""
-        logger.warning("Global admin exit hotkey triggered")
+        logger.warning("Admin exit hotkey triggered", action="admin_exit_attempt")
         
         # Show password dialog - use a more reliable approach
         from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout
@@ -232,19 +228,19 @@ class SionyxApp:
             try:
                 if self.main_window and hasattr(self.main_window, 'session_service'):
                     if self.main_window.session_service.is_session_active():
-                        logger.info("Admin exit: Ending active session before force quit")
+                        logger.info("Ending active session before admin exit", action="session_end", reason="admin_exit")
                         self.main_window.session_service.end_session('admin_exit')
             except Exception as e:
-                logger.warning(f"Could not end session gracefully during admin exit: {e}")
+                logger.warning("Could not end session gracefully", error=str(e), action="admin_exit")
 
             # Force quit application
-            logger.info("Force quitting application via global hotkey")
+            logger.info("Force quitting application", action="admin_exit")
             self.cleanup()
             self.app.quit()
             sys.exit(0)
         elif ok:
             # Show error message for wrong password
-            logger.warning("Incorrect admin password entered via global hotkey")
+            logger.warning("Incorrect admin password", action="admin_exit_failed")
             from PyQt6.QtWidgets import QMessageBox
             
             error_msg = QMessageBox()
@@ -288,13 +284,12 @@ class SionyxApp:
         try:
             if self.global_hotkey_service:
                 self.global_hotkey_service.stop()
-                logger.debug("Global hotkey service stopped")
         except Exception as e:
-            logger.warning(f"Error during cleanup: {e}")
+            logger.warning("Error during cleanup", error=str(e), action="cleanup")
 
     def run(self):
         """Start application event loop"""
-        logger.info("Starting event loop")
+        logger.info("Starting event loop", action="start_event_loop")
         try:
             return self.app.exec()
         finally:
@@ -305,14 +300,14 @@ if __name__ == "__main__":
     try:
         app = SionyxApp()
         exit_code = app.run()
-        logger.info(f"Application exited cleanly (code: {exit_code})")
+        logger.info("Application exited cleanly", exit_code=exit_code, action="app_exit")
         sys.exit(exit_code)
 
     except KeyboardInterrupt:
-        logger.warning("Application interrupted by user")
+        logger.warning("Application interrupted by user", action="keyboard_interrupt")
         sys.exit(0)
 
     except Exception as e:
-        logger.critical("Fatal error - application crashed")
-        logger.exception(e)
+        logger.critical("Fatal error - application crashed", error=str(e), action="fatal_error")
+        logger.exception("Fatal error details")
         sys.exit(1)

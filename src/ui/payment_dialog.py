@@ -110,14 +110,7 @@ class PaymentDialog(QDialog):
 
         self.package = package
         
-        # DEBUG: Log package details received by PaymentDialog
-        logger.info(f"PaymentDialog received package:")
-        logger.info(f"  - Name: {package.get('name')}")
-        logger.info(f"  - Price: ₪{package.get('price')}")
-        logger.info(f"  - Discount: {package.get('discountPercent', 0)}%")
-        logger.info(f"  - Minutes: {package.get('minutes', 0)}")
-        logger.info(f"  - Prints: {package.get('prints', 0)}")
-        logger.info(f"  - Full package data: {package}")
+        logger.debug("PaymentDialog received package", package_name=package.get('name'), price=package.get('price'), action="payment_init")
 
         # Derive dependencies from parent (e.g., PackagesPage)
         self.auth_service = getattr(parent, 'auth_service', None)
@@ -145,9 +138,7 @@ class PaymentDialog(QDialog):
 
     def setup_purchase_listener(self):
         """Setup Firebase real-time listener with exponential backoff fallback"""
-        logger.info(f"Setting up purchase status listener for purchase: {self.purchase_id}")
-        logger.info(f"Database URL: {self.auth_service.firebase.database_url}")
-        logger.info(f"Org ID: {self.auth_service.firebase.org_id}")
+        logger.debug("Setting up purchase status listener", purchase_id=self.purchase_id, action="payment_listener")
         
         # Try Firebase streaming first (cheapest option)
         try:
@@ -160,19 +151,19 @@ class PaymentDialog(QDialog):
             self.listener_thread.status_changed.connect(self.on_purchase_completed)
             self.listener_thread.start()
             self.listener_active = True
-            logger.info("Firebase stream listener started successfully")
+            logger.debug("Firebase stream listener started", action="payment_listener")
             
             # Also start polling as a backup in case streaming fails
             self.start_exponential_backoff_polling()
             
         except Exception as e:
             logger.error(f"Failed to start stream listener: {e}")
-            logger.info("Falling back to polling only")
+            logger.debug("Falling back to polling only", action="payment_listener")
             self.start_exponential_backoff_polling()
     
     def start_exponential_backoff_polling(self):
         """Fallback: Poll with exponential backoff to reduce costs"""
-        logger.info("Starting exponential backoff polling")
+        logger.debug("Starting exponential backoff polling", action="payment_polling")
         
         self.status_timer = QTimer()
         self.status_timer.timeout.connect(self.check_purchase_status)
@@ -191,12 +182,12 @@ class PaymentDialog(QDialog):
         
         self.current_interval_index = 0
         self.status_timer.start(self.poll_intervals[0] * 1000)
-        logger.info(f"Polling started with {len(self.poll_intervals)} checks over 5 minutes")
+        logger.debug("Polling started", checks=len(self.poll_intervals), action="payment_polling")
 
     def check_purchase_status(self):
         """Check if purchase was completed via callback (with exponential backoff)"""
         self.check_count += 1
-        logger.debug(f"Polling purchase status (attempt {self.check_count})")
+        logger.debug("Polling purchase status", attempt=self.check_count, action="payment_polling")
 
         if self.check_count >= len(self.poll_intervals):
             logger.warning("Purchase verification timeout (5 minutes)")
@@ -207,7 +198,7 @@ class PaymentDialog(QDialog):
         try:
             org_path = f"organizations/{self.auth_service.firebase.org_id}/purchases/{self.purchase_id}"
             url = f"{self.auth_service.firebase.database_url}/{org_path}.json"
-            logger.debug(f"Polling URL: {url}")
+            logger.debug("Polling purchase status", action="payment_polling")
             
             response = requests.get(
                 url,
@@ -215,14 +206,14 @@ class PaymentDialog(QDialog):
                 timeout=10
             )
 
-            logger.debug(f"Poll response status: {response.status_code}")
+            logger.debug("Poll response received", status=response.status_code, action="payment_polling")
             
             if response.status_code == 200:
                 purchase = response.json()
-                logger.debug(f"Purchase data from polling: {purchase}")
+                logger.debug("Purchase data received", status=purchase.get('status'), action="payment_polling")
 
                 if purchase and is_final_status(purchase.get('status')):
-                    logger.info(f"Purchase status detected via polling: {purchase.get('status')}")
+                    logger.info("Purchase status detected", status=purchase.get('status'), action="payment_polling")
                     self.status_timer.stop()
                     # Stop the stream listener if it's still running
                     if self.listener_thread and self.listener_thread.isRunning():
@@ -230,7 +221,7 @@ class PaymentDialog(QDialog):
                     self.on_purchase_completed(purchase)
                     return
                 elif purchase:
-                    logger.debug(f"Purchase status still pending: {purchase.get('status')}")
+                    logger.debug("Purchase status pending", status=purchase.get('status'), action="payment_polling")
                 else:
                     logger.warning("Purchase not found in database")
             else:
@@ -244,7 +235,7 @@ class PaymentDialog(QDialog):
         if self.current_interval_index < len(self.poll_intervals):
             next_interval = self.poll_intervals[self.current_interval_index]
             self.status_timer.setInterval(next_interval * 1000)
-            logger.debug(f"Next poll in {next_interval}s")
+            logger.debug("Next poll scheduled", interval=next_interval, action="payment_polling")
     
     def on_purchase_completed(self, purchase_data: dict):
         """Handle purchase completion (from stream or polling)"""
@@ -447,16 +438,11 @@ class PaymentDialog(QDialog):
         from services.package_service import PackageService
         pricing = PackageService.calculate_final_price(self.package)
         
-        # DEBUG: Log pricing calculation
-        logger.info(f"PaymentDialog pricing calculation:")
-        logger.info(f"  - Original price: ₪{pricing['original_price']}")
-        logger.info(f"  - Discount: {pricing['discount_percent']}%")
-        logger.info(f"  - Final price: ₪{pricing['final_price']}")
-        logger.info(f"  - Savings: ₪{pricing['savings']}")
+        logger.debug("Pricing calculation", original_price=pricing['original_price'], final_price=pricing['final_price'], action="payment_calc")
 
         # Calculate amount as string for JavaScript
         amount_str = str(int(pricing['final_price']))
-        logger.info(f"Amount string being passed to JavaScript: '{amount_str}'")
+        logger.debug("Amount calculated", amount=amount_str, action="payment_calc")
 
         # Configuration WITHOUT purchase_id (will be added by JavaScript when user clicks pay)
         config = {
@@ -472,10 +458,8 @@ class PaymentDialog(QDialog):
             # purchaseId will be set by JavaScript after calling createPendingPurchase
         }
         
-        logger.info(f"Full config being passed to JavaScript: {config}")
-
         js_code = f"setConfig({json.dumps(config)});"
-        logger.info(f"Executing JavaScript: {js_code}")
+        logger.debug("JavaScript config prepared", action="payment_init")
         self.web_view.page().runJavaScript(js_code)
 
         logger.debug("Configuration injected")

@@ -30,7 +30,7 @@ class ComputerService:
             {'success': bool, 'computer_id': str, 'error': str}
         """
         try:
-            logger.info("Registering computer in organization")
+            logger.debug("Registering computer", action="computer_registration")
             
             # Get computer information
             computer_info = get_computer_info()
@@ -67,7 +67,7 @@ class ComputerService:
                     'error': 'Failed to register computer'
                 }
             
-            logger.info(f"Computer registered: {computer_id}")
+            logger.info("Computer registered successfully", computer_id=computer_id, action="computer_registration")
             return {
                 'success': True,
                 'computer_id': computer_id,
@@ -75,7 +75,7 @@ class ComputerService:
             }
             
         except Exception as e:
-            logger.error(f"Computer registration failed: {e}")
+            logger.error("Computer registration failed", error=str(e), action="computer_registration")
             return {
                 'success': False,
                 'error': str(e)

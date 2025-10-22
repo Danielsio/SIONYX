@@ -8,7 +8,7 @@ from typing import Dict, Optional, Any
 from datetime import datetime, timedelta
 
 from utils.firebase_config import firebase_config
-from utils.logger import get_logger
+from utils.logger import get_logger, set_context
 from utils.error_translations import translate_error
 
 logger = get_logger(__name__)
@@ -31,7 +31,7 @@ class FirebaseClient:
         self.token_expiry = None
         self.user_id = None
 
-        logger.info(f"Firebase client initialized for organization: {self.org_id}")
+        logger.info("Firebase client initialized", org_id=self.org_id, component="firebase_client")
 
     # ==================== AUTHENTICATION ====================
 
@@ -55,7 +55,7 @@ class FirebaseClient:
             data = response.json()
             self._store_auth_data(data)
 
-            logger.info(f"User signed up: {self.user_id}")
+            logger.info("User signed up successfully", user_id=self.user_id, action="sign_up")
             return {
                 'success': True,
                 'uid': self.user_id,
@@ -65,7 +65,7 @@ class FirebaseClient:
 
         except requests.exceptions.RequestException as e:
             error_msg = self._parse_error(e)
-            logger.error(f"Sign up failed: {str(e)}")
+            logger.error("Sign up failed", error=str(e), error_msg=error_msg, action="sign_up")
             return {
                 'success': False,
                 'error': error_msg
@@ -82,18 +82,13 @@ class FirebaseClient:
         }
 
         try:
-            logger.debug(f"Signing in with email: {email}")
             response = requests.post(url, json=payload, timeout=10)
-
-            logger.debug(f"Response status: {response.status_code}")
-            logger.debug(f"Response body: {response.text}")
-
             response.raise_for_status()
 
             data = response.json()
             self._store_auth_data(data)
 
-            logger.info(f"User signed in: {self.user_id}")
+            logger.info("User signed in successfully", user_id=self.user_id, action="sign_in")
             return {
                 'success': True,
                 'uid': self.user_id,
@@ -103,8 +98,7 @@ class FirebaseClient:
 
         except requests.exceptions.RequestException as e:
             error_msg = self._parse_error(e)
-            logger.debug(f"Sign in error: {str(e)}")
-            logger.error(f"Sign in failed: {str(e)}")
+            logger.error("Sign in failed", error=str(e), error_msg=error_msg,                         action="sign_in")
             return {
                 'success': False,
                 'error': error_msg
@@ -129,7 +123,7 @@ class FirebaseClient:
             self.user_id = data['user_id']
             self.token_expiry = datetime.now() + timedelta(seconds=int(data['expires_in']))
 
-            logger.info("Token refreshed")
+            logger.info("Token refreshed successfully", action="token_refresh")
             return {
                 'success': True,
                 'id_token': self.id_token,
@@ -138,7 +132,7 @@ class FirebaseClient:
 
         except Exception as e:
             error_msg = self._parse_error(e)
-            logger.error(f"Token refresh failed: {str(e)}")
+            logger.error("Token refresh failed", error=str(e), error_msg=error_msg, action="token_refresh")
             return {
                 'success': False,
                 'error': error_msg
@@ -185,7 +179,6 @@ class FirebaseClient:
     def db_get(self, path: str) -> Dict[str, Any]:
         """Get data from Realtime Database"""
         if not self.ensure_valid_token():
-            logger.debug("Token validation failed in db_get")
             return {'success': False, 'error': 'Not authenticated'}
 
         # MULTI-TENANCY: Automatically prefix with org path
@@ -193,19 +186,12 @@ class FirebaseClient:
         url = f"{self.database_url}/{org_path}.json"
         params = {'auth': self.id_token}
 
-        logger.debug(f"DB GET URL: {url}")
-        logger.debug(f"Token exists: {bool(self.id_token)}")
-
         try:
             response = requests.get(url, params=params, timeout=10)
-
-            logger.debug(f"DB GET status: {response.status_code}")
-            logger.debug(f"DB GET response: {response.text}")
-
             response.raise_for_status()
 
             data = response.json()
-            logger.info(f"DB GET: {org_path}")
+            logger.debug("Database read completed", path=org_path, action="db_get")
 
             return {
                 'success': True,
@@ -214,8 +200,7 @@ class FirebaseClient:
 
         except requests.exceptions.RequestException as e:
             error_msg = str(e)
-            logger.debug(f"DB GET error: {error_msg}")
-            logger.error(f"DB GET failed: {error_msg}")
+            logger.error("Database read failed", path=org_path, error=error_msg, action="db_get")
             return {
                 'success': False,
                 'error': error_msg
@@ -238,7 +223,7 @@ class FirebaseClient:
             response = requests.put(url, params=params, json=data, timeout=10)
             response.raise_for_status()
 
-            logger.info(f"DB SET: {org_path}")
+            logger.debug("Database write completed", path=org_path, action="db_set")
             return {
                 'success': True,
                 'data': response.json()
@@ -246,7 +231,7 @@ class FirebaseClient:
 
         except requests.exceptions.RequestException as e:
             error_msg = str(e)
-            logger.error(f"DB SET failed: {error_msg}")
+            logger.error("Database write failed", path=org_path, error=error_msg, action="db_set")
             return {
                 'success': False,
                 'error': error_msg
@@ -269,7 +254,7 @@ class FirebaseClient:
             response = requests.patch(url, params=params, json=data, timeout=10)
             response.raise_for_status()
 
-            logger.info(f"DB UPDATE: {org_path}")
+            logger.debug("Database update completed", path=org_path, action="db_update")
             return {
                 'success': True,
                 'data': response.json()
@@ -277,7 +262,7 @@ class FirebaseClient:
 
         except requests.exceptions.RequestException as e:
             error_msg = str(e)
-            logger.error(f"DB UPDATE failed: {error_msg}")
+            logger.error("Database update failed", path=org_path, error=error_msg, action="db_update")
             return {
                 'success': False,
                 'error': error_msg
@@ -299,12 +284,12 @@ class FirebaseClient:
             response = requests.delete(url, params=params, timeout=10)
             response.raise_for_status()
 
-            logger.info(f"DB DELETE: {org_path}")
+            logger.debug("Database delete completed", path=org_path, action="db_delete")
             return {'success': True}
 
         except requests.exceptions.RequestException as e:
             error_msg = str(e)
-            logger.error(f"DB DELETE failed: {error_msg}")
+            logger.error("Database delete failed", path=org_path, error=error_msg, action="db_delete")
             return {
                 'success': False,
                 'error': error_msg
