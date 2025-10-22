@@ -5,31 +5,6 @@
       ".write": false
     },
     
-    "org": {
-      "metadata": {
-        "$orgId": {
-          ".write": "!data.exists()", // Only allow write if doesn't exist (prevent overwrites)
-          ".read": "auth != null", // Allow read for authenticated users
-          ".validate": "newData.hasChildren(['name', 'nedarim_mosad_id', 'nedarim_api_valid', 'created_at', 'status'])",
-          "name": {
-            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
-          },
-          "nedarim_mosad_id": {
-            ".validate": "newData.isString() && newData.val().length > 0"
-          },
-          "nedarim_api_valid": {
-            ".validate": "newData.isString() && newData.val().length > 0"
-          },
-          "created_at": {
-            ".validate": "newData.isString()"
-          },
-          "status": {
-            ".validate": "newData.isString() && newData.val() === 'active'"
-          }
-        }
-      }
-    },
-    
     "organizations": {
       ".read": "root.child('config/superAdminUid').val() == auth.uid",
       ".write": "root.child('config/superAdminUid').val() == auth.uid",
@@ -93,6 +68,28 @@
           "$computerId": {
             ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
             ".write": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)"
+          }
+        },
+        
+        "metadata": {
+          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
+          ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid",
+          ".validate": "newData.hasChildren(['name', 'nedarim_mosad_id', 'nedarim_api_valid', 'created_at', 'status'])",
+          
+          "name": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+          },
+          "nedarim_mosad_id": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "nedarim_api_valid": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "created_at": {
+            ".validate": "newData.isString()"
+          },
+          "status": {
+            ".validate": "newData.isString() && newData.val() === 'active'"
           }
         }
       }

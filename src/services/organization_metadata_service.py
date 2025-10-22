@@ -38,8 +38,8 @@ class OrganizationMetadataService:
             Dict with success status and metadata or error
         """
         try:
-            # Fetch metadata from org/metadata/{orgId}
-            result = self.firebase.db_get(f"../org/metadata/{org_id}")
+            # Fetch metadata from organizations/{orgId}/metadata
+            result = self.firebase.db_get("metadata")
             
             if not result['success']:
                 logger.error(f"Failed to fetch organization metadata: {result.get('error')}")

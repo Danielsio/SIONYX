@@ -2,7 +2,7 @@
 Payment Dialog with Firebase Real-Time Listener
 """
 
-from PyQt6.QtWidgets import QDialog, QVBoxLayout, QApplication, QWidget, QLabel
+from PyQt6.QtWidgets import QDialog, QVBoxLayout, QApplication, QWidget, QLabel, QPushButton
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWebChannel import QWebChannel
 from PyQt6.QtCore import Qt, QUrl, QTimer, QThread, pyqtSignal
@@ -109,6 +109,15 @@ class PaymentDialog(QDialog):
         super().__init__(parent)
 
         self.package = package
+        
+        # DEBUG: Log package details received by PaymentDialog
+        logger.info(f"PaymentDialog received package:")
+        logger.info(f"  - Name: {package.get('name')}")
+        logger.info(f"  - Price: ₪{package.get('price')}")
+        logger.info(f"  - Discount: {package.get('discountPercent', 0)}%")
+        logger.info(f"  - Minutes: {package.get('minutes', 0)}")
+        logger.info(f"  - Prints: {package.get('prints', 0)}")
+        logger.info(f"  - Full package data: {package}")
 
         # Derive dependencies from parent (e.g., PackagesPage)
         self.auth_service = getattr(parent, 'auth_service', None)
@@ -420,6 +429,8 @@ class PaymentDialog(QDialog):
         
         if not credentials_result['success']:
             logger.error(f"Failed to get NEDARIM credentials: {credentials_result['error']}")
+            # Show error message to user instead of silently failing
+            self.show_credentials_error(credentials_result['error'])
             return
 
         credentials = credentials_result['credentials']
@@ -429,17 +440,29 @@ class PaymentDialog(QDialog):
 
         if not mosad_id or not api_valid:
             logger.error("Missing Nedarim Plus credentials")
+            self.show_credentials_error("Missing Nedarim Plus credentials")
             return
 
         # Calculate price
         from services.package_service import PackageService
         pricing = PackageService.calculate_final_price(self.package)
+        
+        # DEBUG: Log pricing calculation
+        logger.info(f"PaymentDialog pricing calculation:")
+        logger.info(f"  - Original price: ₪{pricing['original_price']}")
+        logger.info(f"  - Discount: {pricing['discount_percent']}%")
+        logger.info(f"  - Final price: ₪{pricing['final_price']}")
+        logger.info(f"  - Savings: ₪{pricing['savings']}")
+
+        # Calculate amount as string for JavaScript
+        amount_str = str(int(pricing['final_price']))
+        logger.info(f"Amount string being passed to JavaScript: '{amount_str}'")
 
         # Configuration WITHOUT purchase_id (will be added by JavaScript when user clicks pay)
         config = {
             'mosadId': mosad_id,
             'apiValid': api_valid,
-            'amount': str(int(pricing['final_price'])),
+            'amount': amount_str,
             'packageName': self.package.get('name', ''),
             'packageMinutes': str(self.package.get('minutes', 0)),
             'packagePrints': str(self.package.get('prints', 0)),
@@ -448,11 +471,84 @@ class PaymentDialog(QDialog):
             'orgId': self.auth_service.firebase.org_id,  # MULTI-TENANCY: Pass org to payment gateway
             # purchaseId will be set by JavaScript after calling createPendingPurchase
         }
+        
+        logger.info(f"Full config being passed to JavaScript: {config}")
 
         js_code = f"setConfig({json.dumps(config)});"
+        logger.info(f"Executing JavaScript: {js_code}")
         self.web_view.page().runJavaScript(js_code)
 
         logger.debug("Configuration injected")
+
+    def show_credentials_error(self, error_message: str):
+        """Show error message when credentials fail to load"""
+        try:
+            # Create error overlay
+            error_widget = QWidget()
+            error_widget.setObjectName("errorOverlay")
+            error_widget.setStyleSheet("""
+                #errorOverlay {
+                    background-color: rgba(239, 68, 68, 0.95);
+                    border-radius: 12px;
+                }
+            """)
+            
+            layout = QVBoxLayout(error_widget)
+            layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.setSpacing(20)
+            
+            # Error icon
+            icon_label = QLabel("❌")
+            icon_label.setFont(QFont("Segoe UI", 48, QFont.Weight.Bold))
+            icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            icon_label.setStyleSheet("color: #FFFFFF;")
+            
+            # Error message
+            message_label = QLabel("שגיאה בטעינת נתוני התשלום")
+            message_label.setFont(QFont("Segoe UI", 24, QFont.Weight.Bold))
+            message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            message_label.setStyleSheet("color: #FFFFFF;")
+            
+            # Sub message
+            sub_message = QLabel(f"פרטים: {error_message}")
+            sub_message.setFont(QFont("Segoe UI", 14))
+            sub_message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            sub_message.setStyleSheet("color: #FFFFFF; opacity: 0.9;")
+            sub_message.setWordWrap(True)
+            
+            # Close button
+            close_btn = QPushButton("סגור")
+            close_btn.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+            close_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #FFFFFF;
+                    color: #DC2626;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 12px 24px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #F3F4F6;
+                }
+            """)
+            close_btn.clicked.connect(self.reject)
+            
+            layout.addWidget(icon_label)
+            layout.addWidget(message_label)
+            layout.addWidget(sub_message)
+            layout.addWidget(close_btn)
+            
+            # Replace web view with error message
+            self.web_view.hide()
+            self.layout().addWidget(error_widget)
+            
+            logger.error(f"Credentials error displayed: {error_message}")
+            
+        except Exception as e:
+            logger.error(f"Error showing credentials error: {e}")
+            # Fallback: close immediately
+            self.reject()
 
     def on_payment_success(self, response: dict):
         """Handle payment success from JavaScript (immediate feedback)"""
