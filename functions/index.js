@@ -97,8 +97,16 @@ setGlobalOptions({maxInstances: 10});
 
 
 const admin = require("firebase-admin");
+const {onCall} = require("firebase-functions/v2/https");
+const functions = require("firebase-functions");
 
 admin.initializeApp();
+
+// Simple encryption utilities for sensitive data
+const encryptData = (data) => {
+  // Using base64 encoding for now - can be upgraded to proper encryption later
+  return Buffer.from(JSON.stringify(data)).toString("base64");
+};
 
 /**
  * Nedarim Plus Callback Handler
@@ -416,5 +424,167 @@ exports.nedarimCallback = onRequest(async (req, res) => {
     });
 
     res.status(500).json(errorResponse);
+  }
+});
+
+/**
+ * Organization Registration Function
+ * Handles secure registration of new organizations with NEDARIM credentials
+ */
+exports.registerOrganization = onCall(async (request) => {
+  const correlationId = generateCorrelationId();
+  const log = createLogger({
+    correlationId,
+    service: "organization-registration",
+  });
+  const requestTimer = createTimer("organization-registration-request");
+
+  log.info("Organization registration request received", {
+    hasData: !!request.data,
+    dataKeys: request.data ? Object.keys(request.data) : [],
+  });
+
+  try {
+    const {organizationName, nedarimMosadId, nedarimApiValid} = request.data;
+
+    // Validate required fields
+    if (!organizationName || !nedarimMosadId || !nedarimApiValid) {
+      const missingFields = [];
+      if (!organizationName) missingFields.push("organizationName");
+      if (!nedarimMosadId) missingFields.push("nedarimMosadId");
+      if (!nedarimApiValid) missingFields.push("nedarimApiValid");
+
+      log.error("Missing required fields", null, {
+        missingFields,
+        receivedFields: Object.keys(request.data || {}),
+      });
+
+      throw new functions.https.HttpsError(
+          "invalid-argument",
+          "Missing required fields: " + missingFields.join(", "),
+      );
+    }
+
+    // Validate organization name format
+    if (typeof organizationName !== "string" ||
+        organizationName.trim().length < 2) {
+      throw new functions.https.HttpsError(
+          "invalid-argument",
+          "Organization name must be at least 2 characters long",
+      );
+    }
+
+    // Validate NEDARIM credentials format
+    if (typeof nedarimMosadId !== "string" ||
+        nedarimMosadId.trim().length === 0) {
+      throw new functions.https.HttpsError(
+          "invalid-argument",
+          "NEDARIM Mosad ID is required",
+      );
+    }
+
+    if (typeof nedarimApiValid !== "string" ||
+        nedarimApiValid.trim().length === 0) {
+      throw new functions.https.HttpsError(
+          "invalid-argument",
+          "NEDARIM API Valid key is required",
+      );
+    }
+
+    const cleanOrgName = organizationName.trim();
+    const cleanMosadId = nedarimMosadId.trim();
+    const cleanApiValid = nedarimApiValid.trim();
+
+    log.info("Input validation completed", {
+      orgNameLength: cleanOrgName.length,
+      hasMosadId: !!cleanMosadId,
+      hasApiValid: !!cleanApiValid,
+    });
+
+    // Check for duplicate organization names
+    const orgsRef = admin.database().ref("organizations");
+    const orgsSnapshot = await orgsRef.once("value");
+
+    if (orgsSnapshot.exists()) {
+      const organizations = orgsSnapshot.val();
+      const existingOrg = Object.values(organizations).find((org) =>
+        org.metadata &&
+        org.metadata.name &&
+        org.metadata.name.toLowerCase() === cleanOrgName.toLowerCase(),
+      );
+
+      if (existingOrg) {
+        log.warn("Organization name already exists", {
+          orgName: cleanOrgName,
+          existingOrgId: Object.keys(organizations).find((id) =>
+            organizations[id] === existingOrg,
+          ),
+        });
+
+        throw new functions.https.HttpsError(
+            "already-exists",
+            "Organization name already exists",
+        );
+      }
+    }
+
+    // Generate unique organization ID
+    const orgId = `org_${Date.now()}_${
+      Math.random().toString(36).substr(2, 9)
+    }`;
+
+    log.info("Organization ID generated", {
+      orgId,
+      orgName: cleanOrgName,
+    });
+
+    // Prepare metadata with encrypted sensitive data
+    const metadata = {
+      name: cleanOrgName,
+      nedarim_mosad_id: encryptData(cleanMosadId),
+      nedarim_api_valid: encryptData(cleanApiValid),
+      created_at: new Date().toISOString(),
+      status: "active",
+      created_by: "public-registration",
+      correlation_id: correlationId,
+    };
+
+    // Save to Firebase using correct hierarchy: organizations/{orgId}/metadata
+    const orgRef = admin.database().ref(`organizations/${orgId}/metadata`);
+    await orgRef.set(metadata);
+
+    log.info("Organization registered successfully", {
+      orgId,
+      orgName: cleanOrgName,
+      created_at: metadata.created_at,
+    });
+
+    // Performance timing for entire request
+    requestTimer.end(log.info);
+
+    return {
+      success: true,
+      orgId,
+      message: "Organization registered successfully",
+      correlationId,
+    };
+  } catch (error) {
+    // Enhanced error logging with full context
+    log.error("Error registering organization", error, {
+      errorPhase: "organization-registration",
+      hasData: !!request.data,
+      dataKeys: request.data ? Object.keys(request.data) : [],
+    });
+
+    // Re-throw HttpsError as-is
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+
+    // Convert other errors to HttpsError
+    throw new functions.https.HttpsError(
+        "internal",
+        "Failed to register organization: " + error.message,
+    );
   }
 });

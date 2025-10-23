@@ -1,5 +1,6 @@
-import { database } from '../config/firebase';
-import { ref, set, get } from 'firebase/database';
+import { database, functions } from '../config/firebase';
+import { ref, get } from 'firebase/database';
+import { httpsCallable } from 'firebase/functions';
 
 /**
  * Organization Service
@@ -24,8 +25,21 @@ const decodeData = (encodedData) => {
   }
 };
 
+// New encryption format used by Cloud Function (base64 encoded JSON)
+const decodeCloudFunctionData = (encodedData) => {
+  try {
+    // The Cloud Function uses Buffer.from(JSON.stringify(data)).toString('base64')
+    // So we need to decode it back
+    const jsonString = atob(encodedData);
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error('Error decoding Cloud Function data:', error);
+    return null;
+  }
+};
+
 /**
- * Register a new organization
+ * Register a new organization via Cloud Function
  * 
  * WHY NEEDED: Landing page needs this to register new organizations
  * with their NEDARIM credentials for payment processing
@@ -35,62 +49,33 @@ const decodeData = (encodedData) => {
  */
 export const registerOrganization = async (organizationData) => {
   try {
-    const { organizationName, nedarimMosadId, nedarimApiValid } = organizationData;
+    console.log('Calling Cloud Function for organization registration:', {
+      hasData: !!organizationData
+    });
     
-    // Check if organization name already exists
-    const orgsRef = ref(database, 'org/metadata');
-    const snapshot = await get(orgsRef);
+    // Initialize Firebase Functions
+    const registerOrg = httpsCallable(functions, 'registerOrganization');
     
-    if (snapshot.exists()) {
-      const organizations = snapshot.val();
-      const existingOrg = Object.values(organizations).find(org => 
-        org.name && org.name.toLowerCase() === organizationName.toLowerCase()
-      );
-      
-      if (existingOrg) {
-        return {
-          success: false,
-          error: 'Organization name already exists'
-        };
-      }
-    }
+    // Call the Cloud Function
+    const result = await registerOrg(organizationData);
     
-    // Generate organization ID (simple timestamp-based for now)
-    const orgId = `org_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Prepare metadata with encrypted sensitive data
-    const metadata = {
-      name: organizationName,
-      nedarim_mosad_id: encodeData(nedarimMosadId),
-      nedarim_api_valid: encodeData(nedarimApiValid),
-      created_at: new Date().toISOString(),
-      status: 'active'
-    };
-    
-    // Save to Firebase (will be validated by database rules)
-    const orgRef = ref(database, `org/metadata/${orgId}`);
-    await set(orgRef, metadata);
-    
-    return {
-      success: true,
-      orgId,
-      message: 'Organization registered successfully'
-    };
+    console.log('Organization registered successfully:', result.data);
+    return result.data;
     
   } catch (error) {
-    console.error('Error registering organization:', error);
+    console.error('Error calling Cloud Function:', error);
     
-    // Handle specific Firebase errors
-    if (error.message && error.message.includes('permission')) {
+    // Handle Firebase Functions errors
+    if (error.code) {
       return {
         success: false,
-        error: 'Permission denied. Please contact support.'
+        error: error.message || 'Registration failed'
       };
     }
     
     return {
       success: false,
-      error: 'Failed to register organization'
+      error: 'Failed to register organization. Please try again.'
     };
   }
 };
@@ -106,17 +91,31 @@ export const registerOrganization = async (organizationData) => {
  */
 export const getOrganizationMetadata = async (orgId) => {
   try {
-    const orgRef = ref(database, `org/metadata/${orgId}`);
+    const orgRef = ref(database, `organizations/${orgId}/metadata`);
     const snapshot = await get(orgRef);
     
     if (snapshot.exists()) {
       const data = snapshot.val();
+      
+      // Try both decoding methods for backward compatibility
+      let decodedMosadId, decodedApiValid;
+      
+      try {
+        // Try new Cloud Function format first
+        decodedMosadId = decodeCloudFunctionData(data.nedarim_mosad_id);
+        decodedApiValid = decodeCloudFunctionData(data.nedarim_api_valid);
+      } catch (error) {
+        // Fall back to old format
+        decodedMosadId = decodeData(data.nedarim_mosad_id);
+        decodedApiValid = decodeData(data.nedarim_api_valid);
+      }
+      
       return {
         success: true,
         metadata: {
           ...data,
-          nedarim_mosad_id: decodeData(data.nedarim_mosad_id),
-          nedarim_api_valid: decodeData(data.nedarim_api_valid)
+          nedarim_mosad_id: decodedMosadId,
+          nedarim_api_valid: decodedApiValid
         }
       };
     } else {
