@@ -501,24 +501,31 @@ exports.registerOrganization = onCall(async (request) => {
       hasApiValid: !!cleanApiValid,
     });
 
-    // Check for duplicate organization names
+    // Use organization name as ID (normalized)
+    const orgId = cleanOrgName.toLowerCase()
+        .replace(/[^a-z0-9\u0590-\u05FF]/g, "") // Keep letters, numbers, Hebrew
+        .replace(/\s+/g, ""); // Remove spaces
+
+    // Validate orgId is not empty after normalization
+    if (!orgId || orgId.length < 2) {
+      throw new functions.https.HttpsError(
+          "invalid-argument",
+          "Organization name must contain valid characters",
+      );
+    }
+
+    // Check for duplicate organization IDs
     const orgsRef = admin.database().ref("organizations");
     const orgsSnapshot = await orgsRef.once("value");
 
     if (orgsSnapshot.exists()) {
       const organizations = orgsSnapshot.val();
-      const existingOrg = Object.values(organizations).find((org) =>
-        org.metadata &&
-        org.metadata.name &&
-        org.metadata.name.toLowerCase() === cleanOrgName.toLowerCase(),
-      );
 
-      if (existingOrg) {
-        log.warn("Organization name already exists", {
+      // Check if orgId already exists
+      if (organizations[orgId]) {
+        log.warn("Organization ID already exists", {
+          orgId,
           orgName: cleanOrgName,
-          existingOrgId: Object.keys(organizations).find((id) =>
-            organizations[id] === existingOrg,
-          ),
         });
 
         throw new functions.https.HttpsError(
@@ -528,12 +535,7 @@ exports.registerOrganization = onCall(async (request) => {
       }
     }
 
-    // Generate unique organization ID
-    const orgId = `org_${Date.now()}_${
-      Math.random().toString(36).substr(2, 9)
-    }`;
-
-    log.info("Organization ID generated", {
+    log.info("Organization ID generated from name", {
       orgId,
       orgName: cleanOrgName,
     });
@@ -637,29 +639,27 @@ exports.validateOrganization = onCall(async (request) => {
       orgName: cleanOrgName,
     });
 
-    // Search for existing organization
-    const orgsRef = admin.database().ref("organizations");
-    const orgsSnapshot = await orgsRef.once("value");
+    // Generate the same orgId normalization as registration
+    const orgId = cleanOrgName.toLowerCase()
+        .replace(/[^a-z0-9\u0590-\u05FF]/g, "") // Keep letters, numbers, Hebrew
+        .replace(/\s+/g, ""); // Remove spaces
 
-    if (!orgsSnapshot.exists()) {
-      log.warn("No organizations found in database");
+    // Validate orgId is not empty after normalization
+    if (!orgId || orgId.length < 2) {
       throw new functions.https.HttpsError(
-          "not-found",
-          "Organization not found",
+          "invalid-argument",
+          "Organization name must contain valid characters",
       );
     }
 
-    const organizations = orgsSnapshot.val();
-    const existingOrg = Object.entries(organizations).find(([orgId, org]) =>
-      org.metadata &&
-      org.metadata.name &&
-      org.metadata.name.toLowerCase() === cleanOrgName.toLowerCase(),
-    );
+    // Search for existing organization by ID
+    const orgRef = admin.database().ref(`organizations/${orgId}`);
+    const orgSnapshot = await orgRef.once("value");
 
-    if (!existingOrg) {
+    if (!orgSnapshot.exists()) {
       log.warn("Organization not found", {
         searchedName: cleanOrgName,
-        totalOrgs: Object.keys(organizations).length,
+        normalizedId: orgId,
       });
 
       throw new functions.https.HttpsError(
@@ -669,7 +669,7 @@ exports.validateOrganization = onCall(async (request) => {
       );
     }
 
-    const [orgId, orgData] = existingOrg;
+    const orgData = orgSnapshot.val();
 
     log.info("Organization found successfully", {
       orgId,
