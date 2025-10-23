@@ -588,3 +588,124 @@ exports.registerOrganization = onCall(async (request) => {
     );
   }
 });
+
+/**
+ * Organization Validation Function
+ * Validates existing organizations and returns download information
+ */
+exports.validateOrganization = onCall(async (request) => {
+  const correlationId = generateCorrelationId();
+  const log = createLogger({
+    correlationId,
+    service: "organization-validation",
+  });
+  const requestTimer = createTimer("organization-validation-request");
+
+  log.info("Organization validation request received", {
+    hasData: !!request.data,
+    dataKeys: request.data ? Object.keys(request.data) : [],
+  });
+
+  try {
+    const {organizationName} = request.data;
+
+    // Validate required fields
+    if (!organizationName) {
+      log.error("Missing organization name", null, {
+        receivedFields: Object.keys(request.data || {}),
+      });
+
+      throw new functions.https.HttpsError(
+          "invalid-argument",
+          "Organization name is required",
+      );
+    }
+
+    // Validate organization name format
+    if (typeof organizationName !== "string" ||
+        organizationName.trim().length < 2) {
+      throw new functions.https.HttpsError(
+          "invalid-argument",
+          "Organization name must be at least 2 characters long",
+      );
+    }
+
+    const cleanOrgName = organizationName.trim();
+
+    log.info("Input validation completed", {
+      orgNameLength: cleanOrgName.length,
+      orgName: cleanOrgName,
+    });
+
+    // Search for existing organization
+    const orgsRef = admin.database().ref("organizations");
+    const orgsSnapshot = await orgsRef.once("value");
+
+    if (!orgsSnapshot.exists()) {
+      log.warn("No organizations found in database");
+      throw new functions.https.HttpsError(
+          "not-found",
+          "Organization not found",
+      );
+    }
+
+    const organizations = orgsSnapshot.val();
+    const existingOrg = Object.entries(organizations).find(([orgId, org]) =>
+      org.metadata &&
+      org.metadata.name &&
+      org.metadata.name.toLowerCase() === cleanOrgName.toLowerCase(),
+    );
+
+    if (!existingOrg) {
+      log.warn("Organization not found", {
+        searchedName: cleanOrgName,
+        totalOrgs: Object.keys(organizations).length,
+      });
+
+      throw new functions.https.HttpsError(
+          "not-found",
+          "Organization not found. Please check the name or register a new " +
+        "organization.",
+      );
+    }
+
+    const [orgId, orgData] = existingOrg;
+
+    log.info("Organization found successfully", {
+      orgId,
+      orgName: orgData.metadata.name,
+      created_at: orgData.metadata.created_at,
+      status: orgData.metadata.status,
+    });
+
+    // Performance timing for entire request
+    requestTimer.end(log.info);
+
+    return {
+      success: true,
+      orgId,
+      organizationName: orgData.metadata.name,
+      message: "Organization validated successfully",
+      downloadReady: true,
+      correlationId,
+    };
+  } catch (error) {
+    // Enhanced error logging with full context
+    log.error("Error validating organization", error, {
+      errorPhase: "organization-validation",
+      hasData: !!request.data,
+      dataKeys: request.data ? Object.keys(request.data) : [],
+    });
+
+    // Re-throw HttpsError as-is
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+
+    // Convert other errors to HttpsError
+    throw new functions.https.HttpsError(
+        "internal",
+        "Failed to validate organization: " + error.message,
+    );
+  }
+});
