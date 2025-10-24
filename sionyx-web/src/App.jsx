@@ -11,6 +11,7 @@ import MainLayout from './components/MainLayout';
 // Pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import DownloadPage from './pages/DownloadPage';
 import OverviewPage from './pages/OverviewPage';
 import UsersPage from './pages/UsersPage';
 import PackagesPage from './pages/PackagesPage';
@@ -61,6 +62,9 @@ function App() {
           <Routes>
             {/* Landing Page */}
             <Route path="/" element={<LandingPage />} />
+
+            {/* Download Page */}
+            <Route path="/download" element={<DownloadPage />} />
 
             {/* Admin Login */}
             <Route path="/admin/login" element={isAuthenticated ? <Navigate to="/admin" replace /> : <LoginPage />} />

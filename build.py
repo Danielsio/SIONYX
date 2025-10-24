@@ -16,6 +16,9 @@ import shutil
 from pathlib import Path
 import json
 from datetime import datetime
+import hashlib
+import time
+import re
 
 class Colors:
     HEADER = '\033[95m'
@@ -29,25 +32,122 @@ class Colors:
 
 def print_header(text):
     """Print styled header"""
-    print(f"\n{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.ENDC}")
-    print(f"{Colors.BOLD}{Colors.BLUE}  {text}{Colors.ENDC}")
-    print(f"{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.ENDC}\n")
+    try:
+        print(f"\n{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.ENDC}")
+        print(f"{Colors.BOLD}{Colors.BLUE}  {text}{Colors.ENDC}")
+        print(f"{Colors.BOLD}{Colors.BLUE}{'='*70}{Colors.ENDC}\n")
+    except UnicodeEncodeError:
+        # Fallback for systems that don't support Unicode
+        print(f"\n{'='*70}")
+        print(f"  {text}")
+        print(f"{'='*70}\n")
 
 def print_success(text):
     """Print success message"""
-    print(f"{Colors.GREEN}✅ {text}{Colors.ENDC}")
+    try:
+        print(f"{Colors.GREEN}✅ {text}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"[SUCCESS] {text}")
 
 def print_error(text):
     """Print error message"""
-    print(f"{Colors.RED}❌ {text}{Colors.ENDC}")
+    try:
+        print(f"{Colors.RED}❌ {text}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"[ERROR] {text}")
 
 def print_info(text):
     """Print info message"""
-    print(f"{Colors.CYAN}ℹ️  {text}{Colors.ENDC}")
+    try:
+        print(f"{Colors.CYAN}ℹ️  {text}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"[INFO] {text}")
 
 def print_warning(text):
     """Print warning message"""
-    print(f"{Colors.YELLOW}⚠️  {text}{Colors.ENDC}")
+    try:
+        print(f"{Colors.YELLOW}⚠️  {text}{Colors.ENDC}")
+    except UnicodeEncodeError:
+        print(f"[WARNING] {text}")
+
+def load_config():
+    """Load build configuration from file"""
+    config_file = Path("build-config.json")
+    if not config_file.exists():
+        print_error("Configuration file 'build-config.json' not found!")
+        print_info("Copy 'build-config.example.json' to 'build-config.json' and update with your settings")
+        sys.exit(1)
+    
+    try:
+        with open(config_file, 'r') as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        print_error(f"Invalid JSON in configuration file: {e}")
+        sys.exit(1)
+    except Exception as e:
+        print_error(f"Error loading configuration: {e}")
+        sys.exit(1)
+
+def get_next_version():
+    """Get the next version number"""
+    version_file = Path("version.json")
+    
+    if version_file.exists():
+        try:
+            with open(version_file, 'r') as f:
+                version_data = json.load(f)
+            current_version = version_data.get('version', '0.0.0')
+        except:
+            current_version = '0.0.0'
+    else:
+        current_version = '0.0.0'
+    
+    # Parse version (major.minor.patch)
+    try:
+        major, minor, patch = map(int, current_version.split('.'))
+        patch += 1  # Increment patch version
+        new_version = f"{major}.{minor}.{patch}"
+    except:
+        new_version = '1.0.0'
+    
+    # Save new version
+    version_data = {
+        'version': new_version,
+        'build_date': datetime.now().isoformat(),
+        'build_number': int(time.time())
+    }
+    
+    with open(version_file, 'w') as f:
+        json.dump(version_data, f, indent=2)
+    
+    return new_version
+
+def cleanup_local_files():
+    """Clean up local build files after successful upload"""
+    print_header("Cleaning Up Local Files")
+    
+    # Files and directories to clean up
+    cleanup_items = [
+        "build",
+        "dist", 
+        "SIONYX.exe",
+        "env.example",
+        "logo.ico",
+        "LICENSE.txt",
+        "upload_info.json"
+    ]
+    
+    for item in cleanup_items:
+        item_path = Path(item)
+        if item_path.exists():
+            if item_path.is_dir():
+                shutil.rmtree(item_path)
+                print_info(f"Removed directory: {item}")
+            else:
+                item_path.unlink()
+                print_info(f"Removed file: {item}")
+    
+    print_success("Local cleanup completed")
 
 def run_command(command, cwd=None, check=True):
     """Run a command and return the result"""
@@ -59,7 +159,9 @@ def run_command(command, cwd=None, check=True):
             cwd=cwd, 
             check=check, 
             capture_output=True, 
-            text=True
+            text=True,
+            encoding='utf-8',
+            errors='replace'  # Replace problematic characters instead of failing
         )
         if result.stdout:
             print(result.stdout)
@@ -75,6 +177,14 @@ def run_command(command, cwd=None, check=True):
 def check_dependencies():
     """Check if all required tools are installed"""
     print_header("Checking Dependencies")
+    
+    # Add NSIS to PATH if it exists
+    import os
+    nsis_path = "C:\\Program Files (x86)\\NSIS"
+    if os.path.exists(nsis_path):
+        current_path = os.environ.get("PATH", "")
+        if nsis_path not in current_path:
+            os.environ["PATH"] = f"{current_path};{nsis_path}"
     
     required_tools = {
         'python': 'Python 3.8+',
@@ -121,11 +231,11 @@ def check_dependencies():
     
     return True
 
-def build_web_app(force_rebuild=False):
+def build_web_app(config, force_rebuild=False):
     """Build the React web application"""
     print_header("Building Web Application")
     
-    web_dir = Path("sionyx-web")
+    web_dir = Path(config['paths']['web_app'])
     if not web_dir.exists():
         print_error("sionyx-web directory not found")
         return False
@@ -149,9 +259,38 @@ def build_web_app(force_rebuild=False):
     print_info("Installing web dependencies...")
     run_command("npm install", cwd=web_dir)
     
-    # Build the application
+    # Build the application with proper Unicode handling
     print_info("Building web application...")
-    run_command("npm run build", cwd=web_dir)
+    try:
+        import os
+        env = os.environ.copy()
+        env['PYTHONIOENCODING'] = 'utf-8'
+        env['NODE_OPTIONS'] = '--max-old-space-size=4096'
+        
+        result = subprocess.run(
+            "npm run build",
+            shell=True,
+            cwd=web_dir,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            errors='replace',
+            env=env,
+            universal_newlines=True
+        )
+        
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+            
+        if result.returncode != 0:
+            print_error("Web build failed")
+            return False
+            
+    except Exception as e:
+        print_error(f"Web build error: {e}")
+        return False
     
     # Verify build output
     if not dist_dir.exists():
@@ -196,18 +335,44 @@ def create_installer():
         print_error("NSIS not found. Please install NSIS to create installer")
         return False
     
+    # Wait a moment for file handles to be released
+    import time
+    time.sleep(2)
+    
     # Copy necessary files for installer
     installer_files = [
         ("dist/SIONYX.exe", "SIONYX.exe"),
-        ("env.example", "env.example"),
-        ("sionyx-web/public/logo.png", "logo.ico"),
     ]
+    
+    # Copy env.example only if it's not the same file
+    if Path("env.example").exists() and not Path("env.example").samefile(Path("env.example")):
+        installer_files.append(("env.example", "env.example"))
+    
+    # Skip logo for now to avoid format issues
+    # installer_files.append(("sionyx-web/public/logo.png", "logo.ico"))
     
     for src, dst in installer_files:
         src_path = Path(src)
         if src_path.exists():
-            shutil.copy2(src_path, dst)
-            print_info(f"Copied {src} -> {dst}")
+            try:
+                # Try to copy with retry logic
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        shutil.copy2(src_path, dst)
+                        print_info(f"Copied {src} -> {dst}")
+                        break
+                    except PermissionError as e:
+                        if attempt < max_retries - 1:
+                            print_info(f"File busy, retrying in 1 second... (attempt {attempt + 1}/{max_retries})")
+                            time.sleep(1)
+                        else:
+                            print_warning(f"Could not copy {src} after {max_retries} attempts: {e}")
+                            # Try to copy without preserving metadata
+                            shutil.copy(src_path, dst)
+                            print_info(f"Copied {src} -> {dst} (without metadata)")
+            except Exception as e:
+                print_warning(f"Failed to copy {src}: {e}")
         else:
             print_warning(f"File not found: {src}")
     
@@ -305,6 +470,131 @@ Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
     print_success(f"Distribution package created in: {dist_dir}")
     return dist_dir
 
+def upload_to_firebase_storage(file_path, config, version, destination_path=None):
+    """Upload file to Firebase Storage with versioning"""
+    print_header("Uploading to Firebase Storage")
+    
+    try:
+        # Try to import Firebase Admin SDK
+        try:
+            import firebase_admin
+            from firebase_admin import credentials, storage
+        except ImportError:
+            print_error("Firebase Admin SDK not installed")
+            print_info("Install with: pip install firebase-admin")
+            return False
+        
+        # Initialize Firebase Admin (if not already initialized)
+        if not firebase_admin._apps:
+            # Try to find service account key
+            service_account_paths = [
+                "serviceAccountKey.json",
+                "firebase-service-account.json",
+                "sionyx-service-account.json"
+            ]
+            
+            service_account_path = None
+            for path in service_account_paths:
+                if Path(path).exists():
+                    service_account_path = path
+                    break
+            
+            if not service_account_path:
+                print_error("Firebase service account key not found")
+                print_info("Please place your service account JSON file as 'serviceAccountKey.json'")
+                return False
+            
+        # Initialize Firebase Admin
+        cred = credentials.Certificate(service_account_path)
+        storage_bucket = config['firebase']['storage_bucket']
+        
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': storage_bucket
+        })
+        
+        # Get file info
+        file_path = Path(file_path)
+        if not file_path.exists():
+            print_error(f"File not found: {file_path}")
+            return False
+        
+        file_size = file_path.stat().st_size
+        file_name = file_path.name
+        
+        # Generate destination path with constant filename at root level
+        if not destination_path:
+            # Use constant filename at bucket root for maximum simplicity
+            destination_path = config['build']['upload_filename']
+        
+        print_info(f"Uploading {file_name} v{version} ({file_size:,} bytes)")
+        print_info(f"Destination: {destination_path}")
+        
+        # Upload file
+        bucket = storage.bucket()
+        blob = bucket.blob(destination_path)
+        
+        # Upload file (without progress callback for compatibility)
+        blob.upload_from_filename(str(file_path))
+        print_info("Upload completed")
+        
+        # Make file publicly accessible
+        blob.make_public()
+        
+        # Get download URL
+        download_url = blob.public_url
+        print_success(f"Upload completed!")
+        print_info(f"Download URL: {download_url}")
+        
+        # Save upload info with version
+        upload_info = {
+            "file_name": file_name,
+            "versioned_name": Path(destination_path).name,
+            "version": version,
+            "file_size": file_size,
+            "upload_time": datetime.now().isoformat(),
+            "download_url": download_url,
+            "destination_path": destination_path
+        }
+        
+        with open("upload_info.json", "w") as f:
+            json.dump(upload_info, f, indent=2)
+        
+        # Upload version info to Firebase Storage
+        upload_version_info(bucket, version, upload_info)
+        
+        print_success("Upload info saved to upload_info.json")
+        return True
+        
+    except Exception as e:
+        print_error(f"Upload failed: {e}")
+        return False
+
+def upload_version_info(bucket, version, upload_info):
+    """Upload version information to Firebase Storage"""
+    try:
+        # Create version info
+        version_info = {
+            "version": version,
+            "build_date": datetime.now().isoformat(),
+            "build_number": int(time.time()),
+            "files": [upload_info]
+        }
+        
+        # Upload as latest.json
+        latest_blob = bucket.blob("releases/latest.json")
+        latest_blob.upload_from_string(json.dumps(version_info, indent=2))
+        latest_blob.make_public()
+        
+        # Upload as versioned file
+        version_blob = bucket.blob(f"releases/versions/v{version}.json")
+        version_blob.upload_from_string(json.dumps(version_info, indent=2))
+        version_blob.make_public()
+        
+        print_info(f"Version info uploaded: v{version}")
+        
+    except Exception as e:
+        print_warning(f"Failed to upload version info: {e}")
+
 def cleanup():
     """Clean up temporary files"""
     print_header("Cleaning Up")
@@ -337,12 +627,25 @@ def main():
                        help='Skip NSIS installer creation')
     parser.add_argument('--executable-only', action='store_true',
                        help='Only create executable, skip web build and installer')
+    parser.add_argument('--upload', action='store_true',
+                       help='Upload executable to Firebase Storage after building')
+    parser.add_argument('--bucket', type=str, default='sionyx-19636',
+                       help='Firebase Storage bucket name (default: sionyx-19636)')
+    parser.add_argument('--upload-installer', action='store_true',
+                       help='Also upload installer to Firebase Storage')
     
     args = parser.parse_args()
     
     try:
-        print_header("🚀 SIONYX Build Process")
-        print(f"{Colors.BOLD}Building SIONYX application for distribution{Colors.ENDC}\n")
+        # Load configuration
+        config = load_config()
+        
+        print_header(f"{config['build']['app_name']} Build Process")
+        print(f"{Colors.BOLD}Building {config['build']['app_name']} application for distribution{Colors.ENDC}\n")
+        
+        # Get version number
+        version = get_next_version()
+        print_info(f"Building version: {version}")
         
         # Check dependencies
         if not check_dependencies():
@@ -350,7 +653,7 @@ def main():
         
         # Build web application (unless skipped)
         if not args.skip_web and not args.executable_only:
-            if not build_web_app(force_rebuild=args.force_web):
+            if not build_web_app(config, force_rebuild=args.force_web):
                 return False
         elif args.skip_web:
             print_info("Skipping web application build (--skip-web)")
@@ -375,21 +678,69 @@ def main():
         # Create distribution package
         dist_dir = create_distribution_package()
         
-        # Cleanup
-        cleanup()
+        # Upload to Firebase Storage if requested
+        upload_success = False
+        if args.upload:
+            exe_path = Path("dist/SIONYX.exe")
+            if exe_path.exists():
+                upload_success = upload_to_firebase_storage(
+                    exe_path, 
+                    config,
+                    version
+                )
+                if upload_success:
+                    print_success("Executable uploaded to Firebase Storage")
+                else:
+                    print_warning("Failed to upload executable")
+            
+            if args.upload_installer and installer_path:
+                upload_success = upload_to_firebase_storage(
+                    installer_path, 
+                    config,
+                    version,
+                    f"releases/{config['build']['app_name']}-Setup_v{version}.exe"
+                )
+                if upload_success:
+                    print_success("Installer uploaded to Firebase Storage")
+                else:
+                    print_warning("Failed to upload installer")
         
-        print_header("🎉 Build Complete!")
-        print_success("SIONYX has been successfully packaged for distribution")
-        print(f"\n{Colors.BOLD}Distribution files:{Colors.ENDC}")
-        print(f"  📁 {dist_dir}")
+        # Clean up local files if upload was successful
+        if args.upload and upload_success:
+            cleanup_local_files()
+        else:
+            # Regular cleanup for non-upload builds
+            cleanup()
         
-        if installer_path:
-            print(f"  📦 {installer_path}")
+        print_header("Build Complete!")
+        print_success(f"{config['build']['app_name']} v{version} has been successfully packaged for distribution")
+        print(f"\n{Colors.BOLD}Version Information:{Colors.ENDC}")
+        print(f"  Version: {version}")
+        print(f"  Build Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        if args.upload and upload_success:
+            print(f"\n{Colors.BOLD}Firebase Storage:{Colors.ENDC}")
+            print(f"  Files uploaded to bucket: {config['firebase']['storage_bucket']}")
+            print(f"  Upload info: upload_info.json")
+            print(f"  Storage path: root level")
+            print(f"  File: {config['build']['upload_filename']}")
+            print(f"\n{Colors.BOLD}Local Files:{Colors.ENDC}")
+            print(f"  Local files cleaned up after successful upload")
+        else:
+            print(f"\n{Colors.BOLD}Distribution files:{Colors.ENDC}")
+            print(f"  {dist_dir}")
+            if installer_path:
+                print(f"  {installer_path}")
         
         print(f"\n{Colors.BOLD}Next steps:{Colors.ENDC}")
-        print("  1. Test the installer on a clean Windows machine")
-        print("  2. Distribute the installer to your users")
-        print("  3. Users can run the installer and follow the setup wizard")
+        if args.upload and upload_success:
+            print("  1. Files are now available in Firebase Storage")
+            print("  2. Users can download from your web app")
+            print("  3. Version info is automatically updated")
+        else:
+            print("  1. Test the installer on a clean Windows machine")
+            print("  2. Distribute the installer to your users")
+            print("  3. Users can run the installer and follow the setup wizard")
         
         return True
         

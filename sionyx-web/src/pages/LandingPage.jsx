@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { 
   Card, 
   Button, 
@@ -30,7 +30,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { registerOrganization, validateOrganization } from '../services/organizationService';
-import { downloadSoftware } from '../services/downloadService';
+import { getLatestRelease, downloadFile } from '../services/downloadService';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -61,11 +61,11 @@ const LandingPage = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const handleAdminLogin = () => {
+  const handleAdminLogin = useCallback(() => {
     navigate('/admin');
-  };
+  }, [navigate]);
 
-  const handleOrganizationRegister = async (values) => {
+  const handleOrganizationRegister = useCallback(async (values) => {
     setLoading(true);
     try {
       const result = await registerOrganization(values);
@@ -95,9 +95,9 @@ const LandingPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [registrationForm]);
 
-  const handleOrganizationValidate = async (values) => {
+  const handleOrganizationValidate = useCallback(async (values) => {
     setLoading(true);
     try {
       const result = await validateOrganization(values.organizationName);
@@ -127,12 +127,13 @@ const LandingPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [validationForm]);
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     setDownloadLoading(true);
     try {
-      await downloadSoftware();
+      const releaseInfo = await getLatestRelease();
+      await downloadFile(releaseInfo.downloadUrl, releaseInfo.fileName);
       message.success({
         content: 'ההורדה החלה בהצלחה! 🚀',
         style: { direction: 'rtl' }
@@ -146,15 +147,19 @@ const LandingPage = () => {
     } finally {
       setDownloadLoading(false);
     }
-  };
+  }, []);
 
-  const handleTabChange = (key) => {
+  const handleGoToDownloadPage = useCallback(() => {
+    navigate('/download');
+  }, [navigate]);
+
+  const handleTabChange = useCallback((key) => {
     setActiveTab(key);
     setShowDownload(false);
     setValidatedOrg(null);
     registrationForm.resetFields();
     validationForm.resetFields();
-  };
+  }, [registrationForm, validationForm]);
 
   const renderRegistrationForm = () => (
     <div style={{ direction: 'rtl' }}>
@@ -557,33 +562,60 @@ const LandingPage = () => {
                   />
                 </div>
 
-                {/* Admin Login Button */}
-                <Button 
-                  type="text" 
-                  onClick={handleAdminLogin}
-                  style={{ 
-                    color: 'rgba(255, 255, 255, 0.9)',
-                        fontSize: '16px',
-                        fontWeight: 600,
-                    marginBottom: '40px',
-                    padding: '12px 24px',
-                    borderRadius: '12px',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-                        e.currentTarget.style.transform = 'translateY(-2px)';
-                      }}
-                      onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <SettingOutlined /> כניסה למנהל
-                </Button>
+                {/* Action Buttons */}
+                <Space size="large" style={{ marginBottom: '40px' }}>
+                  <Button 
+                    type="text" 
+                    onClick={handleAdminLogin}
+                    style={{ 
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      padding: '12px 24px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <SettingOutlined /> כניסה למנהל
+                  </Button>
+                  
+                  <Button 
+                    type="text" 
+                    onClick={handleGoToDownloadPage}
+                    style={{ 
+                      color: 'rgba(255, 255, 255, 0.9)',
+                      fontSize: '16px',
+                      fontWeight: 600,
+                      padding: '12px 24px',
+                      borderRadius: '12px',
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid rgba(255, 255, 255, 0.2)',
+                      transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    <DownloadOutlined /> הורדה ישירה
+                  </Button>
+                </Space>
               </div>
 
               {/* Main Content */}
@@ -861,4 +893,4 @@ const LandingPage = () => {
   );
 };
 
-export default LandingPage;
+export default memo(LandingPage);

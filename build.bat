@@ -1,3 +1,4 @@
+python build.py --upload
 @echo off
 echo SIONYX Build Script
 echo ===================
@@ -21,12 +22,48 @@ if "%1"=="--help" (
     echo   --skip-web          Skip web application build
     echo   --force-web         Force rebuild of web application
     echo   --skip-installer    Skip NSIS installer creation
+    echo   --upload            Upload executable to Firebase Storage
+    echo   --upload-installer  Also upload installer to Firebase Storage
+    echo   --bucket NAME       Firebase Storage bucket name (default: sionyx-19636)
     echo   --help              Show this help message
     echo.
     echo Examples:
-    echo   build.bat                    # Full build (web + executable + installer)
-    echo   build.bat --executable-only  # Only create executable
-    echo   build.bat --skip-web         # Skip web build, create executable + installer
+    echo   build.bat                           # Full build (web + executable + installer)
+    echo   build.bat --executable-only         # Only create executable
+    echo   build.bat --skip-web                # Skip web build, create executable + installer
+    echo   build.bat --upload                  # Build, upload to Firebase, clean local files
+    echo   build.bat --upload --upload-installer # Build, upload both files, clean local files
+    echo.
+    echo Setup Firebase Storage:
+    echo   python setup_firebase.py            # Interactive Firebase setup
+    echo.
+    pause
+    exit /b 0
+)
+
+REM Show usage if no arguments provided
+if "%1"=="" (
+    echo Usage: build.bat [options]
+    echo.
+    echo Options:
+    echo   --executable-only    Only create executable, skip web build and installer
+    echo   --skip-web          Skip web application build
+    echo   --force-web         Force rebuild of web application
+    echo   --skip-installer    Skip NSIS installer creation
+    echo   --upload            Upload executable to Firebase Storage
+    echo   --upload-installer  Also upload installer to Firebase Storage
+    echo   --bucket NAME       Firebase Storage bucket name (default: sionyx-19636)
+    echo   --help              Show this help message
+    echo.
+    echo Examples:
+    echo   build.bat                           # Full build (web + executable + installer)
+    echo   build.bat --executable-only         # Only create executable
+    echo   build.bat --skip-web                # Skip web build, create executable + installer
+    echo   build.bat --upload                  # Build, upload to Firebase, clean local files
+    echo   build.bat --upload --upload-installer # Build, upload both files, clean local files
+    echo.
+    echo Setup Firebase Storage:
+    echo   python setup_firebase.py            # Interactive Firebase setup
     echo.
     pause
     exit /b 0

@@ -1,0 +1,17 @@
+{
+  "firebase": {
+    "project_id": "your-project-id",
+    "storage_bucket": "your-project-id.firebasestorage.app",
+    "service_account_key": "serviceAccountKey.json"
+  },
+  "build": {
+    "app_name": "YOUR_APP_NAME",
+    "version_file": "version.json",
+    "upload_filename": "your-app-installer.exe"
+  },
+  "paths": {
+    "web_app": "sionyx-web",
+    "src": "src",
+    "dist": "distribution"
+  }
+}

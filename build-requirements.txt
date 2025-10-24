@@ -5,6 +5,9 @@
 # Core build tools
 pyinstaller>=5.0.0
 
+# Firebase Storage upload (optional)
+firebase-admin>=6.0.0
+
 # Web build tools (if building web app separately)
 # nodejs and npm should be installed separately
 
