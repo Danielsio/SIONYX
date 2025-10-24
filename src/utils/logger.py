@@ -201,18 +201,26 @@ class SionyxLogger:
         root_logger.setLevel(logging.DEBUG)  # Capture everything
         root_logger.handlers.clear()
 
-        # Console Handler (colored, INFO and above)
-        console_handler = logging.StreamHandler(sys.stdout)
+        # Console Handler (colored, INFO and above) - PyInstaller compatibility
+        if sys.stdout is not None:
+            console_handler = logging.StreamHandler(sys.stdout)
+        else:
+            # Fallback for PyInstaller when stdout is None
+            console_handler = logging.StreamHandler()
         console_handler.setLevel(log_level)
 
         # Set UTF-8 encoding for console output
         if hasattr(console_handler.stream, "reconfigure"):
             console_handler.stream.reconfigure(encoding="utf-8")
 
-        if enable_colors and sys.stdout.isatty():
+        # Check if stdout is available and is a TTY (PyInstaller compatibility)
+        stdout_available = sys.stdout is not None and hasattr(sys.stdout, 'isatty')
+        is_tty = stdout_available and sys.stdout.isatty()
+        
+        if enable_colors and is_tty:
             console_handler.setFormatter(ColoredFormatter())
         else:
-            # Fallback to simple format if no colors
+            # Fallback to simple format if no colors or stdout issues
             simple_format = logging.Formatter(
                 "%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s",
                 datefmt="%H:%M:%S",
