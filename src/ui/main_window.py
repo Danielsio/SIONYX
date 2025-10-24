@@ -2,27 +2,44 @@
 Main Window - Modern Web-Style Navigation
 Refactored to use centralized constants and base components
 """
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                              QPushButton, QFrame, QStackedWidget, QMessageBox,
-                              QGraphicsDropShadowEffect)
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QColor
 
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
+
+from services.session_service import SessionService
 from ui.base_window import BaseKioskWindow
-from ui.pages.home_page import HomePage
-from ui.pages.packages_page import PackagesPage
-from ui.pages.history_page import HistoryPage
-from ui.pages.help_page import HelpPage
 from ui.components.base_components import ActionButton, HeaderSection
 from ui.constants.ui_constants import (
-    Dimensions, Spacing, BorderRadius, Colors, Gradients, 
-    Typography, Shadows, UIStrings, get_shadow_effect
+    BorderRadius,
+    Colors,
+    Dimensions,
+    Gradients,
+    Shadows,
+    Spacing,
+    Typography,
+    UIStrings,
+    get_shadow_effect,
 )
-from utils.logger import get_logger
 from ui.floating_timer import FloatingTimer
-from services.session_service import SessionService
+from ui.pages.help_page import HelpPage
+from ui.pages.history_page import HistoryPage
+from ui.pages.home_page import HomePage
+from ui.pages.packages_page import PackagesPage
 from ui.styles import MAIN_WINDOW_QSS
 from utils.const import APP_NAME
+from utils.logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -30,12 +47,7 @@ logger = get_logger(__name__)
 class MainWindow(BaseKioskWindow):
     """Main container with modern sidebar navigation"""
 
-    PAGES = {
-        'HOME': 0,
-        'PACKAGES': 1,
-        'HISTORY': 2,
-        'HELP': 3
-    }
+    PAGES = {"HOME": 0, "PACKAGES": 1, "HISTORY": 2, "HELP": 3}
 
     def __init__(self, auth_service, config):
         super().__init__()
@@ -47,8 +59,7 @@ class MainWindow(BaseKioskWindow):
 
         # Session management
         self.session_service = SessionService(
-            auth_service.firebase,
-            self.current_user['uid']
+            auth_service.firebase, self.current_user["uid"]
         )
         self.floating_timer = None
 
@@ -57,7 +68,7 @@ class MainWindow(BaseKioskWindow):
         self.session_service.session_ended.connect(self.on_session_ended)
         self.session_service.warning_5min.connect(self.on_warning_5min)
         self.session_service.warning_1min.connect(self.on_warning_1min)
-        
+
         # Data refresh optimization
         self.page_data_ages = {}  # Track when each page was last refreshed
         self.data_max_age_seconds = 30  # Maximum age before forcing refresh
@@ -75,7 +86,7 @@ class MainWindow(BaseKioskWindow):
     def init_ui(self):
         """Initialize UI"""
         self.setWindowTitle(f"{APP_NAME} - לוח בקרה")
-        
+
         # Set RTL layout direction for Hebrew support
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
@@ -111,11 +122,10 @@ class MainWindow(BaseKioskWindow):
         self.setLayout(main_layout)
 
         self.apply_modern_styles()
-        self.show_page(self.PAGES['HOME'])
-        
+        self.show_page(self.PAGES["HOME"])
+
         # Refresh all pages after UI is initialized
         self.refresh_all_pages()
-
 
     def create_modern_sidebar(self) -> QWidget:
         """Create modern, clean sidebar using constants and base components"""
@@ -126,10 +136,10 @@ class MainWindow(BaseKioskWindow):
         # Apply shadow using constants
         shadow_config = get_shadow_effect(Shadows.LARGE_BLUR, Shadows.Y_OFFSET_LARGE)
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(shadow_config['blur_radius'])
-        shadow.setXOffset(shadow_config['x_offset'])
-        shadow.setYOffset(shadow_config['y_offset'])
-        shadow.setColor(QColor(shadow_config['color']))
+        shadow.setBlurRadius(shadow_config["blur_radius"])
+        shadow.setXOffset(shadow_config["x_offset"])
+        shadow.setYOffset(shadow_config["y_offset"])
+        shadow.setColor(QColor(shadow_config["color"]))
         sidebar.setGraphicsEffect(shadow)
 
         layout = QVBoxLayout(sidebar)
@@ -138,10 +148,10 @@ class MainWindow(BaseKioskWindow):
 
         # Header bar (burger + brand)
         header = self.create_sidebar_header()
-        
+
         # Navigation section
         nav_section = self.create_navigation_section()
-        
+
         # Bottom section - Logout
         bottom_section = self.create_sidebar_footer()
 
@@ -151,48 +161,66 @@ class MainWindow(BaseKioskWindow):
         layout.addWidget(bottom_section)
 
         return sidebar
-    
+
     def create_sidebar_header(self) -> QWidget:
         """Create sidebar header with brand and menu icon"""
         header = QWidget()
         header.setStyleSheet("background-color: transparent; border: none;")
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(Spacing.CARD_MARGIN, Spacing.COMPONENT_MARGIN, 
-                                        Spacing.CARD_MARGIN, Spacing.COMPONENT_MARGIN)
+        header_layout.setContentsMargins(
+            Spacing.CARD_MARGIN,
+            Spacing.COMPONENT_MARGIN,
+            Spacing.CARD_MARGIN,
+            Spacing.COMPONENT_MARGIN,
+        )
         header_layout.setSpacing(Spacing.ELEMENT_SPACING)
 
         # Menu icon
         burger = QLabel("≡")
-        burger.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_XL, Typography.WEIGHT_EXTRABOLD))
-        burger.setStyleSheet(f"color: {Colors.GRAY_100}; background-color: transparent; border: none;")
+        burger.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_XL, Typography.WEIGHT_EXTRABOLD
+            )
+        )
+        burger.setStyleSheet(
+            f"color: {Colors.GRAY_100}; background-color: transparent; border: none;"
+        )
 
         # Brand name
         brand = QLabel(APP_NAME)
-        brand.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_MD, Typography.WEIGHT_BOLD))
-        brand.setStyleSheet(f"color: {Colors.WHITE}; letter-spacing: 0.5px; background-color: transparent; border: none;")
+        brand.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_MD, Typography.WEIGHT_BOLD)
+        )
+        brand.setStyleSheet(
+            f"color: {Colors.WHITE}; letter-spacing: 0.5px; background-color: transparent; border: none;"
+        )
 
         header_layout.addWidget(burger)
         header_layout.addWidget(brand)
         header_layout.addStretch()
 
         return header
-    
+
     def create_navigation_section(self) -> QWidget:
         """Create navigation section with menu items"""
         nav_section = QWidget()
         nav_section.setStyleSheet("background-color: transparent;")
         nav_layout = QVBoxLayout(nav_section)
-        nav_layout.setContentsMargins(Spacing.ELEMENT_SPACING, Spacing.TIGHT_SPACING, 
-                                    Spacing.ELEMENT_SPACING, Spacing.ELEMENT_SPACING)
+        nav_layout.setContentsMargins(
+            Spacing.ELEMENT_SPACING,
+            Spacing.TIGHT_SPACING,
+            Spacing.ELEMENT_SPACING,
+            Spacing.ELEMENT_SPACING,
+        )
         nav_layout.setSpacing(Spacing.TIGHT_SPACING)
 
         self.nav_buttons = []
 
         nav_items = [
-            ("🏠  בית", self.PAGES['HOME']),
-            ("🧩  חבילות", self.PAGES['PACKAGES']),
-            ("🕘  היסטוריה", self.PAGES['HISTORY']),
-            ("❓  עזרה", self.PAGES['HELP'])
+            ("🏠  בית", self.PAGES["HOME"]),
+            ("🧩  חבילות", self.PAGES["PACKAGES"]),
+            ("🕘  היסטוריה", self.PAGES["HISTORY"]),
+            ("❓  עזרה", self.PAGES["HELP"]),
         ]
 
         for label, index in nav_items:
@@ -202,14 +230,18 @@ class MainWindow(BaseKioskWindow):
 
         nav_layout.addStretch()
         return nav_section
-    
+
     def create_sidebar_footer(self) -> QWidget:
         """Create sidebar footer with logout button"""
         bottom_section = QWidget()
         bottom_section.setStyleSheet("background-color: transparent;")
         bottom_layout = QVBoxLayout(bottom_section)
-        bottom_layout.setContentsMargins(Spacing.ELEMENT_SPACING, Spacing.TIGHT_SPACING, 
-                                       Spacing.ELEMENT_SPACING, Spacing.CARD_MARGIN)
+        bottom_layout.setContentsMargins(
+            Spacing.ELEMENT_SPACING,
+            Spacing.TIGHT_SPACING,
+            Spacing.ELEMENT_SPACING,
+            Spacing.CARD_MARGIN,
+        )
         bottom_layout.setSpacing(0)
 
         # Use base component for logout button
@@ -224,7 +256,11 @@ class MainWindow(BaseKioskWindow):
         """Create modern navigation button using constants"""
         btn = QPushButton(text)
         btn.setObjectName("modernNavButton")
-        btn.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_MEDIUM))
+        btn.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_MEDIUM
+            )
+        )
         btn.setMinimumHeight(Dimensions.BUTTON_HEIGHT_SMALL)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setCheckable(True)
@@ -240,52 +276,52 @@ class MainWindow(BaseKioskWindow):
 
         for i, btn in enumerate(self.nav_buttons):
             btn.setChecked(i == index)
-        
+
         # Refresh the current page data
         self.refresh_current_page()
 
     def refresh_current_page(self, force: bool = False):
         """Refresh data for the current page with smart caching"""
         current_widget = self.content_stack.currentWidget()
-        
-        if hasattr(current_widget, 'refresh_user_data'):
+
+        if hasattr(current_widget, "refresh_user_data"):
             page_name = current_widget.__class__.__name__
-            
+
             # Check if we need to refresh based on data age
             if not force and self._should_skip_refresh(page_name):
                 logger.debug(f"Skipping refresh for {page_name} (data is fresh)")
                 return
-                
+
             logger.info(f"Refreshing data for {page_name}")
             current_widget.refresh_user_data()
-            
+
             # Update data age tracking
             self._update_page_data_age(page_name)
 
     def refresh_all_pages(self, force: bool = False):
         """Refresh data for all pages with smart caching"""
         logger.info("Refreshing all pages with user data")
-        
+
         # Check if UI is initialized
-        if not hasattr(self, 'content_stack'):
+        if not hasattr(self, "content_stack"):
             logger.warning("UI not initialized yet, skipping page refresh")
             return
-        
+
         # Check if user data has changed
         current_user_data = self._get_current_user_data()
         if not force and self._user_data_unchanged(current_user_data):
             logger.debug("User data unchanged, skipping page refresh")
             return
-        
+
         # Update last user data
         self.last_user_data = current_user_data
-        
+
         # Refresh each page that has the refresh_user_data method
         for i in range(self.content_stack.count()):
             page = self.content_stack.widget(i)
-            if hasattr(page, 'refresh_user_data'):
+            if hasattr(page, "refresh_user_data"):
                 page_name = page.__class__.__name__
-                
+
                 # Only refresh if data is stale or forced
                 if force or self._should_skip_refresh(page_name):
                     logger.info(f"Refreshing {page_name}")
@@ -298,44 +334,46 @@ class MainWindow(BaseKioskWindow):
         """Check if we should skip refreshing a page based on data age"""
         if page_name not in self.page_data_ages:
             return False  # Never refreshed, so refresh it
-        
+
         from datetime import datetime, timedelta
+
         last_refresh = self.page_data_ages[page_name]
         age_seconds = (datetime.now() - last_refresh).total_seconds()
-        
+
         return age_seconds < self.data_max_age_seconds
-    
+
     def _update_page_data_age(self, page_name: str):
         """Update the data age for a specific page"""
         from datetime import datetime
+
         self.page_data_ages[page_name] = datetime.now()
-    
+
     def _get_current_user_data(self) -> dict:
         """Get current user data for change detection"""
         if not self.current_user:
             return {}
-        
+
         # Return a simplified version of user data for comparison
         return {
-            'uid': self.current_user.get('uid'),
-            'timeRemaining': self.current_user.get('timeRemaining', 0),
-            'printsRemaining': self.current_user.get('printsRemaining', 0),
-            'lastSeen': self.current_user.get('lastSeen')
+            "uid": self.current_user.get("uid"),
+            "timeRemaining": self.current_user.get("timeRemaining", 0),
+            "printsRemaining": self.current_user.get("printsRemaining", 0),
+            "lastSeen": self.current_user.get("lastSeen"),
         }
-    
+
     def _user_data_unchanged(self, current_data: dict) -> bool:
         """Check if user data has changed since last refresh"""
         if not self.last_user_data:
             return False
-        
+
         return self.last_user_data == current_data
 
     def showEvent(self, event):
         """Handle window show event"""
         super().showEvent(event)
-        
+
         logger.info("Main window showEvent triggered - refreshing all pages")
-        
+
         # Refresh all pages when the window is shown
         # This ensures data is loaded when the user logs in
         self.refresh_all_pages(force=True)  # Force refresh on show
@@ -348,27 +386,27 @@ class MainWindow(BaseKioskWindow):
             "אשר התנתקות",
             "האם אתה בטוח שברצונך להתנתק?",
             confirm_text="כן, התנתק",
-            cancel_text="ביטול"
+            cancel_text="ביטול",
         )
 
         if confirmed:
             try:
                 # Stop session service first to prevent crashes
-                if hasattr(self, 'session_service') and self.session_service:
-                    self.session_service.end_session('user')
-                
+                if hasattr(self, "session_service") and self.session_service:
+                    self.session_service.end_session("user")
+
                 # Clear data from all pages before logout
-                if hasattr(self.home_page, 'cleanup'):
+                if hasattr(self.home_page, "cleanup"):
                     self.home_page.cleanup()
-                
-                if hasattr(self.history_page, 'clear_user_data'):
+
+                if hasattr(self.history_page, "clear_user_data"):
                     self.history_page.clear_user_data()
-                
-                if hasattr(self.packages_page, 'clear_user_data'):
+
+                if hasattr(self.packages_page, "clear_user_data"):
                     self.packages_page.clear_user_data()
 
                 # Close floating timer if exists
-                if hasattr(self, 'floating_timer') and self.floating_timer:
+                if hasattr(self, "floating_timer") and self.floating_timer:
                     self.floating_timer.close()
 
                 self.auth_service.logout()
@@ -378,11 +416,14 @@ class MainWindow(BaseKioskWindow):
                 self.hide()
 
                 from ui.auth_window import AuthWindow
+
                 self.auth_window = AuthWindow(self.auth_service)
                 # Connect login success to show main window again
-                self.auth_window.login_success.connect(self.show_main_window_after_login)
+                self.auth_window.login_success.connect(
+                    self.show_main_window_after_login
+                )
                 self.auth_window.show()
-                
+
             except Exception as e:
                 logger.error(f"Error during logout: {e}")
                 # Still try to logout even if cleanup fails
@@ -390,30 +431,33 @@ class MainWindow(BaseKioskWindow):
                 # Hide main window and show auth window instead of closing
                 self.hide()
                 from ui.auth_window import AuthWindow
+
                 self.auth_window = AuthWindow(self.auth_service)
                 # Connect login success to show main window again
-                self.auth_window.login_success.connect(self.show_main_window_after_login)
+                self.auth_window.login_success.connect(
+                    self.show_main_window_after_login
+                )
                 self.auth_window.show()
 
     def show_main_window_after_login(self):
         """Show main window after successful login from logout flow"""
         logger.info("User logged in again, showing main window")
-        
+
         # Close the auth window
-        if hasattr(self, 'auth_window') and self.auth_window:
+        if hasattr(self, "auth_window") and self.auth_window:
             self.auth_window.close()
             self.auth_window = None
-        
+
         # Refresh user data and show main window
         self.current_user = self.auth_service.get_current_user()
-        
+
         # Update session service with new user
-        if hasattr(self, 'session_service') and self.session_service:
-            self.session_service.user_id = self.current_user['uid']
-        
+        if hasattr(self, "session_service") and self.session_service:
+            self.session_service.user_id = self.current_user["uid"]
+
         # Refresh all pages with new user data
         self.refresh_all_pages(force=True)
-        
+
         # Show the main window
         self.show()
 
@@ -428,26 +472,24 @@ class MainWindow(BaseKioskWindow):
 
         result = self.session_service.start_session(remaining_time)
 
-        if not result['success']:
+        if not result["success"]:
             QMessageBox.critical(
-                self,
-                "שגיאת הפעלה",
-                f"נכשל להתחיל הפעלה: {result['error']}"
+                self, "שגיאת הפעלה", f"נכשל להתחיל הפעלה: {result['error']}"
             )
             return
 
         # Create and show floating timer
         self.floating_timer = FloatingTimer()
         self.floating_timer.return_clicked.connect(self.return_from_session)
-        
+
         # Initialize timer with current values
         self.floating_timer.update_time(remaining_time)
         self.floating_timer.update_usage_time(0)  # Start with 0 usage time
-        
+
         # Update print balance with user's actual prints
-        print_balance = self.current_user.get('remainingPrints', 0)
+        print_balance = self.current_user.get("remainingPrints", 0)
         self.floating_timer.update_print_balance(print_balance)
-        
+
         self.floating_timer.show()
 
         # Minimize main window
@@ -460,7 +502,7 @@ class MainWindow(BaseKioskWindow):
         logger.info("User returning from session")
 
         # End session
-        result = self.session_service.end_session('user')
+        result = self.session_service.end_session("user")
 
         # Close floating timer
         if self.floating_timer:
@@ -472,16 +514,16 @@ class MainWindow(BaseKioskWindow):
         self.activateWindow()
 
         # Refresh user data and home page directly - no summary dialog
-        if result.get('success'):
-            remaining = result.get('remaining_time', 0)
-            if hasattr(self.home_page, 'current_user'):
-                self.home_page.current_user['remainingTime'] = remaining
-            if hasattr(self.home_page, 'update_countdown'):
+        if result.get("success"):
+            remaining = result.get("remaining_time", 0)
+            if hasattr(self.home_page, "current_user"):
+                self.home_page.current_user["remainingTime"] = remaining
+            if hasattr(self.home_page, "update_countdown"):
                 self.home_page.update_countdown()
-        
+
         # Switch to home page
         self.content_stack.setCurrentWidget(self.home_page)
-        
+
         logger.info("Returned to home page without summary dialog")
 
     def on_time_updated(self, remaining_seconds: int):
@@ -492,7 +534,7 @@ class MainWindow(BaseKioskWindow):
             time_used = self.session_service.get_time_used()
             self.floating_timer.update_usage_time(time_used)
             # Update print balance in case it changed
-            print_balance = self.current_user.get('remainingPrints', 0)
+            print_balance = self.current_user.get("remainingPrints", 0)
             self.floating_timer.update_print_balance(print_balance)
 
     def on_session_ended(self, reason: str):
@@ -509,24 +551,24 @@ class MainWindow(BaseKioskWindow):
         self.activateWindow()
 
         # Show appropriate message
-        if reason == 'expired':
+        if reason == "expired":
             purchase_more = self.show_question(
                 "הזמן פג",
                 "זמן הפעלה שלך פג!",
                 "האם תרצה לרכוש עוד זמן?",
                 yes_text="רכוש עוד זמן",
-                no_text="לא עכשיו"
+                no_text="לא עכשיו",
             )
 
             if purchase_more:
-                self.show_page(self.PAGES['PACKAGES'])
+                self.show_page(self.PAGES["PACKAGES"])
 
     def on_warning_5min(self):
         """5 minute warning"""
         self.show_notification(
             "⏰ נותרו 5 דקות! הפעלה שלך תסתיים בקרוב.",
             message_type="warning",
-            duration=4000
+            duration=4000,
         )
 
     def on_warning_1min(self):
@@ -534,7 +576,7 @@ class MainWindow(BaseKioskWindow):
         self.show_notification(
             "🚨 דחוף: נותרה דקה אחת! שמור את העבודה שלך עכשיו!",
             message_type="error",
-            duration=6000
+            duration=6000,
         )
 
     def on_sync_failed(self, error: str):
@@ -553,14 +595,15 @@ class MainWindow(BaseKioskWindow):
         """Setup Firebase listener for force logout"""
         try:
             from ui.force_logout_listener import ForceLogoutListener
-            
+
             self.force_logout_listener = ForceLogoutListener(
-                self.auth_service.firebase,
-                self.current_user['uid']
+                self.auth_service.firebase, self.current_user["uid"]
             )
-            self.force_logout_listener.force_logout_detected.connect(self.on_force_logout)
+            self.force_logout_listener.force_logout_detected.connect(
+                self.on_force_logout
+            )
             self.force_logout_listener.start()
-            
+
             logger.info("Force logout listener started")
         except Exception as e:
             logger.error(f"Failed to setup force logout listener: {e}")
@@ -568,24 +611,23 @@ class MainWindow(BaseKioskWindow):
     def on_force_logout(self):
         """Handle force logout from admin"""
         logger.warning("Force logout detected - user was kicked by admin")
-        
+
         # End current session
         if self.session_service.is_session_active():
-            self.session_service.end_session('admin_kick')
-        
+            self.session_service.end_session("admin_kick")
+
         # Show message
         self.show_notification(
-            "🚫 הותקנת מהמערכת על ידי מנהל",
-            message_type="error",
-            duration=5000
+            "🚫 הותקנת מהמערכת על ידי מנהל", message_type="error", duration=5000
         )
-        
+
         # Reset force logout flag in database
         self.reset_force_logout_flag()
-        
+
         # Close main window and return to auth
         self.close()
         from ui.auth_window import AuthWindow
+
         auth_window = AuthWindow(self.auth_service)
         auth_window.show()
 
@@ -593,19 +635,22 @@ class MainWindow(BaseKioskWindow):
         """Reset forceLogout flag to false after user gets kicked"""
         try:
             from datetime import datetime
+
             result = self.auth_service.firebase.db_update(
                 f'users/{self.current_user["uid"]}',
                 {
-                    'forceLogout': False,
-                    'forceLogoutTimestamp': None,
-                    'updatedAt': datetime.now().isoformat()
-                }
+                    "forceLogout": False,
+                    "forceLogoutTimestamp": None,
+                    "updatedAt": datetime.now().isoformat(),
+                },
             )
-            
-            if result.get('success'):
+
+            if result.get("success"):
                 logger.info("Force logout flag reset successfully")
             else:
-                logger.error(f"Failed to reset force logout flag: {result.get('error')}")
+                logger.error(
+                    f"Failed to reset force logout flag: {result.get('error')}"
+                )
         except Exception as e:
             logger.error(f"Error resetting force logout flag: {e}")
 
@@ -615,15 +660,15 @@ class MainWindow(BaseKioskWindow):
         if self.force_logout_listener:
             self.force_logout_listener.stop()
             self.force_logout_listener.wait(3000)  # Wait up to 3 seconds
-        
+
         # End session if active
         if self.session_service.is_session_active():
-            self.session_service.end_session('user')
-        
+            self.session_service.end_session("user")
+
         # Close floating timer
         if self.floating_timer:
             self.floating_timer.close()
-        
+
         event.accept()
 
     # Session summary method removed - users go directly back to home page

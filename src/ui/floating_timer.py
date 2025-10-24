@@ -3,12 +3,20 @@ Floating Timer Overlay
 Always-on-top timer displayed during sessions
 """
 
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                             QPushButton, QGraphicsDropShadowEffect, QFrame)
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from utils.logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -31,9 +39,9 @@ class FloatingTimer(QWidget):
         """Initialize UI"""
         # Window flags
         self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.Tool
         )
 
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
@@ -41,11 +49,12 @@ class FloatingTimer(QWidget):
 
         # Position at top-center of screen - stick to ceiling
         from PyQt6.QtWidgets import QApplication
+
         screen = QApplication.primaryScreen().availableGeometry()
         x = (screen.width() - 280) // 2  # Center horizontally with new width
         y = 0  # Stick to the ceiling (top of screen)
         self.move(x, y)
-        
+
         # Debug positioning
         logger.info(f"Screen size: {screen.width()}x{screen.height()}")
         logger.info(f"Timer positioned at: {x}, {y}")
@@ -66,7 +75,7 @@ class FloatingTimer(QWidget):
         left_section = QFrame()
         left_section.setObjectName("leftSection")
         left_section.setFixedWidth(90)  # Increased width to prevent יציאה button cutoff
-        
+
         left_layout = QVBoxLayout(left_section)
         left_layout.setContentsMargins(14, 14, 14, 14)  # Increased padding
         left_layout.setSpacing(10)  # Increased spacing
@@ -93,18 +102,24 @@ class FloatingTimer(QWidget):
         # Right section - Time information
         right_section = QFrame()
         right_section.setObjectName("rightSection")
-        right_section.setMinimumWidth(180)  # Further reduced minimum width for more compact design
-        
+        right_section.setMinimumWidth(
+            180
+        )  # Further reduced minimum width for more compact design
+
         right_layout = QVBoxLayout(right_section)
-        right_layout.setContentsMargins(12, 20, 12, 20)  # Further increased vertical padding for perfect text fit
-        right_layout.setSpacing(10)  # Increased spacing between elements for better text fit
+        right_layout.setContentsMargins(
+            12, 20, 12, 20
+        )  # Further increased vertical padding for perfect text fit
+        right_layout.setSpacing(
+            10
+        )  # Increased spacing between elements for better text fit
         right_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
         # Time remaining row
         time_remaining_row = QHBoxLayout()
         time_remaining_row.setSpacing(8)
         time_remaining_row.setAlignment(Qt.AlignmentFlag.AlignRight)
-        
+
         self.time_remaining_value = QLabel("00:00:00")
         self.time_remaining_value.setObjectName("timeRemainingValue")
         self.time_remaining_value.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
@@ -122,7 +137,7 @@ class FloatingTimer(QWidget):
         usage_time_row = QHBoxLayout()
         usage_time_row.setSpacing(8)
         usage_time_row.setAlignment(Qt.AlignmentFlag.AlignRight)
-        
+
         self.usage_time_value = QLabel("00:00:00")
         self.usage_time_value.setObjectName("usageTimeValue")
         self.usage_time_value.setFont(QFont("Segoe UI", 14))
@@ -140,7 +155,7 @@ class FloatingTimer(QWidget):
         print_balance_row = QHBoxLayout()
         print_balance_row.setSpacing(8)
         print_balance_row.setAlignment(Qt.AlignmentFlag.AlignRight)
-        
+
         self.print_balance_value = QLabel("0₪")
         self.print_balance_value.setObjectName("printBalanceValue")
         self.print_balance_value.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
@@ -247,7 +262,8 @@ class FloatingTimer(QWidget):
 
     def apply_professional_styles(self):
         """Apply professional dark theme styling to match the design"""
-        self.container.setStyleSheet("""
+        self.container.setStyleSheet(
+            """
             #timerContainer {
                 background-color: #363636;
                 border: 1px solid #555555;
@@ -339,8 +355,9 @@ class FloatingTimer(QWidget):
             #accountButton:pressed {
                 background-color: #2A2A2A;
             }
-        """)
-        
+        """
+        )
+
         # Add professional shadow effect
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(20)
@@ -351,7 +368,8 @@ class FloatingTimer(QWidget):
 
     def apply_warning_styles(self):
         """Apply warning styles (5 min remaining) - orange accent"""
-        self.container.setStyleSheet("""
+        self.container.setStyleSheet(
+            """
             #timerContainer {
                 background-color: #4A3A00;
                 border: 1px solid #FFA500;
@@ -443,11 +461,13 @@ class FloatingTimer(QWidget):
             #accountButton:pressed {
                 background-color: #3A2A00;
             }
-        """)
+        """
+        )
 
     def apply_critical_styles(self):
         """Apply critical styles (1 min remaining) - red accent"""
-        self.container.setStyleSheet("""
+        self.container.setStyleSheet(
+            """
             #timerContainer {
                 background-color: #4A0000;
                 border: 1px solid #FF0000;
@@ -539,4 +559,5 @@ class FloatingTimer(QWidget):
             #accountButton:pressed {
                 background-color: #3A0000;
             }
-        """)
+        """
+        )

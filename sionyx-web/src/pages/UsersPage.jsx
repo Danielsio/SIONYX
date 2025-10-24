@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { 
-  Card, 
-  Table, 
-  Tag, 
-  Space, 
-  Button, 
-  Input, 
+import {
+  Card,
+  Table,
+  Tag,
+  Space,
+  Button,
+  Input,
   Typography,
   Drawer,
   Descriptions,
@@ -15,7 +15,7 @@ import {
   Modal,
   Form,
   InputNumber,
-  Dropdown
+  Dropdown,
 } from 'antd';
 import { getStatusLabel, getStatusColor } from '../constants/purchaseStatus';
 import {
@@ -30,17 +30,17 @@ import {
   MoreOutlined,
   MinusCircleOutlined,
   MessageOutlined,
-  SendOutlined
+  SendOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
-import { 
-  getAllUsers, 
-  getUserPurchaseHistory, 
+import {
+  getAllUsers,
+  getUserPurchaseHistory,
   adjustUserBalance,
   grantAdminPermission,
   revokeAdminPermission,
-  kickUser
+  kickUser,
 } from '../services/userService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
@@ -61,7 +61,7 @@ const UsersPage = () => {
   const [adjusting, setAdjusting] = useState(false);
   const [kicking, setKicking] = useState(false);
   const [form] = Form.useForm();
-  
+
   // Chat related state
   const [userMessages, setUserMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
@@ -69,7 +69,7 @@ const UsersPage = () => {
   const [messageForm] = Form.useForm();
   const [sending, setSending] = useState(false);
 
-  const user = useAuthStore((state) => state.user);
+  const user = useAuthStore(state => state.user);
   const { users, setUsers } = useDataStore();
   const { message } = App.useApp();
 
@@ -79,7 +79,7 @@ const UsersPage = () => {
 
   const loadUsers = async () => {
     setLoading(true);
-    
+
     // Get orgId from authenticated user
     const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
@@ -104,7 +104,7 @@ const UsersPage = () => {
     setLoading(false);
   };
 
-  const handleViewUser = async (record) => {
+  const handleViewUser = async record => {
     setSelectedUser(record);
     setDrawerVisible(true);
     setLoadingPurchases(true);
@@ -134,12 +134,12 @@ const UsersPage = () => {
     setLoadingMessages(false);
   };
 
-  const handleAdjustBalance = (record) => {
+  const handleAdjustBalance = record => {
     setAdjustingUser(record);
     // Set current values as form initial values
     form.setFieldsValue({
       minutes: Math.floor((record.remainingTime || 0) / 60), // Convert seconds to minutes
-      prints: record.remainingPrints || 0
+      prints: record.remainingPrints || 0,
     });
     setAdjustBalanceVisible(true);
   };
@@ -150,14 +150,14 @@ const UsersPage = () => {
       setAdjusting(true);
 
       const orgId = user?.orgId || localStorage.getItem('adminOrgId');
-      
+
       // Calculate the difference between new values and current values
       const currentTimeMinutes = Math.floor((adjustingUser.remainingTime || 0) / 60);
       const currentPrints = adjustingUser.remainingPrints || 0;
-      
+
       const adjustments = {
         timeSeconds: (values.minutes - currentTimeMinutes) * 60, // Difference in seconds
-        prints: values.prints - currentPrints // Difference in prints
+        prints: values.prints - currentPrints, // Difference in prints
       };
 
       const result = await adjustUserBalance(orgId, adjustingUser.uid, adjustments);
@@ -166,16 +166,16 @@ const UsersPage = () => {
         message.success('User balance updated successfully');
         setAdjustBalanceVisible(false);
         form.resetFields();
-        
+
         // Reload users to reflect changes
         await loadUsers();
-        
+
         // Update selected user if viewing details
         if (selectedUser?.uid === adjustingUser.uid) {
           setSelectedUser({
             ...selectedUser,
             remainingTime: result.newBalance.remainingTime,
-            remainingPrints: result.newBalance.remainingPrints
+            remainingPrints: result.newBalance.remainingPrints,
           });
         }
       } else {
@@ -188,7 +188,7 @@ const UsersPage = () => {
     }
   };
 
-  const handleGrantAdmin = (record) => {
+  const handleGrantAdmin = record => {
     Modal.confirm({
       title: 'Grant Admin Permission',
       content: `Are you sure you want to grant admin permission to ${record.firstName} ${record.lastName}?`,
@@ -199,26 +199,26 @@ const UsersPage = () => {
       onOk: async () => {
         const orgId = user?.orgId || localStorage.getItem('adminOrgId');
         const result = await grantAdminPermission(orgId, record.uid);
-        
+
         if (result.success) {
           message.success('Admin permission granted successfully');
           await loadUsers();
-          
+
           // Update selected user if viewing details
           if (selectedUser?.uid === record.uid) {
             setSelectedUser({
               ...selectedUser,
-              isAdmin: true
+              isAdmin: true,
             });
           }
         } else {
           message.error(result.error || 'Failed to grant admin permission');
         }
-      }
+      },
     });
   };
 
-  const handleRevokeAdmin = (record) => {
+  const handleRevokeAdmin = record => {
     Modal.confirm({
       title: 'Revoke Admin Permission',
       content: `Are you sure you want to revoke admin permission from ${record.firstName} ${record.lastName}?`,
@@ -229,26 +229,26 @@ const UsersPage = () => {
       onOk: async () => {
         const orgId = user?.orgId || localStorage.getItem('adminOrgId');
         const result = await revokeAdminPermission(orgId, record.uid);
-        
+
         if (result.success) {
           message.success('Admin permission revoked successfully');
           await loadUsers();
-          
+
           // Update selected user if viewing details
           if (selectedUser?.uid === record.uid) {
             setSelectedUser({
               ...selectedUser,
-              isAdmin: false
+              isAdmin: false,
             });
           }
         } else {
           message.error(result.error || 'Failed to revoke admin permission');
         }
-      }
+      },
     });
   };
 
-  const handleKickUser = (record) => {
+  const handleKickUser = record => {
     Modal.confirm({
       title: 'Kick User',
       content: `Are you sure you want to kick ${record.firstName} ${record.lastName}? This will force them to log out immediately.`,
@@ -261,7 +261,7 @@ const UsersPage = () => {
         try {
           const orgId = user?.orgId || localStorage.getItem('adminOrgId');
           const result = await kickUser(orgId, record.uid);
-          
+
           if (result.success) {
             message.success(result.message);
             await loadUsers();
@@ -274,33 +274,33 @@ const UsersPage = () => {
         } finally {
           setKicking(false);
         }
-      }
+      },
     });
   };
 
-  const formatTime = (seconds) => {
+  const formatTime = seconds => {
     return formatTimeHebrewCompact(seconds);
   };
 
-  const handleSendMessageToUser = (record) => {
+  const handleSendMessageToUser = record => {
     setSelectedUser(record);
     setSendMessageVisible(true);
   };
 
-  const handleSendMessage = async (values) => {
+  const handleSendMessage = async values => {
     try {
       const { message: messageText } = values;
       setSending(true);
 
       const orgId = user?.orgId || localStorage.getItem('adminOrgId');
-      
+
       const result = await sendMessage(orgId, selectedUser.uid, messageText, user.uid);
-      
+
       if (result.success) {
         message.success('הודעה נשלחה בהצלחה');
         setSendMessageVisible(false);
         messageForm.resetFields();
-        
+
         // Reload messages if viewing user details
         if (drawerVisible) {
           const messageResult = await getMessagesForUser(orgId, selectedUser.uid);
@@ -329,26 +329,26 @@ const UsersPage = () => {
           <span>{`${record.firstName || ''} ${record.lastName || ''}`.trim() || 'לא זמין'}</span>
         </Space>
       ),
-      sorter: (a, b) => 
+      sorter: (a, b) =>
         `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`),
     },
     {
       title: 'מספר טלפון',
       dataIndex: 'phoneNumber',
       key: 'phoneNumber',
-      render: (phone) => phone || 'לא זמין',
+      render: phone => phone || 'לא זמין',
     },
     {
       title: 'אימייל',
       dataIndex: 'email',
       key: 'email',
-      render: (email) => email || 'לא זמין',
+      render: email => email || 'לא זמין',
     },
     {
       title: 'זמן נותר',
       dataIndex: 'remainingTime',
       key: 'remainingTime',
-      render: (time) => (
+      render: time => (
         <Space>
           <ClockCircleOutlined />
           <Text>{formatTime(time || 0)}</Text>
@@ -360,7 +360,7 @@ const UsersPage = () => {
       title: 'הדפסות',
       dataIndex: 'remainingPrints',
       key: 'remainingPrints',
-      render: (prints) => (
+      render: prints => (
         <Space>
           <PrinterOutlined />
           <Text>{prints || 0}</Text>
@@ -372,10 +372,8 @@ const UsersPage = () => {
       title: 'סטטוס',
       dataIndex: 'isActive',
       key: 'isActive',
-      render: (isActive) => (
-        <Tag color={isActive ? 'success' : 'default'}>
-          {isActive ? 'פעיל' : 'לא פעיל'}
-        </Tag>
+      render: isActive => (
+        <Tag color={isActive ? 'success' : 'default'}>{isActive ? 'פעיל' : 'לא פעיל'}</Tag>
       ),
       filters: [
         { text: 'פעיל', value: true },
@@ -387,23 +385,21 @@ const UsersPage = () => {
       title: 'נוצר',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date) => date ? dayjs(date).format('MMM D, YYYY') : 'לא זמין',
-      sorter: (a, b) => 
-        new Date(a.createdAt || 0) - new Date(b.createdAt || 0),
+      render: date => (date ? dayjs(date).format('MMM D, YYYY') : 'לא זמין'),
+      sorter: (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0),
     },
     {
       title: 'תפקיד',
       dataIndex: 'isAdmin',
       key: 'isAdmin',
-      render: (isAdmin) => (
+      render: isAdmin =>
         isAdmin ? (
-          <Tag color="gold" icon={<CrownOutlined />}>
+          <Tag color='gold' icon={<CrownOutlined />}>
             מנהל
           </Tag>
         ) : (
-          <Tag color="default">משתמש</Tag>
-        )
-      ),
+          <Tag color='default'>משתמש</Tag>
+        ),
       filters: [
         { text: 'מנהל', value: true },
         { text: 'משתמש', value: false },
@@ -414,19 +410,15 @@ const UsersPage = () => {
       title: 'סטטוס התקנה',
       dataIndex: 'forceLogout',
       key: 'forceLogout',
-      render: (forceLogout) => {
+      render: forceLogout => {
         if (forceLogout === true) {
           return (
-            <Tag color="red" icon={<MinusCircleOutlined />}>
+            <Tag color='red' icon={<MinusCircleOutlined />}>
               הותקן
             </Tag>
           );
         }
-        return (
-          <Tag color="green">
-            פעיל
-          </Tag>
-        );
+        return <Tag color='green'>פעיל</Tag>;
       },
       filters: [
         { text: 'פעיל', value: false },
@@ -447,62 +439,62 @@ const UsersPage = () => {
             key: 'view',
             icon: <EyeOutlined />,
             label: 'צפה בפרטים',
-            onClick: () => handleViewUser(record)
+            onClick: () => handleViewUser(record),
           },
           {
             key: 'message',
             icon: <MessageOutlined />,
             label: 'שלח הודעה',
-            onClick: () => handleSendMessageToUser(record)
+            onClick: () => handleSendMessageToUser(record),
           },
           {
             key: 'adjust',
             icon: <EditOutlined />,
             label: 'התאם יתרה',
-            onClick: () => handleAdjustBalance(record)
+            onClick: () => handleAdjustBalance(record),
           },
           {
-            type: 'divider'
+            type: 'divider',
           },
           // Only show kick button if user is not already kicked
-          record.forceLogout !== true ? {
-            key: 'kick',
-            icon: <MinusCircleOutlined />,
-            label: 'נתק משתמש',
-            danger: true,
-            onClick: () => handleKickUser(record),
-            disabled: kicking
-          } : {
-            key: 'kicked',
-            icon: <MinusCircleOutlined />,
-            label: 'הותקן',
-            disabled: true
-          },
-          record.isAdmin ? {
-            key: 'revoke',
-            icon: <MinusCircleOutlined />,
-            label: 'הסר הרשאות מנהל',
-            danger: true,
-            onClick: () => handleRevokeAdmin(record)
-          } : {
-            key: 'grant',
-            icon: <CrownOutlined />,
-            label: 'הענק הרשאות מנהל',
-            onClick: () => handleGrantAdmin(record)
-          }
+          record.forceLogout !== true
+            ? {
+                key: 'kick',
+                icon: <MinusCircleOutlined />,
+                label: 'נתק משתמש',
+                danger: true,
+                onClick: () => handleKickUser(record),
+                disabled: kicking,
+              }
+            : {
+                key: 'kicked',
+                icon: <MinusCircleOutlined />,
+                label: 'הותקן',
+                disabled: true,
+              },
+          record.isAdmin
+            ? {
+                key: 'revoke',
+                icon: <MinusCircleOutlined />,
+                label: 'הסר הרשאות מנהל',
+                danger: true,
+                onClick: () => handleRevokeAdmin(record),
+              }
+            : {
+                key: 'grant',
+                icon: <CrownOutlined />,
+                label: 'הענק הרשאות מנהל',
+                onClick: () => handleGrantAdmin(record),
+              },
         ];
 
         return (
           <Space>
-            <Button 
-              type="link" 
-              icon={<EyeOutlined />}
-              onClick={() => handleViewUser(record)}
-            >
+            <Button type='link' icon={<EyeOutlined />} onClick={() => handleViewUser(record)}>
               צפה
             </Button>
             <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-              <Button type="text" icon={<MoreOutlined />} />
+              <Button type='text' icon={<MoreOutlined />} />
             </Dropdown>
           </Space>
         );
@@ -515,7 +507,7 @@ const UsersPage = () => {
       title: 'תאריך',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date) => date ? dayjs(date).format('MMM D, YYYY HH:mm') : 'לא זמין',
+      render: date => (date ? dayjs(date).format('MMM D, YYYY HH:mm') : 'לא זמין'),
     },
     {
       title: 'חבילה',
@@ -526,7 +518,7 @@ const UsersPage = () => {
       title: 'סכום',
       dataIndex: 'amount',
       key: 'amount',
-      render: (price) => {
+      render: price => {
         const numPrice = parseFloat(price) || 0;
         return `₪${numPrice.toFixed(2)}`;
       },
@@ -535,7 +527,7 @@ const UsersPage = () => {
       title: 'סטטוס',
       dataIndex: 'status',
       key: 'status',
-      render: (status) => {
+      render: status => {
         return <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>;
       },
     },
@@ -546,7 +538,7 @@ const UsersPage = () => {
       title: 'הודעה',
       dataIndex: 'message',
       key: 'message',
-      render: (text) => (
+      render: text => (
         <Text style={{ maxWidth: 200 }} ellipsis={{ tooltip: text }}>
           {text}
         </Text>
@@ -559,16 +551,16 @@ const UsersPage = () => {
       render: (read, record) => (
         <Space>
           {read ? (
-            <Tag color="green" icon={<ClockCircleOutlined />}>
+            <Tag color='green' icon={<ClockCircleOutlined />}>
               נקרא
             </Tag>
           ) : (
-            <Tag color="orange" icon={<ClockCircleOutlined />}>
+            <Tag color='orange' icon={<ClockCircleOutlined />}>
               לא נקרא
             </Tag>
           )}
           {read && record.readAt && (
-            <Text type="secondary" style={{ fontSize: '12px' }}>
+            <Text type='secondary' style={{ fontSize: '12px' }}>
               {dayjs(record.readAt).format('HH:mm')}
             </Text>
           )}
@@ -579,10 +571,10 @@ const UsersPage = () => {
       title: 'נשלח',
       dataIndex: 'timestamp',
       key: 'timestamp',
-      render: (timestamp) => (
-        <Space direction="vertical" size={0}>
+      render: timestamp => (
+        <Space direction='vertical' size={0}>
           <Text>{dayjs(timestamp).format('DD/MM/YYYY')}</Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
+          <Text type='secondary' style={{ fontSize: '12px' }}>
             {dayjs(timestamp).format('HH:mm:ss')}
           </Text>
         </Space>
@@ -604,22 +596,16 @@ const UsersPage = () => {
 
   return (
     <div style={{ direction: 'rtl' }}>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space direction='vertical' size='large' style={{ width: '100%' }}>
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <Title level={2} style={{ marginBottom: 8 }}>
               משתמשים
             </Title>
-            <Text type="secondary">
-              נהל וצפה בכל המשתמשים בארגון שלך
-            </Text>
+            <Text type='secondary'>נהל וצפה בכל המשתמשים בארגון שלך</Text>
           </div>
-          <Button 
-            icon={<ReloadOutlined />} 
-            onClick={loadUsers}
-            loading={loading}
-          >
+          <Button icon={<ReloadOutlined />} onClick={loadUsers} loading={loading}>
             רענן
           </Button>
         </div>
@@ -627,11 +613,11 @@ const UsersPage = () => {
         {/* Search and Filters */}
         <Card>
           <Search
-            placeholder="חפש לפי שם, טלפון או אימייל"
+            placeholder='חפש לפי שם, טלפון או אימייל'
             allowClear
-            size="large"
+            size='large'
             prefix={<SearchOutlined />}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={e => setSearchText(e.target.value)}
             style={{ width: '100%', maxWidth: 500 }}
           />
         </Card>
@@ -641,17 +627,17 @@ const UsersPage = () => {
           <Table
             columns={columns}
             dataSource={filteredUsers}
-            rowKey="uid"
+            rowKey='uid'
             loading={loading}
             scroll={{ x: 800 }}
             pagination={{
               pageSize: 10,
               showSizeChanger: true,
-              showTotal: (total) => `סך ${total} משתמשים`,
+              showTotal: total => `סך ${total} משתמשים`,
               responsive: true,
               showQuickJumper: false,
             }}
-            size="small"
+            size='small'
           />
         </Card>
       </Space>
@@ -671,56 +657,64 @@ const UsersPage = () => {
           form.resetFields();
         }}
         confirmLoading={adjusting}
-        okText="עדכן"
-        cancelText="ביטול"
+        okText='עדכן'
+        cancelText='ביטול'
         width={500}
       >
         {adjustingUser && (
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <Space direction='vertical' size='large' style={{ width: '100%' }}>
             <div>
               <Text strong>משתמש: </Text>
               <Text>{`${adjustingUser.firstName} ${adjustingUser.lastName}`}</Text>
             </div>
 
-            <Form form={form} layout="vertical">
+            <Form form={form} layout='vertical'>
               <Form.Item
-                name="minutes"
-                label="יתרת זמן (דקות)"
-                tooltip="ערוך את סך הדקות שהמשתמש צריך לקבל"
+                name='minutes'
+                label='יתרת זמן (דקות)'
+                tooltip='ערוך את סך הדקות שהמשתמש צריך לקבל'
                 rules={[
                   { required: true, message: 'אנא הכנס זמן' },
-                  { type: 'number', min: 0, message: 'הזמן לא יכול להיות שלילי' }
+                  { type: 'number', min: 0, message: 'הזמן לא יכול להיות שלילי' },
                 ]}
               >
                 <InputNumber
                   style={{ width: '100%' }}
-                  placeholder="למשל, 120 (שעתיים)"
+                  placeholder='למשל, 120 (שעתיים)'
                   prefix={<ClockCircleOutlined />}
                   min={0}
                 />
               </Form.Item>
 
               <Form.Item
-                name="prints"
-                label="יתרת הדפסות"
-                tooltip="ערוך את סך ההדפסות שהמשתמש צריך לקבל"
+                name='prints'
+                label='יתרת הדפסות'
+                tooltip='ערוך את סך ההדפסות שהמשתמש צריך לקבל'
                 rules={[
                   { required: true, message: 'אנא הכנס הדפסות' },
-                  { type: 'number', min: 0, message: 'הדפסות לא יכולות להיות שליליות' }
+                  { type: 'number', min: 0, message: 'הדפסות לא יכולות להיות שליליות' },
                 ]}
               >
                 <InputNumber
                   style={{ width: '100%' }}
-                  placeholder="למשל, 50"
+                  placeholder='למשל, 50'
                   prefix={<PrinterOutlined />}
                   min={0}
                 />
               </Form.Item>
             </Form>
 
-            <div style={{ padding: '8px', backgroundColor: '#e6f7ff', borderRadius: '4px', border: '1px solid #91d5ff' }}>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
-                💡 טיפ: הערכים הנוכחיים מוצגים. ערוך אותם כדי לקבוע את היתרה החדשה. תוכל להגדיל, להקטין או לקבוע כל ערך.
+            <div
+              style={{
+                padding: '8px',
+                backgroundColor: '#e6f7ff',
+                borderRadius: '4px',
+                border: '1px solid #91d5ff',
+              }}
+            >
+              <Text type='secondary' style={{ fontSize: '12px' }}>
+                💡 טיפ: הערכים הנוכחיים מוצגים. ערוך אותם כדי לקבוע את היתרה החדשה. תוכל להגדיל,
+                להקטין או לקבוע כל ערך.
               </Text>
             </div>
           </Space>
@@ -729,68 +723,67 @@ const UsersPage = () => {
 
       {/* User Detail Drawer */}
       <Drawer
-        title="פרטי משתמש"
-        placement="right"
+        title='פרטי משתמש'
+        placement='right'
         width={600}
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
       >
         {selectedUser && (
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <Space direction='vertical' size='large' style={{ width: '100%' }}>
             <Card>
               <Descriptions column={1} bordered>
-                <Descriptions.Item label="שם">
-                  {`${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() || 'לא זמין'}
+                <Descriptions.Item label='שם'>
+                  {`${selectedUser.firstName || ''} ${selectedUser.lastName || ''}`.trim() ||
+                    'לא זמין'}
                 </Descriptions.Item>
-                <Descriptions.Item label="טלפון">
+                <Descriptions.Item label='טלפון'>
                   {selectedUser.phoneNumber || 'לא זמין'}
                 </Descriptions.Item>
-                <Descriptions.Item label="אימייל">
+                <Descriptions.Item label='אימייל'>
                   {selectedUser.email || 'לא זמין'}
                 </Descriptions.Item>
-                <Descriptions.Item label="סטטוס">
-                  <Badge 
-                    status={selectedUser.isActive ? 'success' : 'default'} 
-                    text={selectedUser.isActive ? 'פעיל' : 'לא פעיל'} 
+                <Descriptions.Item label='סטטוס'>
+                  <Badge
+                    status={selectedUser.isActive ? 'success' : 'default'}
+                    text={selectedUser.isActive ? 'פעיל' : 'לא פעיל'}
                   />
                 </Descriptions.Item>
-                <Descriptions.Item label="תפקיד">
+                <Descriptions.Item label='תפקיד'>
                   {selectedUser.isAdmin ? (
-                    <Tag color="gold" icon={<CrownOutlined />}>
+                    <Tag color='gold' icon={<CrownOutlined />}>
                       מנהל
                     </Tag>
                   ) : (
-                    <Tag color="default">משתמש</Tag>
+                    <Tag color='default'>משתמש</Tag>
                   )}
                 </Descriptions.Item>
-                <Descriptions.Item label="זמן נותר">
+                <Descriptions.Item label='זמן נותר'>
                   <Space>
                     <ClockCircleOutlined />
                     {formatTime(selectedUser.remainingTime || 0)}
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label="הדפסות נותרות">
+                <Descriptions.Item label='הדפסות נותרות'>
                   <Space>
                     <PrinterOutlined />
                     {selectedUser.remainingPrints || 0}
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label="נוצר">
-                  {selectedUser.createdAt 
+                <Descriptions.Item label='נוצר'>
+                  {selectedUser.createdAt
                     ? dayjs(selectedUser.createdAt).format('MMMM D, YYYY HH:mm')
-                    : 'לא זמין'
-                  }
+                    : 'לא זמין'}
                 </Descriptions.Item>
-                <Descriptions.Item label="עודכן לאחרונה">
-                  {selectedUser.updatedAt 
+                <Descriptions.Item label='עודכן לאחרונה'>
+                  {selectedUser.updatedAt
                     ? dayjs(selectedUser.updatedAt).format('MMMM D, YYYY HH:mm')
-                    : 'לא זמין'
-                  }
+                    : 'לא זמין'}
                 </Descriptions.Item>
               </Descriptions>
             </Card>
 
-            <Card title="היסטוריית רכישות">
+            <Card title='היסטוריית רכישות'>
               {loadingPurchases ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <Spin />
@@ -799,21 +792,21 @@ const UsersPage = () => {
                 <Table
                   columns={purchaseColumns}
                   dataSource={userPurchases}
-                  rowKey="id"
-                  size="small"
+                  rowKey='id'
+                  size='small'
                   pagination={{ pageSize: 5 }}
                 />
               )}
             </Card>
 
-            <Card 
+            <Card
               title={
                 <Space>
                   <MessageOutlined />
                   <span>היסטוריית הודעות</span>
-                  <Button 
-                    type="primary" 
-                    size="small" 
+                  <Button
+                    type='primary'
+                    size='small'
                     icon={<SendOutlined />}
                     onClick={() => setSendMessageVisible(true)}
                   >
@@ -830,8 +823,8 @@ const UsersPage = () => {
                 <Table
                   columns={messageColumns}
                   dataSource={userMessages}
-                  rowKey="id"
-                  size="small"
+                  rowKey='id'
+                  size='small'
                   pagination={{ pageSize: 5 }}
                   locale={{ emptyText: 'אין הודעות' }}
                 />
@@ -858,42 +851,30 @@ const UsersPage = () => {
         }}
         footer={null}
         width={500}
-        dir="rtl"
+        dir='rtl'
       >
-        <Form
-          form={messageForm}
-          layout="vertical"
-          onFinish={handleSendMessage}
-          dir="rtl"
-        >
+        <Form form={messageForm} layout='vertical' onFinish={handleSendMessage} dir='rtl'>
           <Form.Item
-            name="message"
-            label="הודעה"
+            name='message'
+            label='הודעה'
             rules={[
               { required: true, message: 'אנא הכנס הודעה' },
-              { max: 500, message: 'ההודעה חייבת להיות פחות מ-500 תווים' }
+              { max: 500, message: 'ההודעה חייבת להיות פחות מ-500 תווים' },
             ]}
           >
             <Input.TextArea
               rows={4}
-              placeholder="הכנס את ההודעה שלך כאן..."
+              placeholder='הכנס את ההודעה שלך כאן...'
               showCount
               maxLength={500}
               style={{ textAlign: 'right', direction: 'rtl' }}
             />
           </Form.Item>
-          
+
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
-              <Button onClick={() => setSendMessageVisible(false)}>
-                ביטול
-              </Button>
-              <Button 
-                type="primary" 
-                htmlType="submit" 
-                icon={<SendOutlined />}
-                loading={sending}
-              >
+              <Button onClick={() => setSendMessageVisible(false)}>ביטול</Button>
+              <Button type='primary' htmlType='submit' icon={<SendOutlined />} loading={sending}>
                 שלח הודעה
               </Button>
             </Space>
@@ -905,4 +886,3 @@ const UsersPage = () => {
 };
 
 export default UsersPage;
-

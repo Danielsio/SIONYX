@@ -4,10 +4,12 @@ Fetch and manage packages from Firebase
 Refactored to use base service for consistency
 """
 
-from typing import List, Dict, Optional
+from typing import Dict, List, Optional
+
 from services.base_service import DatabaseService
 from services.firebase_client import FirebaseClient
 from utils.logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -20,7 +22,7 @@ class PackageService(DatabaseService):
 
     def get_collection_name(self) -> str:
         """Return the collection name for packages"""
-        return 'packages'
+        return "packages"
 
     def get_all_packages(self) -> Dict:
         """
@@ -34,26 +36,30 @@ class PackageService(DatabaseService):
             }
         """
         self.log_operation("get_all_packages")
-        
+
         result = self.get_all_documents()
-        
-        if result.get('success'):
-            packages = result.get('data', [])
-            return self.create_success_response(packages, f"Fetched {len(packages)} packages")
+
+        if result.get("success"):
+            packages = result.get("data", [])
+            return self.create_success_response(
+                packages, f"Fetched {len(packages)} packages"
+            )
         else:
             return result
 
     def get_package_by_id(self, package_id: str) -> Dict:
         """Get single package by ID using base service"""
         self.log_operation("get_package_by_id", f"ID: {package_id}")
-        
+
         result = self.get_document(package_id)
-        
-        if result.get('success'):
-            package = result.get('data')
+
+        if result.get("success"):
+            package = result.get("data")
             if package:
-                package['id'] = package_id
-            return self.create_success_response(package, f"Package {package_id} retrieved")
+                package["id"] = package_id
+            return self.create_success_response(
+                package, f"Package {package_id} retrieved"
+            )
         else:
             return result
 
@@ -70,15 +76,15 @@ class PackageService(DatabaseService):
                 'savings': float
             }
         """
-        original = package.get('price', 0)
-        discount = package.get('discountPercent', 0)
+        original = package.get("price", 0)
+        discount = package.get("discountPercent", 0)
 
         final = original * (1 - discount / 100)
         savings = original - final
 
         return {
-            'original_price': original,
-            'discount_percent': discount,
-            'final_price': round(final, 2),
-            'savings': round(savings, 2)
+            "original_price": original,
+            "discount_percent": discount,
+            "final_price": round(final, 2),
+            "savings": round(savings, 2),
         }

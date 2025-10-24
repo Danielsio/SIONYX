@@ -140,5 +140,3 @@ def get_dark_tokens() -> Dict[str, Dict[str, str]]:
 
 # Singleton-style exported tokens for convenience
 TOKENS: Dict[str, Dict[str, str]] = get_default_tokens()
-
-

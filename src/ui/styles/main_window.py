@@ -75,5 +75,3 @@ MAIN_WINDOW_QSS = """
     }
 
 """
-
-

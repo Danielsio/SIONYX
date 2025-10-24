@@ -18,13 +18,12 @@ import PackagesPage from './pages/PackagesPage';
 import MessagesPage from './pages/MessagesPage';
 import ComputersPage from './pages/ComputersPage';
 
-
 function App() {
   const { setUser, setLoading, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     // Listen to auth state changes
-    const unsubscribe = onAuthChange(async (firebaseUser) => {
+    const unsubscribe = onAuthChange(async firebaseUser => {
       setLoading(true);
 
       if (firebaseUser) {
@@ -55,31 +54,41 @@ function App() {
           borderRadius: 6,
         },
       }}
-      direction="rtl"
+      direction='rtl'
     >
       <AntApp>
         <Router>
           <Routes>
             {/* Landing Page */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path='/' element={<LandingPage />} />
 
             {/* Download Page */}
-            <Route path="/download" element={<DownloadPage />} />
+            <Route path='/download' element={<DownloadPage />} />
 
             {/* Admin Login */}
-            <Route path="/admin/login" element={isAuthenticated ? <Navigate to="/admin" replace /> : <LoginPage />} />
+            <Route
+              path='/admin/login'
+              element={isAuthenticated ? <Navigate to='/admin' replace /> : <LoginPage />}
+            />
 
             {/* Protected Admin Routes */}
-            <Route path="/admin" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+            <Route
+              path='/admin'
+              element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<OverviewPage />} />
-              <Route path="users" element={<UsersPage />} />
-              <Route path="packages" element={<PackagesPage />} />
-              <Route path="messages" element={<MessagesPage />} />
-              <Route path="computers" element={<ComputersPage />} />
+              <Route path='users' element={<UsersPage />} />
+              <Route path='packages' element={<PackagesPage />} />
+              <Route path='messages' element={<MessagesPage />} />
+              <Route path='computers' element={<ComputersPage />} />
             </Route>
 
             {/* Catch all - redirect to home */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path='*' element={<Navigate to='/' replace />} />
           </Routes>
         </Router>
       </AntApp>

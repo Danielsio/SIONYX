@@ -1,6 +1,8 @@
 import time
 import uuid
+
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
+
 from services.firebase_client import FirebaseClient
 from utils.device_info import get_device_id
 
@@ -35,17 +37,17 @@ class SessionManager(QObject):
 
             # Create session in Realtime Database
             session_data = {
-                'userId': self.user_id,
-                'deviceId': get_device_id(),
-                'startTime': int(self.start_time * 1000),
-                'lastSync': int(self.start_time * 1000),
-                'isActive': True
+                "userId": self.user_id,
+                "deviceId": get_device_id(),
+                "startTime": int(self.start_time * 1000),
+                "lastSync": int(self.start_time * 1000),
+                "isActive": True,
             }
 
-            result = self.firebase.set_data(f'sessions/{self.session_id}', session_data)
+            result = self.firebase.set_data(f"sessions/{self.session_id}", session_data)
 
-            if not result.get('success'):
-                raise Exception('Failed to start session')
+            if not result.get("success"):
+                raise Exception("Failed to start session")
 
             self.is_active = True
             self.sync_timer.start()
@@ -67,29 +69,32 @@ class SessionManager(QObject):
 
             # Update session in Realtime Database
             sync_data = {
-                'lastSync': int(current_time * 1000),
-                'elapsedTime': elapsed_seconds
+                "lastSync": int(current_time * 1000),
+                "elapsedTime": elapsed_seconds,
             }
 
-            result = self.firebase.update_data(f'sessions/{self.session_id}', sync_data)
+            result = self.firebase.update_data(f"sessions/{self.session_id}", sync_data)
 
-            if result.get('success'):
+            if result.get("success"):
                 # Get updated user data to check remaining time
-                user_result = self.firebase.get_data(f'users/{self.user_id}')
-                
-                if user_result.get('success'):
-                    user_data = user_result['data']
-                    remaining_time = user_data.get('remainingTime', 0)
-                    
+                user_result = self.firebase.get_data(f"users/{self.user_id}")
+
+                if user_result.get("success"):
+                    user_data = user_result["data"]
+                    remaining_time = user_data.get("remainingTime", 0)
+
                     # Deduct elapsed time from user's remaining time
                     new_remaining_time = max(0, remaining_time - elapsed_seconds)
-                    
+
                     # Update user's remaining time
-                    self.firebase.update_data(f'users/{self.user_id}', {
-                        'remainingTime': new_remaining_time,
-                        'updatedAt': int(current_time * 1000)
-                    })
-                    
+                    self.firebase.update_data(
+                        f"users/{self.user_id}",
+                        {
+                            "remainingTime": new_remaining_time,
+                            "updatedAt": int(current_time * 1000),
+                        },
+                    )
+
                     self.cached_remaining_time = new_remaining_time
                     self.time_updated.emit(new_remaining_time)
                     self.last_sync_time = current_time
@@ -98,7 +103,7 @@ class SessionManager(QObject):
                     if new_remaining_time <= 0:
                         self.handle_time_expired()
             else:
-                raise Exception('Sync failed')
+                raise Exception("Sync failed")
 
         except Exception as e:
             self.sync_failed.emit(str(e))
@@ -122,23 +127,29 @@ class SessionManager(QObject):
             elapsed_seconds = int(current_time - self.last_sync_time)
 
             # Update session to inactive
-            self.firebase.update_data(f'sessions/{self.session_id}', {
-                'isActive': False,
-                'endTime': int(current_time * 1000),
-                'elapsedTime': elapsed_seconds
-            })
+            self.firebase.update_data(
+                f"sessions/{self.session_id}",
+                {
+                    "isActive": False,
+                    "endTime": int(current_time * 1000),
+                    "elapsedTime": elapsed_seconds,
+                },
+            )
 
             # Update user's remaining time one last time
-            user_result = self.firebase.get_data(f'users/{self.user_id}')
-            if user_result.get('success'):
-                remaining_time = user_result['data'].get('remainingTime', 0)
+            user_result = self.firebase.get_data(f"users/{self.user_id}")
+            if user_result.get("success"):
+                remaining_time = user_result["data"].get("remainingTime", 0)
                 new_remaining_time = max(0, remaining_time - elapsed_seconds)
-                
-                self.firebase.update_data(f'users/{self.user_id}', {
-                    'remainingTime': new_remaining_time,
-                    'updatedAt': int(current_time * 1000)
-                })
-                
+
+                self.firebase.update_data(
+                    f"users/{self.user_id}",
+                    {
+                        "remainingTime": new_remaining_time,
+                        "updatedAt": int(current_time * 1000),
+                    },
+                )
+
                 self.cached_remaining_time = new_remaining_time
         except:
             pass  # Best effort
@@ -147,12 +158,12 @@ class SessionManager(QObject):
         """Get remaining time from cache or server"""
         try:
             # Try to get fresh data from server
-            result = self.firebase.get_data(f'users/{self.user_id}')
-            if result.get('success'):
-                self.cached_remaining_time = result['data'].get('remainingTime', 0)
+            result = self.firebase.get_data(f"users/{self.user_id}")
+            if result.get("success"):
+                self.cached_remaining_time = result["data"].get("remainingTime", 0)
                 return self.cached_remaining_time
         except:
             pass
-        
+
         # Return cached value
         return self.cached_remaining_time

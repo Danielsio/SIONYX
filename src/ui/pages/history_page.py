@@ -3,36 +3,47 @@ History Page
 View session history and transactions with modern UI/UX
 """
 
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, 
-    QFrame, QPushButton, QComboBox, QLineEdit,
-    QSizePolicy, QGraphicsDropShadowEffect
-)
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer
-from PyQt6.QtGui import QFont, QColor
+from datetime import datetime
 
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer
+from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
+
+from services.purchase_service import PurchaseService
 from utils.logger import get_logger
 from utils.purchase_constants import get_status_label
-from services.purchase_service import PurchaseService
-from datetime import datetime
+
 
 logger = get_logger(__name__)
 
 
 class PurchaseCard(QFrame):
     """Individual purchase card with modern styling"""
-    
+
     def __init__(self, purchase_data, parent=None):
         super().__init__(parent)
         self.purchase_data = purchase_data
         self.init_ui()
         self.setup_animations()
-    
+
     def init_ui(self):
         """Initialize card UI"""
         self.setObjectName("purchaseCard")
         self.setFixedHeight(120)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QFrame#purchaseCard {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #FFFFFF, stop:1 #F8FAFC);
@@ -45,8 +56,9 @@ class PurchaseCard(QFrame):
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #FFFFFF, stop:1 #F0F9FF);
             }
-        """)
-        
+        """
+        )
+
         # Enhanced shadow effect
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(40)
@@ -54,86 +66,90 @@ class PurchaseCard(QFrame):
         shadow.setYOffset(15)
         shadow.setColor(QColor(0, 0, 0, 50))
         self.setGraphicsEffect(shadow)
-        
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(20, 16, 20, 16)
         layout.setSpacing(16)
-        
+
         # Package icon/status indicator
         self.status_frame = QFrame()
         self.status_frame.setFixedSize(48, 48)
         self.status_frame.setStyleSheet(self.get_status_style())
         status_layout = QVBoxLayout(self.status_frame)
         status_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         status_icon = QLabel(self.get_status_icon())
         status_icon.setFont(QFont("Segoe UI", 20))
         status_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         status_layout.addWidget(status_icon)
-        
+
         # Main content
         content_layout = QVBoxLayout()
         content_layout.setSpacing(4)
-        
+
         # Package name
-        package_name = QLabel(self.purchase_data.get('packageName', 'חבילת זמן'))
+        package_name = QLabel(self.purchase_data.get("packageName", "חבילת זמן"))
         package_name.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         package_name.setStyleSheet("color: #1E293B;")
-        
+
         # Purchase details
         details_text = f"{self.purchase_data.get('minutes', 0)} דקות • {self.purchase_data.get('prints', 0)} הדפסות"
         details = QLabel(details_text)
         details.setFont(QFont("Segoe UI", 12))
         details.setStyleSheet("color: #64748B;")
-        
+
         # Date
-        date_text = self.format_date(self.purchase_data.get('createdAt', ''))
+        date_text = self.format_date(self.purchase_data.get("createdAt", ""))
         date_label = QLabel(date_text)
         date_label.setFont(QFont("Segoe UI", 11))
         date_label.setStyleSheet("color: #94A3B8;")
-        
+
         content_layout.addWidget(package_name)
         content_layout.addWidget(details)
         content_layout.addWidget(date_label)
         content_layout.addStretch()
-        
+
         # Price and status
         right_layout = QVBoxLayout()
-        right_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight)
-        
+        right_layout.setAlignment(
+            Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignRight
+        )
+
         # Price
-        amount = self._safe_int(self.purchase_data.get('amount', 0))
+        amount = self._safe_int(self.purchase_data.get("amount", 0))
         price = QLabel(f"₪{amount}")
         price.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
         price.setStyleSheet("color: #059669;")
-        
+
         # Status badge
-        status_badge = QLabel(get_status_label(self.purchase_data.get('status', 'pending')))
+        status_badge = QLabel(
+            get_status_label(self.purchase_data.get("status", "pending"))
+        )
         status_badge.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
         status_badge.setStyleSheet(self.get_status_badge_style())
         status_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         status_badge.setFixedHeight(24)
         status_badge.setContentsMargins(12, 4, 12, 4)
-        
+
         right_layout.addWidget(price)
         right_layout.addWidget(status_badge)
         right_layout.addStretch()
-        
+
         layout.addWidget(self.status_frame)
         layout.addLayout(content_layout)
         layout.addStretch()
         layout.addLayout(right_layout)
-    
+
     def get_status_style(self):
         """Get status indicator style"""
-        status = self.purchase_data.get('status', 'pending')
-        if status == 'completed':
+        status = self.purchase_data.get("status", "pending")
+        if status == "completed":
             return """
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #10B981, stop:1 #059669);
                 border-radius: 24px;
             """
-        elif status == 'failed':
+        elif status == "failed":
             return """
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #EF4444, stop:1 #DC2626);
@@ -145,28 +161,28 @@ class PurchaseCard(QFrame):
                     stop:0 #F59E0B, stop:1 #D97706);
                 border-radius: 24px;
             """
-    
+
     def get_status_icon(self):
         """Get status icon"""
-        status = self.purchase_data.get('status', 'pending')
-        if status == 'completed':
+        status = self.purchase_data.get("status", "pending")
+        if status == "completed":
             return "✓"
-        elif status == 'failed':
+        elif status == "failed":
             return "✕"
         else:  # pending
             return "⏳"
-    
+
     def get_status_badge_style(self):
         """Get status badge style"""
-        status = self.purchase_data.get('status', 'pending')
-        if status == 'completed':
+        status = self.purchase_data.get("status", "pending")
+        if status == "completed":
             return """
                 background-color: #D1FAE5;
                 color: #065F46;
                 border-radius: 12px;
                 border: 1px solid #A7F3D0;
             """
-        elif status == 'failed':
+        elif status == "failed":
             return """
                 background-color: #FEE2E2;
                 color: #991B1B;
@@ -180,17 +196,17 @@ class PurchaseCard(QFrame):
                 border-radius: 12px;
                 border: 1px solid #FDE68A;
             """
-    
+
     def format_date(self, date_str):
         """Format date string"""
         try:
             if date_str:
-                dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
                 return dt.strftime("%d/%m/%Y %H:%M")
         except:
             pass
         return "תאריך לא זמין"
-    
+
     def setup_animations(self):
         """Setup hover animations"""
         self.animation = QPropertyAnimation(self, b"geometry")
@@ -209,7 +225,7 @@ class PurchaseCard(QFrame):
 
 class StatsCard(QFrame):
     """Statistics summary card"""
-    
+
     def __init__(self, title, value, subtitle, color="#3B82F6", parent=None):
         super().__init__(parent)
         self.title = title
@@ -217,7 +233,7 @@ class StatsCard(QFrame):
         self.subtitle = subtitle
         self.color = color
         self.init_ui()
-    
+
     def init_ui(self):
         """Initialize stats card UI"""
         self.setObjectName("statsCard")
@@ -225,9 +241,10 @@ class StatsCard(QFrame):
         self.setMinimumWidth(250)  # Much wider minimum width
         self.setMaximumWidth(300)  # Set maximum width to prevent over-stretching
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        
+
         # Use consistent white background for all cards
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QFrame#statsCard {{
                 background-color: #FFFFFF;
                 border: 1px solid #E2E8F0;
@@ -238,8 +255,9 @@ class StatsCard(QFrame):
                 border: 1px solid {self.color}40;
                 background-color: #FAFAFA;
             }}
-        """)
-        
+        """
+        )
+
         # Enhanced shadow effect for better hovering appearance
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(50)
@@ -247,40 +265,50 @@ class StatsCard(QFrame):
         shadow.setYOffset(18)
         shadow.setColor(QColor(0, 0, 0, 65))
         self.setGraphicsEffect(shadow)
-        
+
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(32, 28, 32, 28)  # Adjusted padding to prevent clipping
+        layout.setContentsMargins(
+            32, 28, 32, 28
+        )  # Adjusted padding to prevent clipping
         layout.setSpacing(12)  # Optimized spacing between elements
-        
+
         # Value - Fixed clipping issues with proper line height and padding
         value_label = QLabel(self.value)
-        value_label.setFont(QFont("Segoe UI", 28, QFont.Weight.Bold))  # Slightly smaller to prevent clipping
-        value_label.setStyleSheet(f"""
+        value_label.setFont(
+            QFont("Segoe UI", 28, QFont.Weight.Bold)
+        )  # Slightly smaller to prevent clipping
+        value_label.setStyleSheet(
+            f"""
             color: {self.color};
             padding: 4px 0px;
             line-height: 1.2;
-        """)
+        """
+        )
         value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         value_label.setMinimumHeight(40)  # Ensure enough space for the number
-        
+
         # Title
         title_label = QLabel(self.title)
         title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        title_label.setStyleSheet("""
+        title_label.setStyleSheet(
+            """
             color: #1E293B;
             padding: 2px 0px;
-        """)
+        """
+        )
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         # Subtitle
         subtitle_label = QLabel(self.subtitle)
         subtitle_label.setFont(QFont("Segoe UI", 12))
-        subtitle_label.setStyleSheet("""
+        subtitle_label.setStyleSheet(
+            """
             color: #64748B;
             padding: 2px 0px;
-        """)
+        """
+        )
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
+
         layout.addWidget(value_label)
         layout.addWidget(title_label)
         layout.addWidget(subtitle_label)
@@ -296,24 +324,24 @@ class HistoryPage(QWidget):
         self.current_user = None  # Will be set when page is shown
         self.purchases = []
         self.filtered_purchases = []
-        
+
         # Use the authenticated Firebase client from auth_service
         self.firebase_client = auth_service.firebase
         self.purchase_service = PurchaseService(self.firebase_client)
-        
+
         # Data caching for optimization
         self.cached_purchases = []
         self.cache_timestamp = None
         self.cache_duration_seconds = 60  # Cache for 1 minute
         self.last_user_id = None
-        
+
         self.init_ui()
         self.setup_animations()
 
     def init_ui(self):
         """Initialize UI"""
         self.setObjectName("contentPage")
-        
+
         # Set RTL layout direction for Hebrew support
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
@@ -324,16 +352,16 @@ class HistoryPage(QWidget):
 
         # Header section
         self.create_header(main_layout)
-        
+
         # Statistics section
         self.create_stats_section(main_layout)
-        
+
         # Filters section
         self.create_filters_section(main_layout)
-        
+
         # Purchases list
         self.create_purchases_section(main_layout)
-        
+
         # Add stretch to push content to top
         main_layout.addStretch()
 
@@ -342,41 +370,49 @@ class HistoryPage(QWidget):
     def refresh_user_data(self, force: bool = False):
         """Refresh user data and reload purchase history with caching"""
         logger.info("Refreshing user data in HistoryPage")
-        
+
         # Get current user from auth service
         self.current_user = self.auth_service.get_current_user()
-        
+
         if not self.current_user:
             logger.warning("No current user found in HistoryPage refresh")
             return
-        
+
         logger.info(f"Current user: {self.current_user.get('uid', 'Unknown')}")
-        
+
         # Clear existing data only if forcing refresh
         if force:
             self.purchases = []
             self.filtered_purchases = []
-        
+
         # Reload purchase data for the current user (with caching unless forced)
         self.load_purchase_data(use_cache=not force)
 
     def _is_cache_valid(self, user_id: str) -> bool:
         """Check if cached data is still valid for the current user"""
-        if not self.cached_purchases or not self.cache_timestamp or self.last_user_id != user_id:
+        if (
+            not self.cached_purchases
+            or not self.cache_timestamp
+            or self.last_user_id != user_id
+        ):
             return False
-        
+
         from datetime import datetime
+
         cache_age = (datetime.now() - self.cache_timestamp).total_seconds()
         return cache_age < self.cache_duration_seconds
-    
+
     def _update_cache(self, purchases: list, user_id: str):
         """Update the purchase cache with new data"""
         from datetime import datetime
+
         self.cached_purchases = purchases.copy()
         self.cache_timestamp = datetime.now()
         self.last_user_id = user_id
-        logger.debug(f"Updated purchase cache with {len(purchases)} purchases for user {user_id}")
-    
+        logger.debug(
+            f"Updated purchase cache with {len(purchases)} purchases for user {user_id}"
+        )
+
     def invalidate_cache(self):
         """Invalidate the purchase cache to force fresh data on next request"""
         self.cached_purchases = []
@@ -387,14 +423,14 @@ class HistoryPage(QWidget):
     def clear_user_data(self):
         """Clear all user data (called on logout)"""
         logger.info("Clearing user data in HistoryPage")
-        
+
         self.current_user = None
         self.purchases = []
         self.filtered_purchases = []
-        
+
         # Clear cache
         self.invalidate_cache()
-        
+
         # Clear the display
         self.show_empty_state()
 
@@ -405,49 +441,51 @@ class HistoryPage(QWidget):
             child = self.content_layout.itemAt(i).widget()
             if child:
                 child.setParent(None)
-        
+
         # Create empty state message
         empty_widget = QWidget()
         empty_layout = QVBoxLayout(empty_widget)
         empty_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_layout.setSpacing(20)
-        
+
         # Empty state icon
         empty_icon = QLabel("📋")
         empty_icon.setFont(QFont("Segoe UI", 48))
         empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_icon.setStyleSheet("color: #9CA3AF;")
-        
+
         # Empty state message
         empty_message = QLabel("אין רכישות להצגה")
         empty_message.setFont(QFont("Segoe UI", 18, QFont.Weight.Bold))
         empty_message.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_message.setStyleSheet("color: #6B7280; margin-bottom: 8px;")
-        
+
         # Empty state description
         empty_desc = QLabel("הרכישות שלך יופיעו כאן לאחר שתרכוש חבילות זמן")
         empty_desc.setFont(QFont("Segoe UI", 14))
         empty_desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_desc.setStyleSheet("color: #9CA3AF;")
-        
+
         empty_layout.addWidget(empty_icon)
         empty_layout.addWidget(empty_message)
         empty_layout.addWidget(empty_desc)
-        
+
         self.content_layout.addWidget(empty_widget)
 
     def create_header(self, parent_layout):
         """Create page header"""
         # Clean header section matching packages page style
         header_container = QWidget()
-        header_container.setStyleSheet("""
+        header_container.setStyleSheet(
+            """
             QWidget {
                 background: #3B82F6;
                 border-radius: 20px;
                 padding: 20px;
             }
-        """)
-        
+        """
+        )
+
         # Add shadow to header - FIXED: Enhanced shadow effect
         header_shadow = QGraphicsDropShadowEffect()
         header_shadow.setBlurRadius(50)
@@ -458,30 +496,34 @@ class HistoryPage(QWidget):
         header_layout = QVBoxLayout(header_container)
         header_layout.setContentsMargins(30, 25, 30, 25)
         header_layout.setSpacing(8)
-        
+
         # Main title with stunning typography
         title = QLabel("היסטוריית רכישות")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("""
+        title.setStyleSheet(
+            """
             QLabel {
                 color: white;
                 font-size: 32px;
                 font-weight: 800;
                 margin-bottom: 8px;
             }
-        """)
-        
+        """
+        )
+
         # Subtitle with elegant styling
         subtitle = QLabel("צפה בכל הרכישות והעסקאות שביצעת")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet("""
+        subtitle.setStyleSheet(
+            """
             QLabel {
                 color: rgba(255, 255, 255, 0.9);
                 font-size: 16px;
                 font-weight: 400;
             }
-        """)
-        
+        """
+        )
+
         header_layout.addWidget(title)
         header_layout.addWidget(subtitle)
         parent_layout.addWidget(header_container)
@@ -492,29 +534,32 @@ class HistoryPage(QWidget):
         stats_container = QWidget()
         stats_container.setMinimumHeight(200)  # Even more height for container
         stats_container.setMaximumHeight(220)  # Allow even more space
-        stats_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        
+        stats_container.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+
         self.stats_layout = QHBoxLayout(stats_container)
         self.stats_layout.setSpacing(30)  # Much more spacing between cards
         self.stats_layout.setContentsMargins(20, 20, 20, 20)  # Much more margins
         self.stats_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center the cards
-        
+
         # Initialize with loading state
         self.update_stats_cards()
-        
+
         parent_layout.addWidget(stats_container)
 
     def create_filters_section(self, parent_layout):
         """Create filters and search section"""
         filters_layout = QHBoxLayout()
         filters_layout.setSpacing(12)
-        
+
         # Search box
         search_box = QLineEdit()
         search_box.setObjectName("searchBox")
         search_box.setPlaceholderText("חיפוש ברכישות...")
         search_box.setFixedHeight(40)
-        search_box.setStyleSheet("""
+        search_box.setStyleSheet(
+            """
             QLineEdit#searchBox {
                 padding: 10px 16px;
                 border: 2px solid #E2E8F0;
@@ -530,9 +575,10 @@ class HistoryPage(QWidget):
             QLineEdit#searchBox::placeholder {
                 color: #94A3B8;
             }
-        """)
+        """
+        )
         search_box.textChanged.connect(self.filter_purchases)
-        
+
         # Add shadow to search box
         search_shadow = QGraphicsDropShadowEffect()
         search_shadow.setBlurRadius(15)
@@ -540,13 +586,14 @@ class HistoryPage(QWidget):
         search_shadow.setYOffset(4)
         search_shadow.setColor(QColor(0, 0, 0, 25))
         search_box.setGraphicsEffect(search_shadow)
-        
+
         # Status filter
         status_filter = QComboBox()
         status_filter.setObjectName("statusFilter")
         status_filter.addItems(["כל הסטטוסים", "הושלם", "ממתין", "נכשל"])
         status_filter.setFixedHeight(40)
-        status_filter.setStyleSheet("""
+        status_filter.setStyleSheet(
+            """
             QComboBox#statusFilter {
                 padding: 8px 12px;
                 border: 2px solid #E2E8F0;
@@ -592,9 +639,10 @@ class HistoryPage(QWidget):
                 background-color: #3B82F6;
                 color: #FFFFFF;
             }
-        """)
+        """
+        )
         status_filter.currentTextChanged.connect(self.filter_purchases)
-        
+
         # Add shadow to status filter
         status_shadow = QGraphicsDropShadowEffect()
         status_shadow.setBlurRadius(15)
@@ -602,12 +650,13 @@ class HistoryPage(QWidget):
         status_shadow.setYOffset(4)
         status_shadow.setColor(QColor(0, 0, 0, 25))
         status_filter.setGraphicsEffect(status_shadow)
-        
+
         # Sort button
         self.sort_button = QPushButton("מיון לפי תאריך (חדש לישן)")
         self.sort_button.setObjectName("sortButton")
         self.sort_button.setFixedHeight(40)
-        self.sort_button.setStyleSheet("""
+        self.sort_button.setStyleSheet(
+            """
             QPushButton#sortButton {
                 background-color: #F1F5F9;
                 color: #475569;
@@ -624,9 +673,10 @@ class HistoryPage(QWidget):
             QPushButton#sortButton:pressed {
                 background-color: #CBD5E1;
             }
-        """)
+        """
+        )
         self.sort_button.clicked.connect(self.toggle_sort)
-        
+
         # Add shadow to sort button
         sort_shadow = QGraphicsDropShadowEffect()
         sort_shadow.setBlurRadius(15)
@@ -634,13 +684,12 @@ class HistoryPage(QWidget):
         sort_shadow.setYOffset(4)
         sort_shadow.setColor(QColor(0, 0, 0, 25))
         self.sort_button.setGraphicsEffect(sort_shadow)
-        
-        
+
         filters_layout.addWidget(search_box)
         filters_layout.addWidget(status_filter)
         filters_layout.addWidget(self.sort_button)
         filters_layout.addStretch()
-        
+
         parent_layout.addLayout(filters_layout)
 
     def create_purchases_section(self, parent_layout):
@@ -651,37 +700,39 @@ class HistoryPage(QWidget):
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll_area.setStyleSheet("""
+        scroll_area.setStyleSheet(
+            """
             QScrollArea#purchasesScrollArea {
                 border: none;
                 background-color: transparent;
             }
-        """)
-        
+        """
+        )
+
         # Content widget for scroll area
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         self.content_layout.setSpacing(8)
-        
+
         scroll_area.setWidget(self.content_widget)
         parent_layout.addWidget(scroll_area)
 
     def load_purchase_data(self, use_cache: bool = True):
         """Load purchase data from Firebase database with caching"""
         logger.info("load_purchase_data called")
-        
+
         if not self.current_user:
             logger.warning("No current user, cannot load purchase data")
             self.show_error_state("לא מחובר למשתמש")
             return
-        
-        user_id = self.current_user.get('uid')
+
+        user_id = self.current_user.get("uid")
         if not user_id:
             logger.warning("No user ID found")
             self.show_error_state("מזהה משתמש לא נמצא")
             return
-        
+
         # Check if we can use cached data
         if use_cache and self._is_cache_valid(user_id):
             logger.debug("Using cached purchase data")
@@ -690,48 +741,48 @@ class HistoryPage(QWidget):
             self.update_stats_cards()
             self.update_purchases_display()
             return
-        
+
         logger.info(f"Loading purchase data for user: {user_id}")
-        
+
         # Check if Firebase client is authenticated
         if not self.firebase_client.id_token:
             logger.warning("Firebase client not authenticated")
             self.show_error_state("לא מחובר לשרת")
             return
-        
+
         logger.info("Firebase client is authenticated, proceeding with data fetch")
-        
+
         # Show loading state
         self.show_loading_state()
-        
+
         try:
             # Fetch purchase history from database
             logger.info("Calling purchase_service.get_user_purchase_history")
             result = self.purchase_service.get_user_purchase_history(user_id)
-            
+
             logger.info(f"Purchase service result: {result}")
-            
-            if result.get('success'):
-                self.purchases = result.get('data', [])  # Updated to use 'data' key
+
+            if result.get("success"):
+                self.purchases = result.get("data", [])  # Updated to use 'data' key
                 self.filtered_purchases = self.purchases.copy()
-                
+
                 # Update cache
                 self._update_cache(self.purchases, user_id)
-                
+
                 logger.info(f"Loaded {len(self.purchases)} purchases from database")
-                
+
                 if len(self.purchases) > 0:
                     logger.info(f"First purchase: {self.purchases[0]}")
-                
+
                 # Update stats and display
                 self.update_stats_cards()
                 self.update_purchases_display()
-                
+
             else:
-                error_msg = result.get('error', 'Unknown error')
+                error_msg = result.get("error", "Unknown error")
                 logger.error(f"Failed to load purchase data: {error_msg}")
                 self.show_error_state(f"שגיאה בטעינת הנתונים: {error_msg}")
-                
+
         except Exception as e:
             logger.exception("Exception while loading purchase data")
             self.show_error_state(f"שגיאה בטעינת הנתונים: {str(e)}")
@@ -743,12 +794,13 @@ class HistoryPage(QWidget):
             child = self.content_layout.itemAt(i).widget()
             if child:
                 child.setParent(None)
-        
+
         # Create loading frame
         loading_frame = QFrame()
         loading_frame.setObjectName("loadingState")
         loading_frame.setFixedHeight(200)
-        loading_frame.setStyleSheet("""
+        loading_frame.setStyleSheet(
+            """
             QFrame#loadingState {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #F8FAFC, stop:1 #F1F5F9);
@@ -756,27 +808,28 @@ class HistoryPage(QWidget):
                 border-radius: 20px;
                 margin: 20px;
             }
-        """)
-        
+        """
+        )
+
         layout = QVBoxLayout(loading_frame)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(16)
-        
+
         # Loading spinner (animated dots)
         spinner_label = QLabel("⏳")
         spinner_label.setFont(QFont("Segoe UI", 32))
         spinner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         spinner_label.setStyleSheet("color: #3B82F6;")
-        
+
         # Loading text
         loading_text = QLabel("טוען נתונים...")
         loading_text.setFont(QFont("Segoe UI", 16))
         loading_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         loading_text.setStyleSheet("color: #64748B;")
-        
+
         layout.addWidget(spinner_label)
         layout.addWidget(loading_text)
-        
+
         self.content_layout.addWidget(loading_frame)
 
     def show_error_state(self, error_message):
@@ -786,12 +839,13 @@ class HistoryPage(QWidget):
             child = self.content_layout.itemAt(i).widget()
             if child:
                 child.setParent(None)
-        
+
         # Create error frame
         error_frame = QFrame()
         error_frame.setObjectName("errorState")
         error_frame.setFixedHeight(200)
-        error_frame.setStyleSheet("""
+        error_frame.setStyleSheet(
+            """
             QFrame#errorState {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #FEF2F2, stop:1 #FEE2E2);
@@ -799,30 +853,32 @@ class HistoryPage(QWidget):
                 border-radius: 20px;
                 margin: 20px;
             }
-        """)
-        
+        """
+        )
+
         layout = QVBoxLayout(error_frame)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(16)
-        
+
         # Error icon
         error_icon = QLabel("⚠️")
         error_icon.setFont(QFont("Segoe UI", 32))
         error_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         error_icon.setStyleSheet("color: #EF4444;")
-        
+
         # Error message
         error_text = QLabel(error_message)
         error_text.setFont(QFont("Segoe UI", 14))
         error_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         error_text.setStyleSheet("color: #991B1B;")
         error_text.setWordWrap(True)
-        
+
         # Retry button
         retry_button = QPushButton("נסה שוב")
         retry_button.setObjectName("retryButton")
         retry_button.setFixedHeight(40)
-        retry_button.setStyleSheet("""
+        retry_button.setStyleSheet(
+            """
             QPushButton#retryButton {
                 background-color: #EF4444;
                 color: #FFFFFF;
@@ -838,13 +894,14 @@ class HistoryPage(QWidget):
             QPushButton#retryButton:pressed {
                 background-color: #B91C1C;
             }
-        """)
+        """
+        )
         retry_button.clicked.connect(self.load_purchase_data)
-        
+
         layout.addWidget(error_icon)
         layout.addWidget(error_text)
         layout.addWidget(retry_button)
-        
+
         self.content_layout.addWidget(error_frame)
 
     def update_purchases_display(self):
@@ -854,7 +911,7 @@ class HistoryPage(QWidget):
             child = self.content_layout.itemAt(i).widget()
             if child:
                 child.setParent(None)
-        
+
         # Check if there are purchases to display
         if not self.filtered_purchases:
             self.show_empty_state()
@@ -863,7 +920,7 @@ class HistoryPage(QWidget):
             for purchase in self.filtered_purchases:
                 card = PurchaseCard(purchase)
                 self.content_layout.addWidget(card)
-        
+
         # Add stretch to push cards to top
         self.content_layout.addStretch()
 
@@ -872,7 +929,8 @@ class HistoryPage(QWidget):
         empty_frame = QFrame()
         empty_frame.setObjectName("emptyState")
         empty_frame.setFixedHeight(300)
-        empty_frame.setStyleSheet("""
+        empty_frame.setStyleSheet(
+            """
             QFrame#emptyState {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #F8FAFC, stop:1 #F1F5F9);
@@ -880,74 +938,79 @@ class HistoryPage(QWidget):
                 border-radius: 20px;
                 margin: 20px;
             }
-        """)
-        
+        """
+        )
+
         layout = QVBoxLayout(empty_frame)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(16)
-        
+
         # Empty state icon
         icon_label = QLabel("📋")
         icon_label.setFont(QFont("Segoe UI", 48))
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_label.setStyleSheet("color: #94A3B8;")
-        
+
         # Empty state title
         title_label = QLabel("אין רכישות להצגה")
         title_label.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_label.setStyleSheet("color: #64748B;")
-        
+
         # Empty state subtitle
         subtitle_label = QLabel("הרכישות שלך יופיעו כאן לאחר שתרכוש חבילות זמן")
         subtitle_label.setFont(QFont("Segoe UI", 14))
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         subtitle_label.setStyleSheet("color: #94A3B8;")
         subtitle_label.setWordWrap(True)
-        
+
         layout.addWidget(icon_label)
         layout.addWidget(title_label)
         layout.addWidget(subtitle_label)
-        
+
         self.content_layout.addWidget(empty_frame)
 
     def filter_purchases(self):
         """Filter purchases based on search and status"""
-        search_text = self.sender().text().lower() if hasattr(self.sender(), 'text') else ""
+        search_text = (
+            self.sender().text().lower() if hasattr(self.sender(), "text") else ""
+        )
         status_filter = "כל הסטטוסים"  # Default
-        
+
         # Get current filter values
         for widget in self.findChildren(QComboBox):
             if widget.objectName() == "statusFilter":
                 status_filter = widget.currentText()
                 break
-        
+
         self.filtered_purchases = []
-        
+
         for purchase in self.purchases:
             # Search filter - search in package name, amount, and date
             if search_text:
-                package_name = purchase.get('packageName', '').lower()
-                amount_str = str(purchase.get('amount', '')).lower()
-                date_str = purchase.get('createdAt', '').lower()
-                
-                if (search_text not in package_name and 
-                    search_text not in amount_str and 
-                    search_text not in date_str):
+                package_name = purchase.get("packageName", "").lower()
+                amount_str = str(purchase.get("amount", "")).lower()
+                date_str = purchase.get("createdAt", "").lower()
+
+                if (
+                    search_text not in package_name
+                    and search_text not in amount_str
+                    and search_text not in date_str
+                ):
                     continue
-            
+
             # Status filter
             if status_filter != "כל הסטטוסים":
                 status_map = {
                     "הושלם": "completed",
-                    "ממתין": "pending", 
-                    "נכשל": "failed"
+                    "ממתין": "pending",
+                    "נכשל": "failed",
                 }
-                if purchase.get('status') != status_map.get(status_filter):
+                if purchase.get("status") != status_map.get(status_filter):
                     continue
-            
+
             self.filtered_purchases.append(purchase)
-        
+
         self.update_purchases_display()
 
     def toggle_sort(self):
@@ -955,34 +1018,31 @@ class HistoryPage(QWidget):
         if not self.filtered_purchases:
             logger.warning("No purchases to sort")
             return
-        
+
         # Check current sort order by looking at first two items
         is_newest_first = True
         if len(self.filtered_purchases) > 1:
-            first_date = self.filtered_purchases[0].get('createdAt', '')
-            second_date = self.filtered_purchases[1].get('createdAt', '')
+            first_date = self.filtered_purchases[0].get("createdAt", "")
+            second_date = self.filtered_purchases[1].get("createdAt", "")
             is_newest_first = first_date > second_date
-        
+
         # Toggle sort order
         if is_newest_first:
             # Currently the newest first, switch to the oldest first
             self.filtered_purchases.sort(
-                key=lambda x: x.get('createdAt', ''), 
-                reverse=False
+                key=lambda x: x.get("createdAt", ""), reverse=False
             )
             self.sort_button.setText("מיון לפי תאריך (ישן לחדש)")
             logger.info("Sorted purchases: oldest first")
         else:
             # Currently the oldest first, switch to the newest first
             self.filtered_purchases.sort(
-                key=lambda x: x.get('createdAt', ''), 
-                reverse=True
+                key=lambda x: x.get("createdAt", ""), reverse=True
             )
             self.sort_button.setText("מיון לפי תאריך (חדש לישן)")
             logger.info("Sorted purchases: newest first")
-        
-        self.update_purchases_display()
 
+        self.update_purchases_display()
 
     def update_stats_cards(self):
         """Update statistics cards with current data"""
@@ -991,36 +1051,41 @@ class HistoryPage(QWidget):
             child = self.stats_layout.itemAt(i).widget()
             if child:
                 child.setParent(None)
-        
+
         # Calculate stats from current purchases
-        total_spent = sum(self._safe_int(p.get('amount', 0)) for p in self.purchases if p.get('status') == 'completed')
-        total_purchases = len([p for p in self.purchases if p.get('status') == 'completed'])
-        pending_purchases = len([p for p in self.purchases if p.get('status') == 'pending'])
-        
+        total_spent = sum(
+            self._safe_int(p.get("amount", 0))
+            for p in self.purchases
+            if p.get("status") == "completed"
+        )
+        total_purchases = len(
+            [p for p in self.purchases if p.get("status") == "completed"]
+        )
+        pending_purchases = len(
+            [p for p in self.purchases if p.get("status") == "pending"]
+        )
+
         # Total spent card
         spent_card = StatsCard(
-            "סכום כולל",
-            f"₪{total_spent}",
-            f"מ-{total_purchases} רכישות",
-            "#059669"
+            "סכום כולל", f"₪{total_spent}", f"מ-{total_purchases} רכישות", "#059669"
         )
-        
+
         # Total purchases card
         purchases_card = StatsCard(
             "רכישות הושלמו",
             str(total_purchases),
             "עסקאות מוצלחות",
-            "#059669"  # Green to match completed status
+            "#059669",  # Green to match completed status
         )
-        
+
         # Pending card
         pending_card = StatsCard(
             "ממתינות",
             str(pending_purchases),
             "עסקאות בהמתנה",
-            "#F59E0B"  # Amber color for pending status - more professional than gray
+            "#F59E0B",  # Amber color for pending status - more professional than gray
         )
-        
+
         self.stats_layout.addWidget(spent_card)
         self.stats_layout.addWidget(purchases_card)
         self.stats_layout.addWidget(pending_card)
@@ -1030,21 +1095,25 @@ class HistoryPage(QWidget):
         """Animate refresh action"""
         # Create a subtle animation for the refresh
         for card in self.findChildren(PurchaseCard):
-            card.setStyleSheet(card.styleSheet() + """
+            card.setStyleSheet(
+                card.styleSheet()
+                + """
                 QFrame#purchaseCard {
                     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                         stop:0 #F0F9FF, stop:1 #E0F2FE);
                     border: 1px solid #0EA5E9;
                 }
-            """)
-        
+            """
+            )
+
         # Reset after animation
         QTimer.singleShot(500, self.reset_card_styles)
 
     def reset_card_styles(self):
         """Reset card styles after refresh animation"""
         for card in self.findChildren(PurchaseCard):
-            card.setStyleSheet("""
+            card.setStyleSheet(
+                """
                 QFrame#purchaseCard {
                     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                         stop:0 #FFFFFF, stop:1 #F8FAFC);
@@ -1057,7 +1126,8 @@ class HistoryPage(QWidget):
                     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                         stop:0 #FFFFFF, stop:1 #F0F9FF);
                 }
-            """)
+            """
+            )
 
     def setup_animations(self):
         """Setup page animations"""
@@ -1067,7 +1137,7 @@ class HistoryPage(QWidget):
         self.fade_animation.setStartValue(0.0)
         self.fade_animation.setEndValue(1.0)
         self.fade_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        
+
         # Start animation
         QTimer.singleShot(100, self.fade_animation.start)
 

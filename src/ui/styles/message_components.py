@@ -3,18 +3,18 @@ Message component styles with theme support.
 Provides QSS for MessageCard, MessageModal, and MessageNotification components.
 """
 
-from .tokens import get_default_tokens, get_dark_tokens
+from .tokens import get_dark_tokens, get_default_tokens
 
 
 def get_message_card_qss(tokens=None):
     """Generate QSS for MessageCard component with theme support."""
     if tokens is None:
         tokens = get_default_tokens()
-    
+
     p = tokens["palette"]
     r = tokens["radius"]
     ty = tokens["typography"]
-    
+
     return f"""
         QFrame#messageCard {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -46,11 +46,11 @@ def get_message_modal_qss(tokens=None):
     """Generate QSS for MessageModal component with theme support."""
     if tokens is None:
         tokens = get_default_tokens()
-    
+
     p = tokens["palette"]
     r = tokens["radius"]
     ty = tokens["typography"]
-    
+
     return f"""
         QFrame#messageModalContainer {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -159,11 +159,11 @@ def get_message_notification_qss(tokens=None):
     """Generate QSS for MessageNotification component with theme support."""
     if tokens is None:
         tokens = get_default_tokens()
-    
+
     p = tokens["palette"]
     r = tokens["radius"]
     ty = tokens["typography"]
-    
+
     return f"""
         QFrame#notificationContainer {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -219,11 +219,11 @@ def get_message_display_qss(tokens=None):
     """Generate QSS for MessageDisplay component with theme support."""
     if tokens is None:
         tokens = get_default_tokens()
-    
+
     p = tokens["palette"]
     r = tokens["radius"]
     ty = tokens["typography"]
-    
+
     return f"""
         QWidget#messageDisplay {{
             background: transparent;

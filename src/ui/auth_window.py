@@ -3,11 +3,26 @@ Unified Authentication Window - Sign In / Sign Up with sliding panels
 Inspired by modern web design with smooth animations
 """
 
-from PyQt6.QtWidgets import (QVBoxLayout, QLabel,
-                             QLineEdit, QPushButton, QFrame, QWidget,
-                             QApplication, QGraphicsDropShadowEffect)
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve, QRect, QParallelAnimationGroup
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtCore import (
+    QEasingCurve,
+    QParallelAnimationGroup,
+    QPropertyAnimation,
+    QRect,
+    Qt,
+    QTimer,
+    pyqtSignal,
+)
+from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtWidgets import (
+    QApplication,
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ui.base_window import BaseKioskWindow
 from ui.styles import AUTH_WINDOW_QSS
@@ -29,7 +44,7 @@ class AuthWindow(BaseKioskWindow):
         """Initialize UI with sliding panels"""
         self.setWindowTitle(f"{APP_NAME} - אימות")
         self.setObjectName("AuthWindow")
-        
+
         # Set RTL layout direction for Hebrew support
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
@@ -113,7 +128,9 @@ class AuthWindow(BaseKioskWindow):
         self.signin_password_input.setFixedHeight(50)
 
         # Forgot password link
-        forgot_link = QLabel("<a href='#' style='color: #333; text-decoration: none; font-weight: 600;'>שכחת את הסיסמה?</a>")
+        forgot_link = QLabel(
+            "<a href='#' style='color: #333; text-decoration: none; font-weight: 600;'>שכחת את הסיסמה?</a>"
+        )
         forgot_link.setFont(QFont("Segoe UI", 10))
         forgot_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
         forgot_link.linkActivated.connect(self.forgot_password_clicked)
@@ -312,7 +329,9 @@ class AuthWindow(BaseKioskWindow):
         right_layout.addWidget(right_title)
         right_layout.addWidget(right_text)
         right_layout.addSpacing(20)
-        right_layout.addWidget(self.right_button, alignment=Qt.AlignmentFlag.AlignCenter)
+        right_layout.addWidget(
+            self.right_button, alignment=Qt.AlignmentFlag.AlignCenter
+        )
 
         # Position overlay panels
         self.overlay_left.move(0, 0)
@@ -327,7 +346,7 @@ class AuthWindow(BaseKioskWindow):
 
         self.overlay_container.move(450, 0)
         self.overlay.move(-450, 0)
-        
+
         # Ensure overlay is on top (critical for proper layering)
         self.overlay_container.raise_()
 
@@ -338,7 +357,7 @@ class AuthWindow(BaseKioskWindow):
 
         self.is_sign_up_mode = True
         self.signup_panel.show()
-        
+
         # Ensure proper z-order: forms below, overlay on top
         self.signin_panel.lower()
         self.signup_panel.lower()
@@ -393,7 +412,7 @@ class AuthWindow(BaseKioskWindow):
 
         self.is_sign_up_mode = False
         self.signin_panel.show()
-        
+
         # Ensure proper z-order: forms below, overlay on top
         self.signin_panel.lower()
         self.signup_panel.lower()
@@ -467,12 +486,14 @@ class AuthWindow(BaseKioskWindow):
         self.signin_button.setEnabled(True)
         self.signin_button.setText("התחבר")
 
-        if result['success']:
+        if result["success"]:
             self.show_success("התחברות הצליחה", "ברוך השב!")
             self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
             self.login_success.emit()
         else:
-            self.show_error("התחברות נכשלה", result.get('error', 'פרטי התחברות לא תקינים'))
+            self.show_error(
+                "התחברות נכשלה", result.get("error", "פרטי התחברות לא תקינים")
+            )
             self.signin_password_input.clear()
             self.signin_password_input.setFocus()
             self.shake_widget(self.signin_panel)
@@ -532,18 +553,18 @@ class AuthWindow(BaseKioskWindow):
             password=password,
             first_name=first_name,
             last_name=last_name,
-            email=email
+            email=email,
         )
 
         self.signup_button.setEnabled(True)
         self.signup_button.setText("הירשם")
 
-        if result['success']:
+        if result["success"]:
             self.show_success("ההרשמה הצליחה", f"ברוך הבא ל-{APP_NAME}!")
             self.setWindowFlag(Qt.WindowType.WindowCloseButtonHint, True)
             self.login_success.emit()
         else:
-            self.show_error("ההרשמה נכשלה", result.get('error', 'לא ניתן ליצור חשבון'))
+            self.show_error("ההרשמה נכשלה", result.get("error", "לא ניתן ליצור חשבון"))
             self.shake_widget(self.signup_panel)
 
     def forgot_password_clicked(self):
@@ -553,5 +574,5 @@ class AuthWindow(BaseKioskWindow):
             "שכחת את הסיסמה?",
             "אנא פנה למנהל המערכת שלך.<br><br>"
             "<b>אימייל:</b> support@sionyx.com<br>"
-            "<b>טלפון:</b> +1 (555) 123-4567"
+            "<b>טלפון:</b> +1 (555) 123-4567",
         )

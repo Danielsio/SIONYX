@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Typography, Space, Alert, Button, Divider } from 'antd';
-import { 
-  DownloadOutlined, 
-  InfoCircleOutlined, 
+import {
+  DownloadOutlined,
+  InfoCircleOutlined,
   SafetyOutlined,
   RocketOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import DownloadButton from '../components/DownloadButton';
 
@@ -19,7 +19,7 @@ const { Title, Paragraph, Text } = Typography;
 const DownloadPage = () => {
   const [downloadStats, setDownloadStats] = useState({
     totalDownloads: 0,
-    lastDownload: null
+    lastDownload: null,
   });
 
   useEffect(() => {
@@ -33,29 +33,29 @@ const DownloadPage = () => {
       // For now, we'll use mock data
       setDownloadStats({
         totalDownloads: 1234,
-        lastDownload: new Date().toISOString()
+        lastDownload: new Date().toISOString(),
       });
     } catch (error) {
       console.error('Failed to load download stats:', error);
     }
   };
 
-  const handleDownloadStart = (releaseInfo) => {
+  const handleDownloadStart = releaseInfo => {
     console.log('Download started:', releaseInfo);
     // You can track download events here
   };
 
-  const handleDownloadComplete = (releaseInfo) => {
+  const handleDownloadComplete = releaseInfo => {
     console.log('Download completed:', releaseInfo);
     // Update download statistics
     setDownloadStats(prev => ({
       ...prev,
       totalDownloads: prev.totalDownloads + 1,
-      lastDownload: new Date().toISOString()
+      lastDownload: new Date().toISOString(),
     }));
   };
 
-  const handleDownloadError = (error) => {
+  const handleDownloadError = error => {
     console.error('Download error:', error);
     // Handle download errors
   };
@@ -69,8 +69,8 @@ const DownloadPage = () => {
           Download SIONYX
         </Title>
         <Paragraph style={{ fontSize: '18px', color: '#666', maxWidth: 600, margin: '0 auto' }}>
-          Get the latest version of SIONYX desktop application. 
-          Easy installation with automatic setup wizard.
+          Get the latest version of SIONYX desktop application. Easy installation with automatic
+          setup wizard.
         </Paragraph>
       </div>
 
@@ -79,8 +79,8 @@ const DownloadPage = () => {
         <Col xs={24} lg={12}>
           <DownloadButton
             showDetails={true}
-            size="large"
-            type="primary"
+            size='large'
+            type='primary'
             onDownloadStart={handleDownloadStart}
             onDownloadComplete={handleDownloadComplete}
             onDownloadError={handleDownloadError}
@@ -89,42 +89,42 @@ const DownloadPage = () => {
 
         {/* Features and Info */}
         <Col xs={24} lg={12}>
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+          <Space direction='vertical' size='large' style={{ width: '100%' }}>
             {/* Features */}
-            <Card title="What's Included" size="small">
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <Card title="What's Included" size='small'>
+              <Space direction='vertical' size='middle' style={{ width: '100%' }}>
                 <div>
                   <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
                   <Text strong>Standalone Executable</Text>
                   <br />
-                  <Text type="secondary" style={{ marginLeft: '24px' }}>
+                  <Text type='secondary' style={{ marginLeft: '24px' }}>
                     No Python installation required
                   </Text>
                 </div>
-                
+
                 <div>
                   <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
                   <Text strong>Setup Wizard</Text>
                   <br />
-                  <Text type="secondary" style={{ marginLeft: '24px' }}>
+                  <Text type='secondary' style={{ marginLeft: '24px' }}>
                     Easy first-time configuration
                   </Text>
                 </div>
-                
+
                 <div>
                   <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
                   <Text strong>Firebase Integration</Text>
                   <br />
-                  <Text type="secondary" style={{ marginLeft: '24px' }}>
+                  <Text type='secondary' style={{ marginLeft: '24px' }}>
                     Automatic organization setup
                   </Text>
                 </div>
-                
+
                 <div>
                   <CheckCircleOutlined style={{ color: '#52c41a', marginRight: '8px' }} />
                   <Text strong>Payment Gateway</Text>
                   <br />
-                  <Text type="secondary" style={{ marginLeft: '24px' }}>
+                  <Text type='secondary' style={{ marginLeft: '24px' }}>
                     Pre-configured Nedarim Plus integration
                   </Text>
                 </div>
@@ -132,8 +132,8 @@ const DownloadPage = () => {
             </Card>
 
             {/* System Requirements */}
-            <Card title="System Requirements" size="small">
-              <Space direction="vertical" size="small" style={{ width: '100%' }}>
+            <Card title='System Requirements' size='small'>
+              <Space direction='vertical' size='small' style={{ width: '100%' }}>
                 <div>
                   <Text strong>Operating System:</Text> Windows 10/11 (64-bit)
                 </div>
@@ -157,8 +157,8 @@ const DownloadPage = () => {
       {/* Installation Instructions */}
       <Row gutter={[24, 24]}>
         <Col xs={24} lg={12}>
-          <Card title="Installation Instructions" size="small">
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Card title='Installation Instructions' size='small'>
+            <Space direction='vertical' size='middle' style={{ width: '100%' }}>
               <div>
                 <Text strong>1.</Text> Download the SIONYX installer
               </div>
@@ -179,31 +179,31 @@ const DownloadPage = () => {
         </Col>
 
         <Col xs={24} lg={12}>
-          <Card title="First-Time Setup" size="small">
-            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+          <Card title='First-Time Setup' size='small'>
+            <Space direction='vertical' size='middle' style={{ width: '100%' }}>
               <div>
                 <InfoCircleOutlined style={{ color: '#1890ff', marginRight: '8px' }} />
                 <Text strong>Organization ID</Text>
                 <br />
-                <Text type="secondary" style={{ marginLeft: '24px' }}>
+                <Text type='secondary' style={{ marginLeft: '24px' }}>
                   Unique identifier for your organization
                 </Text>
               </div>
-              
+
               <div>
                 <InfoCircleOutlined style={{ color: '#1890ff', marginRight: '8px' }} />
                 <Text strong>Firebase Credentials</Text>
                 <br />
-                <Text type="secondary" style={{ marginLeft: '24px' }}>
+                <Text type='secondary' style={{ marginLeft: '24px' }}>
                   Your Firebase project configuration
                 </Text>
               </div>
-              
+
               <div>
                 <InfoCircleOutlined style={{ color: '#1890ff', marginRight: '8px' }} />
                 <Text strong>Payment Gateway</Text>
                 <br />
-                <Text type="secondary" style={{ marginLeft: '24px' }}>
+                <Text type='secondary' style={{ marginLeft: '24px' }}>
                   Optional Nedarim Plus configuration
                 </Text>
               </div>
@@ -214,45 +214,45 @@ const DownloadPage = () => {
 
       {/* Security Notice */}
       <Alert
-        message="Security Notice"
+        message='Security Notice'
         description={
           <div>
             <Text>
-              SIONYX is downloaded from Firebase Storage and is digitally signed. 
-              The application includes a built-in setup wizard that will guide you 
-              through the configuration process securely.
+              SIONYX is downloaded from Firebase Storage and is digitally signed. The application
+              includes a built-in setup wizard that will guide you through the configuration process
+              securely.
             </Text>
             <br />
             <br />
             <Text strong>Note:</Text> Make sure to download SIONYX only from this official source.
           </div>
         }
-        type="info"
+        type='info'
         icon={<SafetyOutlined />}
         style={{ marginTop: '32px' }}
       />
 
       {/* Download Statistics */}
       {downloadStats.totalDownloads > 0 && (
-        <Card 
-          title="Download Statistics" 
-          size="small" 
+        <Card
+          title='Download Statistics'
+          size='small'
           style={{ marginTop: '24px', textAlign: 'center' }}
         >
-          <Space size="large">
+          <Space size='large'>
             <div>
               <Text strong style={{ fontSize: '24px', color: '#1890ff' }}>
                 {downloadStats.totalDownloads.toLocaleString()}
               </Text>
               <br />
-              <Text type="secondary">Total Downloads</Text>
+              <Text type='secondary'>Total Downloads</Text>
             </div>
             <div>
               <Text strong style={{ fontSize: '24px', color: '#52c41a' }}>
                 {downloadStats.lastDownload ? 'Latest' : 'N/A'}
               </Text>
               <br />
-              <Text type="secondary">Release</Text>
+              <Text type='secondary'>Release</Text>
             </div>
           </Space>
         </Card>

@@ -6,11 +6,12 @@
 
 /* Landing page animations */
 @keyframes float {
-  0%, 100% { 
-    transform: translateY(0px) rotate(0deg); 
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
   }
-  50% { 
-    transform: translateY(-20px) rotate(5deg); 
+  50% {
+    transform: translateY(-20px) rotate(5deg);
   }
 }
 
@@ -54,7 +55,7 @@
 
 .landing-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 25px 80px rgba(0,0,0,0.2) !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.2) !important;
 }
 
 .landing-button {
@@ -103,7 +104,7 @@
     position: fixed !important;
     z-index: 999;
   }
-  
+
   .ant-layout-content {
     margin: 16px !important;
     padding: 16px !important;

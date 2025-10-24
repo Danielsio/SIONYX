@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Card, 
-  Table, 
-  Tabs, 
-  Statistic, 
-  Row, 
-  Col, 
-  Tag, 
-  Button, 
-  Space, 
-  Typography, 
-  Spin, 
+import {
+  Card,
+  Table,
+  Tabs,
+  Statistic,
+  Row,
+  Col,
+  Tag,
+  Button,
+  Space,
+  Typography,
+  Spin,
   Empty,
   Modal,
   message,
   Tooltip,
-  Badge
+  Badge,
 } from 'antd';
 import {
   DesktopOutlined,
@@ -23,15 +23,15 @@ import {
   ClockCircleOutlined,
   LogoutOutlined,
   DeleteOutlined,
-  ReloadOutlined
+  ReloadOutlined,
 } from '@ant-design/icons';
-import { 
-  getAllComputers, 
-  getComputerUsageStats, 
+import {
+  getAllComputers,
+  getComputerUsageStats,
   getActiveComputerUsers,
   forceLogoutUser,
   updateComputer,
-  deleteComputer
+  deleteComputer,
 } from '../services/computerService';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -57,7 +57,7 @@ const ComputersPage = () => {
       const [computersResult, usersResult, statsResult] = await Promise.all([
         getAllComputers(),
         getActiveComputerUsers(),
-        getComputerUsageStats()
+        getComputerUsageStats(),
       ]);
 
       if (computersResult.success) {
@@ -71,7 +71,6 @@ const ComputersPage = () => {
       if (statsResult.success) {
         setStats(statsResult.data);
       }
-
     } catch (err) {
       setError('נכשל בטעינת נתוני המחשבים');
       console.error('Error loading data:', err);
@@ -98,11 +97,11 @@ const ComputersPage = () => {
         } catch (err) {
           message.error('שגיאה בהתנתקות המשתמש: ' + err.message);
         }
-      }
+      },
     });
   };
 
-  const handleDeleteComputer = async (computerId) => {
+  const handleDeleteComputer = async computerId => {
     Modal.confirm({
       title: 'מחיקת מחשב',
       content: 'האם אתה בטוח שברצונך למחוק את המחשב הזה? פעולה זו לא ניתנת לביטול.',
@@ -121,11 +120,11 @@ const ComputersPage = () => {
         } catch (err) {
           message.error('שגיאה במחיקת המחשב: ' + err.message);
         }
-      }
+      },
     });
   };
 
-  const formatTime = (timeString) => {
+  const formatTime = timeString => {
     if (!timeString) return 'לעולם לא';
     try {
       return formatDistanceToNow(new Date(timeString), { addSuffix: true });
@@ -134,12 +133,12 @@ const ComputersPage = () => {
     }
   };
 
-  const formatDuration = (seconds) => {
+  const formatDuration = seconds => {
     if (!seconds) return '0s';
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     if (hours > 0) {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     } else if (minutes > 0) {
@@ -149,7 +148,7 @@ const ComputersPage = () => {
     }
   };
 
-  const formatSessionTime = (loginTime) => {
+  const formatSessionTime = loginTime => {
     if (!loginTime) return '0:00:00';
     const now = new Date();
     const login = new Date(loginTime);
@@ -165,9 +164,9 @@ const ComputersPage = () => {
       dataIndex: 'userName',
       key: 'userName',
       render: (text, record) => (
-        <Space direction="vertical" size={0}>
+        <Space direction='vertical' size={0}>
           <Text strong>{text}</Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
+          <Text type='secondary' style={{ fontSize: '12px' }}>
             {record.userPhone}
           </Text>
         </Space>
@@ -178,9 +177,9 @@ const ComputersPage = () => {
       dataIndex: 'computerName',
       key: 'computerName',
       render: (text, record) => (
-        <Space direction="vertical" size={0}>
+        <Space direction='vertical' size={0}>
           <Text strong>{text}</Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
+          <Text type='secondary' style={{ fontSize: '12px' }}>
             {record.computerLocation}
           </Text>
         </Space>
@@ -190,11 +189,11 @@ const ComputersPage = () => {
       title: 'זמן הפעלה נוכחי',
       key: 'currentSession',
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space direction='vertical' size={0}>
           <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
             {formatSessionTime(record.loginTime)}
           </Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
+          <Text type='secondary' style={{ fontSize: '12px' }}>
             התחבר ב: {formatTime(record.loginTime)}
           </Text>
         </Space>
@@ -204,7 +203,7 @@ const ComputersPage = () => {
       title: 'זמן נותר',
       dataIndex: 'remainingTime',
       key: 'remainingTime',
-      render: (time) => (
+      render: time => (
         <Text style={{ color: time > 3600 ? '#52c41a' : time > 1800 ? '#faad14' : '#ff4d4f' }}>
           {formatDuration(time)}
         </Text>
@@ -214,10 +213,8 @@ const ComputersPage = () => {
       title: 'סטטוס',
       dataIndex: 'sessionActive',
       key: 'sessionActive',
-      render: (active) => (
-        <Tag color={active ? 'green' : 'default'}>
-          {active ? 'פעיל' : 'לא פעיל'}
-        </Tag>
+      render: active => (
+        <Tag color={active ? 'green' : 'default'}>{active ? 'פעיל' : 'לא פעיל'}</Tag>
       ),
     },
     {
@@ -225,7 +222,7 @@ const ComputersPage = () => {
       key: 'actions',
       render: (_, record) => (
         <Button
-          type="text"
+          type='text'
           danger
           icon={<LogoutOutlined />}
           onClick={() => handleForceLogout(record.userId, record.computerId)}
@@ -243,9 +240,9 @@ const ComputersPage = () => {
       dataIndex: 'computerName',
       key: 'computerName',
       render: (text, record) => (
-        <Space direction="vertical" size={0}>
+        <Space direction='vertical' size={0}>
           <Text strong>{text}</Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
+          <Text type='secondary' style={{ fontSize: '12px' }}>
             {record.location || 'ללא מיקום'}
           </Text>
         </Space>
@@ -255,44 +252,44 @@ const ComputersPage = () => {
       title: 'כתובת MAC',
       dataIndex: 'macAddress',
       key: 'macAddress',
-      render: (text) => <Text code>{text || 'לא ידוע'}</Text>,
+      render: text => <Text code>{text || 'לא ידוע'}</Text>,
     },
     {
       title: 'כתובת IP',
       dataIndex: ['networkInfo', 'local_ip'],
       key: 'ip',
-      render: (text) => <Text code>{text || 'לא ידוע'}</Text>,
+      render: text => <Text code>{text || 'לא ידוע'}</Text>,
     },
     {
       title: 'מערכת הפעלה',
       dataIndex: 'osInfo',
       key: 'os',
-      render: (osInfo) => (
-        <Text>{osInfo?.system || 'לא ידוע'} {osInfo?.release || ''}</Text>
+      render: osInfo => (
+        <Text>
+          {osInfo?.system || 'לא ידוע'} {osInfo?.release || ''}
+        </Text>
       ),
     },
     {
       title: 'סטטוס',
       dataIndex: 'isActive',
       key: 'isActive',
-      render: (active) => (
-        <Tag color={active ? 'green' : 'default'}>
-          {active ? 'פעיל' : 'לא פעיל'}
-        </Tag>
+      render: active => (
+        <Tag color={active ? 'green' : 'default'}>{active ? 'פעיל' : 'לא פעיל'}</Tag>
       ),
     },
     {
       title: 'נראה לאחרונה',
       dataIndex: 'lastSeen',
       key: 'lastSeen',
-      render: (time) => <Text type="secondary">{formatTime(time)}</Text>,
+      render: time => <Text type='secondary'>{formatTime(time)}</Text>,
     },
     {
       title: 'פעולות',
       key: 'actions',
       render: (_, record) => (
         <Button
-          type="text"
+          type='text'
           danger
           icon={<DeleteOutlined />}
           onClick={() => handleDeleteComputer(record.id)}
@@ -310,9 +307,9 @@ const ComputersPage = () => {
       dataIndex: 'computerName',
       key: 'computerName',
       render: (text, record) => (
-        <Space direction="vertical" size={0}>
+        <Space direction='vertical' size={0}>
           <Text strong>{text}</Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
+          <Text type='secondary' style={{ fontSize: '12px' }}>
             {record.macAddress}
           </Text>
         </Space>
@@ -322,45 +319,42 @@ const ComputersPage = () => {
       title: 'מיקום',
       dataIndex: 'location',
       key: 'location',
-      render: (text) => <Text>{text || 'לא צוין'}</Text>,
+      render: text => <Text>{text || 'לא צוין'}</Text>,
     },
     {
       title: 'סטטוס',
       dataIndex: 'isActive',
       key: 'isActive',
-      render: (active) => (
-        <Tag color={active ? 'green' : 'default'}>
-          {active ? 'פעיל' : 'לא פעיל'}
-        </Tag>
+      render: active => (
+        <Tag color={active ? 'green' : 'default'}>{active ? 'פעיל' : 'לא פעיל'}</Tag>
       ),
     },
     {
       title: 'משתמש נוכחי',
       dataIndex: 'currentUserName',
       key: 'currentUser',
-      render: (text) => <Text>{text || 'זמין'}</Text>,
+      render: text => <Text>{text || 'זמין'}</Text>,
     },
     {
       title: 'נראה לאחרונה',
       dataIndex: 'lastSeen',
       key: 'lastSeen',
-      render: (time) => <Text type="secondary">{formatTime(time)}</Text>,
+      render: time => <Text type='secondary'>{formatTime(time)}</Text>,
     },
     {
       title: 'פעולות',
       key: 'actions',
-      render: (_, record) => (
+      render: (_, record) =>
         record.currentUserId && (
           <Button
-            type="text"
+            type='text'
             danger
             icon={<LogoutOutlined />}
             onClick={() => handleForceLogout(record.currentUserId, record.computerId)}
           >
             התנתק
           </Button>
-        )
-      ),
+        ),
     },
   ];
 
@@ -369,25 +363,28 @@ const ComputersPage = () => {
       key: 'overview',
       label: 'סקירה כללית',
       children: (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
+        <Space direction='vertical' size='large' style={{ width: '100%' }}>
           {/* Active Users Table */}
-          <Card title="משתמשים פעילים" extra={<Badge count={activeUsers.length} showZero color="#52c41a" />}>
+          <Card
+            title='משתמשים פעילים'
+            extra={<Badge count={activeUsers.length} showZero color='#52c41a' />}
+          >
             <Table
               columns={activeUsersColumns}
               dataSource={activeUsers}
-              rowKey={(record) => `${record.userId}-${record.computerId}`}
+              rowKey={record => `${record.userId}-${record.computerId}`}
               pagination={{ pageSize: 5 }}
               locale={{ emptyText: 'אין משתמשים פעילים' }}
-              size="small"
+              size='small'
             />
           </Card>
-          
+
           {/* Computer Overview Table */}
-          <Card title="סקירת מחשבים">
+          <Card title='סקירת מחשבים'>
             <Table
               columns={overviewColumns}
               dataSource={stats?.computerDetails || []}
-              rowKey="computerId"
+              rowKey='computerId'
               pagination={{ pageSize: 10 }}
               locale={{ emptyText: 'אין נתונים זמינים' }}
             />
@@ -400,14 +397,14 @@ const ComputersPage = () => {
       label: (
         <Space>
           משתמשים פעילים
-          <Badge count={activeUsers.length} showZero color="#52c41a" />
+          <Badge count={activeUsers.length} showZero color='#52c41a' />
         </Space>
       ),
       children: (
         <Table
           columns={activeUsersColumns}
           dataSource={activeUsers}
-          rowKey={(record) => `${record.userId}-${record.computerId}`}
+          rowKey={record => `${record.userId}-${record.computerId}`}
           pagination={{ pageSize: 10 }}
           locale={{ emptyText: 'אין משתמשים פעילים' }}
         />
@@ -420,7 +417,7 @@ const ComputersPage = () => {
         <Table
           columns={computersColumns}
           dataSource={computers}
-          rowKey="id"
+          rowKey='id'
           pagination={{ pageSize: 10 }}
           locale={{ emptyText: 'אין מחשבים זמינים' }}
         />
@@ -431,7 +428,7 @@ const ComputersPage = () => {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size="large" />
+        <Spin size='large' />
         <div style={{ marginTop: 16 }}>
           <Text>טוען נתוני מחשבים...</Text>
         </div>
@@ -442,9 +439,14 @@ const ComputersPage = () => {
   if (error) {
     return (
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Text type="danger">{error}</Text>
+        <Text type='danger'>{error}</Text>
         <br />
-        <Button type="primary" icon={<ReloadOutlined />} onClick={loadData} style={{ marginTop: 16 }}>
+        <Button
+          type='primary'
+          icon={<ReloadOutlined />}
+          onClick={loadData}
+          style={{ marginTop: 16 }}
+        >
           נסה שוב
         </Button>
       </div>
@@ -453,24 +455,22 @@ const ComputersPage = () => {
 
   return (
     <div style={{ direction: 'rtl' }}>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space direction='vertical' size='large' style={{ width: '100%' }}>
         {/* Header */}
         <div>
           <Title level={2} style={{ marginBottom: 8 }}>
             ניהול מחשבים
           </Title>
-          <Text type="secondary">
-            צפה ונתח מחשבים בארגון שלך
-          </Text>
+          <Text type='secondary'>צפה ונתח מחשבים בארגון שלך</Text>
         </div>
 
         {/* Stats Overview */}
         {stats && (
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12} lg={6}>
-              <Card variant="borderless" style={{ textAlign: 'center' }}>
+              <Card variant='borderless' style={{ textAlign: 'center' }}>
                 <Statistic
-                  title="סך מחשבים"
+                  title='סך מחשבים'
                   value={stats.totalComputers}
                   prefix={<DesktopOutlined />}
                   valueStyle={{ color: '#1890ff' }}
@@ -478,9 +478,9 @@ const ComputersPage = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card variant="borderless" style={{ textAlign: 'center' }}>
+              <Card variant='borderless' style={{ textAlign: 'center' }}>
                 <Statistic
-                  title="מחשבים פעילים"
+                  title='מחשבים פעילים'
                   value={stats.activeComputers}
                   prefix={<DesktopOutlined />}
                   valueStyle={{ color: '#52c41a' }}
@@ -488,9 +488,9 @@ const ComputersPage = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card variant="borderless" style={{ textAlign: 'center' }}>
+              <Card variant='borderless' style={{ textAlign: 'center' }}>
                 <Statistic
-                  title="בשימוש"
+                  title='בשימוש'
                   value={stats.computersWithUsers}
                   prefix={<UserOutlined />}
                   valueStyle={{ color: '#faad14' }}
@@ -498,9 +498,9 @@ const ComputersPage = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card variant="borderless" style={{ textAlign: 'center' }}>
+              <Card variant='borderless' style={{ textAlign: 'center' }}>
                 <Statistic
-                  title="משתמשים פעילים"
+                  title='משתמשים פעילים'
                   value={activeUsers.length}
                   prefix={<UserOutlined />}
                   valueStyle={{ color: '#722ed1' }}

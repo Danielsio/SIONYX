@@ -99,5 +99,3 @@ def build_base_qss(tokens: Dict[str, Dict[str, str]] = TOKENS) -> str:
     }}
     """
     return qss
-
-

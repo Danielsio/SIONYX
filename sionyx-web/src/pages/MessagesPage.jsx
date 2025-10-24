@@ -17,7 +17,7 @@ import {
   Row,
   Col,
   Statistic,
-  Divider
+  Divider,
 } from 'antd';
 import {
   MessageOutlined,
@@ -27,16 +27,16 @@ import {
   CheckCircleOutlined,
   EyeOutlined,
   FilterOutlined,
-  ClearOutlined
+  ClearOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useAuthStore } from '../store/authStore';
 import { getAllUsers } from '../services/userService';
-import { 
-  getAllMessages, 
-  getMessagesForUser, 
+import {
+  getAllMessages,
+  getMessagesForUser,
   sendMessage,
-  isUserActive 
+  isUserActive,
 } from '../services/chatService';
 
 const { Title, Text } = Typography;
@@ -53,12 +53,12 @@ const MessagesPage = () => {
   const [filters, setFilters] = useState({
     user: null,
     dateRange: null,
-    status: null
+    status: null,
   });
   const [stats, setStats] = useState({
     total: 0,
     unread: 0,
-    today: 0
+    today: 0,
   });
 
   const { user } = useAuthStore();
@@ -94,16 +94,16 @@ const MessagesPage = () => {
   const loadMessages = async () => {
     try {
       let result;
-      
+
       if (filters.user) {
         result = await getMessagesForUser(user.orgId, filters.user);
       } else {
         result = await getAllMessages(user.orgId);
       }
-      
+
       if (result.success) {
         let filteredMessages = result.messages;
-        
+
         // Apply date filter
         if (filters.dateRange && filters.dateRange.length === 2) {
           const [start, end] = filters.dateRange;
@@ -112,14 +112,14 @@ const MessagesPage = () => {
             return msgDate.isAfter(start.startOf('day')) && msgDate.isBefore(end.endOf('day'));
           });
         }
-        
+
         // Apply status filter
         if (filters.status !== null) {
-          filteredMessages = filteredMessages.filter(msg => 
+          filteredMessages = filteredMessages.filter(msg =>
             filters.status ? !msg.read : msg.read
           );
         }
-        
+
         setMessages(filteredMessages);
         updateStats(filteredMessages);
       }
@@ -129,25 +129,23 @@ const MessagesPage = () => {
     }
   };
 
-  const updateStats = (messages) => {
+  const updateStats = messages => {
     const now = dayjs();
-    const today = messages.filter(msg => 
-      dayjs(msg.timestamp).isSame(now, 'day')
-    );
-    
+    const today = messages.filter(msg => dayjs(msg.timestamp).isSame(now, 'day'));
+
     setStats({
       total: messages.length,
       unread: messages.filter(msg => !msg.read).length,
-      today: today.length
+      today: today.length,
     });
   };
 
-  const handleSendMessage = async (values) => {
+  const handleSendMessage = async values => {
     try {
       const { toUserId, message: messageText } = values;
-      
+
       const result = await sendMessage(user.orgId, toUserId, messageText, user.uid);
-      
+
       if (result.success) {
         message.success('Message sent successfully');
         setMessageModalVisible(false);
@@ -165,7 +163,7 @@ const MessagesPage = () => {
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
@@ -173,16 +171,16 @@ const MessagesPage = () => {
     setFilters({
       user: null,
       dateRange: null,
-      status: null
+      status: null,
     });
   };
 
-  const getUserName = (userId) => {
+  const getUserName = userId => {
     const user = users.find(u => u.uid === userId);
     return user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
   };
 
-  const getUserPhone = (userId) => {
+  const getUserPhone = userId => {
     const user = users.find(u => u.uid === userId);
     return user ? user.phoneNumber : 'Unknown';
   };
@@ -192,21 +190,21 @@ const MessagesPage = () => {
       title: 'משתמש',
       dataIndex: 'toUserId',
       key: 'user',
-      render: (userId) => {
+      render: userId => {
         const user = users.find(u => u.uid === userId);
         const isActive = user ? isUserActive(user.lastSeen) : false;
-        
+
         return (
           <Space>
             <UserOutlined />
             <div>
               <div>{getUserName(userId)}</div>
-              <Text type="secondary" style={{ fontSize: '12px' }}>
+              <Text type='secondary' style={{ fontSize: '12px' }}>
                 {getUserPhone(userId)}
               </Text>
             </div>
             {isActive && (
-              <Tag color="green" size="small">
+              <Tag color='green' size='small'>
                 פעיל
               </Tag>
             )}
@@ -219,7 +217,7 @@ const MessagesPage = () => {
       dataIndex: 'message',
       key: 'message',
       ellipsis: true,
-      render: (text) => (
+      render: text => (
         <Tooltip title={text}>
           <Text>{text}</Text>
         </Tooltip>
@@ -232,16 +230,16 @@ const MessagesPage = () => {
       render: (read, record) => (
         <Space>
           {read ? (
-            <Tag color="green" icon={<CheckCircleOutlined />}>
+            <Tag color='green' icon={<CheckCircleOutlined />}>
               נקרא
             </Tag>
           ) : (
-            <Tag color="orange" icon={<ClockCircleOutlined />}>
+            <Tag color='orange' icon={<ClockCircleOutlined />}>
               לא נקרא
             </Tag>
           )}
           {read && record.readAt && (
-            <Text type="secondary" style={{ fontSize: '12px' }}>
+            <Text type='secondary' style={{ fontSize: '12px' }}>
               {dayjs(record.readAt).format('HH:mm')}
             </Text>
           )}
@@ -252,10 +250,10 @@ const MessagesPage = () => {
       title: 'נשלח',
       dataIndex: 'timestamp',
       key: 'timestamp',
-      render: (timestamp) => (
-        <Space direction="vertical" size={0}>
+      render: timestamp => (
+        <Space direction='vertical' size={0}>
           <Text>{dayjs(timestamp).format('DD/MM/YYYY')}</Text>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
+          <Text type='secondary' style={{ fontSize: '12px' }}>
             {dayjs(timestamp).format('HH:mm:ss')}
           </Text>
         </Space>
@@ -272,24 +270,20 @@ const MessagesPage = () => {
           <MessageOutlined />
           הודעות
         </Title>
-        <Text type="secondary">שלח הודעות למשתמשים וצפה בהיסטוריית ההודעות</Text>
+        <Text type='secondary'>שלח הודעות למשתמשים וצפה בהיסטוריית ההודעות</Text>
       </div>
 
       {/* Stats Cards */}
       <Row gutter={16} style={{ marginBottom: '24px' }}>
         <Col span={8}>
           <Card>
-            <Statistic
-              title="סך הכל הודעות"
-              value={stats.total}
-              prefix={<MessageOutlined />}
-            />
+            <Statistic title='סך הכל הודעות' value={stats.total} prefix={<MessageOutlined />} />
           </Card>
         </Col>
         <Col span={8}>
           <Card>
             <Statistic
-              title="הודעות לא נקראו"
+              title='הודעות לא נקראו'
               value={stats.unread}
               prefix={<ClockCircleOutlined />}
               valueStyle={{ color: '#faad14' }}
@@ -299,7 +293,7 @@ const MessagesPage = () => {
         <Col span={8}>
           <Card>
             <Statistic
-              title="הודעות היום"
+              title='הודעות היום'
               value={stats.today}
               prefix={<SendOutlined />}
               valueStyle={{ color: '#52c41a' }}
@@ -310,14 +304,14 @@ const MessagesPage = () => {
 
       {/* Filters and Actions */}
       <Card style={{ marginBottom: '24px' }}>
-        <Row gutter={16} align="middle">
-          <Col flex="auto">
+        <Row gutter={16} align='middle'>
+          <Col flex='auto'>
             <Space wrap>
               <Select
-                placeholder="סנן לפי משתמש"
+                placeholder='סנן לפי משתמש'
                 style={{ width: 200 }}
                 value={filters.user}
-                onChange={(value) => handleFilterChange('user', value)}
+                onChange={value => handleFilterChange('user', value)}
                 allowClear
               >
                 {users.map(user => (
@@ -326,36 +320,33 @@ const MessagesPage = () => {
                   </Select.Option>
                 ))}
               </Select>
-              
+
               <RangePicker
                 placeholder={['תאריך התחלה', 'תאריך סיום']}
                 value={filters.dateRange}
-                onChange={(dates) => handleFilterChange('dateRange', dates)}
+                onChange={dates => handleFilterChange('dateRange', dates)}
               />
-              
+
               <Select
-                placeholder="סנן לפי סטטוס"
+                placeholder='סנן לפי סטטוס'
                 style={{ width: 120 }}
                 value={filters.status}
-                onChange={(value) => handleFilterChange('status', value)}
+                onChange={value => handleFilterChange('status', value)}
                 allowClear
               >
                 <Select.Option value={true}>נקרא</Select.Option>
                 <Select.Option value={false}>לא נקרא</Select.Option>
               </Select>
-              
-              <Button
-                icon={<ClearOutlined />}
-                onClick={clearFilters}
-              >
+
+              <Button icon={<ClearOutlined />} onClick={clearFilters}>
                 נקה מסננים
               </Button>
             </Space>
           </Col>
-          
+
           <Col>
             <Button
-              type="primary"
+              type='primary'
               icon={<SendOutlined />}
               onClick={() => setMessageModalVisible(true)}
             >
@@ -370,14 +361,13 @@ const MessagesPage = () => {
         <Table
           columns={columns}
           dataSource={messages}
-          rowKey="id"
+          rowKey='id'
           loading={loading}
           pagination={{
             pageSize: 20,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total, range) => 
-              `${range[0]}-${range[1]} of ${total} messages`,
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} messages`,
           }}
           scroll={{ x: 800 }}
         />
@@ -385,7 +375,7 @@ const MessagesPage = () => {
 
       {/* Send Message Modal */}
       <Modal
-        title="שלח הודעה"
+        title='שלח הודעה'
         open={messageModalVisible}
         onCancel={() => {
           setMessageModalVisible(false);
@@ -393,21 +383,16 @@ const MessagesPage = () => {
         }}
         footer={null}
         width={600}
-        dir="rtl"
+        dir='rtl'
       >
-        <Form
-          form={messageForm}
-          layout="vertical"
-          onFinish={handleSendMessage}
-          dir="rtl"
-        >
+        <Form form={messageForm} layout='vertical' onFinish={handleSendMessage} dir='rtl'>
           <Form.Item
-            name="toUserId"
-            label="שלח למשתמש"
+            name='toUserId'
+            label='שלח למשתמש'
             rules={[{ required: true, message: 'אנא בחר משתמש' }]}
           >
             <Select
-              placeholder="בחר משתמש"
+              placeholder='בחר משתמש'
               showSearch
               filterOption={(input, option) =>
                 option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
@@ -421,30 +406,28 @@ const MessagesPage = () => {
               ))}
             </Select>
           </Form.Item>
-          
+
           <Form.Item
-            name="message"
-            label="הודעה"
+            name='message'
+            label='הודעה'
             rules={[
               { required: true, message: 'אנא הכנס הודעה' },
-              { max: 500, message: 'ההודעה חייבת להיות פחות מ-500 תווים' }
+              { max: 500, message: 'ההודעה חייבת להיות פחות מ-500 תווים' },
             ]}
           >
             <TextArea
               rows={4}
-              placeholder="הכנס את ההודעה שלך כאן..."
+              placeholder='הכנס את ההודעה שלך כאן...'
               showCount
               maxLength={500}
               style={{ textAlign: 'right', direction: 'rtl' }}
             />
           </Form.Item>
-          
+
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
-              <Button onClick={() => setMessageModalVisible(false)}>
-                ביטול
-              </Button>
-              <Button type="primary" htmlType="submit" icon={<SendOutlined />}>
+              <Button onClick={() => setMessageModalVisible(false)}>ביטול</Button>
+              <Button type='primary' htmlType='submit' icon={<SendOutlined />}>
                 שלח הודעה
               </Button>
             </Space>

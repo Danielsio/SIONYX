@@ -4,10 +4,12 @@ Firebase Configuration
 
 import os
 from pathlib import Path
+
 from dotenv import load_dotenv
 
+
 # Load .env
-env_path = Path(__file__).parent.parent.parent / '.env'
+env_path = Path(__file__).parent.parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 
@@ -15,13 +17,13 @@ class FirebaseConfig:
     """Firebase configuration"""
 
     def __init__(self):
-        self.api_key = os.getenv('FIREBASE_API_KEY')
-        self.auth_domain = os.getenv('FIREBASE_AUTH_DOMAIN')
-        self.database_url = os.getenv('FIREBASE_DATABASE_URL')
-        self.project_id = os.getenv('FIREBASE_PROJECT_ID')
-        
+        self.api_key = os.getenv("FIREBASE_API_KEY")
+        self.auth_domain = os.getenv("FIREBASE_AUTH_DOMAIN")
+        self.database_url = os.getenv("FIREBASE_DATABASE_URL")
+        self.project_id = os.getenv("FIREBASE_PROJECT_ID")
+
         # MULTI-TENANCY: Organization ID for data isolation
-        self.org_id = os.getenv('ORG_ID')
+        self.org_id = os.getenv("ORG_ID")
 
         self._validate()
 
@@ -39,10 +41,11 @@ class FirebaseConfig:
                 "This identifies your organization in the database.\n"
                 "Example: ORG_ID=myorg"
             )
-        
+
         # Validate org_id format (alphanumeric, lowercase, hyphens)
         import re
-        if not re.match(r'^[a-z0-9-]+$', self.org_id):
+
+        if not re.match(r"^[a-z0-9-]+$", self.org_id):
             raise ValueError(
                 f"Invalid ORG_ID: '{self.org_id}'\n"
                 "Must contain only lowercase letters, numbers, and hyphens.\n"

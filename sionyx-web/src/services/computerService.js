@@ -15,29 +15,29 @@ export const getAllComputers = async () => {
     const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
     const computersRef = ref(database, `organizations/${orgId}/computers`);
     const snapshot = await get(computersRef);
-    
+
     if (snapshot.exists()) {
       const computers = snapshot.val();
       const computerList = Object.keys(computers).map(computerId => ({
         id: computerId,
-        ...computers[computerId]
+        ...computers[computerId],
       }));
-      
+
       return {
         success: true,
-        data: computerList
+        data: computerList,
       };
     } else {
       return {
         success: true,
-        data: []
+        data: [],
       };
     }
   } catch (error) {
     console.error('Error fetching computers:', error);
     return {
       success: false,
-      error: 'Failed to fetch computers'
+      error: 'Failed to fetch computers',
     };
   }
 };
@@ -52,39 +52,39 @@ export const getComputerUsageStats = async () => {
     if (!computersResult.success) {
       return computersResult;
     }
-    
+
     const computers = computersResult.data;
-    
+
     // Get all users
     const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
     const usersRef = ref(database, `organizations/${orgId}/users`);
     const usersSnapshot = await get(usersRef);
     const users = usersSnapshot.exists() ? usersSnapshot.val() : {};
-    
+
     // Process statistics
     const stats = {
       totalComputers: computers.length,
       activeComputers: 0,
       computersWithUsers: 0,
       computerDetails: [],
-      userComputerUsage: {}
+      userComputerUsage: {},
     };
-    
+
     computers.forEach(computer => {
       const isActive = computer.isActive || false;
       const currentUserId = computer.currentUserId;
-      
+
       if (isActive) {
         stats.activeComputers++;
       }
-      
+
       if (currentUserId) {
         stats.computersWithUsers++;
-        
+
         // Get user info
         const userData = users[currentUserId] || {};
         const userName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
-        
+
         stats.computerDetails.push({
           computerId: computer.id,
           computerName: computer.computerName || 'Unknown',
@@ -95,22 +95,22 @@ export const getComputerUsageStats = async () => {
           lastSeen: computer.lastSeen || '',
           osInfo: computer.osInfo || {},
           macAddress: computer.macAddress || '',
-          ipAddress: computer.networkInfo?.local_ip || ''
+          ipAddress: computer.networkInfo?.local_ip || '',
         });
-        
+
         // Track user's computer usage
         if (!stats.userComputerUsage[currentUserId]) {
           stats.userComputerUsage[currentUserId] = {
             userId: currentUserId,
             userName: userName,
-            computersUsed: []
+            computersUsed: [],
           };
         }
-        
+
         stats.userComputerUsage[currentUserId].computersUsed.push({
           computerId: computer.id,
           computerName: computer.computerName || 'Unknown',
-          loginTime: computer.lastUserLogin || ''
+          loginTime: computer.lastUserLogin || '',
         });
       } else {
         // Computer without user
@@ -124,20 +124,20 @@ export const getComputerUsageStats = async () => {
           lastSeen: computer.lastSeen || '',
           osInfo: computer.osInfo || {},
           macAddress: computer.macAddress || '',
-          ipAddress: computer.networkInfo?.local_ip || ''
+          ipAddress: computer.networkInfo?.local_ip || '',
         });
       }
     });
-    
+
     return {
       success: true,
-      data: stats
+      data: stats,
     };
   } catch (error) {
     console.error('Error getting computer usage stats:', error);
     return {
       success: false,
-      error: 'Failed to get computer usage statistics'
+      error: 'Failed to get computer usage statistics',
     };
   }
 };
@@ -145,31 +145,31 @@ export const getComputerUsageStats = async () => {
 /**
  * Get computer by ID
  */
-export const getComputerById = async (computerId) => {
+export const getComputerById = async computerId => {
   try {
     const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
     const snapshot = await get(computerRef);
-    
+
     if (snapshot.exists()) {
       return {
         success: true,
         data: {
           id: computerId,
-          ...snapshot.val()
-        }
+          ...snapshot.val(),
+        },
       };
     } else {
       return {
         success: false,
-        error: 'Computer not found'
+        error: 'Computer not found',
       };
     }
   } catch (error) {
     console.error('Error fetching computer:', error);
     return {
       success: false,
-      error: 'Failed to fetch computer'
+      error: 'Failed to fetch computer',
     };
   }
 };
@@ -181,23 +181,23 @@ export const updateComputer = async (computerId, updates) => {
   try {
     const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
-    
+
     // Add updatedAt timestamp
     const updateData = {
       ...updates,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
-    
+
     await update(computerRef, updateData);
-    
+
     return {
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error updating computer:', error);
     return {
       success: false,
-      error: 'Failed to update computer'
+      error: 'Failed to update computer',
     };
   }
 };
@@ -205,20 +205,20 @@ export const updateComputer = async (computerId, updates) => {
 /**
  * Delete computer
  */
-export const deleteComputer = async (computerId) => {
+export const deleteComputer = async computerId => {
   try {
     const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
     await remove(computerRef);
-    
+
     return {
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error deleting computer:', error);
     return {
       success: false,
-      error: 'Failed to delete computer'
+      error: 'Failed to delete computer',
     };
   }
 };
@@ -232,17 +232,17 @@ export const getActiveComputerUsers = async () => {
     if (!computersResult.success) {
       return computersResult;
     }
-    
+
     const computers = computersResult.data;
     const activeUsers = [];
-    
+
     for (const computer of computers) {
       if (computer.currentUserId) {
         // Get user details
         const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
         const userRef = ref(database, `organizations/${orgId}/users/${computer.currentUserId}`);
         const userSnapshot = await get(userRef);
-        
+
         if (userSnapshot.exists()) {
           const userData = userSnapshot.val();
           activeUsers.push({
@@ -255,21 +255,21 @@ export const getActiveComputerUsers = async () => {
             loginTime: computer.lastUserLogin || '',
             sessionActive: userData.isSessionActive || false,
             remainingTime: userData.remainingTime || 0,
-            remainingPrints: userData.remainingPrints || 0
+            remainingPrints: userData.remainingPrints || 0,
           });
         }
       }
     }
-    
+
     return {
       success: true,
-      data: activeUsers
+      data: activeUsers,
     };
   } catch (error) {
     console.error('Error getting active computer users:', error);
     return {
       success: false,
-      error: 'Failed to get active computer users'
+      error: 'Failed to get active computer users',
     };
   }
 };
@@ -288,25 +288,25 @@ export const forceLogoutUser = async (userId, computerId) => {
       isSessionActive: false,
       sessionStartTime: null,
       lastComputerLogout: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     });
-    
+
     // Clear computer's current user
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
     await update(computerRef, {
       currentUserId: null,
       lastUserLogout: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     });
-    
+
     return {
-      success: true
+      success: true,
     };
   } catch (error) {
     console.error('Error forcing logout:', error);
     return {
       success: false,
-      error: 'Failed to force logout user'
+      error: 'Failed to force logout user',
     };
   }
 };

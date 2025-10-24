@@ -1,7 +1,7 @@
-import { 
-  signInWithEmailAndPassword, 
+import {
+  signInWithEmailAndPassword,
   signOut as firebaseSignOut,
-  onAuthStateChanged 
+  onAuthStateChanged,
 } from 'firebase/auth';
 import { ref, get, set } from 'firebase/database';
 import { auth, database } from '../config/firebase';
@@ -11,7 +11,7 @@ import { auth, database } from '../config/firebase';
  * Example: '1234567890' -> '1234567890@sionyx.app'
  * This matches the desktop app's authentication system
  */
-const phoneToEmail = (phone) => {
+const phoneToEmail = phone => {
   // Remove all non-digit characters
   const cleanPhone = phone.replace(/\D/g, '');
   return `${cleanPhone}@sionyx.app`;
@@ -27,72 +27,75 @@ export const signInAdmin = async (phone, password, orgId) => {
     if (!orgId || orgId.trim() === '') {
       return {
         success: false,
-        error: 'Organization ID is required'
+        error: 'Organization ID is required',
       };
     }
-    
+
     // Clean and validate orgId (lowercase, alphanumeric, hyphens)
     const cleanOrgId = orgId.trim().toLowerCase();
     if (!/^[a-z0-9-]+$/.test(cleanOrgId)) {
       return {
         success: false,
-        error: 'Invalid Organization ID format. Use only lowercase letters, numbers, and hyphens.'
+        error: 'Invalid Organization ID format. Use only lowercase letters, numbers, and hyphens.',
       };
     }
-    
+
     // Convert phone to email format (same as desktop app)
     const email = phoneToEmail(phone);
-    
+
     console.log('Signing in:', { phone, email, orgId: cleanOrgId });
-    
+
     // Sign in with Firebase Auth
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const userId = userCredential.user.uid;
-    
+
     // Fetch user data from the specified organization
     // Path: organizations/{orgId}/users/{userId}
     const userRef = ref(database, `organizations/${cleanOrgId}/users/${userId}`);
     const userSnapshot = await get(userRef);
-    
+
     if (!userSnapshot.exists()) {
       // User doesn't exist in this organization - sign out
       await firebaseSignOut(auth);
       return {
         success: false,
-        error: `No account found in organization "${cleanOrgId}". Please verify your organization ID.`
+        error: `No account found in organization "${cleanOrgId}". Please verify your organization ID.`,
       };
     }
-    
+
     const userData = userSnapshot.val();
-    
+
     // Check if user is an admin
     if (!userData.isAdmin) {
       // Not an admin - sign out
       await firebaseSignOut(auth);
       return {
         success: false,
-        error: 'You do not have administrator privileges. Only admins can access this dashboard.'
+        error: 'You do not have administrator privileges. Only admins can access this dashboard.',
       };
     }
-    
+
     // Update last login timestamp
-    await set(ref(database, `organizations/${cleanOrgId}/users/${userId}/lastLogin`), new Date().toISOString());
-    
+    await set(
+      ref(database, `organizations/${cleanOrgId}/users/${userId}/lastLogin`),
+      new Date().toISOString()
+    );
+
     // Store orgId in localStorage for future use
     localStorage.setItem('adminOrgId', cleanOrgId);
-    
+
     return {
       success: true,
       user: {
         uid: userId,
         phone: phone,
         orgId: cleanOrgId,
-        ...userData
-      }
+        ...userData,
+      },
     };
   } catch (error) {
     console.error('Sign in error:', error);
-    
+
     // User-friendly error messages
     let errorMessage = 'An error occurred during sign in';
     if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
@@ -104,10 +107,10 @@ export const signInAdmin = async (phone, password, orgId) => {
     } else if (error.code === 'auth/network-request-failed') {
       errorMessage = 'Network error. Please check your internet connection';
     }
-    
+
     return {
       success: false,
-      error: errorMessage
+      error: errorMessage,
     };
   }
 };
@@ -124,7 +127,7 @@ export const signOut = async () => {
     console.error('Sign out error:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -138,49 +141,49 @@ export const getCurrentAdminData = async () => {
     if (!user) {
       return { success: false, error: 'Not authenticated' };
     }
-    
+
     const orgId = localStorage.getItem('adminOrgId');
     if (!orgId) {
       return {
         success: false,
-        error: 'Organization ID not found. Please log in again.'
+        error: 'Organization ID not found. Please log in again.',
       };
     }
-    
+
     // Fetch user data from organization
     const userRef = ref(database, `organizations/${orgId}/users/${user.uid}`);
     const snapshot = await get(userRef);
-    
+
     if (!snapshot.exists()) {
       return {
         success: false,
-        error: 'User data not found'
+        error: 'User data not found',
       };
     }
-    
+
     const userData = snapshot.val();
-    
+
     // Verify still an admin
     if (!userData.isAdmin) {
       return {
         success: false,
-        error: 'Admin privileges revoked. Please contact your administrator.'
+        error: 'Admin privileges revoked. Please contact your administrator.',
       };
     }
-    
+
     return {
       success: true,
       admin: {
         uid: user.uid,
         orgId: orgId,
-        ...userData
-      }
+        ...userData,
+      },
     };
   } catch (error) {
     console.error('Error getting admin data:', error);
     return {
       success: false,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -188,6 +191,6 @@ export const getCurrentAdminData = async () => {
 /**
  * Listen to auth state changes
  */
-export const onAuthChange = (callback) => {
+export const onAuthChange = callback => {
   return onAuthStateChanged(auth, callback);
 };

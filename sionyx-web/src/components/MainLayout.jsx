@@ -10,7 +10,7 @@ import {
   SettingOutlined,
   PhoneOutlined,
   MessageOutlined,
-  DesktopOutlined
+  DesktopOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { signOut } from '../services/authService';
@@ -24,8 +24,8 @@ const MainLayout = () => {
   const [isMobile, setIsMobile] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
+  const user = useAuthStore(state => state.user);
+  const logout = useAuthStore(state => state.logout);
 
   // Check if device is mobile
   useEffect(() => {
@@ -117,32 +117,34 @@ const MainLayout = () => {
 
   const renderSidebar = () => (
     <>
-      <div style={{
-        height: 64,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#fff',
-        fontSize: collapsed ? 20 : 24,
-        fontWeight: 'bold',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        gap: collapsed ? 0 : 8
-      }}>
-        <img 
-          src="/logo.png" 
-          alt="SIONYX Logo" 
+      <div
+        style={{
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#fff',
+          fontSize: collapsed ? 20 : 24,
+          fontWeight: 'bold',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          gap: collapsed ? 0 : 8,
+        }}
+      >
+        <img
+          src='/logo.png'
+          alt='SIONYX Logo'
           style={{
             height: collapsed ? 24 : 32,
             width: collapsed ? 24 : 32,
-            objectFit: 'contain'
+            objectFit: 'contain',
           }}
         />
         {!collapsed && <span>SIONYX</span>}
       </div>
-      
+
       <Menu
-        theme="dark"
-        mode="inline"
+        theme='dark'
+        mode='inline'
         selectedKeys={[location.pathname]}
         items={menuItems}
         onClick={handleMenuClick}
@@ -155,9 +157,9 @@ const MainLayout = () => {
     <Layout style={{ minHeight: '100vh', direction: 'rtl' }}>
       {/* Desktop Sidebar */}
       {!isMobile && (
-        <Sider 
-          trigger={null} 
-          collapsible 
+        <Sider
+          trigger={null}
+          collapsible
           collapsed={collapsed}
           style={{
             overflow: 'auto',
@@ -177,48 +179,50 @@ const MainLayout = () => {
         <Drawer
           title={
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <img 
-                src="/logo.png" 
-                alt="SIONYX Logo" 
+              <img
+                src='/logo.png'
+                alt='SIONYX Logo'
                 style={{
                   height: 24,
                   width: 24,
-                  objectFit: 'contain'
+                  objectFit: 'contain',
                 }}
               />
               <span>SIONYX</span>
             </div>
           }
-          placement="right"
+          placement='right'
           onClose={() => setMobileDrawerVisible(false)}
           open={mobileDrawerVisible}
           width={280}
           bodyStyle={{ padding: 0 }}
-          headerStyle={{ 
+          headerStyle={{
             background: '#001529',
             color: '#fff',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         >
-          <div style={{ background: '#001529', height: '100%' }}>
-            {renderSidebar()}
-          </div>
+          <div style={{ background: '#001529', height: '100%' }}>{renderSidebar()}</div>
         </Drawer>
       )}
 
-      <Layout style={{ 
-        marginRight: isMobile ? 0 : (collapsed ? 80 : 200), 
-        transition: 'all 0.2s' 
-      }}>
-        <Header style={{
-          padding: isMobile ? '0 16px' : '0 24px',
-          background: '#fff',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          boxShadow: '0 1px 4px rgba(0,21,41,.08)',
-          minHeight: 64
-        }}>
+      <Layout
+        style={{
+          marginRight: isMobile ? 0 : collapsed ? 80 : 200,
+          transition: 'all 0.2s',
+        }}
+      >
+        <Header
+          style={{
+            padding: isMobile ? '0 16px' : '0 24px',
+            background: '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 1px 4px rgba(0,21,41,.08)',
+            minHeight: 64,
+          }}
+        >
           <div>
             <MenuUnfoldOutlined
               style={{ fontSize: 18, cursor: 'pointer' }}
@@ -229,29 +233,28 @@ const MainLayout = () => {
           <Space size={isMobile ? 'small' : 'large'} wrap>
             {!isMobile && (
               <Space>
-                <Text type="secondary">ארגון:</Text>
-                <Badge status="success" />
+                <Text type='secondary'>ארגון:</Text>
+                <Badge status='success' />
                 <Text strong>{user?.orgId || 'לא ידוע'}</Text>
               </Space>
             )}
 
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+            <Dropdown menu={{ items: userMenuItems }} placement='bottomRight'>
               <Space style={{ cursor: 'pointer' }}>
-                <Avatar 
-                  style={{ backgroundColor: '#667eea' }}
-                  icon={<UserOutlined />}
-                />
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'flex-start',
-                  minWidth: isMobile ? 0 : 'auto'
-                }}>
+                <Avatar style={{ backgroundColor: '#667eea' }} icon={<UserOutlined />} />
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    minWidth: isMobile ? 0 : 'auto',
+                  }}
+                >
                   <Text style={{ fontSize: isMobile ? 14 : 16 }}>
                     {user?.displayName || 'Admin'}
                   </Text>
                   {user?.phone && !isMobile && (
-                    <Text type="secondary" style={{ fontSize: 12 }}>
+                    <Text type='secondary' style={{ fontSize: 12 }}>
                       <PhoneOutlined style={{ marginRight: 4 }} />
                       {user.phone}
                     </Text>
@@ -262,12 +265,14 @@ const MainLayout = () => {
           </Space>
         </Header>
 
-        <Content style={{
-          margin: isMobile ? '16px' : '24px',
-          padding: isMobile ? 16 : 24,
-          minHeight: 'calc(100vh - 112px)',
-          background: '#f0f2f5'
-        }}>
+        <Content
+          style={{
+            margin: isMobile ? '16px' : '24px',
+            padding: isMobile ? 16 : 24,
+            minHeight: 'calc(100vh - 112px)',
+            background: '#f0f2f5',
+          }}
+        >
           <Outlet />
         </Content>
       </Layout>

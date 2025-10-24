@@ -4,13 +4,16 @@ Only stores encrypted refresh token for auto-login
 All other data is in Firebase Realtime Database
 """
 
+import base64
+import hashlib
 import sqlite3
 from pathlib import Path
 from typing import Optional
+
 from cryptography.fernet import Fernet
-import base64
-import hashlib
+
 from utils.logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -20,10 +23,10 @@ class LocalDatabase:
 
     def __init__(self):
         # Store in user's app data folder
-        app_data = Path.home() / '.sionyx'
+        app_data = Path.home() / ".sionyx"
         app_data.mkdir(exist_ok=True)
 
-        self.db_path = app_data / 'auth.db'
+        self.db_path = app_data / "auth.db"
         self.key = self._get_encryption_key()
         self.cipher = Fernet(self.key)
 
@@ -34,7 +37,8 @@ class LocalDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
                        CREATE TABLE IF NOT EXISTS auth
                        (
                            id
@@ -48,7 +52,8 @@ class LocalDatabase:
                        ),
                            encrypted_token TEXT
                            )
-                       ''')
+                       """
+        )
 
         conn.commit()
         conn.close()
@@ -65,17 +70,22 @@ class LocalDatabase:
 
         return key
 
-    def store_credentials(self, uid: str, phone: str, refresh_token: str, user_data: dict):
+    def store_credentials(
+        self, uid: str, phone: str, refresh_token: str, user_data: dict
+    ):
         """Store only the refresh token (encrypted)"""
         encrypted = self.cipher.encrypt(refresh_token.encode())
 
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('''
+        cursor.execute(
+            """
             INSERT OR REPLACE INTO auth (id, encrypted_token)
             VALUES (1, ?)
-        ''', (encrypted.decode(),))
+        """,
+            (encrypted.decode(),),
+        )
 
         conn.commit()
         conn.close()
@@ -87,7 +97,7 @@ class LocalDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('SELECT encrypted_token FROM auth WHERE id = 1')
+        cursor.execute("SELECT encrypted_token FROM auth WHERE id = 1")
         row = cursor.fetchone()
         conn.close()
 
@@ -106,7 +116,7 @@ class LocalDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
-        cursor.execute('DELETE FROM auth')
+        cursor.execute("DELETE FROM auth")
 
         conn.commit()
         conn.close()

@@ -2,20 +2,20 @@
 Professional Structured Logging System
 """
 
+import json
 import logging
 import sys
-import json
 import uuid
-from pathlib import Path
-from datetime import datetime
-from typing import Optional, Dict, Any
 from contextvars import ContextVar
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 
 # Context variables for request tracking
-_request_id: ContextVar[str] = ContextVar('request_id', default='')
-_user_id: ContextVar[str] = ContextVar('user_id', default='')
-_org_id: ContextVar[str] = ContextVar('org_id', default='')
+_request_id: ContextVar[str] = ContextVar("request_id", default="")
+_user_id: ContextVar[str] = ContextVar("user_id", default="")
+_org_id: ContextVar[str] = ContextVar("org_id", default="")
 
 
 class StructuredFormatter(logging.Formatter):
@@ -25,34 +25,35 @@ class StructuredFormatter(logging.Formatter):
         """Format log record as structured JSON"""
         # Base log structure
         log_entry = {
-            'timestamp': datetime.fromtimestamp(record.created).isoformat(),
-            'level': record.levelname,
-            'logger': record.name,
-            'message': record.getMessage(),
-            'module': record.module,
-            'function': record.funcName,
-            'line': record.lineno
+            "timestamp": datetime.fromtimestamp(record.created).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "function": record.funcName,
+            "line": record.lineno,
         }
 
         # Add context if available
         if _request_id.get():
-            log_entry['request_id'] = _request_id.get()
+            log_entry["request_id"] = _request_id.get()
         if _user_id.get():
-            log_entry['user_id'] = _user_id.get()
+            log_entry["user_id"] = _user_id.get()
         if _org_id.get():
-            log_entry['org_id'] = _org_id.get()
+            log_entry["org_id"] = _org_id.get()
 
         # Add extra fields from record
-        if hasattr(record, 'extra_data'):
+        if hasattr(record, "extra_data"):
             log_entry.update(record.extra_data)
 
         # Add exception info if present
         if record.exc_info:
             import traceback
-            log_entry['exception'] = {
-                'type': record.exc_info[0].__name__,
-                'message': str(record.exc_info[1]),
-                'traceback': ''.join(traceback.format_exception(*record.exc_info))
+
+            log_entry["exception"] = {
+                "type": record.exc_info[0].__name__,
+                "message": str(record.exc_info[1]),
+                "traceback": "".join(traceback.format_exception(*record.exc_info)),
             }
 
         return json.dumps(log_entry, ensure_ascii=False)
@@ -63,37 +64,37 @@ class ColoredFormatter(logging.Formatter):
 
     # ANSI color codes
     COLORS = {
-        'DEBUG': '\033[36m',      # Cyan
-        'INFO': '\033[32m',       # Green
-        'WARNING': '\033[33m',    # Yellow
-        'ERROR': '\033[31m',      # Red
-        'CRITICAL': '\033[35m',   # Magenta
+        "DEBUG": "\033[36m",  # Cyan
+        "INFO": "\033[32m",  # Green
+        "WARNING": "\033[33m",  # Yellow
+        "ERROR": "\033[31m",  # Red
+        "CRITICAL": "\033[35m",  # Magenta
     }
 
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
-    DIM = '\033[2m'
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
 
     # Level symbols
     SYMBOLS = {
-        'DEBUG': '🔍',
-        'INFO': '✓',
-        'WARNING': '⚠',
-        'ERROR': '✗',
-        'CRITICAL': '🔥',
+        "DEBUG": "🔍",
+        "INFO": "✓",
+        "WARNING": "⚠",
+        "ERROR": "✗",
+        "CRITICAL": "🔥",
     }
 
     def format(self, record):
         """Format log record with colors"""
         # Color for level
         level_color = self.COLORS.get(record.levelname, self.RESET)
-        symbol = self.SYMBOLS.get(record.levelname, '•')
+        symbol = self.SYMBOLS.get(record.levelname, "•")
 
         # Format timestamp
-        timestamp = datetime.fromtimestamp(record.created).strftime('%H:%M:%S')
+        timestamp = datetime.fromtimestamp(record.created).strftime("%H:%M:%S")
 
         # Format module name (shortened)
-        module = record.name.split('.')[-1][:15]
+        module = record.name.split(".")[-1][:15]
 
         # Build context info
         context_parts = []
@@ -122,7 +123,8 @@ class ColoredFormatter(logging.Formatter):
     def format_exception(self, exc_info):
         """Format exception with color"""
         import traceback
-        tb = ''.join(traceback.format_exception(*exc_info))
+
+        tb = "".join(traceback.format_exception(*exc_info))
         return f"{self.COLORS['ERROR']}{tb}{self.RESET}"
 
 
@@ -133,34 +135,35 @@ class FileFormatter(logging.Formatter):
         """Format log record for file with structured data"""
         # Base log structure
         log_entry = {
-            'timestamp': datetime.fromtimestamp(record.created).isoformat(),
-            'level': record.levelname,
-            'logger': record.name,
-            'message': record.getMessage(),
-            'module': record.module,
-            'function': record.funcName,
-            'line': record.lineno
+            "timestamp": datetime.fromtimestamp(record.created).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "function": record.funcName,
+            "line": record.lineno,
         }
 
         # Add context if available
         if _request_id.get():
-            log_entry['request_id'] = _request_id.get()
+            log_entry["request_id"] = _request_id.get()
         if _user_id.get():
-            log_entry['user_id'] = _user_id.get()
+            log_entry["user_id"] = _user_id.get()
         if _org_id.get():
-            log_entry['org_id'] = _org_id.get()
+            log_entry["org_id"] = _org_id.get()
 
         # Add extra fields from record
-        if hasattr(record, 'extra_data'):
+        if hasattr(record, "extra_data"):
             log_entry.update(record.extra_data)
 
         # Add exception info if present
         if record.exc_info:
             import traceback
-            log_entry['exception'] = {
-                'type': record.exc_info[0].__name__,
-                'message': str(record.exc_info[1]),
-                'traceback': ''.join(traceback.format_exception(*record.exc_info))
+
+            log_entry["exception"] = {
+                "type": record.exc_info[0].__name__,
+                "message": str(record.exc_info[1]),
+                "traceback": "".join(traceback.format_exception(*record.exc_info)),
             }
 
         return json.dumps(log_entry, ensure_ascii=False)
@@ -185,11 +188,11 @@ class SionyxLogger:
             return
 
         # Create logs directory
-        log_dir = Path.home() / '.sionyx' / 'logs'
+        log_dir = Path.home() / ".sionyx" / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
 
         # Log files
-        today = datetime.now().strftime('%Y%m%d')
+        today = datetime.now().strftime("%Y%m%d")
         log_file = log_dir / f"sionyx_{today}.log"
         error_log_file = log_dir / f"sionyx_errors_{today}.log"
 
@@ -201,18 +204,18 @@ class SionyxLogger:
         # Console Handler (colored, INFO and above)
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setLevel(log_level)
-        
+
         # Set UTF-8 encoding for console output
-        if hasattr(console_handler.stream, 'reconfigure'):
-            console_handler.stream.reconfigure(encoding='utf-8')
+        if hasattr(console_handler.stream, "reconfigure"):
+            console_handler.stream.reconfigure(encoding="utf-8")
 
         if enable_colors and sys.stdout.isatty():
             console_handler.setFormatter(ColoredFormatter())
         else:
             # Fallback to simple format if no colors
             simple_format = logging.Formatter(
-                '%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s',
-                datefmt='%H:%M:%S'
+                "%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s",
+                datefmt="%H:%M:%S",
             )
             console_handler.setFormatter(simple_format)
 
@@ -220,13 +223,13 @@ class SionyxLogger:
 
         # File Handler (detailed, all levels)
         if log_to_file:
-            file_handler = logging.FileHandler(log_file, encoding='utf-8')
+            file_handler = logging.FileHandler(log_file, encoding="utf-8")
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(FileFormatter())
             root_logger.addHandler(file_handler)
 
             # Error File Handler (errors only)
-            error_handler = logging.FileHandler(error_log_file, encoding='utf-8')
+            error_handler = logging.FileHandler(error_log_file, encoding="utf-8")
             error_handler.setLevel(logging.ERROR)
             error_handler.setFormatter(FileFormatter())
             root_logger.addHandler(error_handler)
@@ -247,14 +250,15 @@ class SionyxLogger:
     @classmethod
     def cleanup_old_logs(cls, days_to_keep=7):
         """Remove log files older than specified days"""
-        log_dir = Path.home() / '.sionyx' / 'logs'
+        log_dir = Path.home() / ".sionyx" / "logs"
         if not log_dir.exists():
             return
 
         from datetime import timedelta
+
         cutoff = datetime.now() - timedelta(days=days_to_keep)
 
-        for log_file in log_dir.glob('*.log'):
+        for log_file in log_dir.glob("*.log"):
             if log_file.stat().st_mtime < cutoff.timestamp():
                 log_file.unlink()
                 logging.getLogger(__name__).debug(f"Deleted old log: {log_file.name}")
@@ -272,9 +276,9 @@ def set_context(request_id: str = None, user_id: str = None, org_id: str = None)
 
 def clear_context():
     """Clear all logging context"""
-    _request_id.set('')
-    _user_id.set('')
-    _org_id.set('')
+    _request_id.set("")
+    _user_id.set("")
+    _org_id.set("")
 
 
 def generate_request_id() -> str:
@@ -284,38 +288,40 @@ def generate_request_id() -> str:
 
 class StructuredLogger:
     """Enhanced logger with structured logging capabilities"""
-    
+
     def __init__(self, name: str):
         self.logger = logging.getLogger(name)
-    
-    def _log_with_context(self, level: int, message: str, extra_data: Dict[str, Any] = None):
+
+    def _log_with_context(
+        self, level: int, message: str, extra_data: Dict[str, Any] = None
+    ):
         """Log with structured context data"""
         extra = {}
         if extra_data:
-            extra['extra_data'] = extra_data
-        
+            extra["extra_data"] = extra_data
+
         self.logger.log(level, message, extra=extra)
-    
+
     def debug(self, message: str, **kwargs):
         """Debug level logging with structured data"""
         self._log_with_context(logging.DEBUG, message, kwargs)
-    
+
     def info(self, message: str, **kwargs):
         """Info level logging with structured data"""
         self._log_with_context(logging.INFO, message, kwargs)
-    
+
     def warning(self, message: str, **kwargs):
         """Warning level logging with structured data"""
         self._log_with_context(logging.WARNING, message, kwargs)
-    
+
     def error(self, message: str, **kwargs):
         """Error level logging with structured data"""
         self._log_with_context(logging.ERROR, message, kwargs)
-    
+
     def critical(self, message: str, **kwargs):
         """Critical level logging with structured data"""
         self._log_with_context(logging.CRITICAL, message, kwargs)
-    
+
     def exception(self, message: str, **kwargs):
         """Exception logging with traceback"""
         self._log_with_context(logging.ERROR, message, kwargs)

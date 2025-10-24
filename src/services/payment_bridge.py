@@ -3,9 +3,12 @@ Payment Bridge
 Communication between Python and JavaScript payment form
 """
 
-from PyQt6.QtCore import QObject, pyqtSlot, pyqtSignal
 import json
+
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+
 from utils.logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -33,26 +36,25 @@ class PaymentBridge(QObject):
     def createPendingPurchase(self) -> str:
         """Called from JavaScript to create pending purchase before payment"""
         logger.info("JavaScript requested pending purchase creation")
-        
+
         if not self.purchase_service or not self.user_id:
             logger.error("Purchase service not configured")
-            return json.dumps({'success': False, 'error': 'Not configured'})
-        
+            return json.dumps({"success": False, "error": "Not configured"})
+
         try:
             result = self.purchase_service.create_pending_purchase(
-                self.user_id,
-                self.package
+                self.user_id, self.package
             )
-            
-            if result.get('success'):
-                purchase_id = result['purchase_id']
+
+            if result.get("success"):
+                purchase_id = result["purchase_id"]
                 logger.info(f"Pending purchase created: {purchase_id}")
                 self.purchase_created.emit(purchase_id)
-            
+
             return json.dumps(result)
         except Exception as e:
             logger.exception("Failed to create pending purchase")
-            return json.dumps({'success': False, 'error': str(e)})
+            return json.dumps({"success": False, "error": str(e)})
 
     @pyqtSlot(str)
     def paymentSuccess(self, response_json: str):

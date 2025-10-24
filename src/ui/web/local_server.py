@@ -4,9 +4,9 @@ Used to avoid file:// origin issues for embedded gateways.
 """
 
 import http.server
+import socket
 import socketserver
 import threading
-import socket
 from pathlib import Path
 from typing import Optional
 
@@ -19,7 +19,9 @@ class _QuietHandler(http.server.SimpleHTTPRequestHandler):
 class LocalFileServer:
     """Start/stop a simple HTTP server in a background thread."""
 
-    def __init__(self, root_dir: Path, host: str = "127.0.0.1", port: Optional[int] = None):
+    def __init__(
+        self, root_dir: Path, host: str = "127.0.0.1", port: Optional[int] = None
+    ):
         self.root_dir = Path(root_dir)
         self.host = host
         self.port = port or self._find_free_port(host)
@@ -28,6 +30,7 @@ class LocalFileServer:
 
     def start(self):
         handler_cls = _QuietHandler
+
         # Change working directory context for handler
         def handler_factory(*args, **kwargs):
             return handler_cls(*args, directory=str(self.root_dir), **kwargs)
@@ -55,5 +58,3 @@ class LocalFileServer:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind((host, 0))
             return s.getsockname()[1]
-
-

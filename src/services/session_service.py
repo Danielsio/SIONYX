@@ -3,14 +3,16 @@ Session Management Service
 Handles PC usage sessions with real-time tracking and sync
 """
 
-from typing import Dict, Optional
-from datetime import datetime
 import time
-from PyQt6.QtCore import QTimer, QObject, pyqtSignal
+from datetime import datetime
+from typing import Dict, Optional
 
-from services.firebase_client import FirebaseClient
+from PyQt6.QtCore import QObject, QTimer, pyqtSignal
+
 from services.computer_service import ComputerService
+from services.firebase_client import FirebaseClient
 from utils.logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -72,49 +74,46 @@ class SessionService(QObject):
 
         if self.is_active:
             logger.warning("Session already active")
-            return {
-                'success': False,
-                'error': 'Session already active'
-            }
+            return {"success": False, "error": "Session already active"}
 
         if initial_remaining_time <= 0:
             logger.error("Cannot start session with 0 time")
-            return {
-                'success': False,
-                'error': 'No time remaining'
-            }
+            return {"success": False, "error": "No time remaining"}
 
         # OPTIMIZATION: No separate session table!
         # Store everything on user record to save 50% more writes
         now = datetime.now().isoformat()
-        
+
         # Get current computer info for session tracking
         computer_info = self.computer_service.get_computer_info(
             self._get_current_computer_id()
         )
         computer_name = "Unknown PC"
-        if computer_info.get('success') and computer_info.get('data'):
-            computer_name = computer_info['data'].get('computerName', 'Unknown PC')
-        
-        result = self.firebase.db_update(f'users/{self.user_id}', {
-            'isSessionActive': True,
-            'sessionStartTime': now,
-            'lastActivity': now,
-            'sessionComputerName': computer_name,
-            'updatedAt': now
-        })
+        if computer_info.get("success") and computer_info.get("data"):
+            computer_name = computer_info["data"].get("computerName", "Unknown PC")
 
-        if not result.get('success'):
+        result = self.firebase.db_update(
+            f"users/{self.user_id}",
+            {
+                "isSessionActive": True,
+                "sessionStartTime": now,
+                "lastActivity": now,
+                "sessionComputerName": computer_name,
+                "updatedAt": now,
+            },
+        )
+
+        if not result.get("success"):
             logger.error("Failed to start session")
-            return {
-                'success': False,
-                'error': 'Failed to start session'
-            }
+            return {"success": False, "error": "Failed to start session"}
 
         # Generate local session ID for tracking
         import uuid
+
         self.session_id = str(uuid.uuid4())
-        logger.debug("Session started", session_id=self.session_id, action="session_start")
+        logger.debug(
+            "Session started", session_id=self.session_id, action="session_start"
+        )
 
         # Initialize local state
         self.remaining_time = initial_remaining_time
@@ -128,13 +127,14 @@ class SessionService(QObject):
         self.countdown_timer.start(1000)  # Every second (local countdown, free)
         self.sync_timer.start(60000)  # Every 60 seconds (83% cost reduction!)
 
-        logger.info("Session started successfully", remaining_time=initial_remaining_time, action="session_start")
-        return {
-            'success': True,
-            'session_id': self.session_id
-        }
+        logger.info(
+            "Session started successfully",
+            remaining_time=initial_remaining_time,
+            action="session_start",
+        )
+        return {"success": True, "session_id": self.session_id}
 
-    def end_session(self, reason: str = 'user') -> Dict:
+    def end_session(self, reason: str = "user") -> Dict:
         """
         End the current session
 
@@ -142,18 +142,23 @@ class SessionService(QObject):
             reason: 'user', 'expired', 'error'
         """
         if not self.is_active:
-            return {'success': False, 'error': 'No active session'}
+            return {"success": False, "error": "No active session"}
 
-        logger.info("Ending session", session_id=self.session_id, reason=reason, action="session_end")
+        logger.info(
+            "Ending session",
+            session_id=self.session_id,
+            reason=reason,
+            action="session_end",
+        )
 
         # Stop timers
         self.countdown_timer.stop()
         self.sync_timer.stop()
 
         # Disassociate user from computer if logging out
-        if reason in ['user', 'expired']:
+        if reason in ["user", "expired"]:
             computer_id = self._get_current_computer_id()
-            if computer_id != 'unknown':
+            if computer_id != "unknown":
                 self.computer_service.disassociate_user_from_computer(
                     self.user_id, computer_id
                 )
@@ -169,9 +174,9 @@ class SessionService(QObject):
 
         logger.info("Session ended", time_used=self.time_used, action="session_end")
         return {
-            'success': True,
-            'time_used': self.time_used,
-            'remaining_time': self.remaining_time
+            "success": True,
+            "time_used": self.time_used,
+            "remaining_time": self.remaining_time,
         }
 
     def _on_countdown_tick(self):
@@ -200,7 +205,7 @@ class SessionService(QObject):
         # Check expiration
         if self.remaining_time <= 0:
             logger.warning("Time expired")
-            self.end_session('expired')
+            self.end_session("expired")
 
     def _sync_to_firebase(self):
         """Sync session state to Firebase every 60 seconds"""
@@ -212,17 +217,17 @@ class SessionService(QObject):
         # OPTIMIZATION: Only update user record!
         # No separate session table = 50% fewer writes
         now = datetime.now().isoformat()
-        
+
         user_result = self.firebase.db_update(
-            f'users/{self.user_id}',
+            f"users/{self.user_id}",
             {
-                'remainingTime': self.remaining_time,
-                'lastActivity': now,
-                'updatedAt': now
-            }
+                "remainingTime": self.remaining_time,
+                "lastActivity": now,
+                "updatedAt": now,
+            },
         )
 
-        if user_result.get('success'):
+        if user_result.get("success"):
             logger.debug("Sync successful", action="session_sync")
 
             # Reset failure counter
@@ -234,17 +239,20 @@ class SessionService(QObject):
         else:
             # Handle sync failure
             self.consecutive_sync_failures += 1
-            logger.error("Sync failed", failures=self.consecutive_sync_failures, action="session_sync")
+            logger.error(
+                "Sync failed",
+                failures=self.consecutive_sync_failures,
+                action="session_sync",
+            )
 
             if self.consecutive_sync_failures >= 3:
                 self.is_online = False
                 self.sync_failed.emit("Connection lost")
 
             # Queue update for retry (simplified)
-            self.sync_queue.append({
-                'timestamp': time.time(),
-                'remainingTime': self.remaining_time
-            })
+            self.sync_queue.append(
+                {"timestamp": time.time(), "remainingTime": self.remaining_time}
+            )
 
     def _final_sync(self, reason: str):
         """Final sync when ending session"""
@@ -252,27 +260,35 @@ class SessionService(QObject):
 
         # OPTIMIZATION: Only update user record, no separate session
         now = datetime.now().isoformat()
-        
-        self.firebase.db_update(f'users/{self.user_id}', {
-            'remainingTime': max(0, self.remaining_time),
-            'isSessionActive': False,
-            'sessionStartTime': None,
-            'lastActivity': now,
-            'updatedAt': now
-        })
-        
-        logger.debug("Session final sync completed", reason=reason, time_used=self.time_used, action="session_end")
+
+        self.firebase.db_update(
+            f"users/{self.user_id}",
+            {
+                "remainingTime": max(0, self.remaining_time),
+                "isSessionActive": False,
+                "sessionStartTime": None,
+                "lastActivity": now,
+                "updatedAt": now,
+            },
+        )
+
+        logger.debug(
+            "Session final sync completed",
+            reason=reason,
+            time_used=self.time_used,
+            action="session_end",
+        )
 
     def _get_current_computer_id(self) -> str:
         """Get the current computer ID from user data"""
         try:
-            user_result = self.firebase.db_get(f'users/{self.user_id}')
-            if user_result.get('success') and user_result.get('data'):
-                return user_result['data'].get('currentComputerId', 'unknown')
-            return 'unknown'
+            user_result = self.firebase.db_get(f"users/{self.user_id}")
+            if user_result.get("success") and user_result.get("data"):
+                return user_result["data"].get("currentComputerId", "unknown")
+            return "unknown"
         except Exception as e:
             logger.warning(f"Failed to get current computer ID: {e}")
-            return 'unknown'
+            return "unknown"
 
     def get_remaining_time(self) -> int:
         """Get current remaining time in seconds"""

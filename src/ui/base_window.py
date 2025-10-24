@@ -2,14 +2,16 @@
 Base Window - Shared functionality for all fullscreen kiosk windows
 """
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QApplication
-from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve
+from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt
+from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
+from ui.modern_dialogs import ModernConfirmDialog, ModernMessageBox, ModernNotification
 from ui.styles import BASE_QSS
-from ui.modern_dialogs import ModernMessageBox, ModernConfirmDialog, ModernNotification
 from utils.logger import get_logger
 
+
 logger = get_logger(__name__)
+
 
 class BaseKioskWindow(QWidget):
     """Base class for fullscreen kiosk windows"""
@@ -22,9 +24,9 @@ class BaseKioskWindow(QWidget):
         """Setup fullscreen kiosk mode - common to all windows"""
         # Frameless, always on top
         self.setWindowFlags(
-            Qt.WindowType.Window |
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint
+            Qt.WindowType.Window
+            | Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
         )
 
         # Fullscreen
@@ -46,7 +48,6 @@ class BaseKioskWindow(QWidget):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
         return main_layout
-
 
     def keyPressEvent(self, event):
         """Prevent Escape key from closing"""
@@ -85,26 +86,44 @@ class BaseKioskWindow(QWidget):
     def show_success(self, title: str, message: str, detailed_text: str = ""):
         """Show modern success message"""
         ModernMessageBox.success(self, title, message, detailed_text)
-    
+
     def show_warning(self, title: str, message: str, detailed_text: str = ""):
         """Show modern warning message"""
         ModernMessageBox.warning(self, title, message, detailed_text)
-    
+
     def show_info(self, title: str, message: str, detailed_text: str = ""):
         """Show modern information message"""
         ModernMessageBox.information(self, title, message, detailed_text)
-    
-    def show_question(self, title: str, message: str, detailed_text: str = "", 
-                     yes_text: str = "Yes", no_text: str = "No"):
+
+    def show_question(
+        self,
+        title: str,
+        message: str,
+        detailed_text: str = "",
+        yes_text: str = "Yes",
+        no_text: str = "No",
+    ):
         """Show modern question dialog, returns True if Yes clicked"""
-        return ModernMessageBox.question(self, title, message, detailed_text, yes_text, no_text)
-    
-    def show_confirm(self, title: str, message: str, confirm_text: str = "Yes", 
-                    cancel_text: str = "No", danger: bool = False):
+        return ModernMessageBox.question(
+            self, title, message, detailed_text, yes_text, no_text
+        )
+
+    def show_confirm(
+        self,
+        title: str,
+        message: str,
+        confirm_text: str = "Yes",
+        cancel_text: str = "No",
+        danger: bool = False,
+    ):
         """Show modern confirmation dialog, returns True if confirmed"""
-        return ModernConfirmDialog.confirm(self, title, message, confirm_text, cancel_text, danger)
-    
-    def show_notification(self, message: str, message_type: str = "info", duration: int = 3000):
+        return ModernConfirmDialog.confirm(
+            self, title, message, confirm_text, cancel_text, danger
+        )
+
+    def show_notification(
+        self, message: str, message_type: str = "info", duration: int = 3000
+    ):
         """Show auto-dismissing notification toast"""
         return ModernNotification.show(self, message, message_type, duration)
 

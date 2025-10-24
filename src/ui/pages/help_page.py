@@ -3,11 +3,12 @@ Help & Support Page
 Contact info and FAQs
 """
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGraphicsDropShadowEffect
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QFont, QColor
+from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QLabel, QVBoxLayout, QWidget
 
 from utils.logger import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -25,7 +26,7 @@ class HelpPage(QWidget):
     def init_ui(self):
         """Initialize UI"""
         self.setObjectName("contentPage")
-        
+
         # Set RTL layout direction for Hebrew support
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
@@ -43,14 +44,16 @@ class HelpPage(QWidget):
         """Create page header matching history page style"""
         # Clean header section matching history page style
         header_container = QWidget()
-        header_container.setStyleSheet("""
+        header_container.setStyleSheet(
+            """
             QWidget {
                 background: #3B82F6;
                 border-radius: 20px;
                 padding: 20px;
             }
-        """)
-        
+        """
+        )
+
         # Add shadow to header - Enhanced shadow effect
         header_shadow = QGraphicsDropShadowEffect()
         header_shadow.setBlurRadius(50)
@@ -61,30 +64,34 @@ class HelpPage(QWidget):
         header_layout = QVBoxLayout(header_container)
         header_layout.setContentsMargins(30, 25, 30, 25)
         header_layout.setSpacing(8)
-        
+
         # Main title with stunning typography
         title = QLabel("עזרה ותמיכה")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet("""
+        title.setStyleSheet(
+            """
             QLabel {
                 color: white;
                 font-size: 32px;
                 font-weight: 800;
                 margin-bottom: 8px;
             }
-        """)
-        
+        """
+        )
+
         # Subtitle with elegant styling
         subtitle = QLabel("קבל עזרה ומצא תשובות לשאלות נפוצות")
         subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle.setStyleSheet("""
+        subtitle.setStyleSheet(
+            """
             QLabel {
                 color: rgba(255, 255, 255, 0.9);
                 font-size: 16px;
                 font-weight: 400;
             }
-        """)
-        
+        """
+        )
+
         header_layout.addWidget(title)
         header_layout.addWidget(subtitle)
         parent_layout.addWidget(header_container)
