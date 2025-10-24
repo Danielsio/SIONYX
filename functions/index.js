@@ -322,19 +322,19 @@ exports.nedarimCallback = onRequest(async (req, res) => {
 
         if (user) {
           const currentTime = user.remainingTime || 0;
-          const currentPrints = user.remainingPrints || 0;
+          const currentPrintBudget = user.remainingPrints || 0; // Now stores budget in NIS
           const addingMinutes = purchase.minutes || 0;
-          const addingPrints = purchase.prints || 0;
+          const addingPrintBudget = purchase.printBudget || 0; // Print budget in NIS
           const newTime = currentTime + (addingMinutes * 60);
-          const newPrints = currentPrints + addingPrints;
+          const newPrintBudget = currentPrintBudget + addingPrintBudget;
 
           log.info("Calculating user credit amounts", {
             currentTime,
             addingMinutes,
             newTime,
-            currentPrints,
-            addingPrints,
-            newPrints,
+            currentPrintBudget,
+            addingPrintBudget,
+            newPrintBudget,
             userId: purchase.userId,
           });
 
@@ -342,7 +342,7 @@ exports.nedarimCallback = onRequest(async (req, res) => {
           const userUpdateTimer = createTimer("user-crediting-update");
           await userRef.update({
             remainingTime: newTime,
-            remainingPrints: newPrints,
+            remainingPrints: newPrintBudget, // Now stores print budget in NIS
             updatedAt: new Date().toISOString(),
             lastCreditedAt: new Date().toISOString(),
             lastCreditedBy: "nedarim-callback",
@@ -354,9 +354,9 @@ exports.nedarimCallback = onRequest(async (req, res) => {
             userId: purchase.userId,
             orgId,
             timeAdded: addingMinutes,
-            printsAdded: addingPrints,
+            printBudgetAdded: addingPrintBudget,
             newTime,
-            newPrints,
+            newPrintBudget,
           });
         } else {
           log.error("User not found in database", null, {

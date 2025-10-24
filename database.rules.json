@@ -90,6 +90,12 @@
           },
           "status": {
             ".validate": "newData.isString() && newData.val() === 'active'"
+          },
+          "blackAndWhitePrice": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "colorPrice": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
           }
         }
       }

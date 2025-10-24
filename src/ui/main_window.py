@@ -59,13 +59,16 @@ class MainWindow(BaseKioskWindow):
 
         # Session management
         self.session_service = SessionService(
-            auth_service.firebase, self.current_user["uid"]
+            auth_service.firebase, self.current_user["uid"], auth_service.firebase.org_id
         )
         self.floating_timer = None
 
         # Connect session signals
         self.session_service.time_updated.connect(self.on_time_updated)
         self.session_service.session_ended.connect(self.on_session_ended)
+        
+        # Connect print validation signals
+        self.session_service.print_validation_service.print_budget_updated.connect(self.on_print_budget_updated)
         self.session_service.warning_5min.connect(self.on_warning_5min)
         self.session_service.warning_1min.connect(self.on_warning_1min)
 
@@ -486,8 +489,8 @@ class MainWindow(BaseKioskWindow):
         self.floating_timer.update_time(remaining_time)
         self.floating_timer.update_usage_time(0)  # Start with 0 usage time
 
-        # Update print balance with user's actual prints
-        print_balance = self.current_user.get("remainingPrints", 0)
+        # Update print balance with user's actual print budget (stored in remainingPrints)
+        print_balance = self.current_user.get("remainingPrints", 0.0)
         self.floating_timer.update_print_balance(print_balance)
 
         self.floating_timer.show()
@@ -562,6 +565,21 @@ class MainWindow(BaseKioskWindow):
 
             if purchase_more:
                 self.show_page(self.PAGES["PACKAGES"])
+
+    def on_print_budget_updated(self, new_budget: float):
+        """Handle print budget update"""
+        logger.info(f"Print budget updated: {new_budget} NIS")
+        
+        # Update floating timer if active
+        if self.floating_timer:
+            self.floating_timer.update_print_balance(new_budget)
+        
+        # Update current user data
+        self.current_user["remainingPrints"] = new_budget
+        
+        # Refresh home page if it's the current page
+        if hasattr(self, 'current_page') and self.current_page == self.PAGES["home"]:
+            self.refresh_current_page()
 
     def on_warning_5min(self):
         """5 minute warning"""

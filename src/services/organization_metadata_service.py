@@ -108,3 +108,84 @@ class OrganizationMetadataService:
                 "api_valid": metadata["nedarim_api_valid"],
             },
         }
+
+    def get_print_pricing(self, org_id: str) -> Dict[str, Any]:
+        """
+        Get organization print pricing configuration
+
+        Args:
+            org_id: Organization ID
+
+        Returns:
+            Dict with success status and pricing data
+        """
+        try:
+            # Fetch metadata from organizations/{orgId}/metadata
+            result = self.firebase.db_get(f"organizations/{org_id}/metadata")
+
+            if not result["success"]:
+                logger.error(f"Failed to fetch organization metadata: {result.get('error')}")
+                return {
+                    "success": False,
+                    "error": f"Failed to fetch organization metadata: {result.get('error')}"
+                }
+
+            metadata = result.get("data")
+            if not metadata:
+                return {"success": False, "error": "Organization metadata not found"}
+
+            # Extract print pricing with defaults
+            pricing = {
+                "black_and_white_price": metadata.get("blackAndWhitePrice", 1.0),
+                "color_price": metadata.get("colorPrice", 3.0),
+            }
+
+            return {
+                "success": True,
+                "pricing": pricing
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting print pricing: {e}")
+            return {
+                "success": False,
+                "error": f"Error getting print pricing: {str(e)}"
+            }
+
+    def set_print_pricing(self, org_id: str, black_white_price: float, color_price: float) -> Dict[str, Any]:
+        """
+        Set organization print pricing configuration
+
+        Args:
+            org_id: Organization ID
+            black_white_price: Price per black and white page (in NIS)
+            color_price: Price per color page (in NIS)
+
+        Returns:
+            Dict with success status
+        """
+        try:
+            # Update organization metadata with print pricing
+            pricing_data = {
+                "blackAndWhitePrice": black_white_price,
+                "colorPrice": color_price,
+            }
+
+            result = self.firebase.db_update(f"organizations/{org_id}/metadata", pricing_data)
+
+            if not result.get("success"):
+                logger.error(f"Failed to update print pricing: {result.get('error')}")
+                return {
+                    "success": False,
+                    "error": f"Failed to update print pricing: {result.get('error')}"
+                }
+
+            logger.info(f"Print pricing updated for org {org_id}: B&W={black_white_price} NIS, Color={color_price} NIS")
+            return {"success": True}
+
+        except Exception as e:
+            logger.error(f"Error setting print pricing: {e}")
+            return {
+                "success": False,
+                "error": f"Error setting print pricing: {str(e)}"
+            }

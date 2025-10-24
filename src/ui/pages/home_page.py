@@ -125,10 +125,11 @@ class HomePage(QWidget):
         )
         self.time_card.setObjectName("timeCard")
 
-        # Prints card using base component
-        prints = str(self.current_user.get("remainingPrints", 0))
+        # Prints card using base component - now shows budget instead of count
+        print_budget = self.current_user.get("remainingPrints", 0.0)
+        budget_text = f"{print_budget:.2f}₪"
         self.prints_card = StatCard(
-            UIStrings.PRINTS_AVAILABLE, prints, "", Colors.PRIMARY, "🖨️"
+            "יתרת הדפסות", budget_text, "", Colors.PRIMARY, "🖨️"
         )
         self.prints_card.setObjectName("printsCard")
 

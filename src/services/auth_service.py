@@ -152,7 +152,7 @@ class AuthService:
             "phoneNumber": phone,
             "email": email if email else "",
             "remainingTime": 0,  # Start with 0 seconds
-            "remainingPrints": 0,  # Start with 0 prints
+            "remainingPrints": 0.0,  # Start with 0 NIS print budget (renamed from count)
             "isActive": True,
             "isAdmin": False,  # Regular users are not admins
             "createdAt": datetime.now().isoformat(),

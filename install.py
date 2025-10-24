@@ -459,7 +459,7 @@ def create_organization_and_admin(firebase_config, org_info, admin_info):
             "phoneNumber": admin_info["phone"],
             "email": "",
             "remainingTime": 0,
-            "remainingPrints": 0,
+            "remainingPrints": 0.0,  # Start with 0 NIS print budget (renamed from count)
             "isActive": True,
             "isAdmin": True,
             "createdAt": datetime.now().isoformat(),

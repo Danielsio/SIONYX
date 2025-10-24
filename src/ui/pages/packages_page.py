@@ -434,9 +434,9 @@ class PackagesPage(QWidget):
         """
         )
 
-        # Prints feature using constants
+        # Prints feature using constants - now shows budget in NIS
         prints = package.get("prints", 0)
-        prints_text = f"🖨️ {prints} הדפסות" if prints > 0 else "🖨️ ללא הגבלת הדפסות"
+        prints_text = f"🖨️ {prints}₪ יתרת הדפסות" if prints > 0 else "🖨️ ללא הגבלת הדפסות"
         prints_label = QLabel(prints_text)
         prints_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         prints_label.setStyleSheet(
@@ -534,7 +534,7 @@ class PackagesPage(QWidget):
                     f"הרכישה שלך בוצעה בהצלחה!",
                     f"נוסף לחשבונך:<br>"
                     f"• <b>{package.get('minutes')} דקות</b> של זמן הפעלה<br>"
-                    f"• <b>{package.get('prints')} הדפסות</b>",
+                    f"• <b>{package.get('prints')}₪</b> יתרת הדפסות",
                 )
             else:
                 QMessageBox.information(
@@ -543,7 +543,7 @@ class PackagesPage(QWidget):
                     f"הרכישה בוצעה בהצלחה!\n\n"
                     f"נוספו לחשבונך:\n"
                     f"• {package.get('minutes')} דקות\n"
-                    f"• {package.get('prints')} הדפסות",
+                    f"• {package.get('prints')}₪ יתרת הדפסות",
                 )
 
             # Refresh packages page

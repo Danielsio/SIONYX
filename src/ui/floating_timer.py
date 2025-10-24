@@ -225,9 +225,9 @@ class FloatingTimer(QWidget):
         usage_str = f"{hours:02d}:{minutes:02d}:{secs:02d}"
         self.usage_time_value.setText(usage_str)
 
-    def update_print_balance(self, balance: int):
+    def update_print_balance(self, balance: float):
         """Update print balance display"""
-        self.print_balance_value.setText(f"{balance}₪")
+        self.print_balance_value.setText(f"{balance:.2f}₪")
 
     def set_warning_mode(self):
         """Set warning appearance (5 min remaining)"""

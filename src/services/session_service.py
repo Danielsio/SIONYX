@@ -11,6 +11,7 @@ from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
 from services.computer_service import ComputerService
 from services.firebase_client import FirebaseClient
+from services.print_validation_service import PrintValidationService
 from utils.logger import get_logger
 
 
@@ -28,11 +29,13 @@ class SessionService(QObject):
     sync_failed = pyqtSignal(str)  # Emits error message
     sync_restored = pyqtSignal()
 
-    def __init__(self, firebase_client: FirebaseClient, user_id: str):
+    def __init__(self, firebase_client: FirebaseClient, user_id: str, org_id: str):
         super().__init__()
         self.firebase = firebase_client
         self.computer_service = ComputerService(firebase_client)
         self.user_id = user_id
+        self.org_id = org_id
+        self.print_validation_service = PrintValidationService(firebase_client, user_id, org_id)
 
         # Session state
         self.session_id: Optional[str] = None
@@ -301,3 +304,59 @@ class SessionService(QObject):
     def is_session_active(self) -> bool:
         """Check if session is active"""
         return self.is_active
+
+    def validate_print_job(self, black_white_pages: int, color_pages: int) -> Dict:
+        """
+        Validate print job during session
+        
+        Args:
+            black_white_pages: Number of black and white pages
+            color_pages: Number of color pages
+            
+        Returns:
+            Dict with validation result
+        """
+        if not self.is_active:
+            return {
+                "success": False,
+                "error": "No active session"
+            }
+        
+        return self.print_validation_service.validate_print_job(black_white_pages, color_pages)
+
+    def process_successful_print(self, black_white_pages: int, color_pages: int) -> Dict:
+        """
+        Process successful print job and deduct budget
+        
+        Args:
+            black_white_pages: Number of black and white pages printed
+            color_pages: Number of color pages printed
+            
+        Returns:
+            Dict with processing result
+        """
+        if not self.is_active:
+            return {
+                "success": False,
+                "error": "No active session"
+            }
+        
+        return self.print_validation_service.process_successful_print(black_white_pages, color_pages)
+
+    def get_print_budget(self) -> Dict:
+        """
+        Get current print budget
+        
+        Returns:
+            Dict with budget information
+        """
+        return self.print_validation_service.get_current_budget()
+
+    def get_print_pricing(self) -> Dict:
+        """
+        Get organization print pricing
+        
+        Returns:
+            Dict with pricing information
+        """
+        return self.print_validation_service.get_print_pricing()

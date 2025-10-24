@@ -92,8 +92,8 @@ class PurchaseCard(QFrame):
         package_name.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         package_name.setStyleSheet("color: #1E293B;")
 
-        # Purchase details
-        details_text = f"{self.purchase_data.get('minutes', 0)} דקות • {self.purchase_data.get('prints', 0)} הדפסות"
+        # Purchase details - now shows prints as budget in NIS
+        details_text = f"{self.purchase_data.get('minutes', 0)} דקות • {self.purchase_data.get('prints', 0)}₪ יתרת הדפסות"
         details = QLabel(details_text)
         details.setFont(QFont("Segoe UI", 12))
         details.setStyleSheet("color: #64748B;")
@@ -223,96 +223,6 @@ class PurchaseCard(QFrame):
             return default
 
 
-class StatsCard(QFrame):
-    """Statistics summary card"""
-
-    def __init__(self, title, value, subtitle, color="#3B82F6", parent=None):
-        super().__init__(parent)
-        self.title = title
-        self.value = value
-        self.subtitle = subtitle
-        self.color = color
-        self.init_ui()
-
-    def init_ui(self):
-        """Initialize stats card UI"""
-        self.setObjectName("statsCard")
-        self.setFixedHeight(180)  # Even more height for better visibility
-        self.setMinimumWidth(250)  # Much wider minimum width
-        self.setMaximumWidth(300)  # Set maximum width to prevent over-stretching
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-
-        # Use consistent white background for all cards
-        self.setStyleSheet(
-            f"""
-            QFrame#statsCard {{
-                background-color: #FFFFFF;
-                border: 1px solid #E2E8F0;
-                border-radius: 16px;
-                margin: 4px;
-            }}
-            QFrame#statsCard:hover {{
-                border: 1px solid {self.color}40;
-                background-color: #FAFAFA;
-            }}
-        """
-        )
-
-        # Enhanced shadow effect for better hovering appearance
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(50)
-        shadow.setXOffset(0)
-        shadow.setYOffset(18)
-        shadow.setColor(QColor(0, 0, 0, 65))
-        self.setGraphicsEffect(shadow)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(
-            32, 28, 32, 28
-        )  # Adjusted padding to prevent clipping
-        layout.setSpacing(12)  # Optimized spacing between elements
-
-        # Value - Fixed clipping issues with proper line height and padding
-        value_label = QLabel(self.value)
-        value_label.setFont(
-            QFont("Segoe UI", 28, QFont.Weight.Bold)
-        )  # Slightly smaller to prevent clipping
-        value_label.setStyleSheet(
-            f"""
-            color: {self.color};
-            padding: 4px 0px;
-            line-height: 1.2;
-        """
-        )
-        value_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        value_label.setMinimumHeight(40)  # Ensure enough space for the number
-
-        # Title
-        title_label = QLabel(self.title)
-        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        title_label.setStyleSheet(
-            """
-            color: #1E293B;
-            padding: 2px 0px;
-        """
-        )
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        # Subtitle
-        subtitle_label = QLabel(self.subtitle)
-        subtitle_label.setFont(QFont("Segoe UI", 12))
-        subtitle_label.setStyleSheet(
-            """
-            color: #64748B;
-            padding: 2px 0px;
-        """
-        )
-        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        layout.addWidget(value_label)
-        layout.addWidget(title_label)
-        layout.addWidget(subtitle_label)
-        layout.addStretch()
 
 
 class HistoryPage(QWidget):
@@ -352,9 +262,6 @@ class HistoryPage(QWidget):
 
         # Header section
         self.create_header(main_layout)
-
-        # Statistics section
-        self.create_stats_section(main_layout)
 
         # Filters section
         self.create_filters_section(main_layout)
@@ -528,25 +435,6 @@ class HistoryPage(QWidget):
         header_layout.addWidget(subtitle)
         parent_layout.addWidget(header_container)
 
-    def create_stats_section(self, parent_layout):
-        """Create statistics cards section"""
-        # Create a container widget for the stats section
-        stats_container = QWidget()
-        stats_container.setMinimumHeight(200)  # Even more height for container
-        stats_container.setMaximumHeight(220)  # Allow even more space
-        stats_container.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-        )
-
-        self.stats_layout = QHBoxLayout(stats_container)
-        self.stats_layout.setSpacing(30)  # Much more spacing between cards
-        self.stats_layout.setContentsMargins(20, 20, 20, 20)  # Much more margins
-        self.stats_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center the cards
-
-        # Initialize with loading state
-        self.update_stats_cards()
-
-        parent_layout.addWidget(stats_container)
 
     def create_filters_section(self, parent_layout):
         """Create filters and search section"""
@@ -738,7 +626,6 @@ class HistoryPage(QWidget):
             logger.debug("Using cached purchase data")
             self.purchases = self.cached_purchases.copy()
             self.filtered_purchases = self.purchases.copy()
-            self.update_stats_cards()
             self.update_purchases_display()
             return
 
@@ -774,8 +661,7 @@ class HistoryPage(QWidget):
                 if len(self.purchases) > 0:
                     logger.info(f"First purchase: {self.purchases[0]}")
 
-                # Update stats and display
-                self.update_stats_cards()
+                # Update display
                 self.update_purchases_display()
 
             else:
@@ -1044,52 +930,6 @@ class HistoryPage(QWidget):
 
         self.update_purchases_display()
 
-    def update_stats_cards(self):
-        """Update statistics cards with current data"""
-        # Clear existing stats cards
-        for i in reversed(range(self.stats_layout.count())):
-            child = self.stats_layout.itemAt(i).widget()
-            if child:
-                child.setParent(None)
-
-        # Calculate stats from current purchases
-        total_spent = sum(
-            self._safe_int(p.get("amount", 0))
-            for p in self.purchases
-            if p.get("status") == "completed"
-        )
-        total_purchases = len(
-            [p for p in self.purchases if p.get("status") == "completed"]
-        )
-        pending_purchases = len(
-            [p for p in self.purchases if p.get("status") == "pending"]
-        )
-
-        # Total spent card
-        spent_card = StatsCard(
-            "סכום כולל", f"₪{total_spent}", f"מ-{total_purchases} רכישות", "#059669"
-        )
-
-        # Total purchases card
-        purchases_card = StatsCard(
-            "רכישות הושלמו",
-            str(total_purchases),
-            "עסקאות מוצלחות",
-            "#059669",  # Green to match completed status
-        )
-
-        # Pending card
-        pending_card = StatsCard(
-            "ממתינות",
-            str(pending_purchases),
-            "עסקאות בהמתנה",
-            "#F59E0B",  # Amber color for pending status - more professional than gray
-        )
-
-        self.stats_layout.addWidget(spent_card)
-        self.stats_layout.addWidget(purchases_card)
-        self.stats_layout.addWidget(pending_card)
-        self.stats_layout.addStretch()
 
     def animate_refresh(self):
         """Animate refresh action"""
