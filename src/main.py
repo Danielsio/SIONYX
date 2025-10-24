@@ -33,9 +33,10 @@ SionyxLogger.cleanup_old_logs(days_to_keep=7)
 from utils.logger import get_logger, set_context, generate_request_id
 logger = get_logger(__name__)
 
-from PyQt6.QtWidgets import QApplication, QInputDialog, QLineEdit
+from PyQt6.QtWidgets import QApplication, QInputDialog, QLineEdit, QMessageBox
 from ui.auth_window import AuthWindow
 from ui.main_window import MainWindow
+from ui.installer_wizard import InstallerWizard, create_env_file
 from services.auth_service import AuthService
 from services.global_hotkey_service import GlobalHotkeyService
 from utils.firebase_config import FirebaseConfig
@@ -66,6 +67,13 @@ class SionyxApp:
             self.app.setApplicationName(APP_NAME)
             self.app.setOrganizationName(APP_NAME)
 
+            # Check if .env file exists, if not show installer wizard
+            env_path = Path('.env')
+            if not env_path.exists():
+                logger.info("No .env file found, showing installer wizard", action="first_run")
+                self.show_installer_wizard()
+                return
+
             # Initialize services
             self.config = FirebaseConfig()
             self.auth_service = AuthService(self.config)
@@ -86,6 +94,54 @@ class SionyxApp:
         except Exception as e:
             logger.exception("Application initialization failed", error=str(e), component="main_app")
             raise
+
+    def show_installer_wizard(self):
+        """Display installer wizard for first-time setup"""
+        logger.info("Opening installer wizard", action="show_installer_wizard")
+        
+        wizard = InstallerWizard()
+        wizard.setup_complete.connect(self.handle_setup_complete)
+        
+        result = wizard.exec()
+        if result == wizard.Accepted:
+            logger.info("Installer wizard completed successfully", action="wizard_complete")
+        else:
+            logger.warning("Installer wizard cancelled", action="wizard_cancelled")
+            # Exit application if setup is cancelled
+            self.app.quit()
+            sys.exit(0)
+    
+    def handle_setup_complete(self, config):
+        """Handle setup completion"""
+        logger.info("Processing setup configuration", action="handle_setup")
+        
+        try:
+            # Create .env file
+            env_path = create_env_file(config)
+            logger.info(f".env file created at {env_path}", action="env_created")
+            
+            # Show success message
+            QMessageBox.information(
+                None, 
+                "Setup Complete", 
+                "SIONYX has been configured successfully!\n\n"
+                "The application will now restart to load your configuration."
+            )
+            
+            # Restart application
+            self.app.quit()
+            sys.exit(0)
+            
+        except Exception as e:
+            logger.exception("Setup completion failed", error=str(e), action="setup_failed")
+            QMessageBox.critical(
+                None,
+                "Setup Failed",
+                f"Failed to complete setup: {str(e)}\n\n"
+                "Please try running the installer again."
+            )
+            self.app.quit()
+            sys.exit(1)
 
     def show_auth_window(self):
         """Display authentication window"""
