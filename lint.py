@@ -53,31 +53,31 @@ def lint_python():
     
     # Black - Code formatting
     success &= run_command(
-        "black --check --diff src/ build.py install.py",
+        "black --check --diff src/ build.py",
         "Black - Code formatting check"
     )
     
     # isort - Import sorting
     success &= run_command(
-        "isort --check-only --diff src/ build.py install.py",
+        "isort --check-only --diff src/ build.py",
         "isort - Import sorting check"
     )
     
     # flake8 - Linting
     success &= run_command(
-        "flake8 src/ build.py install.py",
+        "flake8 src/ build.py",
         "flake8 - Linting"
     )
     
     # mypy - Type checking
     success &= run_command(
-        "mypy src/ build.py install.py",
+        "mypy src/ build.py",
         "mypy - Type checking"
     )
     
     # pylint - Advanced linting
     success &= run_command(
-        "pylint src/ build.py install.py",
+        "pylint src/ build.py",
         "pylint - Advanced linting"
     )
     
@@ -126,13 +126,13 @@ def fix_python():
     
     # Black - Format code
     run_command(
-        "black src/ build.py install.py",
+        "black src/ build.py",
         "Black - Formatting code"
     )
     
     # isort - Sort imports
     run_command(
-        "isort src/ build.py install.py",
+        "isort src/ build.py",
         "isort - Sorting imports"
     )
 

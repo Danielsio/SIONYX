@@ -3,20 +3,28 @@ Firebase Configuration
 """
 
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
-
-
-# Load .env
-env_path = Path(__file__).parent.parent.parent / ".env"
-load_dotenv(dotenv_path=env_path)
 
 
 class FirebaseConfig:
     """Firebase configuration"""
 
     def __init__(self):
+        # Load .env file when FirebaseConfig is instantiated
+        # Handle PyInstaller path resolution
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller executable - look in executable directory
+            base_path = Path(sys.executable).parent
+        else:
+            # Running as script
+            base_path = Path(__file__).parent.parent.parent
+            
+        env_path = base_path / ".env"
+        load_dotenv(dotenv_path=env_path)
+        
         self.api_key = os.getenv("FIREBASE_API_KEY")
         self.auth_domain = os.getenv("FIREBASE_AUTH_DOMAIN")
         self.database_url = os.getenv("FIREBASE_DATABASE_URL")
@@ -58,5 +66,12 @@ class FirebaseConfig:
         return "https://identitytoolkit.googleapis.com/v1/accounts"
 
 
-# Global instance
-firebase_config = FirebaseConfig()
+# Global instance - created lazily when needed
+firebase_config = None
+
+def get_firebase_config():
+    """Get Firebase configuration instance (lazy loading)"""
+    global firebase_config
+    if firebase_config is None:
+        firebase_config = FirebaseConfig()
+    return firebase_config

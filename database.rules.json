@@ -1,79 +1,74 @@
 {
   "rules": {
-    "config": {
-      ".read": "auth != null",
-      ".write": false
-    },
-    
     "organizations": {
-      ".read": "root.child('config/superAdminUid').val() == auth.uid",
-      ".write": "root.child('config/superAdminUid').val() == auth.uid",
+      ".read": false,
+      ".write": false,
       
       "$orgId": {
         "users": {
-          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
           ".indexOn": ["isActive", "createdAt", "lastSeen"],
           
           "$userId": {
-            ".read": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid",
-            ".write": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid",
+            ".read": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+            ".write": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
             
             "isAdmin": {
-              ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid"
+              ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
             }
           }
         },
         
         "packages": {
-          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
           ".indexOn": ["isActive", "createdAt"],
           
           "$packageId": {
-            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid"
+            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
           }
         },
         
         "purchases": {
-          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
           ".indexOn": ["userId", "status", "createdAt"],
           
           "$purchaseId": {
-            ".read": "data.child('userId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid",
-            ".write": "(!data.exists() && newData.child('userId').val() == auth.uid) || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid"
+            ".read": "data.child('userId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+            ".write": "(!data.exists() && newData.child('userId').val() == auth.uid) || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
           }
         },
         
         "messages": {
-          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
           ".indexOn": ["toUserId", "timestamp", "read"],
 
           "$messageId": {
-            ".read": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid)",
-            ".write": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid)",
+            ".read": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true)",
+            ".write": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true)",
 
             "read": {
-              ".write": "data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid"
+              ".write": "data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
             },
 
             "readAt": {
-              ".write": "data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid"
+              ".write": "data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
             }
           }
         },
         
         "computers": {
-          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
           ".indexOn": ["isActive", "lastSeen", "computerName"],
           
           "$computerId": {
-            ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
-            ".write": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)"
+            ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+            ".write": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()"
           }
         },
         
         "metadata": {
-          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('config/superAdminUid').val() == auth.uid)",
-          ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('config/superAdminUid').val() == auth.uid",
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
           ".validate": "newData.hasChildren(['name', 'nedarim_mosad_id', 'nedarim_api_valid', 'created_at', 'status'])",
           
           "name": {

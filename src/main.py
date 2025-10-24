@@ -4,6 +4,7 @@ Main entry point - Refactored for better error handling and constants usage
 """
 
 import sys
+import argparse
 from pathlib import Path
 
 
@@ -28,7 +29,9 @@ from utils.const import APP_NAME
 from utils.logger import SionyxLogger
 
 
-SionyxLogger.setup(log_level=logging.INFO, log_to_file=True, enable_colors=True)
+# Set up logging with appropriate level
+log_level = logging.DEBUG if "--verbose" in sys.argv or "-v" in sys.argv else logging.INFO
+SionyxLogger.setup(log_level=log_level, log_to_file=True, enable_colors=True)
 
 SionyxLogger.cleanup_old_logs(days_to_keep=7)
 
@@ -42,21 +45,26 @@ from PyQt6.QtWidgets import QApplication, QInputDialog, QLineEdit, QMessageBox
 from services.auth_service import AuthService
 from services.global_hotkey_service import GlobalHotkeyService
 from ui.auth_window import AuthWindow
-from ui.installer_wizard import InstallerWizard, create_env_file
 from ui.main_window import MainWindow
-from utils.firebase_config import FirebaseConfig
+from utils.firebase_config import get_firebase_config
 
 
 class SionyxApp:
     """Main application class"""
 
-    def __init__(self):
+    def __init__(self, verbose=False):
         # Generate request ID for this application session
         request_id = generate_request_id()
         set_context(request_id=request_id)
+        
+        # Store command line options
+        self.verbose = verbose
 
         logger.info(
-            "Initializing application", request_id=request_id, component="main_app"
+            "Initializing application", 
+            request_id=request_id, 
+            component="main_app",
+            verbose=verbose
         )
 
         self.auth_window = None
@@ -74,17 +82,24 @@ class SionyxApp:
             self.app.setApplicationName(APP_NAME)
             self.app.setOrganizationName(APP_NAME)
 
-            # Check if .env file exists, if not show installer wizard
+            # Check if .env file exists, if not show error
             env_path = Path(".env")
             if not env_path.exists():
-                logger.info(
-                    "No .env file found, showing installer wizard", action="first_run"
+                logger.error(
+                    "No .env file found. Please reinstall the application.", action="missing_config"
                 )
-                self.show_installer_wizard()
-                return
+                QMessageBox.critical(
+                    None,
+                    "Configuration Missing",
+                    "SIONYX configuration file (.env) not found.\n\n"
+                    "Please reinstall the application to fix this issue.\n\n"
+                    "If this problem persists, contact your system administrator."
+                )
+                self.app.quit()
+                sys.exit(1)
 
             # Initialize services
-            self.config = FirebaseConfig()
+            self.config = get_firebase_config()
             self.auth_service = AuthService(self.config)
 
             # Initialize global hotkey service
@@ -108,57 +123,6 @@ class SionyxApp:
             )
             raise
 
-    def show_installer_wizard(self):
-        """Display installer wizard for first-time setup"""
-        logger.info("Opening installer wizard", action="show_installer_wizard")
-
-        wizard = InstallerWizard()
-        wizard.setup_complete.connect(self.handle_setup_complete)
-
-        result = wizard.exec()
-        if result == wizard.Accepted:
-            logger.info(
-                "Installer wizard completed successfully", action="wizard_complete"
-            )
-        else:
-            logger.warning("Installer wizard cancelled", action="wizard_cancelled")
-            # Exit application if setup is cancelled
-            self.app.quit()
-            sys.exit(0)
-
-    def handle_setup_complete(self, config):
-        """Handle setup completion"""
-        logger.info("Processing setup configuration", action="handle_setup")
-
-        try:
-            # Create .env file
-            env_path = create_env_file(config)
-            logger.info(f".env file created at {env_path}", action="env_created")
-
-            # Show success message
-            QMessageBox.information(
-                None,
-                "Setup Complete",
-                "SIONYX has been configured successfully!\n\n"
-                "The application will now restart to load your configuration.",
-            )
-
-            # Restart application
-            self.app.quit()
-            sys.exit(0)
-
-        except Exception as e:
-            logger.exception(
-                "Setup completion failed", error=str(e), action="setup_failed"
-            )
-            QMessageBox.critical(
-                None,
-                "Setup Failed",
-                f"Failed to complete setup: {str(e)}\n\n"
-                "Please try running the installer again.",
-            )
-            self.app.quit()
-            sys.exit(1)
 
     def show_auth_window(self):
         """Display authentication window"""
@@ -396,8 +360,17 @@ class SionyxApp:
 
 
 if __name__ == "__main__":
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="SIONYX Desktop Application")
+    parser.add_argument(
+        "--verbose", "-v", 
+        action="store_true", 
+        help="Enable verbose logging (DEBUG level)"
+    )
+    args = parser.parse_args()
+    
     try:
-        app = SionyxApp()
+        app = SionyxApp(verbose=args.verbose)
         exit_code = app.run()
         logger.info(
             "Application exited cleanly", exit_code=exit_code, action="app_exit"

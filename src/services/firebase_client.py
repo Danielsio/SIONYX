@@ -9,7 +9,7 @@ from typing import Any, Dict, Optional
 import requests
 
 from utils.error_translations import translate_error
-from utils.firebase_config import firebase_config
+from utils.firebase_config import get_firebase_config
 from utils.logger import get_logger, set_context
 
 
@@ -20,12 +20,13 @@ class FirebaseClient:
     """Firebase REST API client for Realtime Database"""
 
     def __init__(self):
-        self.api_key = firebase_config.api_key
-        self.database_url = firebase_config.database_url
-        self.auth_url = firebase_config.auth_url
+        config = get_firebase_config()
+        self.api_key = config.api_key
+        self.database_url = config.database_url
+        self.auth_url = config.auth_url
 
         # MULTI-TENANCY: Organization ID for data isolation
-        self.org_id = firebase_config.org_id
+        self.org_id = config.org_id
 
         # Auth state
         self.id_token = None

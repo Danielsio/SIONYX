@@ -257,11 +257,9 @@ def create_installer():
         ("dist/SIONYX.exe", "SIONYX.exe"),
     ]
 
-    # Copy env.example only if it's not the same file
-    if Path("env.example").exists() and not Path("env.example").samefile(
-        Path("env.example")
-    ):
-        installer_files.append(("env.example", "env.example"))
+    # Copy env.template for installer (only if it exists and is different)
+    if Path("env.template").exists():
+        installer_files.append(("env.template", "env.template"))
 
     # Skip logo for now to avoid format issues
     # installer_files.append(("sionyx-web/public/logo.png", "logo.ico"))
@@ -269,6 +267,11 @@ def create_installer():
     for src, dst in installer_files:
         src_path = Path(src)
         if src_path.exists():
+            # Skip if source and destination are the same file
+            if src_path.resolve() == Path(dst).resolve():
+                print_info(f"Skipping {src} -> {dst} (same file)")
+                continue
+                
             try:
                 # Try to copy with retry logic
                 max_retries = 3
@@ -425,6 +428,20 @@ def cleanup():
     print_success("Cleanup completed")
 
 
+def cleanup_keep_exe():
+    """Clean up temporary files but keep executable for testing"""
+    print_header("Cleaning Up")
+
+    temp_files = ["env.example", "logo.ico", "LICENSE.txt"]
+
+    for file_name in temp_files:
+        if Path(file_name).exists():
+            Path(file_name).unlink()
+            print_info(f"Removed {file_name}")
+
+    print_success("Cleanup completed (kept SIONYX.exe for testing)")
+
+
 def main():
     """Main build process"""
     import argparse
@@ -489,8 +506,8 @@ def main():
         if not args.no_upload and upload_success:
             cleanup_local_files()
         else:
-            # Regular cleanup for non-upload builds
-            cleanup()
+            # Regular cleanup for non-upload builds - but keep executable for testing
+            cleanup_keep_exe()
 
         print_header("Build Complete!")
         print_success(

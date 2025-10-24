@@ -187,8 +187,15 @@ class SionyxLogger:
         if cls._initialized:
             return
 
-        # Create logs directory
-        log_dir = Path.home() / ".sionyx" / "logs"
+        # Create logs directory in user's AppData (works with Program Files installation)
+        # This avoids permission issues when installed in Program Files
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller executable - use AppData
+            log_dir = Path.home() / "AppData" / "Local" / "SIONYX" / "logs"
+        else:
+            # Running as script - use project root
+            app_dir = Path(__file__).parent.parent.parent
+            log_dir = app_dir / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
 
         # Log files
@@ -258,7 +265,14 @@ class SionyxLogger:
     @classmethod
     def cleanup_old_logs(cls, days_to_keep=7):
         """Remove log files older than specified days"""
-        log_dir = Path.home() / ".sionyx" / "logs"
+        # Use same directory as setup
+        if getattr(sys, 'frozen', False):
+            # Running as PyInstaller executable - use AppData
+            log_dir = Path.home() / "AppData" / "Local" / "SIONYX" / "logs"
+        else:
+            # Running as script - use project root
+            app_dir = Path(__file__).parent.parent.parent
+            log_dir = app_dir / "logs"
         if not log_dir.exists():
             return
 

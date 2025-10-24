@@ -291,6 +291,7 @@ admin-dashboard/.parcel-cache/
 .env.production
 .env.development
 *.env
+env.template
 
 # ========================================
 # Application Logs
