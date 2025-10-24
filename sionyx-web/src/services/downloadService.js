@@ -4,89 +4,27 @@
  * Handles downloading of SIONYX executables from Firebase Storage
  */
 
-import { ref, getDownloadURL } from 'firebase/storage';
-import { storage } from '../config/firebase';
+// Firebase Storage imports removed - using direct URL from environment variable
 
 /**
  * Get the latest release information
  * @returns {Promise<Object>} Release information including download URL
  */
 export const getLatestRelease = async () => {
-  try {
-    // Try to get release info from a database or API endpoint
-    // For now, we'll use a hardcoded path - you can make this dynamic
-    const releasePath = 'releases/latest.json';
-    
-    try {
-      // Try to get from your API/database first
-      const response = await fetch('/api/latest-release');
-      if (response.ok) {
-        const releaseInfo = await response.json();
-        return {
-          downloadUrl: releaseInfo.download_url,
-          version: releaseInfo.version || '1.0.0',
-          releaseDate: releaseInfo.upload_time,
-          fileSize: releaseInfo.file_size,
-          fileName: releaseInfo.file_name
-        };
-      }
-    } catch (apiError) {
-      console.warn('API not available, using fallback method');
-    }
-    
-    // Fallback: Try to get from Firebase Storage directly
-    // This requires the latest.json file to be uploaded with release info
-    try {
-      const latestRef = ref(storage, releasePath);
-      const downloadUrl = await getDownloadURL(latestRef);
-      
-      const response = await fetch(downloadUrl);
-      const releaseInfo = await response.json();
-      
-      return {
-        downloadUrl: releaseInfo.download_url,
-        version: releaseInfo.version || '1.0.0',
-        releaseDate: releaseInfo.upload_time,
-        fileSize: releaseInfo.file_size,
-        fileName: releaseInfo.file_name
-      };
-    } catch (storageError) {
-      console.warn('Could not get latest release info from storage');
-    }
-    
-    // Use environment variable for download URL
-    const downloadUrl = import.meta.env.VITE_INSTALLER_DOWNLOAD_URL;
-    if (downloadUrl) {
-      return {
-        downloadUrl: downloadUrl,
-        version: 'Latest',
-        releaseDate: new Date().toISOString(),
-        fileSize: 0,
-        fileName: 'sionyx-installer.exe'
-      };
-    }
-    
-    // Fallback to Firebase Storage direct path
-    try {
-      const fileRef = ref(storage, 'sionyx-installer.exe');
-      const downloadUrl = await getDownloadURL(fileRef);
-      
-      return {
-        downloadUrl: downloadUrl,
-        version: 'Latest',
-        releaseDate: new Date().toISOString(),
-        fileSize: 0,
-        fileName: 'sionyx-installer.exe'
-      };
-    } catch (fallbackError) {
-      console.error('Fallback download failed:', fallbackError);
-      throw new Error('No download available');
-    }
-    
-  } catch (error) {
-    console.error('Failed to get latest release:', error);
-    throw new Error('Unable to get latest release information');
+  // Use environment variable for download URL - no fallbacks
+  const downloadUrl = import.meta.env.VITE_INSTALLER_DOWNLOAD_URL;
+  
+  if (!downloadUrl) {
+    throw new Error('VITE_INSTALLER_DOWNLOAD_URL environment variable is not set. Please configure the download URL in your .env file.');
   }
+  
+  return {
+    downloadUrl: downloadUrl,
+    version: 'Latest',
+    releaseDate: new Date().toISOString(),
+    fileSize: 0,
+    fileName: 'sionyx-installer.exe'
+  };
 };
 
 /**
@@ -166,36 +104,7 @@ export const formatReleaseDate = (dateString) => {
   }
 };
 
-/**
- * Check if a file exists in Firebase Storage
- * @param {string} path - Storage path
- * @returns {Promise<boolean>} True if file exists
- */
-export const checkFileExists = async (path) => {
-  try {
-    const fileRef = ref(storage, path);
-    await getDownloadURL(fileRef);
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
-
-/**
- * Get all available releases
- * @returns {Promise<Array>} Array of release information
- */
-export const getAllReleases = async () => {
-  try {
-    // This would require listing files in the releases folder
-    // For now, return the latest release
-    const latest = await getLatestRelease();
-    return [latest];
-  } catch (error) {
-    console.error('Failed to get releases:', error);
-    return [];
-  }
-};
+// Removed unused functions - using direct URL approach
 
 /**
  * Download with progress tracking

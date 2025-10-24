@@ -7,6 +7,7 @@
 !define APP_URL "https://sionyx.app"
 !define APP_EXECUTABLE "SIONYX.exe"
 !define APP_ICON "logo.ico"
+!define INSTALLER_NAME "SIONYX-Installer.exe"
 
 ; Modern UI
 !include "MUI2.nsh"
@@ -14,7 +15,7 @@
 
 ; General
 Name "${APP_NAME}"
-OutFile "SIONYX-Setup-${APP_VERSION}.exe"
+OutFile "${INSTALLER_NAME}"
 InstallDir "$PROGRAMFILES64\${APP_NAME}"
 InstallDirRegKey HKLM "Software\${APP_NAME}" "Install_Dir"
 RequestExecutionLevel admin
@@ -44,17 +45,15 @@ Section "Main Application" SecMain
     ; Copy main executable
     File "${APP_EXECUTABLE}"
     
-    ; Copy web assets
-    SetOutPath "$INSTDIR\web"
-    File /r "dist\*"
+    ; Web assets removed - build separately
     
-    ; Copy templates
+    ; Copy templates (if they exist)
     SetOutPath "$INSTDIR\templates"
-    File /r "templates\*"
+    File /nonfatal /r "templates\*"
     
-    ; Create .env template
+    ; Create .env template (if it exists)
     SetOutPath "$INSTDIR"
-    File "env.example"
+    File /nonfatal "env.example"
     
     ; Store installation folder
     WriteRegStr HKLM "Software\${APP_NAME}" "Install_Dir" "$INSTDIR"

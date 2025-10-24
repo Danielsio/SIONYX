@@ -88,39 +88,9 @@ def load_config():
         print_error(f"Error loading configuration: {e}")
         sys.exit(1)
 
-def get_next_version():
-    """Get the next version number"""
-    version_file = Path("version.json")
-    
-    if version_file.exists():
-        try:
-            with open(version_file, 'r') as f:
-                version_data = json.load(f)
-            current_version = version_data.get('version', '0.0.0')
-        except:
-            current_version = '0.0.0'
-    else:
-        current_version = '0.0.0'
-    
-    # Parse version (major.minor.patch)
-    try:
-        major, minor, patch = map(int, current_version.split('.'))
-        patch += 1  # Increment patch version
-        new_version = f"{major}.{minor}.{patch}"
-    except:
-        new_version = '1.0.0'
-    
-    # Save new version
-    version_data = {
-        'version': new_version,
-        'build_date': datetime.now().isoformat(),
-        'build_number': int(time.time())
-    }
-    
-    with open(version_file, 'w') as f:
-        json.dump(version_data, f, indent=2)
-    
-    return new_version
+def get_build_timestamp():
+    """Get simple build timestamp"""
+    return datetime.now().isoformat()
 
 def cleanup_local_files():
     """Clean up local build files after successful upload"""
@@ -134,7 +104,6 @@ def cleanup_local_files():
         "env.example",
         "logo.ico",
         "LICENSE.txt",
-        "upload_info.json"
     ]
     
     for item in cleanup_items:
@@ -188,8 +157,6 @@ def check_dependencies():
     
     required_tools = {
         'python': 'Python 3.8+',
-        'node': 'Node.js 16+',
-        'npm': 'npm 8+',
         'pyinstaller': 'PyInstaller',
         'makensis': 'NSIS (Nullsoft Scriptable Install System)'
     }
@@ -202,14 +169,6 @@ def check_dependencies():
                 version = sys.version_info
                 if version.major < 3 or (version.major == 3 and version.minor < 8):
                     raise Exception(f"Python 3.8+ required, found {version.major}.{version.minor}")
-            elif tool == 'node':
-                result = run_command('node --version', check=False)
-                if result.returncode != 0:
-                    raise Exception("Node.js not found")
-            elif tool == 'npm':
-                result = run_command('npm --version', check=False)
-                if result.returncode != 0:
-                    raise Exception("npm not found")
             elif tool == 'pyinstaller':
                 result = run_command('pyinstaller --version', check=False)
                 if result.returncode != 0:
@@ -231,74 +190,8 @@ def check_dependencies():
     
     return True
 
-def build_web_app(config, force_rebuild=False):
-    """Build the React web application"""
-    print_header("Building Web Application")
-    
-    web_dir = Path(config['paths']['web_app'])
-    if not web_dir.exists():
-        print_error("sionyx-web directory not found")
-        return False
-    
-    dist_dir = web_dir / "dist"
-    
-    # Check if web build already exists and is recent
-    if not force_rebuild and dist_dir.exists():
-        # Check if dist is newer than source files
-        dist_mtime = dist_dir.stat().st_mtime
-        source_files = list(web_dir.glob("src/**/*")) + list(web_dir.glob("public/**/*"))
-        
-        if source_files:
-            latest_source = max(f.stat().st_mtime for f in source_files if f.is_file())
-            if dist_mtime > latest_source:
-                print_info("Web application already built and up-to-date")
-                print_success("Skipping web build (use --force-web to rebuild)")
-                return True
-    
-    # Install dependencies
-    print_info("Installing web dependencies...")
-    run_command("npm install", cwd=web_dir)
-    
-    # Build the application with proper Unicode handling
-    print_info("Building web application...")
-    try:
-        import os
-        env = os.environ.copy()
-        env['PYTHONIOENCODING'] = 'utf-8'
-        env['NODE_OPTIONS'] = '--max-old-space-size=4096'
-        
-        result = subprocess.run(
-            "npm run build",
-            shell=True,
-            cwd=web_dir,
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            errors='replace',
-            env=env,
-            universal_newlines=True
-        )
-        
-        if result.stdout:
-            print(result.stdout)
-        if result.stderr:
-            print(result.stderr)
-            
-        if result.returncode != 0:
-            print_error("Web build failed")
-            return False
-            
-    except Exception as e:
-        print_error(f"Web build error: {e}")
-        return False
-    
-    # Verify build output
-    if not dist_dir.exists():
-        print_error("Web build failed - dist directory not found")
-        return False
-    
-    print_success("Web application built successfully")
-    return True
+# Web application build removed - build separately with:
+# cd sionyx-web && npm install && npm run build
 
 def create_executable():
     """Create standalone executable with PyInstaller"""
@@ -390,87 +283,17 @@ def create_installer():
     run_command("makensis installer.nsi")
     
     # Find the created installer
-    installer_files = list(Path(".").glob("SIONYX-Setup-*.exe"))
-    if not installer_files:
+    installer_path = Path("SIONYX-Installer.exe")
+    if not installer_path.exists():
         print_error("Installer creation failed")
         return False
     
-    installer_path = installer_files[0]
     print_success(f"Installer created: {installer_path}")
     return installer_path
 
-def create_distribution_package():
-    """Create a complete distribution package"""
-    print_header("Creating Distribution Package")
-    
-    # Create distribution directory
-    dist_dir = Path("distribution")
-    if dist_dir.exists():
-        shutil.rmtree(dist_dir)
-    dist_dir.mkdir()
-    
-    # Copy installer
-    installer_files = list(Path(".").glob("SIONYX-Setup-*.exe"))
-    if installer_files:
-        shutil.copy2(installer_files[0], dist_dir)
-        print_info(f"Copied installer to distribution")
-    
-    # Copy standalone executable
-    exe_path = Path("dist/SIONYX.exe")
-    if exe_path.exists():
-        shutil.copy2(exe_path, dist_dir)
-        print_info("Copied standalone executable to distribution")
-    
-    # Create README for distribution
-    readme_content = f"""# SIONYX Installation Package
+# Distribution package creation removed - not needed for simple upload workflow
 
-## Files Included
-
-- **SIONYX-Setup-{datetime.now().strftime('%Y%m%d')}.exe** - Windows installer (recommended)
-- **SIONYX.exe** - Standalone executable (no installation required)
-
-## Installation Instructions
-
-### Option 1: Windows Installer (Recommended)
-1. Run `SIONYX-Setup-{datetime.now().strftime('%Y%m%d')}.exe`
-2. Follow the installation wizard
-3. The installer will create shortcuts and register the application
-
-### Option 2: Standalone Executable
-1. Run `SIONYX.exe` directly
-2. No installation required
-3. First run will prompt for organization setup
-
-## First-Time Setup
-
-When you first run SIONYX, you'll need to configure:
-
-1. **Organization ID** - Unique identifier for your organization
-2. **Firebase Credentials** - Your Firebase project details
-3. **Payment Gateway** - Nedarim Plus configuration (optional)
-
-## Support
-
-For support and documentation, visit: https://sionyx.app
-
-## System Requirements
-
-- Windows 10/11 (64-bit)
-- 4GB RAM minimum
-- 100MB free disk space
-- Internet connection for Firebase connectivity
-
----
-Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
-"""
-    
-    with open(dist_dir / "README.txt", "w") as f:
-        f.write(readme_content)
-    
-    print_success(f"Distribution package created in: {dist_dir}")
-    return dist_dir
-
-def upload_to_firebase_storage(file_path, config, version, destination_path=None):
+def upload_to_firebase_storage(file_path, config, build_timestamp, destination_path=None):
     """Upload file to Firebase Storage with versioning"""
     print_header("Uploading to Firebase Storage")
     
@@ -526,7 +349,7 @@ def upload_to_firebase_storage(file_path, config, version, destination_path=None
             # Use constant filename at bucket root for maximum simplicity
             destination_path = config['build']['upload_filename']
         
-        print_info(f"Uploading {file_name} v{version} ({file_size:,} bytes)")
+        print_info(f"Uploading {file_name} ({file_size:,} bytes)")
         print_info(f"Destination: {destination_path}")
         
         # Upload file
@@ -545,55 +368,14 @@ def upload_to_firebase_storage(file_path, config, version, destination_path=None
         print_success(f"Upload completed!")
         print_info(f"Download URL: {download_url}")
         
-        # Save upload info with version
-        upload_info = {
-            "file_name": file_name,
-            "versioned_name": Path(destination_path).name,
-            "version": version,
-            "file_size": file_size,
-            "upload_time": datetime.now().isoformat(),
-            "download_url": download_url,
-            "destination_path": destination_path
-        }
-        
-        with open("upload_info.json", "w") as f:
-            json.dump(upload_info, f, indent=2)
-        
-        # Upload version info to Firebase Storage
-        upload_version_info(bucket, version, upload_info)
-        
-        print_success("Upload info saved to upload_info.json")
+        # Upload completed successfully
         return True
         
     except Exception as e:
         print_error(f"Upload failed: {e}")
         return False
 
-def upload_version_info(bucket, version, upload_info):
-    """Upload version information to Firebase Storage"""
-    try:
-        # Create version info
-        version_info = {
-            "version": version,
-            "build_date": datetime.now().isoformat(),
-            "build_number": int(time.time()),
-            "files": [upload_info]
-        }
-        
-        # Upload as latest.json
-        latest_blob = bucket.blob("releases/latest.json")
-        latest_blob.upload_from_string(json.dumps(version_info, indent=2))
-        latest_blob.make_public()
-        
-        # Upload as versioned file
-        version_blob = bucket.blob(f"releases/versions/v{version}.json")
-        version_blob.upload_from_string(json.dumps(version_info, indent=2))
-        version_blob.make_public()
-        
-        print_info(f"Version info uploaded: v{version}")
-        
-    except Exception as e:
-        print_warning(f"Failed to upload version info: {e}")
+# Removed version management - using constant filename approach
 
 def cleanup():
     """Clean up temporary files"""
@@ -618,21 +400,9 @@ def main():
     import argparse
     
     # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Build SIONYX application for distribution')
-    parser.add_argument('--force-web', action='store_true', 
-                       help='Force rebuild of web application even if up-to-date')
-    parser.add_argument('--skip-web', action='store_true',
-                       help='Skip web application build entirely')
-    parser.add_argument('--skip-installer', action='store_true',
-                       help='Skip NSIS installer creation')
-    parser.add_argument('--executable-only', action='store_true',
-                       help='Only create executable, skip web build and installer')
-    parser.add_argument('--upload', action='store_true',
-                       help='Upload executable to Firebase Storage after building')
-    parser.add_argument('--bucket', type=str, default='sionyx-19636',
-                       help='Firebase Storage bucket name (default: sionyx-19636)')
-    parser.add_argument('--upload-installer', action='store_true',
-                       help='Also upload installer to Firebase Storage')
+    parser = argparse.ArgumentParser(description='Build SIONYX installer for client distribution')
+    parser.add_argument('--no-upload', action='store_true',
+                       help='Skip uploading to Firebase Storage (for testing)')
     
     args = parser.parse_args()
     
@@ -643,100 +413,71 @@ def main():
         print_header(f"{config['build']['app_name']} Build Process")
         print(f"{Colors.BOLD}Building {config['build']['app_name']} application for distribution{Colors.ENDC}\n")
         
-        # Get version number
-        version = get_next_version()
-        print_info(f"Building version: {version}")
+        # Get build timestamp
+        build_timestamp = get_build_timestamp()
+        print_info(f"Building on: {build_timestamp}")
         
         # Check dependencies
         if not check_dependencies():
             return False
         
-        # Build web application (unless skipped)
-        if not args.skip_web and not args.executable_only:
-            if not build_web_app(config, force_rebuild=args.force_web):
-                return False
-        elif args.skip_web:
-            print_info("Skipping web application build (--skip-web)")
-        elif args.executable_only:
-            print_info("Executable-only mode: skipping web build")
+        # Web application build removed - build separately
+        print_info("Web application build removed - build separately with:")
+        print_info("  cd sionyx-web && npm install && npm run build")
         
         # Create executable
         if not create_executable():
             return False
         
-        # Create installer (unless skipped)
-        installer_path = None
-        if not args.skip_installer and not args.executable_only:
-            installer_path = create_installer()
-            if not installer_path:
-                print_warning("Installer creation failed, but executable is available")
-        elif args.skip_installer:
-            print_info("Skipping installer creation (--skip-installer)")
-        elif args.executable_only:
-            print_info("Executable-only mode: skipping installer")
+        # Create installer (always)
+        installer_path = create_installer()
+        if not installer_path:
+            print_error("Installer creation failed")
+            return False
         
-        # Create distribution package
-        dist_dir = create_distribution_package()
+        # Distribution package creation removed - not needed for simple upload workflow
         
-        # Upload to Firebase Storage if requested
+        # Upload installer to Firebase Storage (always unless --no-upload)
         upload_success = False
-        if args.upload:
-            exe_path = Path("dist/SIONYX.exe")
-            if exe_path.exists():
-                upload_success = upload_to_firebase_storage(
-                    exe_path, 
-                    config,
-                    version
-                )
-                if upload_success:
-                    print_success("Executable uploaded to Firebase Storage")
-                else:
-                    print_warning("Failed to upload executable")
-            
-            if args.upload_installer and installer_path:
-                upload_success = upload_to_firebase_storage(
-                    installer_path, 
-                    config,
-                    version,
-                    f"releases/{config['build']['app_name']}-Setup_v{version}.exe"
-                )
-                if upload_success:
-                    print_success("Installer uploaded to Firebase Storage")
-                else:
-                    print_warning("Failed to upload installer")
+        if not args.no_upload:
+            upload_success = upload_to_firebase_storage(
+                installer_path, 
+                config,
+                build_timestamp
+            )
+            if upload_success:
+                print_success("Installer uploaded to Firebase Storage")
+            else:
+                print_warning("Failed to upload installer")
         
         # Clean up local files if upload was successful
-        if args.upload and upload_success:
+        if not args.no_upload and upload_success:
             cleanup_local_files()
         else:
             # Regular cleanup for non-upload builds
             cleanup()
         
         print_header("Build Complete!")
-        print_success(f"{config['build']['app_name']} v{version} has been successfully packaged for distribution")
-        print(f"\n{Colors.BOLD}Version Information:{Colors.ENDC}")
-        print(f"  Version: {version}")
-        print(f"  Build Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print_success(f"{config['build']['app_name']} has been successfully packaged for distribution")
+        print(f"\n{Colors.BOLD}Build Information:{Colors.ENDC}")
+        print(f"  Build Time: {build_timestamp}")
         
-        if args.upload and upload_success:
+        if not args.no_upload and upload_success:
             print(f"\n{Colors.BOLD}Firebase Storage:{Colors.ENDC}")
             print(f"  Files uploaded to bucket: {config['firebase']['storage_bucket']}")
-            print(f"  Upload info: upload_info.json")
             print(f"  Storage path: root level")
             print(f"  File: {config['build']['upload_filename']}")
             print(f"\n{Colors.BOLD}Local Files:{Colors.ENDC}")
             print(f"  Local files cleaned up after successful upload")
         else:
-            print(f"\n{Colors.BOLD}Distribution files:{Colors.ENDC}")
-            print(f"  {dist_dir}")
-            if installer_path:
-                print(f"  {installer_path}")
+            print(f"\n{Colors.BOLD}Build files:{Colors.ENDC}")
+            print(f"  {installer_path}")
         
         print(f"\n{Colors.BOLD}Next steps:{Colors.ENDC}")
-        if args.upload and upload_success:
+        if not args.no_upload and upload_success:
             print("  1. Files are now available in Firebase Storage")
             print("  2. Users can download from your web app")
-            print("  3. Version info is automatically updated")
+            print("  3. File is always available at the same URL")
         else:
             print("  1. Test the installer on a clean Windows machine")
             print("  2. Distribute the installer to your users")
