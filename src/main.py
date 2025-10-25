@@ -22,7 +22,7 @@ QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 
 import logging
 
-from utils.const import APP_NAME, ADMIN_EXIT_PASSWORD
+from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
 
 # Now initialize logging
 from utils.logger import SionyxLogger
