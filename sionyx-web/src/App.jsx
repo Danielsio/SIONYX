@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, theme, App as AntApp } from 'antd';
+import { ConfigProvider, theme, App as AntApp, Spin } from 'antd';
 import { useAuthStore } from './store/authStore';
 import { onAuthChange, getCurrentAdminData } from './services/authService';
 
@@ -8,15 +8,14 @@ import { onAuthChange, getCurrentAdminData } from './services/authService';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/MainLayout';
 
-// Pages
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import DownloadPage from './pages/DownloadPage';
-import OverviewPage from './pages/OverviewPage';
-import UsersPage from './pages/UsersPage';
-import PackagesPage from './pages/PackagesPage';
-import MessagesPage from './pages/MessagesPage';
-import ComputersPage from './pages/ComputersPage';
+// Lazy load pages for better performance
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const OverviewPage = lazy(() => import('./pages/OverviewPage'));
+const UsersPage = lazy(() => import('./pages/UsersPage'));
+const PackagesPage = lazy(() => import('./pages/PackagesPage'));
+const MessagesPage = lazy(() => import('./pages/MessagesPage'));
+const ComputersPage = lazy(() => import('./pages/ComputersPage'));
 
 function App() {
   const { setUser, setLoading, isAuthenticated } = useAuthStore();
@@ -45,6 +44,18 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  const LoadingFallback = () => (
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      minHeight: '100vh',
+      direction: 'rtl'
+    }}>
+      <Spin size="large" />
+    </div>
+  );
+
   return (
     <ConfigProvider
       theme={{
@@ -58,38 +69,37 @@ function App() {
     >
       <AntApp>
         <Router>
-          <Routes>
-            {/* Landing Page */}
-            <Route path='/' element={<LandingPage />} />
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              {/* Landing Page */}
+              <Route path='/' element={<LandingPage />} />
 
-            {/* Download Page */}
-            <Route path='/download' element={<DownloadPage />} />
+              {/* Admin Login */}
+              <Route
+                path='/admin/login'
+                element={isAuthenticated ? <Navigate to='/admin' replace /> : <LoginPage />}
+              />
 
-            {/* Admin Login */}
-            <Route
-              path='/admin/login'
-              element={isAuthenticated ? <Navigate to='/admin' replace /> : <LoginPage />}
-            />
+              {/* Protected Admin Routes */}
+              <Route
+                path='/admin'
+                element={
+                  <ProtectedRoute>
+                    <MainLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<OverviewPage />} />
+                <Route path='users' element={<UsersPage />} />
+                <Route path='packages' element={<PackagesPage />} />
+                <Route path='messages' element={<MessagesPage />} />
+                <Route path='computers' element={<ComputersPage />} />
+              </Route>
 
-            {/* Protected Admin Routes */}
-            <Route
-              path='/admin'
-              element={
-                <ProtectedRoute>
-                  <MainLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<OverviewPage />} />
-              <Route path='users' element={<UsersPage />} />
-              <Route path='packages' element={<PackagesPage />} />
-              <Route path='messages' element={<MessagesPage />} />
-              <Route path='computers' element={<ComputersPage />} />
-            </Route>
-
-            {/* Catch all - redirect to home */}
-            <Route path='*' element={<Navigate to='/' replace />} />
-          </Routes>
+              {/* Catch all - redirect to home */}
+              <Route path='*' element={<Navigate to='/' replace />} />
+            </Routes>
+          </Suspense>
         </Router>
       </AntApp>
     </ConfigProvider>

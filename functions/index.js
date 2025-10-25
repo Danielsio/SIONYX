@@ -322,9 +322,9 @@ exports.nedarimCallback = onRequest(async (req, res) => {
 
         if (user) {
           const currentTime = user.remainingTime || 0;
-          const currentPrintBudget = user.remainingPrints || 0; // Now stores budget in NIS
+          const currentPrintBudget = user.remainingPrints || 0;
           const addingMinutes = purchase.minutes || 0;
-          const addingPrintBudget = purchase.printBudget || 0; // Print budget in NIS
+          const addingPrintBudget = purchase.printBudget || 0;
           const newTime = currentTime + (addingMinutes * 60);
           const newPrintBudget = currentPrintBudget + addingPrintBudget;
 
