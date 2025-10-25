@@ -1,0 +1,15 @@
+{
+  "firebase": {
+    "project_id": "your-project-id",
+    "storage_bucket": "your-project-id.firebasestorage.app",
+    "service_account_key": "serviceAccountKey.json"
+  },
+  "build": {
+    "app_name": "YOUR_APP_NAME",
+    "upload_filename": "your-app-installer.exe"
+  },
+  "paths": {
+    "src": "src",
+    "dist": "distribution"
+  }
+}
