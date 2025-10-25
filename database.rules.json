@@ -1,0 +1,99 @@
+{
+  "rules": {
+    "organizations": {
+      ".read": false,
+      ".write": false,
+      
+      "$orgId": {
+        "users": {
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".indexOn": ["isActive", "createdAt", "lastSeen"],
+          
+          "$userId": {
+            ".read": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+            ".write": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+            
+            "isAdmin": {
+              ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+            }
+          }
+        },
+        
+        "packages": {
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".indexOn": ["isActive", "createdAt"],
+          
+          "$packageId": {
+            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+          }
+        },
+        
+        "purchases": {
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".indexOn": ["userId", "status", "createdAt"],
+          
+          "$purchaseId": {
+            ".read": "data.child('userId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+            ".write": "(!data.exists() && newData.child('userId').val() == auth.uid) || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+          }
+        },
+        
+        "messages": {
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".indexOn": ["toUserId", "timestamp", "read"],
+
+          "$messageId": {
+            ".read": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true)",
+            ".write": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true)",
+
+            "read": {
+              ".write": "data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+            },
+
+            "readAt": {
+              ".write": "data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+            }
+          }
+        },
+        
+        "computers": {
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".indexOn": ["isActive", "lastSeen", "computerName"],
+          
+          "$computerId": {
+            ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+            ".write": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()"
+          }
+        },
+        
+        "metadata": {
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+          ".validate": "newData.hasChildren() || newData.isNumber() || newData.isString()",
+          
+          "name": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+          },
+          "nedarim_mosad_id": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "nedarim_api_valid": {
+            ".validate": "newData.isString() && newData.val().length > 0"
+          },
+          "created_at": {
+            ".validate": "newData.isString()"
+          },
+          "status": {
+            ".validate": "newData.isString() && newData.val() === 'active'"
+          },
+          "blackAndWhitePrice": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          },
+          "colorPrice": {
+            ".validate": "newData.isNumber() && newData.val() > 0"
+          }
+        }
+      }
+    }
+  }
+}

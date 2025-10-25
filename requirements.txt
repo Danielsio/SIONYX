@@ -1,0 +1,30 @@
+pyqt6-sip
+# GUI Framework (will auto-install compatible versions)
+PyQt6
+
+# HTTP Client
+requests
+
+# Firebase Realtime Database Streaming
+sseclient-py
+
+# Security & Encryption
+cryptography
+
+# Configuration Management
+python-dotenv
+
+# System Information
+psutil
+
+# Executable Builder
+pyinstaller
+
+# Logging with Colors
+colorlog
+
+# JSON Web Tokens
+PyJWT
+
+# Global Hotkey Support
+keyboard

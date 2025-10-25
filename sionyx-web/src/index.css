@@ -1,0 +1,399 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  direction: rtl;
+  text-align: right;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* Ant Design customizations */
+.ant-layout {
+  background: #f0f2f5;
+}
+
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.ant-table-wrapper {
+  background: white;
+  border-radius: 8px;
+}
+
+/* Enhanced RTL Support for Hebrew */
+.ant-form-item-label {
+  text-align: right !important;
+}
+
+.ant-input,
+.ant-input-number,
+.ant-select-selector,
+.ant-picker {
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+.ant-select-selection-item {
+  text-align: right !important;
+}
+
+.ant-modal-title {
+  text-align: right !important;
+}
+
+.ant-modal-body {
+  text-align: right !important;
+}
+
+/* Ensure proper RTL alignment for all text elements */
+.ant-typography,
+.ant-typography p,
+.ant-typography h1,
+.ant-typography h2,
+.ant-typography h3,
+.ant-typography h4,
+.ant-typography h5,
+.ant-typography h6 {
+  text-align: right !important;
+  direction: rtl !important;
+}
+
+/* RTL-specific improvements */
+.ant-tabs-tab {
+  direction: rtl !important;
+}
+
+.ant-tabs-content-holder {
+  direction: rtl !important;
+}
+
+.ant-space {
+  direction: rtl !important;
+}
+
+.ant-space-item {
+  direction: rtl !important;
+}
+
+/* Hebrew font optimization */
+body,
+.ant-typography {
+  font-family: 'Segoe UI', 'Tahoma', 'Arial', 'Helvetica', sans-serif !important;
+  font-feature-settings:
+    'liga' 1,
+    'kern' 1;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Enhanced button styles for RTL */
+.ant-btn {
+  direction: rtl !important;
+  text-align: center !important;
+}
+
+.ant-btn .anticon {
+  margin-left: 8px !important;
+  margin-right: 0 !important;
+}
+
+/* Card improvements for RTL */
+.ant-card {
+  direction: rtl !important;
+}
+
+.ant-card-head {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+.ant-card-body {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Form improvements for RTL */
+.ant-form {
+  direction: rtl !important;
+}
+
+.ant-form-item {
+  direction: rtl !important;
+}
+
+.ant-form-item-control {
+  direction: rtl !important;
+}
+
+/* Message improvements for RTL */
+.ant-message {
+  direction: rtl !important;
+}
+
+.ant-message-notice-content {
+  direction: rtl !important;
+  text-align: right !important;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Optimized Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale3d(1, 1, 1);
+  }
+  50% {
+    transform: scale3d(1.02, 1.02, 1);
+  }
+  100% {
+    transform: scale3d(1, 1, 1);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translate3d(30px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translate3d(-30px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.pulse-animation {
+  animation: pulse 2s infinite;
+  will-change: transform;
+}
+
+.slide-in-right {
+  animation: slideInRight 0.4s ease-out;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.4s ease-out;
+}
+
+/* Performance optimizations */
+* {
+  box-sizing: border-box;
+}
+
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+/* Force hardware acceleration for animated elements */
+.ant-card,
+.ant-btn,
+.ant-tabs-tab {
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Reduce repaints */
+.ant-input:focus {
+  outline: none;
+}
+
+/* Optimize text rendering */
+body {
+  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Optimized component animations */
+.ant-card {
+  transition:
+    transform 0.2s ease-out,
+    box-shadow 0.2s ease-out;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.ant-card:hover {
+  transform: translate3d(0, -4px, 0);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+.ant-btn {
+  transition:
+    transform 0.15s ease-out,
+    box-shadow 0.15s ease-out;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.ant-btn:hover {
+  transform: translate3d(0, -2px, 0);
+}
+
+.ant-input {
+  transition:
+    border-color 0.2s ease-out,
+    box-shadow 0.2s ease-out;
+}
+
+.ant-tabs-tab {
+  transition: transform 0.15s ease-out;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.ant-tabs-tab:hover {
+  transform: translate3d(0, -1px, 0);
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Better touch targets */
+  .ant-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .ant-menu-item {
+    min-height: 48px;
+    line-height: 48px;
+  }
+
+  /* Improve text readability */
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  /* Better spacing for mobile */
+  .ant-space-vertical > .ant-space-item:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  /* Mobile-friendly modals */
+  .ant-modal {
+    margin: 16px;
+    max-width: calc(100vw - 32px);
+  }
+
+  .ant-drawer-content-wrapper {
+    max-width: 100vw;
+  }
+
+  /* Mobile table improvements */
+  .ant-table-tbody > tr > td {
+    padding: 8px 4px;
+    font-size: 14px;
+  }
+
+  .ant-table-thead > tr > th {
+    padding: 8px 4px;
+    font-size: 14px;
+  }
+
+  /* Mobile card improvements */
+  .ant-card-head {
+    min-height: 48px;
+    padding: 0 16px;
+  }
+
+  .ant-card-head-title {
+    font-size: 16px;
+  }
+
+  /* Mobile form improvements */
+  .ant-form-item-label > label {
+    font-size: 14px;
+  }
+
+  .ant-input,
+  .ant-input-number {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+@media (max-width: 480px) {
+  /* Extra small screens */
+  .ant-layout-header {
+    padding: 0 12px !important;
+  }
+
+  .ant-layout-content {
+    margin: 8px !important;
+    padding: 12px !important;
+  }
+
+  /* Smaller text for very small screens */
+  .ant-typography {
+    font-size: 14px;
+  }
+
+  /* Compact buttons */
+  .ant-btn {
+    padding: 4px 8px;
+    font-size: 14px;
+  }
+
+  /* Compact cards */
+  .ant-card-body {
+    padding: 12px !important;
+  }
+}
