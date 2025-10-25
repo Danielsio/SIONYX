@@ -478,7 +478,7 @@ class ModernMessageBox(ModernDialog):
             buttons=[yes_text, no_text],
         )
         dialog.show_animated()
-        result = dialog.exec()
+        dialog.exec()
 
         return dialog.get_result() == yes_text
 
@@ -521,7 +521,7 @@ class ModernConfirmDialog(ModernMessageBox):
             danger_mode=danger,
         )
         dialog.show_animated()
-        result = dialog.exec()
+        dialog.exec()
 
         return dialog.get_result() == confirm_text
 

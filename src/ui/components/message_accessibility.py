@@ -3,9 +3,9 @@ Accessibility enhancements for message components.
 Provides keyboard navigation, focus indicators, and screen reader support.
 """
 
-from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QColor, QFont
-from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QWidget
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect
 
 
 class AccessibilityEnhancer:

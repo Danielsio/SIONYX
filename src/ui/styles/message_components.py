@@ -13,7 +13,7 @@ def get_message_card_qss(tokens=None):
 
     p = tokens["palette"]
     r = tokens["radius"]
-    ty = tokens["typography"]
+    tokens["typography"]
 
     return f"""
         QFrame#messageCard {{
@@ -49,7 +49,7 @@ def get_message_modal_qss(tokens=None):
 
     p = tokens["palette"]
     r = tokens["radius"]
-    ty = tokens["typography"]
+    tokens["typography"]
 
     return f"""
         QFrame#messageModalContainer {{
@@ -162,7 +162,7 @@ def get_message_notification_qss(tokens=None):
 
     p = tokens["palette"]
     r = tokens["radius"]
-    ty = tokens["typography"]
+    tokens["typography"]
 
     return f"""
         QFrame#notificationContainer {{
@@ -222,7 +222,7 @@ def get_message_display_qss(tokens=None):
 
     p = tokens["palette"]
     r = tokens["radius"]
-    ty = tokens["typography"]
+    tokens["typography"]
 
     return f"""
         QWidget#messageDisplay {{

@@ -2,15 +2,14 @@
 Firebase Client - Realtime Database + Authentication
 """
 
-import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import requests
 
 from utils.error_translations import translate_error
 from utils.firebase_config import get_firebase_config
-from utils.logger import get_logger, set_context
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)

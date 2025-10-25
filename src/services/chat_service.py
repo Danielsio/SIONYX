@@ -4,8 +4,8 @@ Chat Service - Client-side message handling
 
 import threading
 import time
-from datetime import datetime, timedelta
-from typing import Callable, Dict, List, Optional
+from datetime import datetime
+from typing import Callable, Dict, List
 
 from PyQt6.QtCore import QObject, pyqtSignal
 

@@ -14,7 +14,6 @@ from PyQt6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QGridLayout,
     QLabel,
-    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -24,15 +23,12 @@ from services.package_service import PackageService
 from ui.components.base_components import (
     ActionButton,
     BaseCard,
-    EmptyState,
-    HeaderSection,
     LoadingSpinner,
 )
 from ui.constants.ui_constants import (
     BorderRadius,
     Colors,
     Dimensions,
-    Gradients,
     Shadows,
     Spacing,
     Typography,
@@ -502,7 +498,6 @@ class PackagesPage(QWidget):
 
         from PyQt6.QtWidgets import QMessageBox
 
-        from services.purchase_service import PurchaseService
         from ui.payment_dialog import PaymentDialog
 
         # Open payment dialog (derive user and auth from parent)

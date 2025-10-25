@@ -4,7 +4,7 @@ Fetch and manage packages from Firebase
 Refactored to use base service for consistency
 """
 
-from typing import Dict, List, Optional
+from typing import Dict
 
 from services.base_service import DatabaseService
 from services.firebase_client import FirebaseClient

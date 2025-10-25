@@ -16,7 +16,6 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QScrollArea,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -221,8 +220,6 @@ class PurchaseCard(QFrame):
             return int(float(str(value)))
         except (ValueError, TypeError):
             return default
-
-
 
 
 class HistoryPage(QWidget):
@@ -434,7 +431,6 @@ class HistoryPage(QWidget):
         header_layout.addWidget(title)
         header_layout.addWidget(subtitle)
         parent_layout.addWidget(header_container)
-
 
     def create_filters_section(self, parent_layout):
         """Create filters and search section"""
@@ -929,7 +925,6 @@ class HistoryPage(QWidget):
             logger.info("Sorted purchases: newest first")
 
         self.update_purchases_display()
-
 
     def animate_refresh(self):
         """Animate refresh action"""

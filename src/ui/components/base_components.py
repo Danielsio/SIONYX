@@ -13,7 +13,6 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -22,12 +21,10 @@ from ui.constants.ui_constants import (
     BorderRadius,
     Colors,
     Dimensions,
-    Gradients,
     Shadows,
     Spacing,
     Typography,
     get_button_style,
-    get_card_style,
     get_shadow_effect,
 )
 

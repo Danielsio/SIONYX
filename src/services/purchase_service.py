@@ -57,6 +57,7 @@ class PurchaseService(DatabaseService):
                 f"{self.firebase.database_url}/{org_path}.json",
                 params={"auth": self.firebase.id_token},
                 json=purchase_data,
+                timeout=30,
             )
 
             if response.status_code != 200:
@@ -82,7 +83,6 @@ class PurchaseService(DatabaseService):
             timeout: Maximum seconds to wait
         """
         # This will be handled by Firebase real-time listener in payment dialog
-        pass
 
     def get_purchase_status(self, purchase_id: str) -> Dict:
         """Get current purchase status"""

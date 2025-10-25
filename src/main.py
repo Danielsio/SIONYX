@@ -3,8 +3,8 @@ SIONYX Desktop Application
 Main entry point - Refactored for better error handling and constants usage
 """
 
-import sys
 import argparse
+import sys
 from pathlib import Path
 
 
@@ -22,15 +22,16 @@ QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 
 import logging
 
-from ui.constants.ui_constants import Timing, UIStrings
-from utils.const import APP_NAME
+from utils.const import APP_NAME, ADMIN_EXIT_PASSWORD
 
 # Now initialize logging
 from utils.logger import SionyxLogger
 
 
 # Set up logging with appropriate level
-log_level = logging.DEBUG if "--verbose" in sys.argv or "-v" in sys.argv else logging.INFO
+log_level = (
+    logging.DEBUG if "--verbose" in sys.argv or "-v" in sys.argv else logging.INFO
+)
 SionyxLogger.setup(log_level=log_level, log_to_file=True, enable_colors=True)
 
 SionyxLogger.cleanup_old_logs(days_to_keep=7)
@@ -40,7 +41,7 @@ from utils.logger import generate_request_id, get_logger, set_context
 
 logger = get_logger(__name__)
 
-from PyQt6.QtWidgets import QApplication, QInputDialog, QLineEdit, QMessageBox
+from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
 
 from services.auth_service import AuthService
 from services.global_hotkey_service import GlobalHotkeyService
@@ -56,15 +57,15 @@ class SionyxApp:
         # Generate request ID for this application session
         request_id = generate_request_id()
         set_context(request_id=request_id)
-        
+
         # Store command line options
         self.verbose = verbose
 
         logger.info(
-            "Initializing application", 
-            request_id=request_id, 
+            "Initializing application",
+            request_id=request_id,
             component="main_app",
-            verbose=verbose
+            verbose=verbose,
         )
 
         self.auth_window = None
@@ -86,14 +87,15 @@ class SionyxApp:
             env_path = Path(".env")
             if not env_path.exists():
                 logger.error(
-                    "No .env file found. Please reinstall the application.", action="missing_config"
+                    "No .env file found. Please reinstall the application.",
+                    action="missing_config",
                 )
                 QMessageBox.critical(
                     None,
                     "Configuration Missing",
                     "SIONYX configuration file (.env) not found.\n\n"
                     "Please reinstall the application to fix this issue.\n\n"
-                    "If this problem persists, contact your system administrator."
+                    "If this problem persists, contact your system administrator.",
                 )
                 self.app.quit()
                 sys.exit(1)
@@ -122,7 +124,6 @@ class SionyxApp:
                 "Application initialization failed", error=str(e), component="main_app"
             )
             raise
-
 
     def show_auth_window(self):
         """Display authentication window"""
@@ -276,7 +277,7 @@ class SionyxApp:
         ok = dialog.exec()
         password = password_input.text()
 
-        if ok and password == "admin123":
+        if ok and password == ADMIN_EXIT_PASSWORD:
             # Try to end any active session gracefully first
             try:
                 if self.main_window and hasattr(self.main_window, "session_service"):
@@ -363,12 +364,13 @@ if __name__ == "__main__":
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="SIONYX Desktop Application")
     parser.add_argument(
-        "--verbose", "-v", 
-        action="store_true", 
-        help="Enable verbose logging (DEBUG level)"
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Enable verbose logging (DEBUG level)",
     )
     args = parser.parse_args()
-    
+
     try:
         app = SionyxApp(verbose=args.verbose)
         exit_code = app.run()

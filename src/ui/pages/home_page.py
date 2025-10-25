@@ -19,15 +19,11 @@ from PyQt6.QtWidgets import (
 from services.chat_service import ChatService
 from ui.components.base_components import (
     ActionButton,
-    EmptyState,
-    HeaderSection,
-    LoadingSpinner,
     StatCard,
 )
 from ui.constants.ui_constants import (
     BorderRadius,
     Colors,
-    Dimensions,
     Gradients,
     Shadows,
     Spacing,
@@ -128,9 +124,7 @@ class HomePage(QWidget):
         # Prints card using base component - now shows budget instead of count
         print_budget = self.current_user.get("remainingPrints", 0.0)
         budget_text = f"{print_budget:.2f}₪"
-        self.prints_card = StatCard(
-            "יתרת הדפסות", budget_text, "", Colors.PRIMARY, "🖨️"
-        )
+        self.prints_card = StatCard("יתרת הדפסות", budget_text, "", Colors.PRIMARY, "🖨️")
         self.prints_card.setObjectName("printsCard")
 
         # Message notification card

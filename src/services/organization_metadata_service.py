@@ -124,10 +124,12 @@ class OrganizationMetadataService:
             result = self.firebase.db_get(f"organizations/{org_id}/metadata")
 
             if not result["success"]:
-                logger.error(f"Failed to fetch organization metadata: {result.get('error')}")
+                logger.error(
+                    f"Failed to fetch organization metadata: {result.get('error')}"
+                )
                 return {
                     "success": False,
-                    "error": f"Failed to fetch organization metadata: {result.get('error')}"
+                    "error": f"Failed to fetch organization metadata: {result.get('error')}",
                 }
 
             metadata = result.get("data")
@@ -140,19 +142,15 @@ class OrganizationMetadataService:
                 "color_price": metadata.get("colorPrice", 3.0),
             }
 
-            return {
-                "success": True,
-                "pricing": pricing
-            }
+            return {"success": True, "pricing": pricing}
 
         except Exception as e:
             logger.error(f"Error getting print pricing: {e}")
-            return {
-                "success": False,
-                "error": f"Error getting print pricing: {str(e)}"
-            }
+            return {"success": False, "error": f"Error getting print pricing: {str(e)}"}
 
-    def set_print_pricing(self, org_id: str, black_white_price: float, color_price: float) -> Dict[str, Any]:
+    def set_print_pricing(
+        self, org_id: str, black_white_price: float, color_price: float
+    ) -> Dict[str, Any]:
         """
         Set organization print pricing configuration
 
@@ -171,21 +169,22 @@ class OrganizationMetadataService:
                 "colorPrice": color_price,
             }
 
-            result = self.firebase.db_update(f"organizations/{org_id}/metadata", pricing_data)
+            result = self.firebase.db_update(
+                f"organizations/{org_id}/metadata", pricing_data
+            )
 
             if not result.get("success"):
                 logger.error(f"Failed to update print pricing: {result.get('error')}")
                 return {
                     "success": False,
-                    "error": f"Failed to update print pricing: {result.get('error')}"
+                    "error": f"Failed to update print pricing: {result.get('error')}",
                 }
 
-            logger.info(f"Print pricing updated for org {org_id}: B&W={black_white_price} NIS, Color={color_price} NIS")
+            logger.info(
+                f"Print pricing updated for org {org_id}: B&W={black_white_price} NIS, Color={color_price} NIS"
+            )
             return {"success": True}
 
         except Exception as e:
             logger.error(f"Error setting print pricing: {e}")
-            return {
-                "success": False,
-                "error": f"Error setting print pricing: {str(e)}"
-            }
+            return {"success": False, "error": f"Error setting print pricing: {str(e)}"}

@@ -19,12 +19,10 @@ from PyQt6.QtWidgets import (
 
 from services.session_service import SessionService
 from ui.base_window import BaseKioskWindow
-from ui.components.base_components import ActionButton, HeaderSection
+from ui.components.base_components import ActionButton
 from ui.constants.ui_constants import (
-    BorderRadius,
     Colors,
     Dimensions,
-    Gradients,
     Shadows,
     Spacing,
     Typography,
@@ -59,16 +57,20 @@ class MainWindow(BaseKioskWindow):
 
         # Session management
         self.session_service = SessionService(
-            auth_service.firebase, self.current_user["uid"], auth_service.firebase.org_id
+            auth_service.firebase,
+            self.current_user["uid"],
+            auth_service.firebase.org_id,
         )
         self.floating_timer = None
 
         # Connect session signals
         self.session_service.time_updated.connect(self.on_time_updated)
         self.session_service.session_ended.connect(self.on_session_ended)
-        
+
         # Connect print validation signals
-        self.session_service.print_validation_service.print_budget_updated.connect(self.on_print_budget_updated)
+        self.session_service.print_validation_service.print_budget_updated.connect(
+            self.on_print_budget_updated
+        )
         self.session_service.warning_5min.connect(self.on_warning_5min)
         self.session_service.warning_1min.connect(self.on_warning_1min)
 
@@ -338,7 +340,7 @@ class MainWindow(BaseKioskWindow):
         if page_name not in self.page_data_ages:
             return False  # Never refreshed, so refresh it
 
-        from datetime import datetime, timedelta
+        from datetime import datetime
 
         last_refresh = self.page_data_ages[page_name]
         age_seconds = (datetime.now() - last_refresh).total_seconds()
@@ -569,16 +571,16 @@ class MainWindow(BaseKioskWindow):
     def on_print_budget_updated(self, new_budget: float):
         """Handle print budget update"""
         logger.info(f"Print budget updated: {new_budget} NIS")
-        
+
         # Update floating timer if active
         if self.floating_timer:
             self.floating_timer.update_print_balance(new_budget)
-        
+
         # Update current user data
         self.current_user["remainingPrints"] = new_budget
-        
+
         # Refresh home page if it's the current page
-        if hasattr(self, 'current_page') and self.current_page == self.PAGES["home"]:
+        if hasattr(self, "current_page") and self.current_page == self.PAGES["home"]:
             self.refresh_current_page()
 
     def on_warning_5min(self):

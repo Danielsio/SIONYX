@@ -9,7 +9,7 @@ import uuid
 from contextvars import ContextVar
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 
 # Context variables for request tracking
@@ -189,7 +189,7 @@ class SionyxLogger:
 
         # Create logs directory in user's AppData (works with Program Files installation)
         # This avoids permission issues when installed in Program Files
-        if getattr(sys, 'frozen', False):
+        if getattr(sys, "frozen", False):
             # Running as PyInstaller executable - use AppData
             log_dir = Path.home() / "AppData" / "Local" / "SIONYX" / "logs"
         else:
@@ -221,9 +221,9 @@ class SionyxLogger:
             console_handler.stream.reconfigure(encoding="utf-8")
 
         # Check if stdout is available and is a TTY (PyInstaller compatibility)
-        stdout_available = sys.stdout is not None and hasattr(sys.stdout, 'isatty')
+        stdout_available = sys.stdout is not None and hasattr(sys.stdout, "isatty")
         is_tty = stdout_available and sys.stdout.isatty()
-        
+
         if enable_colors and is_tty:
             console_handler.setFormatter(ColoredFormatter())
         else:
@@ -266,7 +266,7 @@ class SionyxLogger:
     def cleanup_old_logs(cls, days_to_keep=7):
         """Remove log files older than specified days"""
         # Use same directory as setup
-        if getattr(sys, 'frozen', False):
+        if getattr(sys, "frozen", False):
             # Running as PyInstaller executable - use AppData
             log_dir = Path.home() / "AppData" / "Local" / "SIONYX" / "logs"
         else:

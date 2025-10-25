@@ -271,7 +271,7 @@ def create_installer():
             if src_path.resolve() == Path(dst).resolve():
                 print_info(f"Skipping {src} -> {dst} (same file)")
                 continue
-                
+
             try:
                 # Try to copy with retry logic
                 max_retries = 3

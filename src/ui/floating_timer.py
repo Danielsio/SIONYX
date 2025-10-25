@@ -248,7 +248,6 @@ class FloatingTimer(QWidget):
         """Pulse animation for critical state"""
         # Simple scale animation
         # Could be enhanced with QPropertyAnimation
-        pass
 
     def set_offline_mode(self, offline: bool):
         """Show offline indicator"""

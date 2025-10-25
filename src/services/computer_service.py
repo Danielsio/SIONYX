@@ -4,7 +4,7 @@ Handles computer registration, tracking, and association with users
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict
 
 from services.firebase_client import FirebaseClient
 from utils.device_info import get_computer_info

@@ -145,7 +145,6 @@ class BaseService(ABC):
     @abstractmethod
     def get_service_name(self) -> str:
         """Return the name of the service for logging purposes"""
-        pass
 
 
 class DatabaseService(BaseService):
@@ -158,7 +157,6 @@ class DatabaseService(BaseService):
     @abstractmethod
     def get_collection_name(self) -> str:
         """Return the collection name for this service"""
-        pass
 
     def get_document(self, doc_id: str) -> Dict[str, Any]:
         """Get a single document by ID"""

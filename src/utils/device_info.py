@@ -6,7 +6,6 @@ Collects unique PC/computer identification data
 import hashlib
 import platform
 import socket
-import subprocess
 import uuid
 from typing import Dict, Optional
 
@@ -32,8 +31,8 @@ def get_device_id() -> str:
         platform_info = f"{platform.system()}-{platform.machine()}"
         combined = f"{computer_name}-{platform_info}"
 
-        # Create hash for consistency
-        return hashlib.md5(combined.encode()).hexdigest()[:16]
+        # Create hash for consistency (using SHA-256 for better security)
+        return hashlib.sha256(combined.encode()).hexdigest()[:16]
 
     except Exception as e:
         logger.warning(f"Failed to generate device ID: {e}")

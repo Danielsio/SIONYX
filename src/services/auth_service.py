@@ -2,14 +2,14 @@
 Authentication Service - Firebase Realtime Database
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, Optional
 
 from database.local_db import LocalDatabase
 from services.computer_service import ComputerService
 from services.firebase_client import FirebaseClient
 from utils.error_translations import translate_error
-from utils.logger import get_logger, set_context
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)
