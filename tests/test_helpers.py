@@ -2,11 +2,11 @@
 Test helper utilities and fixtures
 """
 
-from datetime import datetime, timedelta
-from unittest.mock import MagicMock, Mock
+from datetime import datetime
+from unittest.mock import Mock
 
 import pytest
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject
 from PyQt6.QtWidgets import QApplication
 
 

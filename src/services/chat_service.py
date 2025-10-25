@@ -197,7 +197,8 @@ class ChatService(QObject):
             time_since_last_update = (now - self.last_seen_update_time).total_seconds()
             if time_since_last_update < self.last_seen_debounce_seconds:
                 logger.debug(
-                    f"Skipping last seen update (debounced, {time_since_last_update:.1f}s since last)"
+                    f"Skipping last seen update (debounced, "
+                    f"{time_since_last_update:.1f}s since last)"
                 )
                 return {"success": True, "skipped": True}
 
@@ -287,7 +288,8 @@ class ChatService(QObject):
                                 self.current_poll_interval * 1.5, self.max_poll_interval
                             )
                             logger.debug(
-                                f"Increased polling interval to {self.current_poll_interval:.1f}s"
+                                f"Increased polling interval to "
+                                f"{self.current_poll_interval:.1f}s"
                             )
 
                 # Update last seen to show user is active (with debouncing)

@@ -49,7 +49,8 @@ class OrganizationMetadataService:
                 )
                 return {
                     "success": False,
-                    "error": f"Failed to fetch organization metadata: {result.get('error')}",
+                    "error": f"Failed to fetch organization metadata: "
+                    f"{result.get('error')}",
                 }
 
             metadata = result.get("data")
@@ -129,7 +130,8 @@ class OrganizationMetadataService:
                 )
                 return {
                     "success": False,
-                    "error": f"Failed to fetch organization metadata: {result.get('error')}",
+                    "error": f"Failed to fetch organization metadata: "
+                    f"{result.get('error')}",
                 }
 
             metadata = result.get("data")
@@ -181,7 +183,8 @@ class OrganizationMetadataService:
                 }
 
             logger.info(
-                f"Print pricing updated for org {org_id}: B&W={black_white_price} NIS, Color={color_price} NIS"
+                f"Print pricing updated for org {org_id}: "
+                f"B&W={black_white_price} NIS, Color={color_price} NIS"
             )
             return {"success": True}
 

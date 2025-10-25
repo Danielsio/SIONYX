@@ -2,12 +2,8 @@
 Tests for device_info utility
 """
 
-import platform
 import socket
-import uuid
-from unittest.mock import Mock, patch
-
-import pytest
+from unittest.mock import patch
 
 from src.utils.device_info import (
     get_computer_id,

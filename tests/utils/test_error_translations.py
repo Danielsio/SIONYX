@@ -2,8 +2,6 @@
 Tests for error_translations utility
 """
 
-import pytest
-
 from src.utils.error_translations import translate_error
 
 

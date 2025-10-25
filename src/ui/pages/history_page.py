@@ -92,7 +92,9 @@ class PurchaseCard(QFrame):
         package_name.setStyleSheet("color: #1E293B;")
 
         # Purchase details - now shows prints as budget in NIS
-        details_text = f"{self.purchase_data.get('minutes', 0)} דקות • {self.purchase_data.get('prints', 0)}₪ יתרת הדפסות"
+        minutes = self.purchase_data.get("minutes", 0)
+        prints = self.purchase_data.get("prints", 0)
+        details_text = f"{minutes} דקות • {prints}₪ יתרת הדפסות"
         details = QLabel(details_text)
         details.setFont(QFont("Segoe UI", 12))
         details.setStyleSheet("color: #64748B;")
@@ -202,7 +204,7 @@ class PurchaseCard(QFrame):
             if date_str:
                 dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
                 return dt.strftime("%d/%m/%Y %H:%M")
-        except:
+        except Exception:
             pass
         return "תאריך לא זמין"
 
@@ -805,52 +807,6 @@ class HistoryPage(QWidget):
 
         # Add stretch to push cards to top
         self.content_layout.addStretch()
-
-    def show_empty_state(self):
-        """Show empty state when no purchases are found"""
-        empty_frame = QFrame()
-        empty_frame.setObjectName("emptyState")
-        empty_frame.setFixedHeight(300)
-        empty_frame.setStyleSheet(
-            """
-            QFrame#emptyState {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #F8FAFC, stop:1 #F1F5F9);
-                border: 2px dashed #CBD5E1;
-                border-radius: 20px;
-                margin: 20px;
-            }
-        """
-        )
-
-        layout = QVBoxLayout(empty_frame)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.setSpacing(16)
-
-        # Empty state icon
-        icon_label = QLabel("📋")
-        icon_label.setFont(QFont("Segoe UI", 48))
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_label.setStyleSheet("color: #94A3B8;")
-
-        # Empty state title
-        title_label = QLabel("אין רכישות להצגה")
-        title_label.setFont(QFont("Segoe UI", 20, QFont.Weight.Bold))
-        title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("color: #64748B;")
-
-        # Empty state subtitle
-        subtitle_label = QLabel("הרכישות שלך יופיעו כאן לאחר שתרכוש חבילות זמן")
-        subtitle_label.setFont(QFont("Segoe UI", 14))
-        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        subtitle_label.setStyleSheet("color: #94A3B8;")
-        subtitle_label.setWordWrap(True)
-
-        layout.addWidget(icon_label)
-        layout.addWidget(title_label)
-        layout.addWidget(subtitle_label)
-
-        self.content_layout.addWidget(empty_frame)
 
     def filter_purchases(self):
         """Filter purchases based on search and status"""

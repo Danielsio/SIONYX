@@ -2,10 +2,6 @@
 Tests for time_formatter utility
 """
 
-from datetime import datetime, timedelta
-
-import pytest
-
 from src.utils.time_formatter import format_duration, format_time, parse_time_input
 
 

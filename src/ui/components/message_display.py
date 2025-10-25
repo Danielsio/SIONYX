@@ -103,7 +103,7 @@ class MessageCard(QFrame):
             try:
                 dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
                 time_str = dt.strftime("%d/%m/%Y %H:%M")
-            except:
+            except Exception:
                 time_str = timestamp
         else:
             time_str = "Unknown time"

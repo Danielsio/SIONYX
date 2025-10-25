@@ -43,7 +43,8 @@ class PrintJobSimulator(QObject):
         """
         try:
             logger.info(
-                f"Simulating print job: {black_white_pages} B&W, {color_pages} color pages"
+                f"Simulating print job: {black_white_pages} B&W, "
+                f"{color_pages} color pages"
             )
 
             # Emit print job requested signal
@@ -61,7 +62,10 @@ class PrintJobSimulator(QObject):
                 return validation_result
 
             if not validation_result.get("can_print"):
-                error_msg = f"Insufficient budget: {validation_result.get('message', 'Unknown error')}"
+                error_msg = (
+                    f"Insufficient budget: "
+                    f"{validation_result.get('message', 'Unknown error')}"
+                )
                 logger.warning(error_msg)
                 self.print_job_failed.emit(error_msg)
                 return validation_result
@@ -74,7 +78,8 @@ class PrintJobSimulator(QObject):
 
             return {
                 "success": True,
-                "message": f"Print job queued, will complete in {delay_seconds} seconds",
+                "message": f"Print job queued, will complete in "
+                f"{delay_seconds} seconds",
                 "validation": validation_result,
             }
 
@@ -88,7 +93,8 @@ class PrintJobSimulator(QObject):
         """Complete the print job and deduct budget"""
         try:
             logger.info(
-                f"Completing print job: {black_white_pages} B&W, {color_pages} color pages"
+                f"Completing print job: {black_white_pages} B&W, "
+                f"{color_pages} color pages"
             )
 
             # Process successful print

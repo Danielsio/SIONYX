@@ -264,37 +264,37 @@ class MessageModal(QDialog):
                 border-radius: 28px;
                 border: 2px solid #E2E8F0;
             }
-            
+
             QFrame#messageHeader {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #3B82F6, stop:1 #2563EB);
                 border-radius: 28px 28px 0 0;
             }
-            
+
             QFrame#messageContent {
                 background: #FFFFFF;
                 border: none;
             }
-            
+
             QFrame#messageFooter {
                 background: #F8FAFC;
                 border-top: 2px solid #E2E8F0;
                 border-radius: 0 0 28px 28px;
             }
-            
+
             QLabel#messageText {
                 color: #1E293B;
                 background: transparent;
                 border: none;
                 line-height: 1.6;
             }
-            
+
             QLabel#messageTimestamp {
                 color: #64748B;
                 background: transparent;
                 border: none;
             }
-            
+
             QPushButton#readAllButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #10B981, stop:1 #059669);
@@ -313,7 +313,7 @@ class MessageModal(QDialog):
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #047857, stop:1 #065F46);
             }
-            
+
             QPushButton#readNextButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #3B82F6, stop:1 #2563EB);
@@ -332,7 +332,7 @@ class MessageModal(QDialog):
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #1E40AF, stop:1 #1E3A8A);
             }
-            
+
             QPushButton#closeButton {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #6B7280, stop:1 #4B5563);
@@ -390,7 +390,7 @@ class MessageModal(QDialog):
 
                 dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
                 time_str = dt.strftime("%d/%m/%Y %H:%M")
-            except:
+            except Exception:
                 time_str = timestamp
         else:
             time_str = "Unknown time"

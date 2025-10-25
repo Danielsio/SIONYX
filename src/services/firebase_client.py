@@ -322,7 +322,7 @@ class FirebaseClient:
 
                     # For any other Firebase error, try to translate it
                     return translate_error(message)
-            except:
+            except Exception:
                 pass
 
         # For non-Firebase errors, try to translate them too

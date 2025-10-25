@@ -27,12 +27,12 @@ MAIN_WINDOW_QSS = """
         font-size: 14px;
         font-weight: 500;
     }
-    #modernNavButton:hover { 
-        background-color: #334155; 
-        color: #E2E8F0; 
+    #modernNavButton:hover {
+        background-color: #334155;
+        color: #E2E8F0;
     }
-    #modernNavButton:focus { 
-        border: none; 
+    #modernNavButton:focus {
+        border: none;
         outline: 2px solid #3B82F6;
         outline-offset: -2px;
     }
@@ -42,8 +42,8 @@ MAIN_WINDOW_QSS = """
         font-weight: 600;
         border: none;
     }
-    #modernNavButton:checked:hover { 
-        background-color: #2563EB; 
+    #modernNavButton:checked:hover {
+        background-color: #2563EB;
     }
 
     /* Logout button with better styling */
@@ -54,8 +54,8 @@ MAIN_WINDOW_QSS = """
         font-size: 13px;
         font-weight: 600;
     }
-    #modernLogoutButton:hover { 
-        background-color: rgba(239, 68, 68, 0.2); 
+    #modernLogoutButton:hover {
+        background-color: rgba(239, 68, 68, 0.2);
         border-color: #F87171;
         color: #FCA5A5;
     }
@@ -70,7 +70,7 @@ MAIN_WINDOW_QSS = """
     }
 
     /* All pages with matching dark background */
-    #homePage, #contentPage, #helpPage, #historyPage { 
+    #homePage, #contentPage, #helpPage, #historyPage {
         background-color: transparent;
     }
 

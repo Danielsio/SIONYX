@@ -45,7 +45,8 @@ class PrintValidationService(QObject):
         """
         try:
             logger.info(
-                f"Validating print job: {black_white_pages} B&W, {color_pages} color pages"
+                f"Validating print job: {black_white_pages} B&W, "
+                f"{color_pages} color pages"
             )
 
             # Validate budget
@@ -66,7 +67,8 @@ class PrintValidationService(QObject):
             if not can_print:
                 insufficient_amount = validation_result.get("insufficient_amount", 0)
                 logger.warning(
-                    f"Insufficient print budget: {user_budget} NIS, need {print_cost} NIS"
+                    f"Insufficient print budget: {user_budget} NIS, "
+                    f"need {print_cost} NIS"
                 )
 
                 # Emit signal for UI to show insufficient budget message
@@ -79,7 +81,8 @@ class PrintValidationService(QObject):
                     "user_budget": user_budget,
                     "print_cost": print_cost,
                     "insufficient_amount": insufficient_amount,
-                    "message": f"יתרת הדפסות לא מספקת. נדרש {print_cost}₪, יש לך {user_budget}₪",
+                    "message": f"יתרת הדפסות לא מספקת. נדרש {print_cost}₪, "
+                    f"יש לך {user_budget}₪",
                 }
 
             logger.info(f"Print job validated successfully: {print_cost} NIS")
@@ -116,7 +119,8 @@ class PrintValidationService(QObject):
         """
         try:
             logger.info(
-                f"Processing successful print: {black_white_pages} B&W, {color_pages} color pages"
+                f"Processing successful print: {black_white_pages} B&W, "
+                f"{color_pages} color pages"
             )
 
             # Deduct budget
@@ -134,7 +138,8 @@ class PrintValidationService(QObject):
             deducted_amount = deduction_result.get("deducted_amount", 0)
 
             logger.info(
-                f"Print budget deducted: {deducted_amount} NIS, remaining: {new_budget} NIS"
+                f"Print budget deducted: {deducted_amount} NIS, "
+                f"remaining: {new_budget} NIS"
             )
 
             # Emit signal for UI to update budget display
