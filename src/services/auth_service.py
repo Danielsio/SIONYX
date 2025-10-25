@@ -152,7 +152,7 @@ class AuthService:
             "phoneNumber": phone,
             "email": email if email else "",
             "remainingTime": 0,  # Start with 0 seconds
-            "remainingPrints": 0.0,  # Start with 0 NIS print budget (renamed from count)
+            "remainingPrints": 0.0,  # Start with 0 NIS print budget
             "isActive": True,
             "isAdmin": False,  # Regular users are not admins
             "createdAt": datetime.now().isoformat(),
@@ -271,7 +271,8 @@ class AuthService:
             # If activity is older than 2 minutes, session ended abnormally
             if time_since_activity > 120:  # 2 minutes
                 logger.info(
-                    f"🧹 Orphaned session detected ({time_since_activity:.0f}s since last activity)"
+                    f"🧹 Orphaned session detected "
+                    f"({time_since_activity:.0f}s since last activity)"
                 )
                 logger.info(
                     "Being kind: NOT deducting time (could be power outage/crash)"
@@ -292,7 +293,8 @@ class AuthService:
 
             else:
                 logger.debug(
-                    f"Session is recent ({time_since_activity:.0f}s old), no cleanup needed"
+                    f"Session is recent ({time_since_activity:.0f}s old), "
+                    f"no cleanup needed"
                 )
 
         except Exception as e:
@@ -325,7 +327,8 @@ class AuthService:
                     )
                 else:
                     logger.warning(
-                        f"Failed to associate user with computer: {association_result.get('error')}"
+                        f"Failed to associate user with computer: "
+                        f"{association_result.get('error')}"
                     )
             else:
                 logger.warning(

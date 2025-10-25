@@ -76,12 +76,12 @@ class ModernDialog(QDialog):
                 /* Subtle scrim to lift the dialog above content */
                 background: rgba(0, 0, 0, 120);
             }
-            
+
             #dialogOverlay {
                 background: transparent;
                 padding: 8px;
             }
-            
+
             #dialogContainer {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 #FFFFFF, stop:1 #F9FAFB);
@@ -304,20 +304,20 @@ class ModernMessageBox(ModernDialog):
                 border-radius: 12px;
                 padding: 4px;
             }}
-            
+
             #dialogTitle {{
                 color: #111827;
                 padding-top: 2px;
                 font-weight: 700;
                 font-size: 18px;
             }}
-            
+
             #dialogMessage {{
                 color: #374151;
                 font-size: 14px;
                 font-weight: 500;
             }}
-            
+
             #dialogDetailed {{
                 color: #4B5563;
                 padding: 12px;
@@ -326,7 +326,7 @@ class ModernMessageBox(ModernDialog):
                 border-radius: 10px;
                 margin-top: 6px;
             }}
-            
+
             #dialogButton {{
                 background: #FFFFFF;
                 color: #374151;
@@ -337,19 +337,19 @@ class ModernMessageBox(ModernDialog):
                 font-weight: 600;
                 min-width: 100px;
             }}
-            
+
             #dialogButton:hover {{
                 background: #F3F4F6;
                 border-color: #9CA3AF;
                 color: #111827;
             }}
-            
+
             #dialogButton:pressed {{
                 background: #E5E7EB;
                 border-color: #6B7280;
                 color: #111827;
             }}
-            
+
             #dialogButton[primary="true"] {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 {icon_color}, stop:1 {self._adjust_color(icon_color, -20)});
@@ -357,13 +357,13 @@ class ModernMessageBox(ModernDialog):
                 border: none;
                 font-weight: 700;
             }}
-            
+
             #dialogButton[primary="true"]:hover {{
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                     stop:0 {self._adjust_color(icon_color, 10)}, stop:1 {self._adjust_color(icon_color, -10)});
                 color: #FFFFFF;
             }}
-            
+
             #dialogButton[primary="true"]:pressed {{
                 background: {self._adjust_color(icon_color, -30)};
                 color: #FFFFFF;
@@ -608,13 +608,13 @@ class ModernNotification(QDialog):
                 border: 1px solid #E5E7EB;
                 border-radius: 14px;
             }}
-            
+
             #notificationIcon {{
                 color: {color};
                 font-size: 20px;
                 padding: 2px;
             }}
-            
+
             #notificationMessage {{
                 color: #1F2937;
                 font-weight: 600;

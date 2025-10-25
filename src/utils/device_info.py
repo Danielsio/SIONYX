@@ -97,7 +97,7 @@ def get_hardware_fingerprint() -> str:
             cpu_info = platform.processor()
             if cpu_info and cpu_info != "":
                 components.append(cpu_info)
-        except:
+        except Exception:
             pass
 
         # Combine and hash

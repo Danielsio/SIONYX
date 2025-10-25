@@ -38,7 +38,8 @@ class PrintBudgetService:
                 )
                 return {
                     "success": False,
-                    "error": f"Failed to get organization metadata: {result.get('error')}",
+                    "error": f"Failed to get organization metadata: "
+                    f"{result.get('error')}",
                 }
 
             metadata = result.get("data", {})
@@ -93,7 +94,8 @@ class PrintBudgetService:
                 }
 
             logger.info(
-                f"Print pricing updated for org {org_id}: B&W={black_white_price} NIS, Color={color_price} NIS"
+                f"Print pricing updated for org {org_id}: "
+                f"B&W={black_white_price} NIS, Color={color_price} NIS"
             )
             return {"success": True}
 
@@ -298,11 +300,13 @@ class PrintBudgetService:
                 )
                 return {
                     "success": False,
-                    "error": f"Failed to update user print budget: {result.get('error')}",
+                    "error": f"Failed to update user print budget: "
+                    f"{result.get('error')}",
                 }
 
             logger.info(
-                f"Print budget deducted for user {user_id}: {print_cost} NIS, remaining: {new_budget} NIS"
+                f"Print budget deducted for user {user_id}: "
+                f"{print_cost} NIS, remaining: {new_budget} NIS"
             )
 
             return {
@@ -360,11 +364,12 @@ class PrintBudgetService:
                 logger.error(f"Failed to add print budget: {result.get('error')}")
                 return {
                     "success": False,
-                    "error": f"Failed to add print budget: {result.get('error')}",
+                    "error": f"Failed to add print budget: " f"{result.get('error')}",
                 }
 
             logger.info(
-                f"Print budget added for user {user_id}: +{amount} NIS, new total: {new_budget} NIS"
+                f"Print budget added for user {user_id}: "
+                f"+{amount} NIS, new total: {new_budget} NIS"
             )
 
             return {

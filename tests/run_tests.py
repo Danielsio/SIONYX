@@ -6,7 +6,6 @@ Test runner script for SIONYX
 import argparse
 import subprocess
 import sys
-from pathlib import Path
 
 
 def run_tests(test_path=None, verbose=False, coverage=True, markers=None):
@@ -40,7 +39,7 @@ def run_tests(test_path=None, verbose=False, coverage=True, markers=None):
     print("-" * 50)
 
     try:
-        result = subprocess.run(cmd, check=True)
+        subprocess.run(cmd, check=True)
         print("\n" + "=" * 50)
         print("✅ All tests passed!")
         return 0

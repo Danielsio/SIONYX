@@ -526,7 +526,7 @@ class PackagesPage(QWidget):
             if hasattr(parent_window, "show_success"):
                 parent_window.show_success(
                     "הרכישה הושלמה! 🎉",
-                    f"הרכישה שלך בוצעה בהצלחה!",
+                    "הרכישה שלך בוצעה בהצלחה!",
                     f"נוסף לחשבונך:<br>"
                     f"• <b>{package.get('minutes')} דקות</b> של זמן הפעלה<br>"
                     f"• <b>{package.get('prints')}₪</b> יתרת הדפסות",

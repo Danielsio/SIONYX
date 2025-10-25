@@ -151,7 +151,7 @@ class SessionManager(QObject):
                 )
 
                 self.cached_remaining_time = new_remaining_time
-        except:
+        except Exception:
             pass  # Best effort
 
     def get_remaining_time(self) -> int:
@@ -162,7 +162,7 @@ class SessionManager(QObject):
             if result.get("success"):
                 self.cached_remaining_time = result["data"].get("remainingTime", 0)
                 return self.cached_remaining_time
-        except:
+        except Exception:
             pass
 
         # Return cached value

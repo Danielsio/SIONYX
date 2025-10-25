@@ -3,10 +3,9 @@ Tests for SessionService
 """
 
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
 import pytest
-from PyQt6.QtCore import QTimer
 
 from src.services.session_service import SessionService
 

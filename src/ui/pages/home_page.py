@@ -236,16 +236,16 @@ class HomePage(QWidget):
 
         # Modern card styling with enhanced shadows
         card.setStyleSheet(
-            f"""
-            QFrame {{
+            """
+            QFrame {
                 background: #FFFFFF;
                 border-radius: 20px;
                 border: 2px solid #E2E8F0;
-            }}
-            QLabel {{
+            }
+            QLabel {
                 border: none;
                 background: transparent;
-            }}
+            }
         """
         )
 

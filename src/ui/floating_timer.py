@@ -58,7 +58,7 @@ class FloatingTimer(QWidget):
         # Debug positioning
         logger.info(f"Screen size: {screen.width()}x{screen.height()}")
         logger.info(f"Timer positioned at: {x}, {y}")
-        logger.info(f"Timer size: 280x140")
+        logger.info("Timer size: 280x140")
 
         # Main container
         self.container = QWidget()
@@ -268,16 +268,16 @@ class FloatingTimer(QWidget):
                 border: 1px solid #555555;
                 border-radius: 8px;
             }
-            
+
             #leftSection {
                 background-color: #363636;
                 border-right: 1px solid #555555;
             }
-            
+
             #rightSection {
                 background-color: #363636;
             }
-            
+
             #exitButton {
                 background-color: #FF0000;
                 color: #FFFFFF;
@@ -287,15 +287,15 @@ class FloatingTimer(QWidget):
                 font-size: 12px;
                 padding: 8px 12px;
             }
-            
+
             #exitButton:hover {
                 background-color: #FF3333;
             }
-            
+
             #exitButton:pressed {
                 background-color: #CC0000;
             }
-            
+
             #printerIcon {
                 color: #FFFFFF;
                 background-color: #363636;
@@ -303,41 +303,41 @@ class FloatingTimer(QWidget):
                 border-radius: 4px;
                 padding: 8px;
             }
-            
+
             #timeRemainingLabel {
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #timeRemainingValue {
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #usageTimeLabel {
                 color: #CCCCCC;
                 font-size: 14px;
             }
-            
+
             #usageTimeValue {
                 color: #CCCCCC;
                 font-size: 14px;
             }
-            
+
             #printBalanceLabel {
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #printBalanceValue {
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #accountButton {
                 background-color: #363636;
                 color: #FFFFFF;
@@ -346,11 +346,11 @@ class FloatingTimer(QWidget):
                 font-size: 12px;
                 padding: 6px 12px;
             }
-            
+
             #accountButton:hover {
                 background-color: #4A4A4A;
             }
-            
+
             #accountButton:pressed {
                 background-color: #2A2A2A;
             }
@@ -374,16 +374,16 @@ class FloatingTimer(QWidget):
                 border: 1px solid #FFA500;
                 border-radius: 8px;
             }
-            
+
             #leftSection {
                 background-color: #4A3A00;
                 border-right: 1px solid #FFA500;
             }
-            
+
             #rightSection {
                 background-color: #4A3A00;
             }
-            
+
             #exitButton {
                 background-color: #FF0000;
                 color: #FFFFFF;
@@ -393,15 +393,15 @@ class FloatingTimer(QWidget):
                 font-size: 12px;
                 padding: 8px 12px;
             }
-            
+
             #exitButton:hover {
                 background-color: #FF3333;
             }
-            
+
             #exitButton:pressed {
                 background-color: #CC0000;
             }
-            
+
             #printerIcon {
                 color: #FFFFFF;
                 background-color: #4A3A00;
@@ -409,41 +409,41 @@ class FloatingTimer(QWidget):
                 border-radius: 4px;
                 padding: 8px;
             }
-            
+
             #timeRemainingLabel {
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #timeRemainingValue {
                 color: #FFA500;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #usageTimeLabel {
                 color: #CCCCCC;
                 font-size: 14px;
             }
-            
+
             #usageTimeValue {
                 color: #CCCCCC;
                 font-size: 14px;
             }
-            
+
             #printBalanceLabel {
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #printBalanceValue {
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #accountButton {
                 background-color: #4A3A00;
                 color: #FFFFFF;
@@ -452,11 +452,11 @@ class FloatingTimer(QWidget):
                 font-size: 9px;
                 padding: 6px 12px;
             }
-            
+
             #accountButton:hover {
                 background-color: #5A4A00;
             }
-            
+
             #accountButton:pressed {
                 background-color: #3A2A00;
             }
@@ -472,16 +472,16 @@ class FloatingTimer(QWidget):
                 border: 1px solid #FF0000;
                 border-radius: 8px;
             }
-            
+
             #leftSection {
                 background-color: #4A0000;
                 border-right: 1px solid #FF0000;
             }
-            
+
             #rightSection {
                 background-color: #4A0000;
             }
-            
+
             #exitButton {
                 background-color: #FF0000;
                 color: #FFFFFF;
@@ -491,15 +491,15 @@ class FloatingTimer(QWidget):
                 font-size: 12px;
                 padding: 8px 12px;
             }
-            
+
             #exitButton:hover {
                 background-color: #FF3333;
             }
-            
+
             #exitButton:pressed {
                 background-color: #CC0000;
             }
-            
+
             #printerIcon {
                 color: #FFFFFF;
                 background-color: #4A0000;
@@ -507,41 +507,41 @@ class FloatingTimer(QWidget):
                 border-radius: 4px;
                 padding: 8px;
             }
-            
+
             #timeRemainingLabel {
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #timeRemainingValue {
                 color: #FF0000;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #usageTimeLabel {
                 color: #CCCCCC;
                 font-size: 14px;
             }
-            
+
             #usageTimeValue {
                 color: #CCCCCC;
                 font-size: 14px;
             }
-            
+
             #printBalanceLabel {
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #printBalanceValue {
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
             }
-            
+
             #accountButton {
                 background-color: #4A0000;
                 color: #FFFFFF;
@@ -550,11 +550,11 @@ class FloatingTimer(QWidget):
                 font-size: 9px;
                 padding: 6px 12px;
             }
-            
+
             #accountButton:hover {
                 background-color: #5A0000;
             }
-            
+
             #accountButton:pressed {
                 background-color: #3A0000;
             }

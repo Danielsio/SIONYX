@@ -4,8 +4,25 @@ Main entry point - Refactored for better error handling and constants usage
 """
 
 import argparse
+import logging
 import sys
 from pathlib import Path
+
+from PyQt6.QtCore import QCoreApplication, Qt
+from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
+
+from services.auth_service import AuthService
+from services.global_hotkey_service import GlobalHotkeyService
+from ui.auth_window import AuthWindow
+from ui.main_window import MainWindow
+from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
+from utils.firebase_config import get_firebase_config
+from utils.logger import (
+    SionyxLogger,
+    generate_request_id,
+    get_logger,
+    set_context,
+)
 
 
 # Ensure src directory is in Python path
@@ -15,18 +32,7 @@ if __name__ == "__main__":
         sys.path.insert(0, str(src_dir))
 
 # CRITICAL: Import and configure WebEngine BEFORE QApplication
-from PyQt6.QtCore import QCoreApplication, Qt
-
-
 QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
-
-import logging
-
-from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
-
-# Now initialize logging
-from utils.logger import SionyxLogger
-
 
 # Set up logging with appropriate level
 log_level = (
@@ -36,18 +42,7 @@ SionyxLogger.setup(log_level=log_level, log_to_file=True, enable_colors=True)
 
 SionyxLogger.cleanup_old_logs(days_to_keep=7)
 
-from utils.logger import generate_request_id, get_logger, set_context
-
-
 logger = get_logger(__name__)
-
-from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
-
-from services.auth_service import AuthService
-from services.global_hotkey_service import GlobalHotkeyService
-from ui.auth_window import AuthWindow
-from ui.main_window import MainWindow
-from utils.firebase_config import get_firebase_config
 
 
 class SionyxApp:
@@ -174,13 +169,13 @@ class SionyxApp:
         # Label using constants
         label = QLabel("Enter administrator password to exit:")
         label.setStyleSheet(
-            f"""
-            QLabel {{
+            """
+            QLabel {
                 color: #212121;
                 font-size: 14px;
                 font-weight: 600;
                 padding: 10px;
-            }}
+            }
         """
         )
 
@@ -188,8 +183,8 @@ class SionyxApp:
         password_input = QLineEdit()
         password_input.setEchoMode(QLineEdit.EchoMode.Password)
         password_input.setStyleSheet(
-            f"""
-            QLineEdit {{
+            """
+            QLineEdit {
                 padding: 14px;
                 border: 2px solid #1976D2;
                 border-radius: 10px;
@@ -197,7 +192,7 @@ class SionyxApp:
                 color: #212121;
                 font-size: 14px;
                 min-width: 300px;
-            }}
+            }
         """
         )
 

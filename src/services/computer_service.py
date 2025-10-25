@@ -283,7 +283,9 @@ class ComputerService:
 
                     # Get user info
                     user_data = users.get(current_user_id, {})
-                    user_name = f"{user_data.get('firstName', '')} {user_data.get('lastName', '')}".strip()
+                    first_name = user_data.get("firstName", "")
+                    last_name = user_data.get("lastName", "")
+                    user_name = f"{first_name} {last_name}".strip()
 
                     stats["computer_details"].append(
                         {

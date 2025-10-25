@@ -33,7 +33,7 @@ def get_message_card_qss(tokens=None):
             transform: translateY(0px);
             border: 2px solid {p['primary_pressed']};
         }}
-        
+
         QLabel {{
             color: {p['text']};
             background: transparent;
@@ -58,24 +58,24 @@ def get_message_modal_qss(tokens=None):
             border-radius: {r['xl']};
             border: 2px solid {p['border']};
         }}
-        
+
         QFrame#messageHeader {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                 stop:0 {p['primary']}, stop:1 {p['primary_pressed']});
             border-radius: {r['xl']} {r['xl']} 0 0;
         }}
-        
+
         QFrame#messageContent {{
             background: {p['surface']};
             border: none;
         }}
-        
+
         QFrame#messageFooter {{
             background: {p['surface_subtle']};
             border-top: 1px solid {p['border']};
             border-radius: 0 0 {r['xl']} {r['xl']};
         }}
-        
+
         QLabel#messageText {{
             color: {p['text']};
             background: transparent;
@@ -83,7 +83,7 @@ def get_message_modal_qss(tokens=None):
             line-height: 1.7;
             font-weight: 500;
         }}
-        
+
         QLabel#messageTimestamp {{
             color: {p['text_muted']};
             background: {p['surface_alt']};
@@ -92,7 +92,7 @@ def get_message_modal_qss(tokens=None):
             padding: 8px 16px;
             font-weight: 600;
         }}
-        
+
         QPushButton#readAllButton {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                 stop:0 {p['success']}, stop:1 {p['success_hover']});
@@ -112,7 +112,7 @@ def get_message_modal_qss(tokens=None):
                 stop:0 {p['success_pressed']}, stop:1 #065F46);
             transform: translateY(0px);
         }}
-        
+
         QPushButton#readNextButton {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                 stop:0 {p['primary']}, stop:1 {p['primary_pressed']});
@@ -132,7 +132,7 @@ def get_message_modal_qss(tokens=None):
                 stop:0 {p['primary_pressed']}, stop:1 #1E293B);
             transform: translateY(0px);
         }}
-        
+
         QPushButton#closeButton {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                 stop:0 #6B7280, stop:1 #4B5563);
@@ -171,7 +171,7 @@ def get_message_notification_qss(tokens=None):
             border: 2px solid {p['border']};
             border-radius: {r['xl']};
         }}
-        
+
         QPushButton#viewButton {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                 stop:0 {p['primary']}, stop:1 {p['primary_pressed']});
@@ -191,7 +191,7 @@ def get_message_notification_qss(tokens=None):
                 stop:0 {p['primary_pressed']}, stop:1 #1E293B);
             transform: translateY(0px);
         }}
-        
+
         QPushButton#closeButton {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                 stop:0 {p['surface_alt']}, stop:1 {p['border']});
@@ -229,14 +229,14 @@ def get_message_display_qss(tokens=None):
             background: transparent;
             border: none;
         }}
-        
+
         QFrame#messageHeader {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                 stop:0 {p['primary']}, stop:1 {p['primary_pressed']});
             border-radius: {r['xl']} {r['xl']} 0 0;
             border: none;
         }}
-        
+
         QFrame#messagesContainer {{
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                 stop:0 {p['surface']}, stop:1 {p['surface_subtle']});
@@ -244,7 +244,7 @@ def get_message_display_qss(tokens=None):
             border-top: none;
             border-radius: 0 0 {r['xl']} {r['xl']};
         }}
-        
+
         QScrollArea {{
             border: none;
             background: transparent;
@@ -272,7 +272,7 @@ def get_message_display_qss(tokens=None):
         QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
             height: 0;
         }}
-        
+
         QLabel#noMessages {{
             color: {p['text_subtle']};
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
@@ -282,7 +282,7 @@ def get_message_display_qss(tokens=None):
             padding: 40px 20px;
             font-weight: 500;
         }}
-        
+
         QLabel#messageCount {{
             color: {p['primary_pressed']};
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
