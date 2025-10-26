@@ -36,8 +36,7 @@ from ui.pages.help_page import HelpPage
 from ui.pages.history_page import HistoryPage
 from ui.pages.home_page import HomePage
 from ui.pages.packages_page import PackagesPage
-from ui.styles import MAIN_WINDOW_QSS
-
+from ui.styles.main_window import MAIN_WINDOW_QSS
 
 logger = get_logger(__name__)
 
