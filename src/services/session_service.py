@@ -9,10 +9,10 @@ from typing import Dict, Optional
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
-from services.computer_service import ComputerService
-from services.firebase_client import FirebaseClient
-from services.print_validation_service import PrintValidationService
-from utils.logger import get_logger
+from src.services.computer_service import ComputerService
+from src.services.firebase_client import FirebaseClient
+from src.services.print_validation_service import PrintValidationService
+from src.utils.logger import get_logger
 
 
 logger = get_logger(__name__)

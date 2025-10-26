@@ -15,9 +15,9 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from services.print_validation_service import PrintValidationService
+from src.services.print_validation_service import PrintValidationService
 from ui.styles.base import Colors, Spacing
-from utils.logger import get_logger
+from src.utils.logger import get_logger
 
 
 logger = get_logger(__name__)

@@ -60,13 +60,13 @@ def mock_firebase_client(mock_firebase_config):
 @pytest.fixture
 def mock_requests():
     """Mock requests library for HTTP calls"""
-    with pytest.Mock() as mock:
-        mock.get.return_value.status_code = 200
-        mock.post.return_value.status_code = 200
-        mock.put.return_value.status_code = 200
-        mock.patch.return_value.status_code = 200
-        mock.delete.return_value.status_code = 200
-        yield mock
+    mock = Mock()
+    mock.get.return_value.status_code = 200
+    mock.post.return_value.status_code = 200
+    mock.put.return_value.status_code = 200
+    mock.patch.return_value.status_code = 200
+    mock.delete.return_value.status_code = 200
+    yield mock
 
 
 @pytest.fixture

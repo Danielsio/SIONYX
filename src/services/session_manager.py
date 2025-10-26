@@ -3,8 +3,8 @@ import uuid
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
-from services.firebase_client import FirebaseClient
-from utils.device_info import get_device_id
+from src.services.firebase_client import FirebaseClient
+from src.utils.device_info import get_device_id
 
 
 class SessionManager(QObject):

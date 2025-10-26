@@ -6,7 +6,6 @@ import socket
 from unittest.mock import patch
 
 from src.utils.device_info import (
-    get_computer_id,
     get_computer_name,
     get_device_id,
     get_mac_address,
@@ -46,21 +45,21 @@ class TestDeviceInfo:
             result = get_mac_address()
             assert result is None
 
-    def test_get_computer_id_success(self):
+    def test_get_device_id_success(self):
         """Test successful computer ID generation"""
         with patch(
             "src.utils.device_info.get_device_id", return_value="test-device-id"
         ):
-            result = get_computer_id()
+            result = get_device_id()
             assert result == "test-device-id"
 
-    def test_get_computer_id_failure(self):
+    def test_get_device_id_failure(self):
         """Test computer ID generation failure"""
         with patch(
             "src.utils.device_info.get_device_id",
             side_effect=Exception("Device ID error"),
         ):
-            result = get_computer_id()
+            result = get_device_id()
             assert result is None
 
     def test_get_device_id_with_mac(self):
@@ -175,25 +174,25 @@ class TestDeviceInfo:
                 result = get_mac_address()
                 assert result is None
 
-    def test_get_computer_id_device_id_error(self):
+    def test_get_device_id_device_id_error(self):
         """Test computer ID when device ID generation fails"""
         with patch(
             "src.utils.device_info.get_device_id",
             side_effect=Exception("Device ID error"),
         ):
-            result = get_computer_id()
+            result = get_device_id()
             assert result is None
 
-    def test_get_computer_id_device_id_none(self):
+    def test_get_device_id_device_id_none(self):
         """Test computer ID when device ID returns None"""
         with patch("src.utils.device_info.get_device_id", return_value=None):
-            result = get_computer_id()
+            result = get_device_id()
             assert result is None
 
-    def test_get_computer_id_device_id_empty(self):
+    def test_get_device_id_device_id_empty(self):
         """Test computer ID when device ID returns empty string"""
         with patch("src.utils.device_info.get_device_id", return_value=""):
-            result = get_computer_id()
+            result = get_device_id()
             assert result is None
 
     def test_get_device_id_mac_address_edge_cases(self):
