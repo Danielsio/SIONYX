@@ -11,13 +11,13 @@ from pathlib import Path
 from PyQt6.QtCore import QCoreApplication, Qt
 from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
 
-from services.auth_service import AuthService
-from services.global_hotkey_service import GlobalHotkeyService
+from src.services.auth_service import AuthService
+from src.services.global_hotkey_service import GlobalHotkeyService
 from ui.auth_window import AuthWindow
 from ui.main_window import MainWindow
-from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
-from utils.firebase_config import get_firebase_config
-from utils.logger import (
+from src.utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
+from src.utils.firebase_config import get_firebase_config
+from src.utils.logger import (
     SionyxLogger,
     generate_request_id,
     get_logger,

@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QLabel, QVBoxLayout, QWidget
 
-from utils.logger import get_logger
+from src.utils.logger import get_logger
 
 
 logger = get_logger(__name__)

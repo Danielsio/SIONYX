@@ -25,8 +25,8 @@ from PyQt6.QtWidgets import (
 )
 
 from ui.base_window import BaseKioskWindow
-from ui.styles import AUTH_WINDOW_QSS
-from utils.const import APP_NAME
+from src.utils.const import APP_NAME
+from ui.styles.auth_window import AUTH_WINDOW_QSS
 
 
 class AuthWindow(BaseKioskWindow):

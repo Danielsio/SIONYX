@@ -9,8 +9,8 @@ from typing import Callable, Dict, List
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from services.firebase_client import FirebaseClient
-from utils.logger import get_logger
+from src.services.firebase_client import FirebaseClient
+from src.utils.logger import get_logger
 
 
 logger = get_logger(__name__)

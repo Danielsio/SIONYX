@@ -7,8 +7,8 @@ import base64
 import json
 from typing import Any, Dict, Optional
 
-from services.firebase_client import FirebaseClient
-from utils.logger import get_logger
+from src.services.firebase_client import FirebaseClient
+from src.utils.logger import get_logger
 
 
 logger = get_logger(__name__)

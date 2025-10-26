@@ -19,7 +19,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from services.package_service import PackageService
+from src.services.package_service import PackageService
 from ui.components.base_components import (
     ActionButton,
     BaseCard,
@@ -35,7 +35,7 @@ from ui.constants.ui_constants import (
     UIStrings,
     get_shadow_effect,
 )
-from utils.logger import get_logger
+from src.utils.logger import get_logger
 
 
 logger = get_logger(__name__)
