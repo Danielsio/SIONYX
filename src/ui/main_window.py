@@ -18,6 +18,8 @@ from PyQt6.QtWidgets import (
 )
 
 from src.services.session_service import SessionService
+from src.utils.const import APP_NAME
+from src.utils.logger import get_logger
 from ui.base_window import BaseKioskWindow
 from ui.components.base_components import ActionButton
 from ui.constants.ui_constants import (
@@ -35,8 +37,6 @@ from ui.pages.history_page import HistoryPage
 from ui.pages.home_page import HomePage
 from ui.pages.packages_page import PackagesPage
 from ui.styles import MAIN_WINDOW_QSS
-from src.utils.const import APP_NAME
-from src.utils.logger import get_logger
 
 
 logger = get_logger(__name__)
