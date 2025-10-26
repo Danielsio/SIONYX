@@ -13,8 +13,6 @@ from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
 
 from src.services.auth_service import AuthService
 from src.services.global_hotkey_service import GlobalHotkeyService
-from ui.auth_window import AuthWindow
-from ui.main_window import MainWindow
 from src.utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
 from src.utils.firebase_config import get_firebase_config
 from src.utils.logger import (
@@ -23,6 +21,8 @@ from src.utils.logger import (
     get_logger,
     set_context,
 )
+from ui.auth_window import AuthWindow
+from ui.main_window import MainWindow
 
 
 # Ensure src directory is in Python path

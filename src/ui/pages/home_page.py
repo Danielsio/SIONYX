@@ -17,6 +17,7 @@ from PyQt6.QtWidgets import (
 )
 
 from src.services.chat_service import ChatService
+from src.utils.logger import get_logger
 from ui.components.base_components import (
     ActionButton,
     StatCard,
@@ -31,7 +32,6 @@ from ui.constants.ui_constants import (
     UIStrings,
     get_shadow_effect,
 )
-from src.utils.logger import get_logger
 
 
 logger = get_logger(__name__)

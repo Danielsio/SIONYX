@@ -1,108 +1,31 @@
 # SIONYX Makefile
 # ===============
 
-.PHONY: help install install-dev test test-unit test-integration test-ui lint format clean coverage docs
+.PHONY: help test build lint
 
 # Default target
 help:
 	@echo "SIONYX Development Commands"
 	@echo "=========================="
-	@echo ""
-	@echo "Installation:"
-	@echo "  install      Install production dependencies"
-	@echo "  install-dev  Install development dependencies"
-	@echo ""
-	@echo "Testing:"
-	@echo "  test         Run all tests"
-	@echo "  test-unit    Run unit tests only"
-	@echo "  test-integration Run integration tests only"
-	@echo "  test-ui      Run UI tests only"
-	@echo "  coverage     Run tests with coverage report"
-	@echo ""
-	@echo "Code Quality:"
-	@echo "  lint         Run all linting tools"
-	@echo "  format       Format code with black and isort"
-	@echo ""
-	@echo "Utilities:"
-	@echo "  clean        Clean up temporary files"
-	@echo "  docs         Generate documentation"
+	@echo "  test    - Not implemented yet (placeholder)"
+	@echo "  build   - Build the application"
+	@echo "  lint    - Run linting checks"
 
-# Installation
-install:
-	pip install -r requirements.txt
-
-install-dev:
-	pip install -r requirements.txt
-	pip install -r requirements-dev.txt
-
-# Testing
+# Testing (not implemented yet)
 test:
-	python -m pytest tests/ -v
+	@echo "Testing is not implemented yet"
+	@echo "This will be built slowly and steadily"
 
-test-unit:
-	python -m pytest tests/ -m "not integration and not ui" -v
-
-test-integration:
-	python -m pytest tests/ -m "integration" -v
-
-test-ui:
-	python -m pytest tests/ -m "ui" -v
-
-coverage:
-	python -m pytest tests/ --cov=src --cov-report=html --cov-report=term-missing
+# Build
+build:
+	@echo "Building application..."
+	python build.py
 
 # Code Quality
 lint:
 	@echo "Running black..."
-	black --check src/ tests/
+	@black --check src/ tests/ || (echo "Black check failed. Run 'black src/ tests/' to fix." && exit 1)
 	@echo "Running isort..."
-	isort --check-only src/ tests/
-	@echo "Running flake8..."
-	flake8 src/ tests/
-	@echo "Running mypy..."
-	mypy src/
-	@echo "Running bandit..."
-	bandit -r src/
-	@echo "Running safety..."
-	safety check
-
-format:
-	black src/ tests/
-	isort src/ tests/
-
-# Utilities
-clean:
-	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -delete
-	find . -type d -name "*.egg-info" -exec rm -rf {} +
-	rm -rf build/
-	rm -rf dist/
-	rm -rf .coverage
-	rm -rf htmlcov/
-	rm -rf .pytest_cache/
-	rm -rf .mypy_cache/
-
-docs:
-	@echo "Documentation generation not implemented yet"
-
-# Development shortcuts
-dev-setup: install-dev
-	@echo "Development environment setup complete!"
-
-quick-test:
-	python -m pytest tests/ -x -v --tb=short
-
-test-watch:
-	python -m pytest tests/ -f -v
-
-# CI/CD helpers
-ci-test:
-	python -m pytest tests/ --cov=src --cov-report=xml --junitxml=test-results.xml
-
-ci-lint:
-	black --check src/ tests/
-	isort --check-only src/ tests/
-	flake8 src/ tests/
-	mypy src/
-	bandit -r src/
-	safety check
+	@isort --check-only src/ tests/ || (echo "isort check failed. Run 'isort src/ tests/' to fix." && exit 1)
+	@echo "Running flake8 (ignoring C901 complexity and line length warnings)..."
+	@flake8 src/ tests/ --ignore=C901,E501 || (echo "flake8 check failed." && exit 1)

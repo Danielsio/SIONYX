@@ -18,8 +18,8 @@ from PyQt6.QtWidgets import (
 )
 
 from src.services.organization_metadata_service import OrganizationMetadataService
-from ui.styles.base import Colors, Spacing
 from src.utils.logger import get_logger
+from ui.styles.base import Colors, Spacing
 
 
 logger = get_logger(__name__)
