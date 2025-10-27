@@ -23,12 +23,14 @@ from src.utils.logger import get_logger
 from ui.base_window import BaseKioskWindow
 from ui.components.base_components import ActionButton
 from ui.constants.ui_constants import (
+    BorderRadius,
     Colors,
     Dimensions,
     Shadows,
     Spacing,
     Typography,
     UIStrings,
+    get_shadow,
     get_shadow_effect,
 )
 from ui.floating_timer import FloatingTimer
@@ -139,11 +141,11 @@ class MainWindow(BaseKioskWindow):
         sidebar.setFixedWidth(Dimensions.SIDEBAR_WIDTH)
 
         # Apply shadow using constants
-        shadow_config = get_shadow_effect(Shadows.LARGE_BLUR, Shadows.Y_OFFSET_LARGE)
+        shadow_config = get_shadow("lg")
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(shadow_config["blur_radius"])
-        shadow.setXOffset(shadow_config["x_offset"])
-        shadow.setYOffset(shadow_config["y_offset"])
+        shadow.setBlurRadius(shadow_config["blur"])
+        shadow.setXOffset(0)
+        shadow.setYOffset(shadow_config["y"])
         shadow.setColor(QColor(shadow_config["color"]))
         sidebar.setGraphicsEffect(shadow)
 
@@ -173,12 +175,12 @@ class MainWindow(BaseKioskWindow):
         header.setStyleSheet("background-color: transparent; border: none;")
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(
-            Spacing.CARD_MARGIN,
-            Spacing.COMPONENT_MARGIN,
-            Spacing.CARD_MARGIN,
-            Spacing.COMPONENT_MARGIN,
+            Spacing.LG,
+            Spacing.BASE,
+            Spacing.LG,
+            Spacing.BASE,
         )
-        header_layout.setSpacing(Spacing.ELEMENT_SPACING)
+        header_layout.setSpacing(Spacing.MD)
 
         # Menu icon
         burger = QLabel("≡")
@@ -212,12 +214,12 @@ class MainWindow(BaseKioskWindow):
         nav_section.setStyleSheet("background-color: transparent;")
         nav_layout = QVBoxLayout(nav_section)
         nav_layout.setContentsMargins(
-            Spacing.ELEMENT_SPACING,
-            Spacing.TIGHT_SPACING,
-            Spacing.ELEMENT_SPACING,
-            Spacing.ELEMENT_SPACING,
+            Spacing.MD,
+            Spacing.SM,
+            Spacing.MD,
+            Spacing.MD,
         )
-        nav_layout.setSpacing(Spacing.TIGHT_SPACING)
+        nav_layout.setSpacing(Spacing.SM)
 
         self.nav_buttons = []
 
@@ -242,15 +244,15 @@ class MainWindow(BaseKioskWindow):
         bottom_section.setStyleSheet("background-color: transparent;")
         bottom_layout = QVBoxLayout(bottom_section)
         bottom_layout.setContentsMargins(
-            Spacing.ELEMENT_SPACING,
-            Spacing.TIGHT_SPACING,
-            Spacing.ELEMENT_SPACING,
-            Spacing.CARD_MARGIN,
+            Spacing.MD,
+            Spacing.SM,
+            Spacing.MD,
+            Spacing.LG,
         )
         bottom_layout.setSpacing(0)
 
         # Use base component for logout button
-        btn_logout = ActionButton(UIStrings.LOGOUT, "danger", "small")
+        btn_logout = ActionButton(UIStrings.LOGOUT, "danger", "sm")
         btn_logout.setObjectName("modernLogoutButton")
         btn_logout.clicked.connect(self.handle_logout)
         bottom_layout.addWidget(btn_logout)
@@ -266,7 +268,7 @@ class MainWindow(BaseKioskWindow):
                 Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_MEDIUM
             )
         )
-        btn.setMinimumHeight(Dimensions.BUTTON_HEIGHT_SMALL)
+        btn.setMinimumHeight(Dimensions.BUTTON_HEIGHT_SM)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setCheckable(True)
         btn.clicked.connect(lambda: self.show_page(page_index))

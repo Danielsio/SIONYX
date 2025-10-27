@@ -1,7 +1,13 @@
-"""Styles for MainWindow (sidebar + content)."""
+"""
+Main Window Styles - FROST Design System
+Modern dark sidebar with clean navigation.
+"""
 
 MAIN_WINDOW_QSS = """
-    /* Modern Dark Sidebar with strong contrast */
+    /* ═══════════════════════════════════════════════════════════════════════
+       SIDEBAR - Modern Dark Theme
+       ═══════════════════════════════════════════════════════════════════════ */
+    
     #modernSidebar {
         background: qlineargradient(
             x1:0, y1:0, x2:0, y2:1,
@@ -11,67 +17,151 @@ MAIN_WINDOW_QSS = """
         border: none;
     }
 
-    /* User card in dark sidebar */
-    #userCard {
-        background-color: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    /* Nav buttons with modern styling */
+    /* ─────────────────────────────────────────────────────────────────────────
+       Navigation Buttons
+       ───────────────────────────────────────────────────────────────────────── */
+    
     #modernNavButton {
-        background-color: transparent;
+        background: transparent;
         color: #94A3B8;
         border: none;
-        text-align: left;
-        padding: 12px 14px;
+        border-radius: 12px;
+        text-align: right;
+        padding: 14px 18px;
+        margin: 2px 12px;
         font-size: 14px;
         font-weight: 500;
     }
+    
     #modernNavButton:hover {
-        background-color: #334155;
+        background: rgba(99, 102, 241, 0.12);
         color: #E2E8F0;
     }
-    #modernNavButton:focus {
-        border: none;
-        outline: 2px solid #3B82F6;
-        outline-offset: -2px;
-    }
+    
     #modernNavButton:checked {
-        background-color: #3B82F6;
+        background: qlineargradient(
+            x1:0, y1:0, x2:1, y2:0,
+            stop:0 rgba(99, 102, 241, 0.25),
+            stop:1 rgba(99, 102, 241, 0.08)
+        );
         color: #FFFFFF;
         font-weight: 600;
-        border: none;
+        border-right: 3px solid #6366F1;
     }
+    
     #modernNavButton:checked:hover {
-        background-color: #2563EB;
+        background: qlineargradient(
+            x1:0, y1:0, x2:1, y2:0,
+            stop:0 rgba(99, 102, 241, 0.35),
+            stop:1 rgba(99, 102, 241, 0.12)
+        );
     }
 
-    /* Logout button with better styling */
+    /* ─────────────────────────────────────────────────────────────────────────
+       Logout Button
+       ───────────────────────────────────────────────────────────────────────── */
+    
     #modernLogoutButton {
-        background-color: rgba(239, 68, 68, 0.1);
+        background: rgba(239, 68, 68, 0.08);
         color: #F87171;
         border: 1px solid rgba(239, 68, 68, 0.2);
+        border-radius: 10px;
+        padding: 12px 18px;
+        margin: 8px 16px;
         font-size: 13px;
         font-weight: 600;
     }
+    
     #modernLogoutButton:hover {
-        background-color: rgba(239, 68, 68, 0.2);
+        background: rgba(239, 68, 68, 0.15);
         border-color: #F87171;
         color: #FCA5A5;
     }
 
-    /* Content area with sophisticated grayish background */
+    /* ═══════════════════════════════════════════════════════════════════════
+       CONTENT AREA
+       ═══════════════════════════════════════════════════════════════════════ */
+    
     #contentStack {
-        background: qlineargradient(
-            x1:0, y1:0, x2:0, y2:1,
-            stop:0 #F1F5F9,
-            stop:1 #E2E8F0
-        );
+        background: #F8FAFC;
     }
 
-    /* All pages with matching dark background */
-    #homePage, #contentPage, #helpPage, #historyPage {
-        background-color: transparent;
+    /* Page backgrounds */
+    #homePage, #contentPage, #helpPage, #historyPage, #packagesPage {
+        background: transparent;
     }
 
+    /* ═══════════════════════════════════════════════════════════════════════
+       GLOBAL LABEL STYLING - Remove default borders
+       ═══════════════════════════════════════════════════════════════════════ */
+    
+    QLabel {
+        border: none;
+        background: transparent;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       SCROLLBARS
+       ═══════════════════════════════════════════════════════════════════════ */
+    
+    QScrollBar:vertical {
+        background: transparent;
+        width: 8px;
+        margin: 0;
+    }
+    
+    QScrollBar::handle:vertical {
+        background: #CBD5E1;
+        border-radius: 4px;
+        min-height: 40px;
+    }
+    
+    QScrollBar::handle:vertical:hover {
+        background: #94A3B8;
+    }
+    
+    QScrollBar::add-line:vertical,
+    QScrollBar::sub-line:vertical,
+    QScrollBar::add-page:vertical,
+    QScrollBar::sub-page:vertical {
+        background: none;
+        border: none;
+    }
+
+    QScrollBar:horizontal {
+        background: transparent;
+        height: 8px;
+        margin: 0;
+    }
+    
+    QScrollBar::handle:horizontal {
+        background: #CBD5E1;
+        border-radius: 4px;
+        min-width: 40px;
+    }
+    
+    QScrollBar::handle:horizontal:hover {
+        background: #94A3B8;
+    }
+    
+    QScrollBar::add-line:horizontal,
+    QScrollBar::sub-line:horizontal,
+    QScrollBar::add-page:horizontal,
+    QScrollBar::sub-page:horizontal {
+        background: none;
+        border: none;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       TOOLTIPS
+       ═══════════════════════════════════════════════════════════════════════ */
+    
+    QToolTip {
+        background: #1E293B;
+        color: #F1F5F9;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 13px;
+    }
 """
