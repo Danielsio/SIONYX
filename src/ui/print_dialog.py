@@ -17,7 +17,11 @@ from PyQt6.QtWidgets import (
 
 from src.services.print_validation_service import PrintValidationService
 from src.utils.logger import get_logger
-from ui.styles.base import Colors, Spacing
+
+try:
+    from ui.constants.ui_constants import Colors, Spacing
+except ImportError:
+    from ui.styles.base import Colors, Spacing
 
 
 logger = get_logger(__name__)

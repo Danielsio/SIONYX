@@ -161,7 +161,7 @@ class SessionService(QObject):
         self.sync_timer.stop()
 
         # Disassociate user from computer if logging out
-        if reason in ["user", "expired"]:
+        if reason in ["user", "expired", "admin_kick"]:
             computer_id = self._get_current_computer_id()
             if computer_id != "unknown":
                 self.computer_service.disassociate_user_from_computer(

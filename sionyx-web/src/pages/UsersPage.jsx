@@ -84,7 +84,7 @@ const UsersPage = () => {
     const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     if (!orgId) {
-      message.error('Organization ID not found. Please log in again.');
+      message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
       setLoading(false);
       return;
     }
@@ -369,17 +369,43 @@ const UsersPage = () => {
       sorter: (a, b) => (a.remainingPrints || 0) - (b.remainingPrints || 0),
     },
     {
-      title: 'סטטוס',
-      dataIndex: 'isActive',
-      key: 'isActive',
-      render: isActive => (
-        <Tag color={isActive ? 'success' : 'default'}>{isActive ? 'פעיל' : 'לא פעיל'}</Tag>
-      ),
+      title: 'מחובר',
+      dataIndex: 'isSessionActive',
+      key: 'isLoggedIn',
+      render: isSessionActive => {
+        const isLoggedIn = isSessionActive === true;
+        return (
+          <Tag color={isLoggedIn ? 'processing' : 'default'}>
+            {isLoggedIn ? 'מחובר' : 'לא מחובר'}
+          </Tag>
+        );
+      },
       filters: [
-        { text: 'פעיל', value: true },
+        { text: 'מחובר', value: true },
+        { text: 'לא מחובר', value: false },
+      ],
+      onFilter: (value, record) => record.isSessionActive === value,
+    },
+    {
+      title: 'בשימוש',
+      dataIndex: 'currentComputerId',
+      key: 'isActive',
+      render: (currentComputerId, record) => {
+        const isActive = record.isSessionActive && currentComputerId;
+        return (
+          <Tag color={isActive ? 'success' : 'default'}>
+            {isActive ? 'בשימוש' : 'לא פעיל'}
+          </Tag>
+        );
+      },
+      filters: [
+        { text: 'בשימוש', value: true },
         { text: 'לא פעיל', value: false },
       ],
-      onFilter: (value, record) => record.isActive === value,
+      onFilter: (value, record) => {
+        if (value) return record.isSessionActive && record.currentComputerId;
+        return !record.isSessionActive || !record.currentComputerId;
+      },
     },
     {
       title: 'נוצר',
