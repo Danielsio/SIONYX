@@ -2,35 +2,80 @@
  * Download Service for SIONYX
  * ===========================
  * Handles downloading of SIONYX executables from Firebase Storage
+ * with automatic version discovery.
  */
 
-// Firebase Storage imports removed - using direct URL from environment variable
+// Firebase Storage base URL - use proxy in dev to bypass CORS
+const STORAGE_BASE_URL = import.meta.env.DEV 
+  ? '/storage-proxy' 
+  : 'https://storage.googleapis.com';
 
 /**
- * Get the latest release information
- * @returns {Promise<Object>} Release information including download URL
+ * Get Firebase Storage bucket from environment or default
  */
-export const getLatestRelease = async () => {
-  // Use environment variable for download URL - no hardcoded fallbacks for security
-  const downloadUrl = import.meta.env.VITE_INSTALLER_DOWNLOAD_URL;
-
-  if (!downloadUrl) {
-    throw new Error(
-      'VITE_INSTALLER_DOWNLOAD_URL environment variable is not set. Please configure the download URL in your .env file.'
-    );
-  }
-
-  return {
-    downloadUrl: downloadUrl,
-    version: 'Latest',
-    releaseDate: new Date().toISOString(),
-    fileSize: 0,
-    fileName: 'sionyx-installer.exe',
-  };
+const getStorageBucket = () => {
+  return import.meta.env.VITE_FIREBASE_STORAGE_BUCKET;
 };
 
 /**
- * Download a file from a URL using direct download (no CORS issues)
+ * Fetch the latest release metadata from Firebase Storage
+ * @returns {Promise<Object>} Release metadata
+ */
+const fetchLatestMetadata = async () => {
+  const bucket = getStorageBucket();
+  const metadataUrl = `${STORAGE_BASE_URL}/${bucket}/releases/latest.json`;
+
+  try {
+    const response = await fetch(metadataUrl, {
+      cache: 'no-cache', // Always get fresh metadata
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch metadata: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.warn('Could not fetch latest.json metadata:', error.message);
+    return null;
+  }
+};
+
+/**
+ * Get the latest release information from Firebase Storage metadata
+ * @returns {Promise<Object>} Release information including download URL
+ */
+export const getLatestRelease = async () => {
+  const metadata = await fetchLatestMetadata();
+
+  if (metadata && metadata.downloadUrl) {
+    return {
+      version: metadata.version || 'Latest',
+      downloadUrl: metadata.downloadUrl,
+      releaseDate: metadata.releaseDate || new Date().toISOString(),
+      fileSize: metadata.fileSize || 0,
+      fileName: metadata.filename || `sionyx-installer-v${metadata.version}.exe`,
+      buildNumber: metadata.buildNumber || null,
+      changelog: metadata.changelog || [],
+    };
+  }
+
+  throw new Error('Could not fetch release metadata. Please try again later.');
+};
+
+/**
+ * Get all available versions (if version history is enabled)
+ * @returns {Promise<Array>} List of available versions
+ */
+export const getAvailableVersions = async () => {
+  // For now, just return latest version
+  // Could be extended to list all versions from storage
+  const latest = await getLatestRelease();
+  return [latest];
+};
+
+/**
+ * Download a file from a URL
  * @param {string} url - The download URL
  * @param {string} filename - The filename to save as
  * @returns {Promise<void>}
@@ -39,19 +84,17 @@ export const downloadFile = async (url, filename) => {
   try {
     console.log(`Starting download: ${filename} from ${url}`);
 
-    // Validate URL
     if (!url || !url.startsWith('http')) {
       throw new Error('Invalid download URL');
     }
 
-    // Use direct download approach to avoid CORS issues
+    // Direct download approach (CORS-friendly)
     const link = document.createElement('a');
     link.href = url;
     link.download = filename;
-    link.target = '_blank'; // Open in new tab as fallback
+    link.target = '_blank';
     link.style.display = 'none';
 
-    // Add to DOM, click, and remove
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -64,12 +107,49 @@ export const downloadFile = async (url, filename) => {
 };
 
 /**
- * Get file size in human readable format
+ * Download with progress tracking
+ * @param {string} url - Download URL
+ * @param {string} filename - Filename
+ * @param {Function} onProgress - Progress callback (loaded, total)
+ * @returns {Promise<void>}
+ */
+export const downloadFileWithProgress = async (url, filename, onProgress) => {
+  try {
+    console.log(`Starting download: ${filename}`);
+
+    if (!url || !url.startsWith('http')) {
+      throw new Error('Invalid download URL');
+    }
+
+    // Simulate progress for direct download
+    if (onProgress) onProgress(0, 100);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = '_blank';
+    link.style.display = 'none';
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (onProgress) setTimeout(() => onProgress(100, 100), 100);
+
+    console.log(`Download initiated: ${filename}`);
+  } catch (error) {
+    console.error('Download failed:', error);
+    throw new Error(`Download failed: ${error.message}`);
+  }
+};
+
+/**
+ * Format file size in human readable format
  * @param {number} bytes - File size in bytes
  * @returns {string} Human readable file size
  */
 export const formatFileSize = bytes => {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return 'Unknown size';
 
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -86,61 +166,28 @@ export const formatFileSize = bytes => {
 export const formatReleaseDate = dateString => {
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString('he-IL', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   } catch (error) {
-    return 'Unknown date';
+    return 'תאריך לא ידוע';
   }
 };
 
-// Removed unused functions - using direct URL approach
-
 /**
- * Download with progress tracking (simplified for CORS compatibility)
- * @param {string} url - Download URL
- * @param {string} filename - Filename
- * @param {Function} onProgress - Progress callback (bytes, total)
- * @returns {Promise<void>}
+ * Format version string for display
+ * @param {Object} release - Release object
+ * @returns {string} Formatted version string
  */
-export const downloadFileWithProgress = async (url, filename, onProgress) => {
-  try {
-    // For CORS compatibility, we'll use direct download and simulate progress
-    console.log(`Starting download with progress: ${filename} from ${url}`);
+export const formatVersion = release => {
+  if (!release) return '';
 
-    // Validate URL
-    if (!url || !url.startsWith('http')) {
-      throw new Error('Invalid download URL');
-    }
-
-    // Simulate progress start
-    if (onProgress) {
-      onProgress(0, 100);
-    }
-
-    // Use direct download approach
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.target = '_blank';
-    link.style.display = 'none';
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Simulate progress completion
-    if (onProgress) {
-      setTimeout(() => onProgress(100, 100), 100);
-    }
-
-    console.log(`Download initiated: ${filename}`);
-  } catch (error) {
-    console.error('Download with progress failed:', error);
-    throw new Error(`Download failed: ${error.message}`);
+  let version = release.version || 'Latest';
+  if (release.buildNumber) {
+    version += ` (Build #${release.buildNumber})`;
   }
+
+  return version;
 };

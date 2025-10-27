@@ -6,7 +6,9 @@
   },
   "build": {
     "app_name": "YOUR_APP_NAME",
-    "upload_filename": "your-app-installer.exe"
+    "upload_filename": "your-app-installer.exe",
+    "releases_path": "releases/",
+    "keep_versions": 1
   },
   "paths": {
     "src": "src",

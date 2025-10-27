@@ -1,4 +1,4 @@
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, useEffect, memo } from 'react';
 import {
   Card,
   Button,
@@ -9,6 +9,7 @@ import {
   message,
   Row,
   Col,
+  Tag,
 } from 'antd';
 import {
   DownloadOutlined,
@@ -19,7 +20,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { registerOrganization } from '../services/organizationService';
-import { downloadFile } from '../services/downloadService';
+import { downloadFile, getLatestRelease, formatVersion } from '../services/downloadService';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -27,7 +28,21 @@ const LandingPage = memo(() => {
   const [registrationForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [releaseInfo, setReleaseInfo] = useState(null);
   const navigate = useNavigate();
+
+  // Fetch latest release info on mount
+  useEffect(() => {
+    const fetchReleaseInfo = async () => {
+      try {
+        const release = await getLatestRelease();
+        setReleaseInfo(release);
+      } catch (error) {
+        console.warn('Could not fetch release info:', error);
+      }
+    };
+    fetchReleaseInfo();
+  }, []);
 
   const handleRegistration = useCallback(async (values) => {
     setLoading(true);
@@ -52,17 +67,11 @@ const LandingPage = memo(() => {
     try {
       setDownloadLoading(true);
       
-      // Get download URL from environment variable
-      const downloadUrl = import.meta.env.VITE_INSTALLER_DOWNLOAD_URL;
-      
-      
-      if (!downloadUrl) {
-        const errorMsg = 'Download URL not configured. Please set VITE_INSTALLER_DOWNLOAD_URL in your environment variables.';
-        console.error('DOWNLOAD ERROR:', errorMsg);
-        throw new Error(errorMsg);
+      if (!releaseInfo?.downloadUrl) {
+        throw new Error('לא נמצא קישור להורדה');
       }
       
-      await downloadFile(downloadUrl, 'sionyx-installer.exe');
+      await downloadFile(releaseInfo.downloadUrl, releaseInfo.fileName);
       message.success('ההורדה הושלמה בהצלחה!');
     } catch (error) {
       console.error('Download error:', error);
@@ -70,7 +79,7 @@ const LandingPage = memo(() => {
     } finally {
       setDownloadLoading(false);
     }
-  }, []);
+  }, [releaseInfo]);
 
   const handleAdminLogin = useCallback(() => {
     navigate('/admin/login');
@@ -292,6 +301,20 @@ const LandingPage = memo(() => {
                 <Title level={2} style={{ color: 'white', marginBottom: '20px', fontSize: '2.2rem' }}>
                   הורדת התוכנה
                 </Title>
+                {releaseInfo?.version && releaseInfo.version !== 'Latest' && (
+                  <Tag 
+                    color="white" 
+                    style={{ 
+                      marginBottom: '15px',
+                      color: '#52c41a',
+                      fontWeight: 'bold',
+                      fontSize: '14px',
+                      padding: '4px 12px',
+                    }}
+                  >
+                    {formatVersion(releaseInfo)}
+                  </Tag>
+                )}
                 <Paragraph style={{ 
                   color: 'rgba(255,255,255,0.9)', 
                   marginBottom: '40px', 

@@ -95,7 +95,7 @@ class FloatingTimer(QWidget):
         self.printer_icon.setFont(QFont("Segoe UI", 16))
         self.printer_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.printer_icon.setFixedHeight(40)
-
+        
         left_layout.addWidget(self.exit_button)
         left_layout.addWidget(self.printer_icon)
 
