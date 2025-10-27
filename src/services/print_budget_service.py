@@ -32,7 +32,7 @@ class PrintBudgetService:
         try:
             # Get organization metadata which includes print pricing
             # Note: FirebaseClient already prefixes with organizations/{org_id}/
-            result = self.firebase.db_get(f"metadata")
+            result = self.firebase.db_get("metadata")
 
             if not result.get("success"):
                 logger.error(
@@ -85,9 +85,7 @@ class PrintBudgetService:
                 "colorPrice": color_price,
             }
 
-            result = self.firebase.db_update(
-                f"metadata", pricing_data
-            )
+            result = self.firebase.db_update("metadata", pricing_data)
 
             if not result.get("success"):
                 logger.error(f"Failed to update print pricing: {result.get('error')}")

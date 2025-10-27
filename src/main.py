@@ -8,6 +8,7 @@ import logging
 import sys
 from pathlib import Path
 
+
 # Add project root to Python path BEFORE any imports
 # This allows imports like "from src.services..." to work regardless of how the script is run
 if __name__ == "__main__":
@@ -31,6 +32,7 @@ from src.utils.logger import (
 )
 from ui.auth_window import AuthWindow
 from ui.main_window import MainWindow
+
 
 # CRITICAL: Import and configure WebEngine BEFORE QApplication
 QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)

@@ -54,7 +54,7 @@ class PrintValidationService(QObject):
             validation_result = self.print_budget_service.validate_print_budget(
                 self.user_id, self.org_id, black_white_pages, color_pages
             )
-            
+
             logger.debug(f"Validation result: {validation_result}")
 
             if not validation_result.get("success"):
