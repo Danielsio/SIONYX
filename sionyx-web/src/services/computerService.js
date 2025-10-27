@@ -291,11 +291,12 @@ export const forceLogoutUser = async (userId, computerId) => {
       updatedAt: new Date().toISOString(),
     });
 
-    // Clear computer's current user
+    // Clear computer's current user and mark as inactive
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
     await update(computerRef, {
       currentUserId: null,
       lastUserLogout: new Date().toISOString(),
+      isActive: false,
       updatedAt: new Date().toISOString(),
     });
 

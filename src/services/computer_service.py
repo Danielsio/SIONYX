@@ -176,10 +176,10 @@ class ComputerService:
             result = self.firebase.db_update(f"users/{user_id}", user_updates)
 
             if result.get("success"):
-                # Also update computer with current user
+                # Also update computer with current user and mark as active
                 self.firebase.db_update(
                     f"computers/{computer_id}",
-                    {"currentUserId": user_id, "lastUserLogin": now, "updatedAt": now},
+                    {"currentUserId": user_id, "lastUserLogin": now, "isActive": True, "updatedAt": now},
                 )
 
             return result
@@ -213,10 +213,10 @@ class ComputerService:
                 },
             )
 
-            # Clear computer's current user
+            # Clear computer's current user and mark as inactive
             computer_result = self.firebase.db_update(
                 f"computers/{computer_id}",
-                {"currentUserId": None, "lastUserLogout": now, "updatedAt": now},
+                {"currentUserId": None, "lastUserLogout": now, "isActive": False, "updatedAt": now},
             )
 
             return user_result if user_result.get("success") else computer_result

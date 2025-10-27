@@ -48,7 +48,7 @@ const PricingPage = () => {
     const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     if (!orgId) {
-      message.error('Organization ID not found. Please log in again.');
+      message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
       setLoading(false);
       return;
     }
@@ -64,7 +64,7 @@ const PricingPage = () => {
         colorPrice: result.pricing.colorPrice,
       });
     } else {
-      message.error(result.error || 'Failed to load pricing');
+      message.error(result.error || 'נכשל בטעינת המחירים');
       console.error('Failed to load pricing:', result.error);
     }
 
@@ -84,7 +84,7 @@ const PricingPage = () => {
       console.log('Final orgId:', orgId);
 
       if (!orgId) {
-        message.error('Organization ID not found. Please log in again.');
+        message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
         return;
       }
 
@@ -94,10 +94,10 @@ const PricingPage = () => {
       const result = await updatePrintPricing(orgId, values);
 
       if (result.success) {
-        message.success('Print pricing updated successfully');
+        message.success('מחירי ההדפסה עודכנו בהצלחה');
         setPricing(values);
       } else {
-        message.error(result.error || 'Failed to update pricing');
+        message.error(result.error || 'נכשל בעדכון המחירים');
         console.error('Failed to update pricing:', result.error);
       }
     } catch (error) {

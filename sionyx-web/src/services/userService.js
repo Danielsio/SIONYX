@@ -244,6 +244,25 @@ export const kickUser = async (orgId, userId) => {
 
     await update(userRef, updates);
 
+    // Also disassociate user from computer if they have a current computer
+    if (currentUser.currentComputerId) {
+      const computerRef = ref(database, `organizations/${orgId}/computers/${currentUser.currentComputerId}`);
+      await update(computerRef, {
+        currentUserId: null,
+        lastUserLogout: new Date().toISOString(),
+        isActive: false,
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Clear user's computer association
+      await update(userRef, {
+        currentComputerId: null,
+        currentComputerName: null,
+        lastComputerLogout: new Date().toISOString(),
+        isSessionActive: false,
+      });
+    }
+
     return {
       success: true,
       message: 'User has been kicked successfully',

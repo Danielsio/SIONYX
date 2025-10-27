@@ -1,15 +1,21 @@
 # SIONYX Makefile
 # ===============
 
-.PHONY: help test build lint
+.PHONY: help test build lint run
 
 # Default target
 help:
 	@echo "SIONYX Development Commands"
 	@echo "=========================="
+	@echo "  run     - Run the application"
 	@echo "  test    - Not implemented yet (placeholder)"
 	@echo "  build   - Build the application"
 	@echo "  lint    - Run linting checks"
+
+# Run
+run:
+	@echo "Starting SIONYX application..."
+	python src/main.py
 
 # Testing (not implemented yet)
 test:

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Typography, Space, Spin, Empty, App } from 'antd';
+import { Card, Row, Col, Statistic, Typography, Space, Spin, Empty, App, Tag } from 'antd';
 import {
   UserOutlined,
   AppstoreOutlined,
@@ -12,6 +12,7 @@ import { useDataStore } from '../store/dataStore';
 import { getOrganizationStats } from '../services/organizationService';
 import { getPrintPricing } from '../services/pricingService';
 import { formatMinutesHebrew } from '../utils/timeFormatter';
+import { getAllUsers } from '../services/userService';
 
 const { Title, Text } = Typography;
 
@@ -21,6 +22,7 @@ const OverviewPage = () => {
     blackAndWhitePrice: 1.0,
     colorPrice: 3.0,
   });
+  const [recentUsers, setRecentUsers] = useState([]);
   const user = useAuthStore(state => state.user);
   const { stats, setStats } = useDataStore();
   const { message } = App.useApp();
@@ -57,6 +59,21 @@ const OverviewPage = () => {
       setPricing(pricingResult.pricing);
     } else {
       console.error('Failed to load pricing:', pricingResult.error);
+    }
+
+    // Load recently active users
+    const usersResult = await getAllUsers(orgId);
+    if (usersResult.success) {
+      // Filter and sort by last activity
+      const activeUsers = usersResult.users
+        .filter(u => u.isSessionActive || u.currentComputerId)
+        .sort((a, b) => {
+          const dateA = new Date(a.lastActivity || a.updatedAt || 0);
+          const dateB = new Date(b.lastActivity || b.updatedAt || 0);
+          return dateB - dateA;
+        })
+        .slice(0, 5);
+      setRecentUsers(activeUsers);
     }
 
     setLoading(false);
@@ -203,6 +220,38 @@ const OverviewPage = () => {
             </Card>
           </Col>
         </Row>
+
+        {/* Recently Active Users */}
+        <Card title='מוצג לאחרונה' variant='borderless' extra={<UserOutlined />}>
+          {recentUsers.length > 0 ? (
+            <Space direction='vertical' size='middle' style={{ width: '100%' }}>
+              {recentUsers.map(u => (
+                <Card key={u.uid} size='small' style={{ textAlign: 'right' }}>
+                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <Space>
+                      <UserOutlined />
+                      <Text strong>
+                        {`${u.firstName || ''} ${u.lastName || ''}`.trim() || 'לא זמין'}
+                      </Text>
+                    </Space>
+                    <Space>
+                      {u.isSessionActive && <Tag color='processing'>מחובר</Tag>}
+                      {u.currentComputerId && <Tag color='success'>בשימוש</Tag>}
+                      <Tag color='default'>
+                        {u.currentComputerName || 'מחשב לא זוהה'}
+                      </Tag>
+                    </Space>
+                  </Space>
+                </Card>
+              ))}
+            </Space>
+          ) : (
+            <Empty
+              description='אין משתמשים פעילים כרגע'
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          )}
+        </Card>
 
         {/* Quick Actions or Recent Activity */}
         <Card title='סטטיסטיקות מהירות' variant='borderless'>

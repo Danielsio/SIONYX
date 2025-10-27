@@ -3,6 +3,7 @@ Print Budget Service
 Handles print budget validation, pricing, and deduction
 """
 
+import traceback
 from typing import Dict
 
 from src.services.firebase_client import FirebaseClient
@@ -30,7 +31,8 @@ class PrintBudgetService:
         """
         try:
             # Get organization metadata which includes print pricing
-            result = self.firebase.db_get(f"organizations/{org_id}/metadata")
+            # Note: FirebaseClient already prefixes with organizations/{org_id}/
+            result = self.firebase.db_get(f"metadata")
 
             if not result.get("success"):
                 logger.error(
@@ -56,6 +58,7 @@ class PrintBudgetService:
 
         except Exception as e:
             logger.error(f"Error getting organization print pricing: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": f"Error getting organization print pricing: {str(e)}",
@@ -83,7 +86,7 @@ class PrintBudgetService:
             }
 
             result = self.firebase.db_update(
-                f"organizations/{org_id}/metadata", pricing_data
+                f"metadata", pricing_data
             )
 
             if not result.get("success"):
@@ -117,6 +120,7 @@ class PrintBudgetService:
             Dict with success status and budget amount
         """
         try:
+            # Note: FirebaseClient already prefixes with organizations/{org_id}/
             result = self.firebase.db_get(f"users/{user_id}")
 
             if not result.get("success"):
@@ -135,6 +139,7 @@ class PrintBudgetService:
 
         except Exception as e:
             logger.error(f"Error getting user print budget: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": f"Error getting user print budget: {str(e)}",
@@ -235,6 +240,7 @@ class PrintBudgetService:
 
         except Exception as e:
             logger.error(f"Error validating print budget: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": f"Error validating print budget: {str(e)}",
@@ -285,6 +291,7 @@ class PrintBudgetService:
             # Update user budget (stored in remainingPrints field)
             from datetime import datetime
 
+            # Note: FirebaseClient already prefixes with organizations/{org_id}/
             result = self.firebase.db_update(
                 f"users/{user_id}",
                 {
@@ -319,6 +326,7 @@ class PrintBudgetService:
 
         except Exception as e:
             logger.error(f"Error deducting print budget: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": f"Error deducting print budget: {str(e)}",
@@ -350,6 +358,7 @@ class PrintBudgetService:
             # Update user budget (stored in remainingPrints field)
             from datetime import datetime
 
+            # Note: FirebaseClient already prefixes with organizations/{org_id}/
             result = self.firebase.db_update(
                 f"users/{user_id}",
                 {

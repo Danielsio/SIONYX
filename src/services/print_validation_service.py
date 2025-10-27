@@ -3,6 +3,7 @@ Print Validation Service
 Handles print job validation and budget checking during sessions
 """
 
+import traceback
 from typing import Dict
 
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -46,13 +47,15 @@ class PrintValidationService(QObject):
         try:
             logger.info(
                 f"Validating print job: {black_white_pages} B&W, "
-                f"{color_pages} color pages"
+                f"{color_pages} color pages (user_id={self.user_id}, org_id={self.org_id})"
             )
 
             # Validate budget
             validation_result = self.print_budget_service.validate_print_budget(
                 self.user_id, self.org_id, black_white_pages, color_pages
             )
+            
+            logger.debug(f"Validation result: {validation_result}")
 
             if not validation_result.get("success"):
                 logger.error(
@@ -102,6 +105,7 @@ class PrintValidationService(QObject):
 
         except Exception as e:
             logger.error(f"Error validating print job: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {"success": False, "error": f"Error validating print job: {str(e)}"}
 
     def process_successful_print(
@@ -155,6 +159,7 @@ class PrintValidationService(QObject):
 
         except Exception as e:
             logger.error(f"Error processing successful print: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": f"Error processing successful print: {str(e)}",

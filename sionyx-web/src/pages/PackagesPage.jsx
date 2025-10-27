@@ -63,7 +63,7 @@ const PackagesPage = () => {
     const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     if (!orgId) {
-      message.error('Organization ID not found. Please log in again.');
+      message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
       setLoading(false);
       return;
     }
@@ -76,7 +76,7 @@ const PackagesPage = () => {
       setPackages(result.packages);
       console.log(`Loaded ${result.packages.length} packages`);
     } else {
-      message.error(result.error || 'Failed to load packages');
+      message.error(result.error || 'נכשל בטעינת החבילות');
       console.error('Failed to load packages:', result.error);
     }
 
@@ -112,7 +112,7 @@ const PackagesPage = () => {
     const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     if (!orgId) {
-      message.error('Organization ID not found. Please log in again.');
+      message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
       return;
     }
 
@@ -121,10 +121,10 @@ const PackagesPage = () => {
     const result = await deletePackage(orgId, record.id);
 
     if (result.success) {
-      message.success('Package deleted successfully');
+      message.success('החבילה נמחקה בהצלחה');
       removePackage(record.id);
     } else {
-      message.error(result.error || 'Failed to delete package');
+      message.error(result.error || 'נכשל במחיקת החבילה');
       console.error('Failed to delete package:', result.error);
     }
   };
@@ -137,7 +137,7 @@ const PackagesPage = () => {
       const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
       if (!orgId) {
-        message.error('Organization ID not found. Please log in again.');
+        message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
         return;
       }
 
@@ -147,11 +147,11 @@ const PackagesPage = () => {
         const result = await updatePackage(orgId, editingPackage.id, values);
 
         if (result.success) {
-          message.success('Package updated successfully');
+          message.success('החבילה עודכנה בהצלחה');
           updateStorePackage(editingPackage.id, values);
           setModalVisible(false);
         } else {
-          message.error(result.error || 'Failed to update package');
+          message.error(result.error || 'נכשל בעדכון החבילה');
           console.error('Failed to update package:', result.error);
         }
       } else {
@@ -160,12 +160,12 @@ const PackagesPage = () => {
         const result = await createPackage(orgId, values);
 
         if (result.success) {
-          message.success('Package created successfully');
+          message.success('החבילה נוצרה בהצלחה');
           // Reload to get the new package with ID
           await loadPackages();
           setModalVisible(false);
         } else {
-          message.error(result.error || 'Failed to create package');
+          message.error(result.error || 'נכשל ביצירת החבילה');
           console.error('Failed to create package:', result.error);
         }
       }
@@ -322,7 +322,7 @@ const PackagesPage = () => {
             pagination={{
               pageSize: 10,
               showSizeChanger: true,
-              showTotal: total => `Total ${total} packages`,
+              showTotal: total => `סך ${total} חבילות`,
             }}
           />
         </Card>
@@ -330,36 +330,36 @@ const PackagesPage = () => {
 
       {/* Create/Edit Modal */}
       <Modal
-        title={editingPackage ? 'Edit Package' : 'Create New Package'}
+        title={editingPackage ? 'ערוך חבילה' : 'יצירת חבילה חדשה'}
         open={modalVisible}
         onOk={handleModalOk}
         onCancel={() => setModalVisible(false)}
         width={600}
-        okText={editingPackage ? 'Update' : 'Create'}
+        okText={editingPackage ? 'עדכן' : 'צור'}
       >
         <Form form={form} layout='vertical' style={{ marginTop: 24 }}>
           <Form.Item
             name='name'
-            label='Package Name'
-            rules={[{ required: true, message: 'Please enter package name' }]}
+            label='שם החבילה'
+            rules={[{ required: true, message: 'אנא הזן שם חבילה' }]}
           >
-            <Input placeholder='e.g., Basic Plan, Premium Package' />
+            <Input placeholder='למשל, חבילת בסיס, חבילה פרמיום' />
           </Form.Item>
 
           <Form.Item
             name='description'
-            label='Description'
-            rules={[{ required: true, message: 'Please enter description' }]}
+            label='תיאור'
+            rules={[{ required: true, message: 'אנא הזן תיאור' }]}
           >
-            <TextArea rows={3} placeholder='Describe what this package includes...' />
+            <TextArea rows={3} placeholder='תאר מה החבילה כוללת...' />
           </Form.Item>
 
           <Form.Item
             name='price'
-            label='Price (₪)'
+            label='מחיר (₪)'
             rules={[
-              { required: true, message: 'Please enter price' },
-              { type: 'number', min: 0, message: 'Price must be positive' },
+              { required: true, message: 'אנא הזן מחיר' },
+              { type: 'number', min: 0, message: 'המחיר חייב להיות חיובי' },
             ]}
           >
             <InputNumber style={{ width: '100%' }} precision={2} placeholder='0.00' prefix='₪' />
@@ -367,9 +367,9 @@ const PackagesPage = () => {
 
           <Form.Item
             name='discountPercent'
-            label='Discount (%)'
+            label='הנחה (%)'
             rules={[
-              { type: 'number', min: 0, max: 100, message: 'Discount must be between 0-100' },
+              { type: 'number', min: 0, max: 100, message: 'הנחה חייבת להיות בין 0-100' },
             ]}
           >
             <InputNumber style={{ width: '100%' }} placeholder='0' min={0} max={100} />
@@ -377,16 +377,16 @@ const PackagesPage = () => {
 
           <Form.Item
             name='minutes'
-            label='Time (minutes)'
-            rules={[{ type: 'number', min: 0, message: 'Time must be positive' }]}
+            label='זמן (דקות)'
+            rules={[{ type: 'number', min: 0, message: 'הזמן חייב להיות חיובי' }]}
           >
             <InputNumber style={{ width: '100%' }} placeholder='0' min={0} />
           </Form.Item>
 
           <Form.Item
             name='prints'
-            label='Number of Prints'
-            rules={[{ type: 'number', min: 0, message: 'Prints must be positive' }]}
+            label='מספר הדפסות'
+            rules={[{ type: 'number', min: 0, message: 'הדפסות חייבות להיות חיוביות' }]}
           >
             <InputNumber style={{ width: '100%' }} placeholder='0' min={0} />
           </Form.Item>
@@ -395,12 +395,12 @@ const PackagesPage = () => {
 
       {/* View Package Modal */}
       <Modal
-        title='Package Details'
+        title='פרטי חבילה'
         open={viewModalVisible}
         onCancel={() => setViewModalVisible(false)}
         footer={[
           <Button key='close' onClick={() => setViewModalVisible(false)}>
-            Close
+            סגור
           </Button>,
           <Button
             key='edit'
@@ -411,24 +411,24 @@ const PackagesPage = () => {
               handleEdit(viewingPackage);
             }}
           >
-            Edit
+            ערוך
           </Button>,
         ]}
         width={600}
       >
         {viewingPackage && (
           <Descriptions column={1} bordered>
-            <Descriptions.Item label='Package Name'>
+            <Descriptions.Item label='שם החבילה'>
               <Text strong>{viewingPackage.name}</Text>
             </Descriptions.Item>
-            <Descriptions.Item label='Description'>{viewingPackage.description}</Descriptions.Item>
-            <Descriptions.Item label='Original Price'>
+            <Descriptions.Item label='תיאור'>{viewingPackage.description}</Descriptions.Item>
+            <Descriptions.Item label='מחיר מקורי'>
               ₪{viewingPackage.price?.toFixed(2) || '0.00'}
             </Descriptions.Item>
-            <Descriptions.Item label='Discount'>
-              {viewingPackage.discountPercent ? `${viewingPackage.discountPercent}%` : 'None'}
+            <Descriptions.Item label='הנחה'>
+              {viewingPackage.discountPercent ? `${viewingPackage.discountPercent}%` : 'אין'}
             </Descriptions.Item>
-            <Descriptions.Item label='Final Price'>
+            <Descriptions.Item label='מחיר סופי'>
               <Text strong style={{ color: '#52c41a', fontSize: 18 }}>
                 ₪
                 {calculateFinalPrice(
@@ -438,7 +438,7 @@ const PackagesPage = () => {
               </Text>
               {viewingPackage.discountPercent > 0 && (
                 <Text type='secondary' style={{ marginLeft: 8 }}>
-                  (Save ₪
+                  (חיסכון ₪
                   {calculateFinalPrice(
                     viewingPackage.price,
                     viewingPackage.discountPercent
@@ -447,25 +447,25 @@ const PackagesPage = () => {
                 </Text>
               )}
             </Descriptions.Item>
-            <Descriptions.Item label='Time Included'>
+            <Descriptions.Item label='זמן כלול'>
               {viewingPackage.minutes
                 ? viewingPackage.minutes < 60
-                  ? `${viewingPackage.minutes} minutes`
-                  : `${Math.floor(viewingPackage.minutes / 60)} hours ${viewingPackage.minutes % 60 > 0 ? `${viewingPackage.minutes % 60} minutes` : ''}`
-                : 'None'}
+                  ? `${viewingPackage.minutes} דקות`
+                  : `${Math.floor(viewingPackage.minutes / 60)} שעות ${viewingPackage.minutes % 60 > 0 ? `${viewingPackage.minutes % 60} דקות` : ''}`
+                : 'אין'}
             </Descriptions.Item>
-            <Descriptions.Item label='Prints Included'>
+            <Descriptions.Item label='הדפסות כלולות'>
               {viewingPackage.prints || 0}
             </Descriptions.Item>
-            <Descriptions.Item label='Created'>
+            <Descriptions.Item label='נוצר'>
               {viewingPackage.createdAt
                 ? dayjs(viewingPackage.createdAt).format('MMMM D, YYYY HH:mm')
-                : 'N/A'}
+                : 'לא זמין'}
             </Descriptions.Item>
-            <Descriptions.Item label='Last Updated'>
+            <Descriptions.Item label='עודכן לאחרונה'>
               {viewingPackage.updatedAt
                 ? dayjs(viewingPackage.updatedAt).format('MMMM D, YYYY HH:mm')
-                : 'N/A'}
+                : 'לא זמין'}
             </Descriptions.Item>
           </Descriptions>
         )}
