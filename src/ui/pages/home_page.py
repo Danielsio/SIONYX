@@ -283,11 +283,11 @@ class HomePage(QWidget):
 
         # Welcome text
         name = self.current_user.get("firstName", "משתמש")
-        welcome = QLabel(f"👋 שלום, {name}!")
-        welcome.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_2XL, Typography.WEIGHT_BOLD))
-        welcome.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
-        welcome.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(welcome)
+        self.welcome_label = QLabel(f"👋 שלום, {name}!")
+        self.welcome_label.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_2XL, Typography.WEIGHT_BOLD))
+        self.welcome_label.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
+        self.welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.welcome_label)
 
         # Instructions
         self.instruction = QLabel("מוכן להתחיל? לחץ על הכפתור למטה")
@@ -367,10 +367,34 @@ class HomePage(QWidget):
         self.current_user = self.auth_service.get_current_user()
         if self.current_user:
             self.update_countdown()
+            self.update_prints_display()
+            # Update welcome message with new user's name
+            name = self.current_user.get("firstName", "משתמש")
+            self.welcome_label.setText(f"👋 שלום, {name}!")
+
+    def update_prints_display(self):
+        """Update prints balance display"""
+        if not self.current_user:
+            return
+            
+        balance = self.current_user.get("remainingPrints", 0.0)
+        print_value = self.prints_card.findChild(QLabel, "printValue")
+        if print_value:
+            print_value.setText(f"{balance:.2f}₪")
 
     def clear_user_data(self):
         """Clear user data on logout"""
         self.current_user = None
+        # Reset displays to default values
+        time_value = self.time_card.findChild(QLabel, "timeValue")
+        if time_value:
+            time_value.setText("0:00:00")
+        print_value = self.prints_card.findChild(QLabel, "printValue")
+        if print_value:
+            print_value.setText("0.00₪")
+        # Reset welcome message
+        if hasattr(self, "welcome_label"):
+            self.welcome_label.setText("👋 שלום!")
 
     def handle_start_session(self):
         """Start session"""
