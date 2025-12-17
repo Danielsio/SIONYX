@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QDialog,
     QFrame,
     QGraphicsDropShadowEffect,
-    QGridLayout,
     QHBoxLayout,
     QLabel,
     QScrollArea,
@@ -60,36 +59,41 @@ class PackagesPage(QWidget):
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
         self.setStyleSheet(f"background: {Colors.BG_PAGE};")
 
-        # Center content
-        outer = QHBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
+        # Main layout - full width
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(Spacing.XL, Spacing.LG, Spacing.XL, Spacing.LG)
+        main_layout.setSpacing(Spacing.LG)
 
-        content = QWidget()
-        content.setMaximumWidth(1100)  # Wider to accommodate card shadows
-        content.setStyleSheet("background: transparent;")
-
-        layout = QVBoxLayout(content)
-        layout.setContentsMargins(Spacing.XL, Spacing.LG, Spacing.XL, Spacing.LG)
-        layout.setSpacing(Spacing.LG)
-
-        # Header
+        # Header - centered
+        header_container = QWidget()
+        header_container.setStyleSheet("background: transparent;")
+        header_layout = QHBoxLayout(header_container)
+        header_layout.setContentsMargins(0, 0, 0, 0)
         header = PageHeader(UIStrings.PACKAGES_TITLE, UIStrings.PACKAGES_SUBTITLE)
-        layout.addWidget(header)
+        header.setMaximumWidth(1000)
+        header_layout.addStretch()
+        header_layout.addWidget(header)
+        header_layout.addStretch()
+        main_layout.addWidget(header_container)
 
-        # Packages grid - extra padding for shadows
+        # Loading spinner
+        self.loading_spinner = LoadingSpinner("טוען חבילות...")
+        main_layout.addWidget(self.loading_spinner, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # Packages container - uses HBoxLayout for proper centering
         self.packages_container = QWidget()
         self.packages_container.setStyleSheet("background: transparent;")
-        self.packages_layout = QGridLayout(self.packages_container)
+        self.packages_layout = QHBoxLayout(self.packages_container)
         self.packages_layout.setSpacing(Spacing.LG)
         self.packages_layout.setContentsMargins(Spacing.XL, Spacing.LG, Spacing.XL, Spacing.XL)
-        self.packages_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        self.packages_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Scroll area - with room for shadows
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(self.packages_container)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setMinimumHeight(480)
         # Important: Don't clip shadows
         scroll.viewport().setStyleSheet("background: transparent;")
@@ -116,17 +120,25 @@ class PackagesPage(QWidget):
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0;
             }}
+            QScrollBar:horizontal {{
+                background: transparent;
+                height: 8px;
+            }}
+            QScrollBar::handle:horizontal {{
+                background: {Colors.GRAY_300};
+                border-radius: 4px;
+                min-width: 40px;
+            }}
+            QScrollBar::handle:horizontal:hover {{
+                background: {Colors.GRAY_400};
+            }}
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+                width: 0;
+            }}
         """)
 
-        # Loading spinner
-        self.loading_spinner = LoadingSpinner("טוען חבילות...")
-        layout.addWidget(self.loading_spinner)
-        layout.addSpacing(Spacing.SM)  # Space after header for floating effect
-        layout.addWidget(scroll, 1)
-
-        outer.addStretch()
-        outer.addWidget(content)
-        outer.addStretch()
+        main_layout.addSpacing(Spacing.SM)
+        main_layout.addWidget(scroll, 1)
 
     def load_packages(self):
         """Load packages from Firebase"""
@@ -154,13 +166,13 @@ class PackagesPage(QWidget):
         """Show error state"""
         self._clear_grid()
         error = EmptyState("❌", "שגיאה בטעינה", "לא הצלחנו לטעון את החבילות")
-        self.packages_layout.addWidget(error, 0, 0)
+        self.packages_layout.addWidget(error, Qt.AlignmentFlag.AlignCenter)
 
     def _show_empty(self):
         """Show empty state"""
         self._clear_grid()
         empty = EmptyState("📦", "אין חבילות זמינות", "נסה שוב מאוחר יותר")
-        self.packages_layout.addWidget(empty, 0, 0)
+        self.packages_layout.addWidget(empty, Qt.AlignmentFlag.AlignCenter)
 
     def _clear_grid(self):
         """Clear the packages grid"""
@@ -170,22 +182,13 @@ class PackagesPage(QWidget):
                 widget.setParent(None)
 
     def _display_packages(self):
-        """Display packages in grid"""
+        """Display packages in a centered horizontal row"""
         self._clear_grid()
 
-        # Calculate columns
-        cols = min(3, len(self.packages)) if len(self.packages) > 2 else len(self.packages)
-
-        row, col = 0, 0
         for package in self.packages:
             if isinstance(package, dict) and "name" in package:
                 card = self._create_package_card(package)
-                self.packages_layout.addWidget(card, row, col, Qt.AlignmentFlag.AlignCenter)
-
-                col += 1
-                if col >= cols:
-                    col = 0
-                    row += 1
+                self.packages_layout.addWidget(card, Qt.AlignmentFlag.AlignCenter)
 
     def _create_package_card(self, package: Dict) -> QFrame:
         """Create a modern package card"""
