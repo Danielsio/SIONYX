@@ -23,11 +23,13 @@ const getStorageBucket = () => {
  */
 const fetchLatestMetadata = async () => {
   const bucket = getStorageBucket();
-  const metadataUrl = `${STORAGE_BASE_URL}/${bucket}/releases/latest.json`;
+  // Add timestamp to bust browser cache
+  const cacheBuster = `t=${Date.now()}`;
+  const metadataUrl = `${STORAGE_BASE_URL}/${bucket}/releases/latest.json?${cacheBuster}`;
 
   try {
     const response = await fetch(metadataUrl, {
-      cache: 'no-cache', // Always get fresh metadata
+      cache: 'no-store', // Stronger than no-cache - never use cache
     });
 
     if (!response.ok) {
