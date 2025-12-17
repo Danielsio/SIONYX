@@ -389,6 +389,8 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
         }
         
         metadata_blob = bucket.blob("releases/latest.json")
+        # Set no-cache headers to prevent stale version info
+        metadata_blob.cache_control = "no-cache, no-store, must-revalidate"
         metadata_blob.upload_from_string(
             json.dumps(metadata, indent=2),
             content_type="application/json"
