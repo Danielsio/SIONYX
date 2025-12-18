@@ -64,11 +64,12 @@ class PackagesPage(QWidget):
         main_layout.setContentsMargins(Spacing.XL, Spacing.LG, Spacing.XL, Spacing.LG)
         main_layout.setSpacing(Spacing.LG)
 
-        # Header - centered
+        # Header - centered with room for shadow
         header_container = QWidget()
         header_container.setStyleSheet("background: transparent;")
         header_layout = QHBoxLayout(header_container)
-        header_layout.setContentsMargins(0, 0, 0, 0)
+        # Add padding for shadow to render properly (shadow extends ~20px)
+        header_layout.setContentsMargins(Spacing.LG, Spacing.SM, Spacing.LG, Spacing.LG)
         header = PageHeader(UIStrings.PACKAGES_TITLE, UIStrings.PACKAGES_SUBTITLE)
         header.setMaximumWidth(1000)
         header_layout.addStretch()
