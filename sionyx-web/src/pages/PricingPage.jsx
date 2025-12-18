@@ -119,9 +119,19 @@ const PricingPage = () => {
       <div style={{ direction: 'rtl' }}>
         <Space direction='vertical' size='large' style={{ width: '100%' }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div 
+          className='page-header'
+          style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
           <div>
-            <Title level={2} style={{ marginBottom: 8 }}>
+            <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <DollarOutlined />
               מחירי הדפסה
             </Title>
             <Text type='secondary'>נהל את מחירי ההדפסה השחור-לבן והצבעוניות בארגון שלך</Text>

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   Card,
-  Table,
   Button,
   Space,
   Typography,
@@ -9,18 +8,25 @@ import {
   Form,
   Input,
   InputNumber,
-  message,
-  Popconfirm,
+  App,
   Tag,
   Descriptions,
+  Row,
+  Col,
+  Dropdown,
+  Empty,
+  Spin,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   ReloadOutlined,
-  EyeOutlined,
   AppstoreOutlined,
+  ClockCircleOutlined,
+  PrinterOutlined,
+  MoreOutlined,
+  GiftOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -45,6 +51,7 @@ const PackagesPage = () => {
   const [form] = Form.useForm();
 
   const user = useAuthStore(state => state.user);
+  const { message } = App.useApp();
   const {
     packages,
     setPackages,
@@ -58,8 +65,6 @@ const PackagesPage = () => {
 
   const loadPackages = async () => {
     setLoading(true);
-
-    // Get orgId from authenticated user
     const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     if (!orgId) {
@@ -68,18 +73,12 @@ const PackagesPage = () => {
       return;
     }
 
-    console.log('Loading packages for organization:', orgId);
-
     const result = await getAllPackages(orgId);
-
     if (result.success) {
       setPackages(result.packages);
-      console.log(`Loaded ${result.packages.length} packages`);
     } else {
       message.error(result.error || 'נכשל בטעינת החבילות');
-      console.error('Failed to load packages:', result.error);
     }
-
     setLoading(false);
   };
 
@@ -108,65 +107,48 @@ const PackagesPage = () => {
   };
 
   const handleDelete = async record => {
-    // Get orgId
     const orgId = user?.orgId || localStorage.getItem('adminOrgId');
-
     if (!orgId) {
-      message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
+      message.error('מזהה ארגון לא נמצא.');
       return;
     }
 
-    console.log('Deleting package:', record.id, 'from org:', orgId);
-
     const result = await deletePackage(orgId, record.id);
-
     if (result.success) {
       message.success('החבילה נמחקה בהצלחה');
       removePackage(record.id);
     } else {
       message.error(result.error || 'נכשל במחיקת החבילה');
-      console.error('Failed to delete package:', result.error);
     }
   };
 
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
-
-      // Get orgId
       const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
       if (!orgId) {
-        message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
+        message.error('מזהה ארגון לא נמצא.');
         return;
       }
 
       if (editingPackage) {
-        // Update existing package
-        console.log('Updating package:', editingPackage.id, 'in org:', orgId);
         const result = await updatePackage(orgId, editingPackage.id, values);
-
         if (result.success) {
           message.success('החבילה עודכנה בהצלחה');
           updateStorePackage(editingPackage.id, values);
           setModalVisible(false);
         } else {
           message.error(result.error || 'נכשל בעדכון החבילה');
-          console.error('Failed to update package:', result.error);
         }
       } else {
-        // Create new package
-        console.log('Creating new package in org:', orgId);
         const result = await createPackage(orgId, values);
-
         if (result.success) {
           message.success('החבילה נוצרה בהצלחה');
-          // Reload to get the new package with ID
           await loadPackages();
           setModalVisible(false);
         } else {
           message.error(result.error || 'נכשל ביצירת החבילה');
-          console.error('Failed to create package:', result.error);
         }
       }
     } catch (error) {
@@ -174,159 +156,233 @@ const PackagesPage = () => {
     }
   };
 
-  const columns = [
-    {
-      title: 'שם החבילה',
-      dataIndex: 'name',
-      key: 'name',
-      render: name => (
-        <Space>
-          <AppstoreOutlined style={{ color: '#1890ff' }} />
-          <Text strong>{name}</Text>
-        </Space>
-      ),
-      sorter: (a, b) => a.name.localeCompare(b.name),
-    },
-    {
-      title: 'מחיר',
-      dataIndex: 'price',
-      key: 'price',
-      render: price => `₪${price?.toFixed(2) || '0.00'}`,
-      sorter: (a, b) => a.price - b.price,
-    },
-    {
-      title: 'הנחה',
-      dataIndex: 'discountPercent',
-      key: 'discountPercent',
-      render: discount => (discount ? `${discount}%` : 'אין'),
-      sorter: (a, b) => (a.discountPercent || 0) - (b.discountPercent || 0),
-    },
-    {
-      title: 'מחיר סופי',
-      key: 'finalPrice',
-      render: (_, record) => {
-        const { finalPrice } = calculateFinalPrice(record.price, record.discountPercent);
-        return (
-          <Text strong style={{ color: '#52c41a' }}>
-            ₪{finalPrice.toFixed(2)}
+  const formatTime = minutes => {
+    if (!minutes || minutes === 0) return null;
+    if (minutes < 60) return `${minutes} דקות`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours} שעות ${mins} דקות` : `${hours} שעות`;
+  };
+
+  // Package Card Component
+  const PackageCard = ({ pkg }) => {
+    const { finalPrice, savings } = calculateFinalPrice(pkg.price, pkg.discountPercent);
+    const hasDiscount = pkg.discountPercent > 0;
+    const timeDisplay = formatTime(pkg.minutes);
+
+    const menuItems = [
+      { key: 'edit', icon: <EditOutlined />, label: 'ערוך', onClick: () => handleEdit(pkg) },
+      { type: 'divider' },
+      {
+        key: 'delete',
+        icon: <DeleteOutlined />,
+        label: 'מחק',
+        danger: true,
+        onClick: () => {
+          Modal.confirm({
+            title: 'מחק חבילה',
+            content: `האם אתה בטוח שברצונך למחוק את "${pkg.name}"?`,
+            okText: 'מחק',
+            cancelText: 'ביטול',
+            okType: 'danger',
+            onOk: () => handleDelete(pkg),
+          });
+        },
+      },
+    ];
+
+    return (
+      <Card
+        hoverable
+        onClick={() => handleView(pkg)}
+        style={{
+          borderRadius: 16,
+          overflow: 'hidden',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        styles={{
+          body: {
+            padding: 0,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
+      >
+        {/* Header with gradient */}
+        <div
+          style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            padding: '20px 16px',
+            color: '#fff',
+            position: 'relative',
+          }}
+        >
+          {hasDiscount && (
+            <Tag
+              color='#ff4d4f'
+              style={{
+                position: 'absolute',
+                top: 12,
+                left: 12,
+                fontWeight: 'bold',
+                borderRadius: 8,
+              }}
+            >
+              {pkg.discountPercent}% הנחה
+            </Tag>
+          )}
+          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: 8, right: 8 }}>
+            <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+              <Button
+                type='text'
+                icon={<MoreOutlined />}
+                style={{ color: '#fff' }}
+                size='small'
+              />
+            </Dropdown>
+          </div>
+          <div style={{ textAlign: 'center', paddingTop: 8 }}>
+            <GiftOutlined style={{ fontSize: 28, marginBottom: 8 }} />
+            <Title level={4} style={{ color: '#fff', margin: 0 }}>
+              {pkg.name}
+            </Title>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Description */}
+          <Text
+            type='secondary'
+            style={{
+              display: 'block',
+              marginBottom: 16,
+              minHeight: 40,
+              fontSize: 13,
+            }}
+            ellipsis={{ rows: 2 }}
+          >
+            {pkg.description || 'אין תיאור'}
           </Text>
-        );
-      },
-      sorter: (a, b) => {
-        const priceA = calculateFinalPrice(a.price, a.discountPercent).finalPrice;
-        const priceB = calculateFinalPrice(b.price, b.discountPercent).finalPrice;
-        return priceA - priceB;
-      },
-    },
-    {
-      title: 'זמן',
-      dataIndex: 'minutes',
-      key: 'minutes',
-      render: minutes => {
-        if (!minutes || minutes === 0) return '-';
-        if (minutes < 60) return `${minutes}ד`;
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return mins > 0 ? `${hours}ש ${mins}ד` : `${hours}ש`;
-      },
-      sorter: (a, b) => (a.minutes || 0) - (b.minutes || 0),
-    },
-    {
-      title: 'הדפסות',
-      dataIndex: 'prints',
-      key: 'prints',
-      render: prints => prints || 0,
-      sorter: (a, b) => (a.prints || 0) - (b.prints || 0),
-    },
-    {
-      title: 'סטטוס',
-      key: 'status',
-      render: (_, record) => {
-        const hasTime = record.minutes > 0;
-        const hasPrints = record.prints > 0;
-        return (
-          <Space>
-            {hasTime && <Tag color='blue'>זמן</Tag>}
-            {hasPrints && <Tag color='green'>הדפסות</Tag>}
-            {!hasTime && !hasPrints && <Tag>ריק</Tag>}
-          </Space>
-        );
-      },
-    },
-    {
-      title: 'פעולה',
-      key: 'action',
-      render: (_, record) => (
-        <Space>
-          <Button
-            type='link'
-            icon={<EyeOutlined />}
-            onClick={() => handleView(record)}
-            size='small'
-          >
-            צפה
-          </Button>
-          <Button
-            type='link'
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            size='small'
-          >
-            ערוך
-          </Button>
-          <Popconfirm
-            title='מחק חבילה'
-            description='האם אתה בטוח שברצונך למחוק את החבילה הזו?'
-            onConfirm={() => handleDelete(record)}
-            okText='כן'
-            cancelText='לא'
-            okType='danger'
-          >
-            <Button type='link' danger icon={<DeleteOutlined />} size='small'>
-              מחק
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+
+          {/* Features */}
+          <div style={{ marginBottom: 16, flex: 1 }}>
+            {timeDisplay && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  background: '#f0f5ff',
+                  borderRadius: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <ClockCircleOutlined style={{ color: '#1890ff' }} />
+                <Text style={{ color: '#1890ff' }}>{timeDisplay}</Text>
+              </div>
+            )}
+            {pkg.prints > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  background: '#f6ffed',
+                  borderRadius: 8,
+                }}
+              >
+                <PrinterOutlined style={{ color: '#52c41a' }} />
+                <Text style={{ color: '#52c41a' }}>{pkg.prints}₪ יתרת הדפסות</Text>
+              </div>
+            )}
+          </div>
+
+          {/* Price */}
+          <div style={{ textAlign: 'center', borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
+            {hasDiscount && (
+              <Text delete type='secondary' style={{ fontSize: 14, display: 'block' }}>
+                ₪{pkg.price?.toFixed(2)}
+              </Text>
+            )}
+            <Title level={2} style={{ margin: 0, color: '#52c41a' }}>
+              ₪{finalPrice.toFixed(2)}
+            </Title>
+            {hasDiscount && (
+              <Text type='success' style={{ fontSize: 12 }}>
+                חיסכון ₪{savings.toFixed(2)}
+              </Text>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
   return (
     <div style={{ direction: 'rtl' }}>
-      <Space direction='vertical' size='large' style={{ width: '100%' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <Title level={2} style={{ marginBottom: 8 }}>
-              חבילות
-            </Title>
-            <Text type='secondary'>נהל חבילות זמינות לרכישה בארגון שלך</Text>
-          </div>
-          <Space>
-            <Button icon={<ReloadOutlined />} onClick={loadPackages} loading={loading}>
-              רענן
-            </Button>
-            <Button type='primary' icon={<PlusOutlined />} onClick={handleCreate}>
-              הוסף חבילה
-            </Button>
-          </Space>
+      {/* Header */}
+      <div
+        className='page-header'
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+          marginBottom: 24,
+        }}
+      >
+        <div>
+          <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <AppstoreOutlined />
+            חבילות
+          </Title>
+          <Text type='secondary'>נהל חבילות זמינות לרכישה בארגון שלך</Text>
         </div>
+        <Space wrap>
+          <Button icon={<ReloadOutlined />} onClick={loadPackages} loading={loading}>
+            רענן
+          </Button>
+          <Button type='primary' icon={<PlusOutlined />} onClick={handleCreate}>
+            הוסף חבילה
+          </Button>
+        </Space>
+      </div>
 
-        {/* Packages Table */}
+      {/* Packages Grid */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 60 }}>
+          <Spin size='large' />
+          <div style={{ marginTop: 16 }}>
+            <Text type='secondary'>טוען חבילות...</Text>
+          </div>
+        </div>
+      ) : packages.length === 0 ? (
         <Card>
-          <Table
-            columns={columns}
-            dataSource={packages}
-            rowKey='id'
-            loading={loading}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: total => `סך ${total} חבילות`,
-            }}
-          />
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description='אין חבילות'
+          >
+            <Button type='primary' icon={<PlusOutlined />} onClick={handleCreate}>
+              צור חבילה ראשונה
+            </Button>
+          </Empty>
         </Card>
-      </Space>
+      ) : (
+        <Row gutter={[16, 16]}>
+          {packages.map(pkg => (
+            <Col key={pkg.id} xs={24} sm={12} lg={8} xl={6}>
+              <PackageCard pkg={pkg} />
+            </Col>
+          ))}
+        </Row>
+      )}
 
       {/* Create/Edit Modal */}
       <Modal
@@ -334,8 +390,9 @@ const PackagesPage = () => {
         open={modalVisible}
         onOk={handleModalOk}
         onCancel={() => setModalVisible(false)}
-        width={600}
+        width={Math.min(600, window.innerWidth - 32)}
         okText={editingPackage ? 'עדכן' : 'צור'}
+        cancelText='ביטול'
       >
         <Form form={form} layout='vertical' style={{ marginTop: 24 }}>
           <Form.Item
@@ -343,7 +400,7 @@ const PackagesPage = () => {
             label='שם החבילה'
             rules={[{ required: true, message: 'אנא הזן שם חבילה' }]}
           >
-            <Input placeholder='למשל, חבילת בסיס, חבילה פרמיום' />
+            <Input placeholder='למשל, חבילת בסיס' />
           </Form.Item>
 
           <Form.Item
@@ -354,42 +411,52 @@ const PackagesPage = () => {
             <TextArea rows={3} placeholder='תאר מה החבילה כוללת...' />
           </Form.Item>
 
-          <Form.Item
-            name='price'
-            label='מחיר (₪)'
-            rules={[
-              { required: true, message: 'אנא הזן מחיר' },
-              { type: 'number', min: 0, message: 'המחיר חייב להיות חיובי' },
-            ]}
-          >
-            <InputNumber style={{ width: '100%' }} precision={2} placeholder='0.00' prefix='₪' />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name='price'
+                label='מחיר (₪)'
+                rules={[
+                  { required: true, message: 'אנא הזן מחיר' },
+                  { type: 'number', min: 0, message: 'המחיר חייב להיות חיובי' },
+                ]}
+              >
+                <InputNumber style={{ width: '100%' }} precision={2} placeholder='0.00' />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name='discountPercent'
+                label='הנחה (%)'
+                rules={[
+                  { type: 'number', min: 0, max: 100, message: 'הנחה חייבת להיות בין 0-100' },
+                ]}
+              >
+                <InputNumber style={{ width: '100%' }} placeholder='0' min={0} max={100} />
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <Form.Item
-            name='discountPercent'
-            label='הנחה (%)'
-            rules={[
-              { type: 'number', min: 0, max: 100, message: 'הנחה חייבת להיות בין 0-100' },
-            ]}
-          >
-            <InputNumber style={{ width: '100%' }} placeholder='0' min={0} max={100} />
-          </Form.Item>
-
-          <Form.Item
-            name='minutes'
-            label='זמן (דקות)'
-            rules={[{ type: 'number', min: 0, message: 'הזמן חייב להיות חיובי' }]}
-          >
-            <InputNumber style={{ width: '100%' }} placeholder='0' min={0} />
-          </Form.Item>
-
-          <Form.Item
-            name='prints'
-            label='מספר הדפסות'
-            rules={[{ type: 'number', min: 0, message: 'הדפסות חייבות להיות חיוביות' }]}
-          >
-            <InputNumber style={{ width: '100%' }} placeholder='0' min={0} />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name='minutes'
+                label='זמן (דקות)'
+                rules={[{ type: 'number', min: 0, message: 'הזמן חייב להיות חיובי' }]}
+              >
+                <InputNumber style={{ width: '100%' }} placeholder='0' min={0} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name='prints'
+                label='יתרת הדפסות (₪)'
+                rules={[{ type: 'number', min: 0, message: 'חייב להיות חיובי' }]}
+              >
+                <InputNumber style={{ width: '100%' }} placeholder='0' min={0} />
+              </Form.Item>
+            </Col>
+          </Row>
         </Form>
       </Modal>
 
@@ -414,10 +481,10 @@ const PackagesPage = () => {
             ערוך
           </Button>,
         ]}
-        width={600}
+        width={Math.min(600, window.innerWidth - 32)}
       >
         {viewingPackage && (
-          <Descriptions column={1} bordered>
+          <Descriptions column={1} bordered size='small'>
             <Descriptions.Item label='שם החבילה'>
               <Text strong>{viewingPackage.name}</Text>
             </Descriptions.Item>
@@ -430,42 +497,17 @@ const PackagesPage = () => {
             </Descriptions.Item>
             <Descriptions.Item label='מחיר סופי'>
               <Text strong style={{ color: '#52c41a', fontSize: 18 }}>
-                ₪
-                {calculateFinalPrice(
-                  viewingPackage.price,
-                  viewingPackage.discountPercent
-                ).finalPrice.toFixed(2)}
+                ₪{calculateFinalPrice(viewingPackage.price, viewingPackage.discountPercent).finalPrice.toFixed(2)}
               </Text>
-              {viewingPackage.discountPercent > 0 && (
-                <Text type='secondary' style={{ marginLeft: 8 }}>
-                  (חיסכון ₪
-                  {calculateFinalPrice(
-                    viewingPackage.price,
-                    viewingPackage.discountPercent
-                  ).savings.toFixed(2)}
-                  )
-                </Text>
-              )}
             </Descriptions.Item>
             <Descriptions.Item label='זמן כלול'>
-              {viewingPackage.minutes
-                ? viewingPackage.minutes < 60
-                  ? `${viewingPackage.minutes} דקות`
-                  : `${Math.floor(viewingPackage.minutes / 60)} שעות ${viewingPackage.minutes % 60 > 0 ? `${viewingPackage.minutes % 60} דקות` : ''}`
-                : 'אין'}
+              {formatTime(viewingPackage.minutes) || 'אין'}
             </Descriptions.Item>
-            <Descriptions.Item label='הדפסות כלולות'>
-              {viewingPackage.prints || 0}
+            <Descriptions.Item label='יתרת הדפסות'>
+              {viewingPackage.prints ? `${viewingPackage.prints}₪` : 'אין'}
             </Descriptions.Item>
             <Descriptions.Item label='נוצר'>
-              {viewingPackage.createdAt
-                ? dayjs(viewingPackage.createdAt).format('MMMM D, YYYY HH:mm')
-                : 'לא זמין'}
-            </Descriptions.Item>
-            <Descriptions.Item label='עודכן לאחרונה'>
-              {viewingPackage.updatedAt
-                ? dayjs(viewingPackage.updatedAt).format('MMMM D, YYYY HH:mm')
-                : 'לא זמין'}
+              {viewingPackage.createdAt ? dayjs(viewingPackage.createdAt).format('DD/MM/YYYY HH:mm') : 'לא זמין'}
             </Descriptions.Item>
           </Descriptions>
         )}

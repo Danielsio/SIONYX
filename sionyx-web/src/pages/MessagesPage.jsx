@@ -1,22 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Card,
-  Table,
   Button,
   Input,
-  Select,
-  DatePicker,
   Space,
   Typography,
-  Modal,
-  Form,
   App,
   Tag,
-  Tooltip,
   Badge,
   Row,
   Col,
-  Statistic,
+  Avatar,
+  Drawer,
+  Empty,
+  Spin,
   Divider,
 } from 'antd';
 import {
@@ -25,11 +22,12 @@ import {
   UserOutlined,
   ClockCircleOutlined,
   CheckCircleOutlined,
-  EyeOutlined,
-  FilterOutlined,
-  ClearOutlined,
+  SearchOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/he';
 import { useAuthStore } from '../store/authStore';
 import { getAllUsers } from '../services/userService';
 import {
@@ -39,27 +37,24 @@ import {
   isUserActive,
 } from '../services/chatService';
 
-const { Title, Text } = Typography;
+dayjs.extend(relativeTime);
+dayjs.locale('he');
+
+const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
-const { RangePicker } = DatePicker;
 
 const MessagesPage = () => {
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
-  const [messageModalVisible, setMessageModalVisible] = useState(false);
-  const [messageForm] = Form.useForm();
-  const [filters, setFilters] = useState({
-    user: null,
-    dateRange: null,
-    status: null,
-  });
-  const [stats, setStats] = useState({
-    total: 0,
-    unread: 0,
-    today: 0,
-  });
+  const [chatVisible, setChatVisible] = useState(false);
+  const [userMessages, setUserMessages] = useState([]);
+  const [loadingChat, setLoadingChat] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const chatEndRef = useRef(null);
 
   const { user } = useAuthStore();
   const { message } = App.useApp();
@@ -69,371 +64,493 @@ const MessagesPage = () => {
   }, []);
 
   useEffect(() => {
-    loadMessages();
-  }, [filters]);
+    if (chatVisible && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [userMessages, chatVisible]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      // Load users
-      const usersResult = await getAllUsers(user.orgId);
+      const [usersResult, messagesResult] = await Promise.all([
+        getAllUsers(user.orgId),
+        getAllMessages(user.orgId),
+      ]);
+
       if (usersResult.success) {
         setUsers(usersResult.users);
       }
-
-      // Load messages
-      await loadMessages();
+      if (messagesResult.success) {
+        setMessages(messagesResult.messages);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
-      message.error('Failed to load data');
+      message.error('שגיאה בטעינת הנתונים');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadMessages = async () => {
+  const openChat = async userItem => {
+    setSelectedUser(userItem);
+    setChatVisible(true);
+    setLoadingChat(true);
+
     try {
-      let result;
-
-      if (filters.user) {
-        result = await getMessagesForUser(user.orgId, filters.user);
-      } else {
-        result = await getAllMessages(user.orgId);
-      }
-
+      const result = await getMessagesForUser(user.orgId, userItem.uid);
       if (result.success) {
-        let filteredMessages = result.messages;
-
-        // Apply date filter
-        if (filters.dateRange && filters.dateRange.length === 2) {
-          const [start, end] = filters.dateRange;
-          filteredMessages = filteredMessages.filter(msg => {
-            const msgDate = dayjs(msg.timestamp);
-            return msgDate.isAfter(start.startOf('day')) && msgDate.isBefore(end.endOf('day'));
-          });
-        }
-
-        // Apply status filter
-        if (filters.status !== null) {
-          filteredMessages = filteredMessages.filter(msg =>
-            filters.status ? !msg.read : msg.read
-          );
-        }
-
-        setMessages(filteredMessages);
-        updateStats(filteredMessages);
-      }
-    } catch (error) {
-      console.error('Error loading messages:', error);
-      antMessage.error('Failed to load messages');
-    }
-  };
-
-  const updateStats = messages => {
-    const now = dayjs();
-    const today = messages.filter(msg => dayjs(msg.timestamp).isSame(now, 'day'));
-
-    setStats({
-      total: messages.length,
-      unread: messages.filter(msg => !msg.read).length,
-      today: today.length,
-    });
-  };
-
-  const handleSendMessage = async values => {
-    try {
-      const { toUserId, message: messageText } = values;
-
-      const result = await sendMessage(user.orgId, toUserId, messageText, user.uid);
-
-      if (result.success) {
-        message.success('Message sent successfully');
-        setMessageModalVisible(false);
-        messageForm.resetFields();
-        loadMessages();
-      } else {
-        message.error(result.error || 'Failed to send message');
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      message.error('Failed to send message');
-    }
-  };
-
-  const handleFilterChange = (key, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const clearFilters = () => {
-    setFilters({
-      user: null,
-      dateRange: null,
-      status: null,
-    });
-  };
-
-  const getUserName = userId => {
-    const user = users.find(u => u.uid === userId);
-    return user ? `${user.firstName} ${user.lastName}` : 'Unknown User';
-  };
-
-  const getUserPhone = userId => {
-    const user = users.find(u => u.uid === userId);
-    return user ? user.phoneNumber : 'Unknown';
-  };
-
-  const columns = [
-    {
-      title: 'משתמש',
-      dataIndex: 'toUserId',
-      key: 'user',
-      render: userId => {
-        const user = users.find(u => u.uid === userId);
-        const isActive = user ? isUserActive(user.lastSeen) : false;
-
-        return (
-          <Space>
-            <UserOutlined />
-            <div>
-              <div>{getUserName(userId)}</div>
-              <Text type='secondary' style={{ fontSize: '12px' }}>
-                {getUserPhone(userId)}
-              </Text>
-            </div>
-            {isActive && (
-              <Tag color='green' size='small'>
-                פעיל
-              </Tag>
-            )}
-          </Space>
+        // Sort messages by timestamp (oldest first for chat display)
+        const sorted = [...result.messages].sort(
+          (a, b) => dayjs(a.timestamp).unix() - dayjs(b.timestamp).unix()
         );
-      },
-    },
-    {
-      title: 'הודעה',
-      dataIndex: 'message',
-      key: 'message',
-      ellipsis: true,
-      render: text => (
-        <Tooltip title={text}>
-          <Text>{text}</Text>
-        </Tooltip>
-      ),
-    },
-    {
-      title: 'סטטוס',
-      dataIndex: 'read',
-      key: 'status',
-      render: (read, record) => (
-        <Space>
-          {read ? (
-            <Tag color='green' icon={<CheckCircleOutlined />}>
-              נקרא
-            </Tag>
-          ) : (
-            <Tag color='orange' icon={<ClockCircleOutlined />}>
-              לא נקרא
-            </Tag>
-          )}
-          {read && record.readAt && (
-            <Text type='secondary' style={{ fontSize: '12px' }}>
-              {dayjs(record.readAt).format('HH:mm')}
+        setUserMessages(sorted);
+      }
+    } catch (error) {
+      console.error('Error loading chat:', error);
+      message.error('שגיאה בטעינת ההודעות');
+    } finally {
+      setLoadingChat(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedUser) return;
+
+    setSending(true);
+    try {
+      const result = await sendMessage(user.orgId, selectedUser.uid, newMessage.trim(), user.uid);
+      if (result.success) {
+        setNewMessage('');
+        // Reload messages for this user
+        const msgResult = await getMessagesForUser(user.orgId, selectedUser.uid);
+        if (msgResult.success) {
+          const sorted = [...msgResult.messages].sort(
+            (a, b) => dayjs(a.timestamp).unix() - dayjs(b.timestamp).unix()
+          );
+          setUserMessages(sorted);
+        }
+        // Also reload all messages for the list
+        loadData();
+        message.success('הודעה נשלחה');
+      } else {
+        message.error('שגיאה בשליחה');
+      }
+    } catch (error) {
+      console.error('Error sending:', error);
+      message.error('שגיאה בשליחה');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Get user conversation summaries
+  const getUserConversations = () => {
+    const userMap = new Map();
+
+    // Group messages by user
+    messages.forEach(msg => {
+      const userId = msg.toUserId;
+      if (!userMap.has(userId)) {
+        userMap.set(userId, {
+          userId,
+          messages: [],
+          unreadCount: 0,
+          latestMessage: null,
+          latestTimestamp: null,
+        });
+      }
+      const userData = userMap.get(userId);
+      userData.messages.push(msg);
+      if (!msg.read) userData.unreadCount++;
+      
+      const msgTime = dayjs(msg.timestamp);
+      if (!userData.latestTimestamp || msgTime.isAfter(userData.latestTimestamp)) {
+        userData.latestTimestamp = msgTime;
+        userData.latestMessage = msg.message;
+      }
+    });
+
+    // Convert to array and add user details
+    return Array.from(userMap.values())
+      .map(conv => {
+        const userInfo = users.find(u => u.uid === conv.userId);
+        return {
+          ...conv,
+          userName: userInfo ? `${userInfo.firstName} ${userInfo.lastName}` : 'משתמש לא ידוע',
+          userPhone: userInfo?.phoneNumber || '',
+          isActive: userInfo ? isUserActive(userInfo.lastSeen) : false,
+          userInfo,
+        };
+      })
+      .sort((a, b) => (b.latestTimestamp?.unix() || 0) - (a.latestTimestamp?.unix() || 0));
+  };
+
+  const conversations = getUserConversations();
+  const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+
+  // Filter conversations by search
+  const filteredConversations = conversations.filter(conv =>
+    conv.userName.toLowerCase().includes(searchText.toLowerCase()) ||
+    conv.userPhone.includes(searchText)
+  );
+
+  // Users without messages (for quick access)
+  const usersWithoutMessages = users.filter(
+    u => !conversations.find(c => c.userId === u.uid)
+  );
+
+  const ConversationCard = ({ conv }) => (
+    <Card
+      hoverable
+      onClick={() => conv.userInfo && openChat(conv.userInfo)}
+      style={{
+        borderRadius: 12,
+        marginBottom: 12,
+        cursor: 'pointer',
+        borderRight: conv.unreadCount > 0 ? '4px solid #1890ff' : 'none',
+      }}
+      styles={{ body: { padding: 16 } }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+        <Badge count={conv.unreadCount} offset={[-4, 4]}>
+          <Avatar
+            size={48}
+            style={{
+              background: conv.isActive
+                ? 'linear-gradient(135deg, #52c41a, #73d13d)'
+                : 'linear-gradient(135deg, #667eea, #764ba2)',
+            }}
+            icon={<UserOutlined />}
+          />
+        </Badge>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text strong style={{ fontSize: 15 }}>
+              {conv.userName}
             </Text>
-          )}
-        </Space>
-      ),
-    },
-    {
-      title: 'נשלח',
-      dataIndex: 'timestamp',
-      key: 'timestamp',
-      render: timestamp => (
-        <Space direction='vertical' size={0}>
-          <Text>{dayjs(timestamp).format('DD/MM/YYYY')}</Text>
-          <Text type='secondary' style={{ fontSize: '12px' }}>
-            {dayjs(timestamp).format('HH:mm:ss')}
+            <Text type='secondary' style={{ fontSize: 11 }}>
+              {conv.latestTimestamp?.fromNow()}
+            </Text>
+          </div>
+          <Text type='secondary' style={{ fontSize: 12 }}>
+            {conv.userPhone}
           </Text>
-        </Space>
-      ),
-      sorter: (a, b) => dayjs(a.timestamp).unix() - dayjs(b.timestamp).unix(),
-    },
-  ];
+          <Paragraph
+            ellipsis={{ rows: 1 }}
+            style={{ margin: '4px 0 0', fontSize: 13, color: '#666' }}
+          >
+            {conv.latestMessage || 'אין הודעות'}
+          </Paragraph>
+        </div>
+      </div>
+    </Card>
+  );
+
+  const UserQuickCard = ({ userItem }) => (
+    <Card
+      hoverable
+      size='small'
+      onClick={() => openChat(userItem)}
+      style={{ borderRadius: 8, textAlign: 'center' }}
+      styles={{ body: { padding: 12 } }}
+    >
+      <Avatar
+        size={40}
+        style={{
+          background: isUserActive(userItem.lastSeen)
+            ? 'linear-gradient(135deg, #52c41a, #73d13d)'
+            : '#d9d9d9',
+        }}
+        icon={<UserOutlined />}
+      />
+      <div style={{ marginTop: 8 }}>
+        <Text strong style={{ fontSize: 12, display: 'block' }} ellipsis>
+          {userItem.firstName}
+        </Text>
+      </div>
+    </Card>
+  );
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div style={{ direction: 'rtl' }}>
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <MessageOutlined />
-          הודעות
-        </Title>
-        <Text type='secondary'>שלח הודעות למשתמשים וצפה בהיסטוריית ההודעות</Text>
+      <div
+        className='page-header'
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+          marginBottom: 20,
+        }}
+      >
+        <div>
+          <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <MessageOutlined />
+            הודעות
+            {totalUnread > 0 && (
+              <Badge count={totalUnread} style={{ marginRight: 8 }} />
+            )}
+          </Title>
+          <Text type='secondary'>שלח הודעות למשתמשים וצפה בשיחות</Text>
+        </div>
+        <Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>
+          רענן
+        </Button>
       </div>
 
-      {/* Stats Cards */}
-      <Row gutter={16} style={{ marginBottom: '24px' }}>
-        <Col span={8}>
-          <Card>
-            <Statistic title='סך הכל הודעות' value={stats.total} prefix={<MessageOutlined />} />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title='הודעות לא נקראו'
-              value={stats.unread}
-              prefix={<ClockCircleOutlined />}
-              valueStyle={{ color: '#faad14' }}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title='הודעות היום'
-              value={stats.today}
-              prefix={<SendOutlined />}
-              valueStyle={{ color: '#52c41a' }}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Filters and Actions */}
-      <Card style={{ marginBottom: '24px' }}>
-        <Row gutter={16} align='middle'>
-          <Col flex='auto'>
-            <Space wrap>
-              <Select
-                placeholder='סנן לפי משתמש'
-                style={{ width: 200 }}
-                value={filters.user}
-                onChange={value => handleFilterChange('user', value)}
-                allowClear
-              >
-                {users.map(user => (
-                  <Select.Option key={user.uid} value={user.uid}>
-                    {user.firstName} {user.lastName} ({user.phoneNumber})
-                  </Select.Option>
-                ))}
-              </Select>
-
-              <RangePicker
-                placeholder={['תאריך התחלה', 'תאריך סיום']}
-                value={filters.dateRange}
-                onChange={dates => handleFilterChange('dateRange', dates)}
-              />
-
-              <Select
-                placeholder='סנן לפי סטטוס'
-                style={{ width: 120 }}
-                value={filters.status}
-                onChange={value => handleFilterChange('status', value)}
-                allowClear
-              >
-                <Select.Option value={true}>נקרא</Select.Option>
-                <Select.Option value={false}>לא נקרא</Select.Option>
-              </Select>
-
-              <Button icon={<ClearOutlined />} onClick={clearFilters}>
-                נקה מסננים
-              </Button>
-            </Space>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 60 }}>
+          <Spin size='large' />
+        </div>
+      ) : (
+        <Row gutter={[16, 16]}>
+          {/* Main Conversations List */}
+          <Col xs={24} lg={16}>
+            <Card
+              title={
+                <Space>
+                  <MessageOutlined />
+                  <span>שיחות ({conversations.length})</span>
+                </Space>
+              }
+              extra={
+                <Input
+                  placeholder='חפש משתמש...'
+                  prefix={<SearchOutlined />}
+                  value={searchText}
+                  onChange={e => setSearchText(e.target.value)}
+                  style={{ width: 180 }}
+                  allowClear
+                />
+              }
+              styles={{ body: { padding: 16, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' } }}
+            >
+              {filteredConversations.length === 0 ? (
+                <Empty description='אין שיחות' image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              ) : (
+                filteredConversations.map(conv => (
+                  <ConversationCard key={conv.userId} conv={conv} />
+                ))
+              )}
+            </Card>
           </Col>
 
-          <Col>
+          {/* Quick Access to Users */}
+          <Col xs={24} lg={8}>
+            <Card
+              title={
+                <Space>
+                  <UserOutlined />
+                  <span>שלח הודעה חדשה</span>
+                </Space>
+              }
+              styles={{ body: { padding: 12 } }}
+            >
+              {usersWithoutMessages.length === 0 && conversations.length === 0 ? (
+                <Empty description='אין משתמשים' image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              ) : (
+                <Row gutter={[8, 8]}>
+                  {users.slice(0, 12).map(userItem => (
+                    <Col key={userItem.uid} span={8}>
+                      <UserQuickCard userItem={userItem} />
+                    </Col>
+                  ))}
+                </Row>
+              )}
+            </Card>
+
+            {/* Stats Card */}
+            <Card style={{ marginTop: 16 }}>
+              <Row gutter={16}>
+                <Col span={8} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#1890ff' }}>
+                    {messages.length}
+                  </div>
+                  <Text type='secondary' style={{ fontSize: 12 }}>סך הכל</Text>
+                </Col>
+                <Col span={8} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#faad14' }}>
+                    {totalUnread}
+                  </div>
+                  <Text type='secondary' style={{ fontSize: 12 }}>לא נקראו</Text>
+                </Col>
+                <Col span={8} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
+                    {conversations.length}
+                  </div>
+                  <Text type='secondary' style={{ fontSize: 12 }}>שיחות</Text>
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+        </Row>
+      )}
+
+      {/* Chat Drawer */}
+      <Drawer
+        title={
+          selectedUser && (
+            <Space>
+              <Avatar
+                style={{
+                  background: isUserActive(selectedUser.lastSeen)
+                    ? 'linear-gradient(135deg, #52c41a, #73d13d)'
+                    : 'linear-gradient(135deg, #667eea, #764ba2)',
+                }}
+                icon={<UserOutlined />}
+              />
+              <div>
+                <div style={{ fontWeight: 'bold' }}>
+                  {selectedUser.firstName} {selectedUser.lastName}
+                </div>
+                <Text type='secondary' style={{ fontSize: 12 }}>
+                  {selectedUser.phoneNumber}
+                  {isUserActive(selectedUser.lastSeen) && (
+                    <Tag color='green' style={{ marginRight: 8 }}>מחובר</Tag>
+                  )}
+                </Text>
+              </div>
+            </Space>
+          )
+        }
+        placement='left'
+        width={Math.min(450, window.innerWidth - 20)}
+        onClose={() => {
+          setChatVisible(false);
+          setSelectedUser(null);
+          setUserMessages([]);
+        }}
+        open={chatVisible}
+        styles={{
+          body: {
+            padding: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            height: 'calc(100% - 55px)',
+          },
+        }}
+      >
+        {/* Messages Area */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: 16,
+            background: '#f5f5f5',
+          }}
+        >
+          {loadingChat ? (
+            <div style={{ textAlign: 'center', padding: 40 }}>
+              <Spin />
+            </div>
+          ) : userMessages.length === 0 ? (
+            <Empty
+              description='אין הודעות עדיין'
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              style={{ marginTop: 40 }}
+            />
+          ) : (
+            <>
+              {userMessages.map((msg, index) => {
+                const showDate =
+                  index === 0 ||
+                  !dayjs(msg.timestamp).isSame(dayjs(userMessages[index - 1].timestamp), 'day');
+
+                return (
+                  <div key={msg.id}>
+                    {showDate && (
+                      <Divider style={{ fontSize: 11, color: '#999' }}>
+                        {dayjs(msg.timestamp).format('DD MMMM YYYY')}
+                      </Divider>
+                    )}
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'flex-start',
+                        marginBottom: 12,
+                      }}
+                    >
+                      <div
+                        style={{
+                          maxWidth: '80%',
+                          background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                          color: '#fff',
+                          padding: '10px 14px',
+                          borderRadius: '16px 16px 4px 16px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        }}
+                      >
+                        <div style={{ fontSize: 14, lineHeight: 1.5 }}>{msg.message}</div>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            gap: 4,
+                            marginTop: 4,
+                            fontSize: 10,
+                            opacity: 0.8,
+                          }}
+                        >
+                          <span>{dayjs(msg.timestamp).format('HH:mm')}</span>
+                          {msg.read ? (
+                            <CheckCircleOutlined style={{ color: '#73d13d' }} />
+                          ) : (
+                            <ClockCircleOutlined />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={chatEndRef} />
+            </>
+          )}
+        </div>
+
+        {/* Message Input */}
+        <div
+          style={{
+            padding: 12,
+            borderTop: '1px solid #f0f0f0',
+            background: '#fff',
+          }}
+        >
+          <Space.Compact style={{ width: '100%' }}>
+            <TextArea
+              value={newMessage}
+              onChange={e => setNewMessage(e.target.value)}
+              placeholder='הקלד הודעה...'
+              autoSize={{ minRows: 1, maxRows: 4 }}
+              onPressEnter={e => {
+                if (!e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              style={{
+                borderRadius: '20px 0 0 20px',
+                resize: 'none',
+              }}
+            />
             <Button
               type='primary'
               icon={<SendOutlined />}
-              onClick={() => setMessageModalVisible(true)}
-            >
-              שלח הודעה
-            </Button>
-          </Col>
-        </Row>
-      </Card>
-
-      {/* Messages Table */}
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={messages}
-          rowKey='id'
-          loading={loading}
-          pagination={{
-            pageSize: 20,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} messages`,
-          }}
-          scroll={{ x: 800 }}
-        />
-      </Card>
-
-      {/* Send Message Modal */}
-      <Modal
-        title='שלח הודעה'
-        open={messageModalVisible}
-        onCancel={() => {
-          setMessageModalVisible(false);
-          messageForm.resetFields();
-        }}
-        footer={null}
-        width={600}
-        dir='rtl'
-      >
-        <Form form={messageForm} layout='vertical' onFinish={handleSendMessage} dir='rtl'>
-          <Form.Item
-            name='toUserId'
-            label='שלח למשתמש'
-            rules={[{ required: true, message: 'אנא בחר משתמש' }]}
-          >
-            <Select
-              placeholder='בחר משתמש'
-              showSearch
-              filterOption={(input, option) =>
-                option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-              }
-              style={{ textAlign: 'right' }}
-            >
-              {users.map(user => (
-                <Select.Option key={user.uid} value={user.uid}>
-                  {user.firstName} {user.lastName} ({user.phoneNumber})
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name='message'
-            label='הודעה'
-            rules={[
-              { required: true, message: 'אנא הכנס הודעה' },
-              { max: 500, message: 'ההודעה חייבת להיות פחות מ-500 תווים' },
-            ]}
-          >
-            <TextArea
-              rows={4}
-              placeholder='הכנס את ההודעה שלך כאן...'
-              showCount
-              maxLength={500}
-              style={{ textAlign: 'right', direction: 'rtl' }}
+              onClick={handleSendMessage}
+              loading={sending}
+              disabled={!newMessage.trim()}
+              style={{
+                borderRadius: '0 20px 20px 0',
+                height: 'auto',
+                minHeight: 40,
+              }}
             />
-          </Form.Item>
-
-          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
-            <Space>
-              <Button onClick={() => setMessageModalVisible(false)}>ביטול</Button>
-              <Button type='primary' htmlType='submit' icon={<SendOutlined />}>
-                שלח הודעה
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
+          </Space.Compact>
+        </div>
+      </Drawer>
     </div>
   );
 };
