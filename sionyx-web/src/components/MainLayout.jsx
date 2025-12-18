@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Typography, Space, Badge, Drawer } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Typography, Space, Badge, Drawer, Button } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
@@ -236,7 +236,7 @@ const MainLayout = () => {
             />
           </div>
 
-          <Space size={isMobile ? 'small' : 'large'} wrap>
+          <Space size={isMobile ? 'small' : 'middle'} wrap>
             {!isMobile && (
               <Space>
                 <Text type='secondary'>ארגון:</Text>
@@ -248,26 +248,42 @@ const MainLayout = () => {
             <Dropdown menu={{ items: userMenuItems }} placement='bottomRight'>
               <Space style={{ cursor: 'pointer' }}>
                 <Avatar style={{ backgroundColor: '#667eea' }} icon={<UserOutlined />} />
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    minWidth: isMobile ? 0 : 'auto',
-                  }}
-                >
-                  <Text style={{ fontSize: isMobile ? 14 : 16 }}>
-                    {user?.displayName || 'Admin'}
-                  </Text>
-                  {user?.phone && !isMobile && (
-                    <Text type='secondary' style={{ fontSize: 12 }}>
-                      <PhoneOutlined style={{ marginRight: 4 }} />
-                      {user.phone}
+                {!isMobile && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                    }}
+                  >
+                    <Text style={{ fontSize: 14 }}>
+                      {user?.displayName || 'Admin'}
                     </Text>
-                  )}
-                </div>
+                    {user?.phone && (
+                      <Text type='secondary' style={{ fontSize: 12 }}>
+                        <PhoneOutlined style={{ marginRight: 4 }} />
+                        {user.phone}
+                      </Text>
+                    )}
+                  </div>
+                )}
               </Space>
             </Dropdown>
+
+            {/* Prominent Logout Button */}
+            <Button
+              type='text'
+              danger
+              icon={<LogoutOutlined />}
+              onClick={handleLogout}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center',
+                gap: 4,
+              }}
+            >
+              {!isMobile && 'התנתק'}
+            </Button>
           </Space>
         </Header>
 

@@ -17,7 +17,8 @@ import {
   InputNumber,
   Dropdown,
 } from 'antd';
-import { getStatusLabel, getStatusColor } from '../constants/purchaseStatus';
+import { getStatusLabel as getPurchaseStatusLabel, getStatusColor as getPurchaseStatusColor } from '../constants/purchaseStatus';
+import { getUserStatus, getStatusLabel as getUserStatusLabel, getStatusColor as getUserStatusColor } from '../constants/userStatus';
 import {
   SearchOutlined,
   UserOutlined,
@@ -323,33 +324,43 @@ const UsersPage = () => {
     {
       title: 'שם',
       key: 'name',
+      fixed: 'right',
+      width: 150,
       render: (_, record) => (
         <Space>
           <UserOutlined style={{ color: '#1890ff' }} />
-          <span>{`${record.firstName || ''} ${record.lastName || ''}`.trim() || 'לא זמין'}</span>
+          <span style={{ whiteSpace: 'nowrap' }}>
+            {`${record.firstName || ''} ${record.lastName || ''}`.trim() || 'לא זמין'}
+          </span>
         </Space>
       ),
       sorter: (a, b) =>
         `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`),
     },
     {
-      title: 'מספר טלפון',
+      title: 'טלפון',
       dataIndex: 'phoneNumber',
       key: 'phoneNumber',
+      width: 120,
       render: phone => phone || 'לא זמין',
+      responsive: ['sm'],
     },
     {
       title: 'אימייל',
       dataIndex: 'email',
       key: 'email',
+      width: 180,
+      ellipsis: true,
       render: email => email || 'לא זמין',
+      responsive: ['lg'],
     },
     {
-      title: 'זמן נותר',
+      title: 'זמן',
       dataIndex: 'remainingTime',
       key: 'remainingTime',
+      width: 100,
       render: time => (
-        <Space>
+        <Space size={4}>
           <ClockCircleOutlined />
           <Text>{formatTime(time || 0)}</Text>
         </Space>
@@ -360,64 +371,49 @@ const UsersPage = () => {
       title: 'הדפסות',
       dataIndex: 'remainingPrints',
       key: 'remainingPrints',
+      width: 90,
       render: prints => (
-        <Space>
+        <Space size={4}>
           <PrinterOutlined />
-          <Text>{prints || 0}</Text>
+          <Text>{prints || 0}₪</Text>
         </Space>
       ),
       sorter: (a, b) => (a.remainingPrints || 0) - (b.remainingPrints || 0),
+      responsive: ['sm'],
     },
     {
-      title: 'מחובר',
-      dataIndex: 'isSessionActive',
-      key: 'isLoggedIn',
-      render: isSessionActive => {
-        const isLoggedIn = isSessionActive === true;
+      title: 'סטטוס',
+      key: 'status',
+      width: 100,
+      render: (_, record) => {
+        const status = getUserStatus(record);
         return (
-          <Tag color={isLoggedIn ? 'processing' : 'default'}>
-            {isLoggedIn ? 'מחובר' : 'לא מחובר'}
+          <Tag color={getUserStatusColor(status)}>
+            {getUserStatusLabel(status)}
           </Tag>
         );
       },
       filters: [
-        { text: 'מחובר', value: true },
-        { text: 'לא מחובר', value: false },
+        { text: 'פעיל', value: 'active' },
+        { text: 'מחובר', value: 'connected' },
+        { text: 'לא מחובר', value: 'offline' },
       ],
-      onFilter: (value, record) => record.isSessionActive === value,
-    },
-    {
-      title: 'בשימוש',
-      dataIndex: 'currentComputerId',
-      key: 'isActive',
-      render: (currentComputerId, record) => {
-        const isActive = record.isSessionActive && currentComputerId;
-        return (
-          <Tag color={isActive ? 'success' : 'default'}>
-            {isActive ? 'בשימוש' : 'לא פעיל'}
-          </Tag>
-        );
-      },
-      filters: [
-        { text: 'בשימוש', value: true },
-        { text: 'לא פעיל', value: false },
-      ],
-      onFilter: (value, record) => {
-        if (value) return record.isSessionActive && record.currentComputerId;
-        return !record.isSessionActive || !record.currentComputerId;
-      },
+      onFilter: (value, record) => getUserStatus(record) === value,
     },
     {
       title: 'נוצר',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: date => (date ? dayjs(date).format('MMM D, YYYY') : 'לא זמין'),
+      width: 110,
+      render: date => (date ? dayjs(date).format('DD/MM/YY') : 'לא זמין'),
       sorter: (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0),
+      responsive: ['md'],
     },
     {
       title: 'תפקיד',
       dataIndex: 'isAdmin',
       key: 'isAdmin',
+      width: 80,
       render: isAdmin =>
         isAdmin ? (
           <Tag color='gold' icon={<CrownOutlined />}>
@@ -431,34 +427,13 @@ const UsersPage = () => {
         { text: 'משתמש', value: false },
       ],
       onFilter: (value, record) => record.isAdmin === value,
+      responsive: ['sm'],
     },
     {
-      title: 'סטטוס התקנה',
-      dataIndex: 'forceLogout',
-      key: 'forceLogout',
-      render: forceLogout => {
-        if (forceLogout === true) {
-          return (
-            <Tag color='red' icon={<MinusCircleOutlined />}>
-              הותקן
-            </Tag>
-          );
-        }
-        return <Tag color='green'>פעיל</Tag>;
-      },
-      filters: [
-        { text: 'פעיל', value: false },
-        { text: 'הותקן', value: true },
-      ],
-      onFilter: (value, record) => {
-        if (value === true) return record.forceLogout === true;
-        if (value === false) return record.forceLogout !== true;
-        return true;
-      },
-    },
-    {
-      title: 'פעולה',
+      title: 'פעולות',
       key: 'action',
+      fixed: 'left',
+      width: 100,
       render: (_, record) => {
         const menuItems = [
           {
@@ -515,14 +490,11 @@ const UsersPage = () => {
         ];
 
         return (
-          <Space>
-            <Button type='link' icon={<EyeOutlined />} onClick={() => handleViewUser(record)}>
-              צפה
+          <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+            <Button type='primary' size='small' icon={<MoreOutlined />}>
+              פעולות
             </Button>
-            <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-              <Button type='text' icon={<MoreOutlined />} />
-            </Dropdown>
-          </Space>
+          </Dropdown>
         );
       },
     },
@@ -554,7 +526,7 @@ const UsersPage = () => {
       dataIndex: 'status',
       key: 'status',
       render: status => {
-        return <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>;
+        return <Tag color={getPurchaseStatusColor(status)}>{getPurchaseStatusLabel(status)}</Tag>;
       },
     },
   ];
@@ -624,9 +596,18 @@ const UsersPage = () => {
     <div style={{ direction: 'rtl' }}>
       <Space direction='vertical' size='large' style={{ width: '100%' }}>
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div 
+          className='page-header'
+          style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
+          }}
+        >
           <div>
-            <Title level={2} style={{ marginBottom: 8 }}>
+            <Title level={2} style={{ marginBottom: 4 }}>
               משתמשים
             </Title>
             <Text type='secondary'>נהל וצפה בכל המשתמשים בארגון שלך</Text>
@@ -649,21 +630,24 @@ const UsersPage = () => {
         </Card>
 
         {/* Users Table */}
-        <Card>
+        <Card bodyStyle={{ padding: 0, overflow: 'hidden' }}>
           <Table
             columns={columns}
             dataSource={filteredUsers}
             rowKey='uid'
             loading={loading}
-            scroll={{ x: 800 }}
+            scroll={{ x: 'max-content' }}
             pagination={{
               pageSize: 10,
               showSizeChanger: true,
               showTotal: total => `סך ${total} משתמשים`,
               responsive: true,
               showQuickJumper: false,
+              size: 'small',
             }}
             size='small'
+            tableLayout='fixed'
+            style={{ direction: 'rtl' }}
           />
         </Card>
       </Space>
@@ -751,7 +735,7 @@ const UsersPage = () => {
       <Drawer
         title='פרטי משתמש'
         placement='right'
-        width={600}
+        width={Math.min(600, window.innerWidth - 40)}
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
       >
@@ -790,10 +774,10 @@ const UsersPage = () => {
                     {formatTime(selectedUser.remainingTime || 0)}
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label='הדפסות נותרות'>
+                <Descriptions.Item label='יתרת הדפסות'>
                   <Space>
                     <PrinterOutlined />
-                    {selectedUser.remainingPrints || 0}
+                    {selectedUser.remainingPrints || 0}₪
                   </Space>
                 </Descriptions.Item>
                 <Descriptions.Item label='נוצר'>

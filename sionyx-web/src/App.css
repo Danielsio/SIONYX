@@ -82,6 +82,43 @@
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
+/* Card hover effects */
+.ant-card-hoverable {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-card-hoverable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Better tag styling */
+.ant-tag {
+  border-radius: 6px;
+}
+
+/* Improved avatar styling */
+.ant-avatar {
+  font-weight: 500;
+}
+
+/* Better drawer styling */
+.ant-drawer-header {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Message bubble animations */
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Gradient text effect */
 .gradient-text {
   background: linear-gradient(135deg, #667eea, #764ba2);
@@ -98,7 +135,69 @@
   min-height: 400px;
 }
 
-/* Responsive adjustments */
+/* ==========================================
+   Responsive Table Styles
+   ========================================== */
+
+/* Base table improvements */
+.ant-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ant-table {
+  font-size: 14px;
+}
+
+/* RTL table scroll indicator */
+.ant-table-wrapper::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  pointer-events: none;
+  background: linear-gradient(to left, transparent, rgba(0,0,0,0.05));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.ant-table-wrapper:hover::after {
+  opacity: 1;
+}
+
+/* Fixed columns for RTL */
+.ant-table-cell-fix-right {
+  background: #fff !important;
+}
+
+.ant-table-cell-fix-left {
+  background: #fff !important;
+}
+
+/* ==========================================
+   Responsive Breakpoints
+   ========================================== */
+
+/* Tablet and below */
+@media (max-width: 992px) {
+  .ant-table {
+    font-size: 13px;
+  }
+  
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 10px 8px !important;
+  }
+  
+  .ant-tag {
+    font-size: 11px;
+    padding: 0 6px;
+  }
+}
+
+/* Mobile devices */
 @media (max-width: 768px) {
   .ant-layout-sider {
     position: fixed !important;
@@ -106,32 +205,43 @@
   }
 
   .ant-layout-content {
-    margin: 16px !important;
-    padding: 16px !important;
+    margin: 12px !important;
+    padding: 12px !important;
   }
 
   /* Mobile header adjustments */
   .ant-layout-header {
-    padding: 0 16px !important;
+    padding: 0 12px !important;
   }
 
   /* Mobile table responsiveness */
-  .ant-table-wrapper {
-    overflow-x: auto;
-  }
-
   .ant-table {
-    min-width: 600px;
+    font-size: 12px;
+  }
+  
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 8px 6px !important;
+    white-space: nowrap;
+  }
+  
+  .ant-table-thead > tr > th {
+    font-weight: 600;
   }
 
   /* Mobile card adjustments */
   .ant-card {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+  }
+
+  .ant-card-body {
+    padding: 12px !important;
   }
 
   /* Mobile spacing adjustments */
   .ant-space-vertical > .ant-space-item {
-    margin-bottom: 16px !important;
+    margin-bottom: 12px !important;
   }
 
   /* Mobile typography adjustments */
@@ -146,20 +256,47 @@
   .ant-typography h4 {
     font-size: 16px !important;
   }
+  
+  /* Mobile button adjustments */
+  .ant-btn {
+    font-size: 13px;
+  }
+  
+  .ant-btn-sm {
+    font-size: 12px;
+    padding: 0 8px;
+  }
+  
+  /* Mobile pagination */
+  .ant-pagination {
+    font-size: 12px;
+  }
+  
+  .ant-pagination-item {
+    min-width: 28px;
+    height: 28px;
+    line-height: 26px;
+  }
+  
+  /* Mobile search input */
+  .ant-input-search {
+    max-width: 100% !important;
+  }
 }
 
+/* Small mobile devices */
 @media (max-width: 480px) {
   .ant-layout-content {
     margin: 8px !important;
-    padding: 12px !important;
+    padding: 8px !important;
   }
 
   .ant-card {
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
   .ant-card-body {
-    padding: 16px !important;
+    padding: 10px !important;
   }
 
   /* Very small screens - stack everything */
@@ -169,11 +306,48 @@
 
   .ant-col {
     padding: 0 !important;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
   }
 
   /* Mobile drawer adjustments */
   .ant-drawer-body {
-    padding: 0 !important;
+    padding: 12px !important;
+  }
+  
+  .ant-drawer-header {
+    padding: 12px 16px !important;
+  }
+  
+  /* Compact table on very small screens */
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td {
+    padding: 6px 4px !important;
+    font-size: 11px;
+  }
+  
+  /* Hide less important columns */
+  .ant-table-cell.ant-table-cell-ellipsis {
+    max-width: 100px;
+  }
+  
+  /* Compact tags */
+  .ant-tag {
+    font-size: 10px;
+    padding: 0 4px;
+    margin: 0;
+  }
+  
+  /* Compact buttons */
+  .ant-btn-sm {
+    font-size: 11px;
+    padding: 0 6px;
+    height: 24px;
+  }
+  
+  /* Page header responsive */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 12px;
   }
 }

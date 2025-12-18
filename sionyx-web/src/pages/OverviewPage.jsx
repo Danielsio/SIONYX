@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Statistic, Typography, Space, Spin, Empty, App, Tag } from 'antd';
+import { Card, Row, Col, Statistic, Typography, Space, Spin, Empty, App, Tag, Avatar } from 'antd';
 import {
   UserOutlined,
   AppstoreOutlined,
   ShoppingCartOutlined,
   ClockCircleOutlined,
   DollarOutlined,
+  DesktopOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -13,6 +14,7 @@ import { getOrganizationStats } from '../services/organizationService';
 import { getPrintPricing } from '../services/pricingService';
 import { formatMinutesHebrew } from '../utils/timeFormatter';
 import { getAllUsers } from '../services/userService';
+import { getUserStatus, getStatusLabel, getStatusColor } from '../constants/userStatus';
 
 const { Title, Text } = Typography;
 
@@ -222,29 +224,52 @@ const OverviewPage = () => {
         </Row>
 
         {/* Recently Active Users */}
-        <Card title='מוצג לאחרונה' variant='borderless' extra={<UserOutlined />}>
+        <Card title='משתמשים פעילים' variant='borderless' extra={<UserOutlined />}>
           {recentUsers.length > 0 ? (
-            <Space direction='vertical' size='middle' style={{ width: '100%' }}>
-              {recentUsers.map(u => (
-                <Card key={u.uid} size='small' style={{ textAlign: 'right' }}>
-                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                    <Space>
-                      <UserOutlined />
-                      <Text strong>
-                        {`${u.firstName || ''} ${u.lastName || ''}`.trim() || 'לא זמין'}
-                      </Text>
-                    </Space>
-                    <Space>
-                      {u.isSessionActive && <Tag color='processing'>מחובר</Tag>}
-                      {u.currentComputerId && <Tag color='success'>בשימוש</Tag>}
-                      <Tag color='default'>
-                        {u.currentComputerName || 'מחשב לא זוהה'}
-                      </Tag>
-                    </Space>
-                  </Space>
-                </Card>
-              ))}
-            </Space>
+            <Row gutter={[12, 12]}>
+              {recentUsers.map(u => {
+                const status = getUserStatus(u);
+                return (
+                  <Col key={u.uid} xs={24} sm={12} md={8} lg={6}>
+                    <Card 
+                      size='small' 
+                      style={{ 
+                        borderRadius: 12,
+                        borderRight: `4px solid ${status === 'active' ? '#52c41a' : status === 'connected' ? '#1890ff' : '#d9d9d9'}`,
+                      }}
+                    >
+                      <Space>
+                        <Avatar
+                          style={{
+                            background: status === 'active'
+                              ? 'linear-gradient(135deg, #52c41a, #73d13d)'
+                              : status === 'connected'
+                              ? 'linear-gradient(135deg, #1890ff, #40a9ff)'
+                              : '#d9d9d9',
+                          }}
+                          icon={<UserOutlined />}
+                        />
+                        <div>
+                          <Text strong style={{ display: 'block', fontSize: 13 }}>
+                            {`${u.firstName || ''} ${u.lastName || ''}`.trim() || 'לא זמין'}
+                          </Text>
+                          <Space size={4}>
+                            <Tag color={getStatusColor(status)} style={{ margin: 0, fontSize: 11 }}>
+                              {getStatusLabel(status)}
+                            </Tag>
+                            {u.currentComputerName && (
+                              <Text type='secondary' style={{ fontSize: 11 }}>
+                                <DesktopOutlined /> {u.currentComputerName}
+                              </Text>
+                            )}
+                          </Space>
+                        </div>
+                      </Space>
+                    </Card>
+                  </Col>
+                );
+              })}
+            </Row>
           ) : (
             <Empty
               description='אין משתמשים פעילים כרגע'

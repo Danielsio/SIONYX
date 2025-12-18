@@ -80,47 +80,6 @@ export const registerOrganization = async organizationData => {
 };
 
 /**
- * Validate existing organization
- *
- * WHY NEEDED: Landing page needs this to validate existing organizations
- * and provide download access without requiring new registration
- *
- * @param {string} organizationName - Organization name to validate
- * @returns {Object} Success status and organization details
- */
-export const validateOrganization = async organizationName => {
-  try {
-    console.log('Validating existing organization:', {
-      organizationName,
-    });
-
-    // Initialize Firebase Functions
-    const validateOrg = httpsCallable(functions, 'validateOrganization');
-
-    // Call the Cloud Function
-    const result = await validateOrg({ organizationName });
-
-    console.log('Organization validated successfully:', result.data);
-    return result.data;
-  } catch (error) {
-    console.error('Error validating organization:', error);
-
-    // Handle Firebase Functions errors
-    if (error.code) {
-      return {
-        success: false,
-        error: error.message || 'Validation failed',
-      };
-    }
-
-    return {
-      success: false,
-      error: 'Failed to validate organization. Please try again.',
-    };
-  }
-};
-
-/**
  * Get organization metadata including NEDARIM credentials
  *
  * WHY NEEDED: Python client needs this to fetch NEDARIM credentials
