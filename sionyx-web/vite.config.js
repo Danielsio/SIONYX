@@ -1,9 +1,12 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  // Load .env from repo root (parent directory) for monorepo support
+  envDir: path.resolve(__dirname, '..'),
   server: {
     proxy: {
       // Proxy Firebase Storage requests to bypass CORS in dev

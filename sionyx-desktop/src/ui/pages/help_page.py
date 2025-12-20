@@ -25,6 +25,7 @@ from ui.constants.ui_constants import (
     UIStrings,
 )
 
+
 logger = get_logger(__name__)
 
 
@@ -39,7 +40,8 @@ class FAQCard(QFrame):
         self._build()
 
     def _build(self):
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QFrame {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.BORDER_LIGHT};
@@ -49,7 +51,8 @@ class FAQCard(QFrame):
                 border: none;
                 background: transparent;
             }}
-        """)
+        """
+        )
         apply_shadow(self, "sm")
 
         layout = QVBoxLayout(self)
@@ -67,8 +70,14 @@ class FAQCard(QFrame):
         q_layout.addWidget(icon)
 
         question = QLabel(self.question)
-        question.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_SEMIBOLD))
-        question.setStyleSheet(f"color: {Colors.TEXT_PRIMARY}; background: transparent;")
+        question.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_SEMIBOLD
+            )
+        )
+        question.setStyleSheet(
+            f"color: {Colors.TEXT_PRIMARY}; background: transparent;"
+        )
         question.setWordWrap(True)
         q_layout.addWidget(question, 1)
 
@@ -77,12 +86,14 @@ class FAQCard(QFrame):
         # Answer
         answer = QLabel(self.answer)
         answer.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_SM))
-        answer.setStyleSheet(f"""
+        answer.setStyleSheet(
+            f"""
             color: {Colors.TEXT_SECONDARY};
             background: {Colors.GRAY_50};
             padding: {Spacing.MD}px;
             border-radius: {BorderRadius.SM}px;
-        """)
+        """
+        )
         answer.setWordWrap(True)
         layout.addWidget(answer)
 
@@ -99,7 +110,8 @@ class ContactCard(QFrame):
 
     def _build(self):
         self.setFixedHeight(100)
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QFrame {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.BORDER_LIGHT};
@@ -109,7 +121,8 @@ class ContactCard(QFrame):
                 border: none;
                 background: transparent;
             }}
-        """)
+        """
+        )
         apply_shadow(self, "sm")
 
         layout = QVBoxLayout(self)
@@ -132,7 +145,11 @@ class ContactCard(QFrame):
 
         # Value
         value = QLabel(self.value)
-        value.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_SEMIBOLD))
+        value.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_SEMIBOLD
+            )
+        )
         value.setStyleSheet(f"color: {Colors.TEXT_PRIMARY}; background: transparent;")
         value.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(value)
@@ -177,12 +194,18 @@ class HelpPage(QWidget):
 
         scroll_content = QWidget()
         scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setContentsMargins(Spacing.BASE, Spacing.BASE, Spacing.BASE, Spacing.BASE)
+        scroll_layout.setContentsMargins(
+            Spacing.BASE, Spacing.BASE, Spacing.BASE, Spacing.BASE
+        )
         scroll_layout.setSpacing(Spacing.LG)
 
         # Contact section
         contact_title = QLabel("📞 יצירת קשר")
-        contact_title.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD))
+        contact_title.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD
+            )
+        )
         contact_title.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
         scroll_layout.addWidget(contact_title)
 
@@ -200,17 +223,41 @@ class HelpPage(QWidget):
 
         # FAQ section
         faq_title = QLabel("❓ שאלות נפוצות")
-        faq_title.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD))
+        faq_title.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD
+            )
+        )
         faq_title.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
         scroll_layout.addWidget(faq_title)
 
         # FAQ items
         faqs = [
-            ("⏱️", "איך אני רוכש זמן?", "לחץ על 'חבילות' בתפריט הצד, בחר חבילה ובצע תשלום מאובטח."),
-            ("🖨️", "איך עובדות ההדפסות?", "יתרת ההדפסות שלך מוצגת בשקלים. כל הדפסה מחויבת לפי מחיר העמוד."),
-            ("💳", "האם התשלום מאובטח?", "כן! אנו משתמשים בטכנולוגיית הצפנה מתקדמת להגנה על פרטי התשלום שלך."),
-            ("🔄", "מה קורה אם נגמר לי הזמן?", "תקבל התראה לפני סיום הזמן. תוכל לרכוש זמן נוסף בכל עת."),
-            ("📞", "למי לפנות אם יש בעיה?", "צור קשר עם התמיכה שלנו באמצעות הטלפון, אימייל או וואטסאפ."),
+            (
+                "⏱️",
+                "איך אני רוכש זמן?",
+                "לחץ על 'חבילות' בתפריט הצד, בחר חבילה ובצע תשלום מאובטח.",
+            ),
+            (
+                "🖨️",
+                "איך עובדות ההדפסות?",
+                "יתרת ההדפסות שלך מוצגת בשקלים. כל הדפסה מחויבת לפי מחיר העמוד.",
+            ),
+            (
+                "💳",
+                "האם התשלום מאובטח?",
+                "כן! אנו משתמשים בטכנולוגיית הצפנה מתקדמת להגנה על פרטי התשלום שלך.",
+            ),
+            (
+                "🔄",
+                "מה קורה אם נגמר לי הזמן?",
+                "תקבל התראה לפני סיום הזמן. תוכל לרכוש זמן נוסף בכל עת.",
+            ),
+            (
+                "📞",
+                "למי לפנות אם יש בעיה?",
+                "צור קשר עם התמיכה שלנו באמצעות הטלפון, אימייל או וואטסאפ.",
+            ),
         ]
 
         for icon, question, answer in faqs:
