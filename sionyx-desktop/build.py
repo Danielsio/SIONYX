@@ -345,7 +345,13 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
     try:
         # Initialize Firebase
         if not firebase_admin._apps:
-            cred = credentials.Certificate("serviceAccountKey.json")
+            # Look for serviceAccountKey.json at repo root (parent of sionyx-desktop)
+            repo_root = Path(__file__).parent.parent
+            service_key_path = repo_root / "serviceAccountKey.json"
+            if not service_key_path.exists():
+                # Fallback to current directory
+                service_key_path = Path("serviceAccountKey.json")
+            cred = credentials.Certificate(str(service_key_path))
             firebase_admin.initialize_app(cred, {
                 "storageBucket": config["firebase"]["storage_bucket"]
             })
