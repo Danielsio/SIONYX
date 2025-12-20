@@ -60,58 +60,72 @@ class StructuredFormatter(logging.Formatter):
 
 
 class ColoredFormatter(logging.Formatter):
-    """Custom formatter with colors for console output"""
+    """Custom formatter with colors for console output - Clean & Readable"""
 
     # ANSI color codes
     COLORS = {
-        "DEBUG": "\033[36m",  # Cyan
-        "INFO": "\033[32m",  # Green
-        "WARNING": "\033[33m",  # Yellow
-        "ERROR": "\033[31m",  # Red
-        "CRITICAL": "\033[35m",  # Magenta
+        "DEBUG": "\033[38;5;245m",  # Gray
+        "INFO": "\033[38;5;39m",    # Bright Blue
+        "WARNING": "\033[38;5;214m", # Orange
+        "ERROR": "\033[38;5;196m",   # Red
+        "CRITICAL": "\033[38;5;201m", # Magenta/Pink
+    }
+    
+    BG_COLORS = {
+        "DEBUG": "",
+        "INFO": "",
+        "WARNING": "\033[48;5;234m",  # Dark background for warnings
+        "ERROR": "\033[48;5;52m",     # Dark red background
+        "CRITICAL": "\033[48;5;53m",  # Dark magenta background
     }
 
     RESET = "\033[0m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
+    ITALIC = "\033[3m"
+    
+    # Colors for different parts
+    TIME_COLOR = "\033[38;5;244m"      # Medium gray
+    MODULE_COLOR = "\033[38;5;141m"    # Light purple
+    CONTEXT_COLOR = "\033[38;5;244m"   # Gray
+    MESSAGE_COLOR = "\033[38;5;255m"   # White
 
-    # Level symbols
-    SYMBOLS = {
-        "DEBUG": "🔍",
-        "INFO": "✓",
-        "WARNING": "⚠",
-        "ERROR": "✗",
-        "CRITICAL": "🔥",
+    # Level labels (short, clean)
+    LEVEL_LABELS = {
+        "DEBUG": "DBG",
+        "INFO": "INF",
+        "WARNING": "WRN",
+        "ERROR": "ERR",
+        "CRITICAL": "CRT",
     }
 
     def format(self, record):
-        """Format log record with colors"""
-        # Color for level
+        """Format log record with clean, readable colors"""
         level_color = self.COLORS.get(record.levelname, self.RESET)
-        symbol = self.SYMBOLS.get(record.levelname, "•")
+        bg_color = self.BG_COLORS.get(record.levelname, "")
+        level_label = self.LEVEL_LABELS.get(record.levelname, record.levelname[:3])
 
-        # Format timestamp
+        # Format timestamp (cleaner)
         timestamp = datetime.fromtimestamp(record.created).strftime("%H:%M:%S")
 
-        # Format module name (shortened)
-        module = record.name.split(".")[-1][:15]
+        # Format module name (clean, max 12 chars)
+        module = record.name.split(".")[-1]
+        if len(module) > 12:
+            module = module[:11] + "…"
 
-        # Build context info
-        context_parts = []
+        # Build context info (only show if present, cleaner format)
+        context_str = ""
         if _request_id.get():
-            context_parts.append(f"req:{_request_id.get()[:8]}")
-        if _user_id.get():
-            context_parts.append(f"user:{_user_id.get()[:8]}")
-        context_str = f"[{':'.join(context_parts)}] " if context_parts else ""
+            context_str = f"{self.CONTEXT_COLOR}#{_request_id.get()[:6]}{self.RESET} "
 
-        # Build colored output
+        # Build the formatted output
+        # Format: TIME  LEVEL  MODULE  MESSAGE
         colored_output = (
-            f"{self.DIM}{timestamp}{self.RESET} "
-            f"{level_color}{self.BOLD}{symbol} {record.levelname:8}{self.RESET} "
-            f"{self.DIM}│{self.RESET} "
-            f"{self.BOLD}{module:15}{self.RESET} "
-            f"{self.DIM}│{self.RESET} "
-            f"{context_str}{record.getMessage()}"
+            f"{self.TIME_COLOR}{timestamp}{self.RESET}  "
+            f"{bg_color}{level_color}{self.BOLD}{level_label}{self.RESET}  "
+            f"{self.MODULE_COLOR}{module:12}{self.RESET}  "
+            f"{context_str}"
+            f"{self.MESSAGE_COLOR}{record.getMessage()}{self.RESET}"
         )
 
         # Add exception info if present
@@ -227,9 +241,9 @@ class SionyxLogger:
         if enable_colors and is_tty:
             console_handler.setFormatter(ColoredFormatter())
         else:
-            # Fallback to simple format if no colors or stdout issues
+            # Fallback to clean simple format if no colors or stdout issues
             simple_format = logging.Formatter(
-                "%(asctime)s | %(levelname)-8s | %(name)-20s | %(message)s",
+                "%(asctime)s  %(levelname)-3.3s  %(name)-12.12s  %(message)s",
                 datefmt="%H:%M:%S",
             )
             console_handler.setFormatter(simple_format)
@@ -251,16 +265,15 @@ class SionyxLogger:
 
         cls._initialized = True
 
-        # Log startup banner
+        # Log startup banner (clean and minimal)
         logger = logging.getLogger(__name__)
-        logger.info("╔═══════════════════════════════════════════════════════════╗")
-        logger.info("║         SIONYX - PC Time Management System                ║")
-        logger.info("╚═══════════════════════════════════════════════════════════╝")
-        logger.info(f"Log Level: {logging.getLevelName(log_level)}")
+        logger.info("")
+        logger.info("━━━ SIONYX ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        logger.info(f"    Log Level: {logging.getLevelName(log_level)}")
         if log_to_file:
-            logger.info(f"Log File: {log_file}")
-            logger.info(f"Error Log: {error_log_file}")
-        logger.info("System Initialized")
+            logger.info(f"    Log File: {log_file.name}")
+        logger.info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        logger.info("")
 
     @classmethod
     def cleanup_old_logs(cls, days_to_keep=7):
