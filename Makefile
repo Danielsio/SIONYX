@@ -4,8 +4,9 @@
 #   - sionyx-desktop: PyQt6 desktop client
 #   - sionyx-web: React admin dashboard
 
-.PHONY: help install dev run test build lint lint-fix version clean \
-        desktop-run desktop-test desktop-build desktop-build-patch desktop-build-minor desktop-build-major \
+.PHONY: help install dev run test test-cov test-fast build lint lint-fix version clean \
+        desktop-run desktop-test desktop-test-cov desktop-test-file desktop-test-match desktop-test-fail desktop-test-fast \
+        desktop-build desktop-build-patch desktop-build-minor desktop-build-major \
         desktop-build-dry desktop-build-local desktop-lint desktop-lint-fix desktop-version \
         web-dev web-build web-preview web-lint web-deploy web-deploy-hosting web-deploy-functions web-deploy-database
 
@@ -17,29 +18,33 @@ help:
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
 	@echo "Quick Commands:"
-	@echo "  make dev          - Run desktop app (alias for desktop-run)"
-	@echo "  make web          - Run web dev server (alias for web-dev)"
+	@echo "  make dev          - Run desktop app"
+	@echo "  make web          - Run web dev server"
+	@echo "  make test         - Run all tests"
+	@echo "  make test-cov     - Run tests with coverage report"
 	@echo "  make lint         - Lint both apps"
-	@echo "  make lint-fix     - Auto-fix lint issues in both apps"
+	@echo "  make lint-fix     - Auto-fix lint issues"
 	@echo ""
 	@echo "Desktop App (sionyx-desktop) - PyQt6 Client:"
-	@echo "  desktop-run       - Run the desktop application"
-	@echo "  desktop-test      - Run desktop tests"
-	@echo "  desktop-lint      - Lint Python code"
-	@echo "  desktop-lint-fix  - Auto-fix Python lint issues"
-	@echo "  desktop-version   - Show current version"
+	@echo "  desktop-run        - Run the desktop application"
+	@echo "  desktop-test       - Run all desktop tests"
+	@echo "  desktop-test-cov   - Run tests with coverage"
+	@echo "  desktop-test-fast  - Run fast tests (no Qt/UI)"
+	@echo "  desktop-test-fail  - Run tests, stop on first failure"
+	@echo "  desktop-lint       - Lint Python code"
+	@echo "  desktop-lint-fix   - Auto-fix Python lint issues"
+	@echo "  desktop-version    - Show current version"
 	@echo ""
-	@echo "Desktop Build Commands (with semantic versioning):"
+	@echo "Desktop Build Commands:"
 	@echo "  desktop-build       - Build with patch increment (1.0.0 -> 1.0.1)"
-	@echo "  desktop-build-patch - Same as 'desktop-build'"
 	@echo "  desktop-build-minor - Build with minor increment (1.0.1 -> 1.1.0)"
 	@echo "  desktop-build-major - Build with major increment (1.1.0 -> 2.0.0)"
-	@echo "  desktop-build-dry   - Preview version changes without building"
+	@echo "  desktop-build-dry   - Preview version changes"
 	@echo "  desktop-build-local - Build without uploading"
 	@echo ""
 	@echo "Web App (sionyx-web) - React Admin Dashboard:"
 	@echo "  web-dev           - Run web dev server"
-	@echo "  web-build         - Build web for production"
+	@echo "  web-build         - Build for production"
 	@echo "  web-preview       - Preview production build"
 	@echo "  web-lint          - Lint web code"
 	@echo ""
@@ -60,6 +65,13 @@ web: web-dev
 
 run: desktop-run
 
+# Test aliases
+test: desktop-test
+
+test-cov: desktop-test-cov
+
+test-fast: desktop-test-fast
+
 # Lint both apps
 lint: desktop-lint web-lint
 
@@ -79,6 +91,33 @@ desktop-run:
 desktop-test:
 	@echo "Running desktop tests..."
 	cd sionyx-desktop && pytest tests/ -v
+
+# Run desktop tests with coverage
+desktop-test-cov:
+	@echo "Running desktop tests with coverage..."
+	cd sionyx-desktop && pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html
+	@echo ""
+	@echo "Coverage report generated: sionyx-desktop/htmlcov/index.html"
+
+# Run specific test file (usage: make desktop-test-file FILE=tests/utils/test_error_translations.py)
+desktop-test-file:
+	@echo "Running tests in $(FILE)..."
+	cd sionyx-desktop && pytest $(FILE) -v
+
+# Run tests matching pattern (usage: make desktop-test-match PATTERN=test_translate)
+desktop-test-match:
+	@echo "Running tests matching '$(PATTERN)'..."
+	cd sionyx-desktop && pytest tests/ -v -k "$(PATTERN)"
+
+# Run tests and stop on first failure
+desktop-test-fail:
+	@echo "Running desktop tests (stop on first failure)..."
+	cd sionyx-desktop && pytest tests/ -v -x
+
+# Run only fast tests (no Qt/UI tests)
+desktop-test-fast:
+	@echo "Running fast tests (utils and services only)..."
+	cd sionyx-desktop && pytest tests/utils tests/services -v
 
 # Show current version
 desktop-version:
