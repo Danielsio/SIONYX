@@ -1,52 +1,57 @@
 # SIONYX Monorepo Makefile
 # =========================
-# This repo contains two applications:
-#   - sionyx-desktop: PyQt6 desktop client
-#   - sionyx-web: React admin dashboard
+# Two applications:
+#   - app (sionyx-desktop): PyQt6 desktop client for kiosk PCs
+#   - web (sionyx-web): React admin dashboard
 
-.PHONY: help install dev run test test-cov test-fast build lint lint-fix version clean \
-        desktop-run desktop-test desktop-test-cov desktop-test-file desktop-test-match desktop-test-fail desktop-test-fast \
-        desktop-build desktop-build-patch desktop-build-minor desktop-build-major \
-        desktop-build-dry desktop-build-local desktop-lint desktop-lint-fix desktop-version \
-        web-dev web-build web-preview web-lint web-deploy web-deploy-hosting web-deploy-functions web-deploy-database
+.PHONY: help dev web test test-cov test-fast build lint lint-fix clean \
+        app-run app-test app-test-cov app-test-fast app-test-fail app-test-file app-test-match \
+        app-build app-build-patch app-build-minor app-build-major app-build-dry app-build-local \
+        app-lint app-lint-fix app-version \
+        web-dev web-build web-preview web-lint \
+        web-deploy web-deploy-hosting web-deploy-functions web-deploy-database
 
 # Default target
 help:
 	@echo ""
 	@echo "╔════════════════════════════════════════════════════════════════╗"
 	@echo "║                    SIONYX Monorepo                             ║"
+	@echo "╠════════════════════════════════════════════════════════════════╣"
+	@echo "║  app-*  = PyQt Desktop Client (sionyx-desktop)                 ║"
+	@echo "║  web-*  = React Admin Dashboard (sionyx-web)                   ║"
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "Quick Commands:"
-	@echo "  make dev          - Run desktop app"
-	@echo "  make web          - Run web dev server"
-	@echo "  make test         - Run all tests"
+	@echo "Quick Commands (most common):"
+	@echo "  make dev          - Run desktop client app"
+	@echo "  make web          - Run web admin dev server"
+	@echo "  make test         - Run client app tests"
 	@echo "  make test-cov     - Run tests with coverage report"
+	@echo "  make build        - Build client installer (patch version)"
 	@echo "  make lint         - Lint both apps"
-	@echo "  make lint-fix     - Auto-fix lint issues"
+	@echo "  make lint-fix     - Auto-fix lint issues in both apps"
 	@echo ""
-	@echo "Desktop App (sionyx-desktop) - PyQt6 Client:"
-	@echo "  desktop-run        - Run the desktop application"
-	@echo "  desktop-test       - Run all desktop tests"
-	@echo "  desktop-test-cov   - Run tests with coverage"
-	@echo "  desktop-test-fast  - Run fast tests (no Qt/UI)"
-	@echo "  desktop-test-fail  - Run tests, stop on first failure"
-	@echo "  desktop-lint       - Lint Python code"
-	@echo "  desktop-lint-fix   - Auto-fix Python lint issues"
-	@echo "  desktop-version    - Show current version"
+	@echo "Client App Commands (sionyx-desktop):"
+	@echo "  app-run           - Run the desktop client"
+	@echo "  app-test          - Run all tests"
+	@echo "  app-test-cov      - Run tests with coverage"
+	@echo "  app-test-fast     - Run fast tests (no Qt/UI)"
+	@echo "  app-test-fail     - Run tests, stop on first failure"
+	@echo "  app-lint          - Check Python code style"
+	@echo "  app-lint-fix      - Auto-fix Python code style"
+	@echo "  app-version       - Show current version"
 	@echo ""
-	@echo "Desktop Build Commands:"
-	@echo "  desktop-build       - Build with patch increment (1.0.0 -> 1.0.1)"
-	@echo "  desktop-build-minor - Build with minor increment (1.0.1 -> 1.1.0)"
-	@echo "  desktop-build-major - Build with major increment (1.1.0 -> 2.0.0)"
-	@echo "  desktop-build-dry   - Preview version changes"
-	@echo "  desktop-build-local - Build without uploading"
+	@echo "Client Build Commands:"
+	@echo "  app-build         - Build with patch increment (1.0.0 -> 1.0.1)"
+	@echo "  app-build-minor   - Build with minor increment (1.0.1 -> 1.1.0)"
+	@echo "  app-build-major   - Build with major increment (1.1.0 -> 2.0.0)"
+	@echo "  app-build-dry     - Preview version changes"
+	@echo "  app-build-local   - Build without uploading"
 	@echo ""
-	@echo "Web App (sionyx-web) - React Admin Dashboard:"
-	@echo "  web-dev           - Run web dev server"
+	@echo "Web Admin Commands (sionyx-web):"
+	@echo "  web-dev           - Run dev server"
 	@echo "  web-build         - Build for production"
 	@echo "  web-preview       - Preview production build"
-	@echo "  web-lint          - Lint web code"
+	@echo "  web-lint          - Lint React code"
 	@echo ""
 	@echo "Firebase Deployment:"
 	@echo "  web-deploy          - Deploy all (hosting + functions + database)"
@@ -56,153 +61,155 @@ help:
 	@echo ""
 
 # ============================================================================
-# Quick Aliases
+# Quick Aliases (no prefix - most common actions)
 # ============================================================================
 
-dev: desktop-run
+# Run client app
+dev: app-run
 
+# Run web dev server
 web: web-dev
 
-run: desktop-run
+# Run client tests
+test: app-test
 
-# Test aliases
-test: desktop-test
+# Run tests with coverage
+test-cov: app-test-cov
 
-test-cov: desktop-test-cov
+# Run fast tests (no Qt)
+test-fast: app-test-fast
 
-test-fast: desktop-test-fast
+# Build client installer
+build: app-build
 
 # Lint both apps
-lint: desktop-lint web-lint
+lint: app-lint web-lint
 
 # Fix lint in both apps
-lint-fix: desktop-lint-fix
+lint-fix: app-lint-fix
 
 # ============================================================================
-# Desktop App (sionyx-desktop) Commands
+# Client App Commands (sionyx-desktop - PyQt6)
 # ============================================================================
 
-# Run desktop app
-desktop-run:
-	@echo "Starting SIONYX desktop application..."
+# Run the desktop client
+app-run:
+	@echo "Starting SIONYX desktop client..."
 	cd sionyx-desktop && python src/main.py
 
-# Run desktop tests
-desktop-test:
-	@echo "Running desktop tests..."
+# Run all tests
+app-test:
+	@echo "Running client tests..."
 	cd sionyx-desktop && pytest tests/ -v
 
-# Run desktop tests with coverage
-desktop-test-cov:
-	@echo "Running desktop tests with coverage..."
+# Run tests with coverage
+app-test-cov:
+	@echo "Running client tests with coverage..."
 	cd sionyx-desktop && pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html
 	@echo ""
-	@echo "Coverage report generated: sionyx-desktop/htmlcov/index.html"
+	@echo "Coverage report: sionyx-desktop/htmlcov/index.html"
 
-# Run specific test file (usage: make desktop-test-file FILE=tests/utils/test_error_translations.py)
-desktop-test-file:
+# Run specific test file (usage: make app-test-file FILE=tests/utils/test_device_info.py)
+app-test-file:
 	@echo "Running tests in $(FILE)..."
 	cd sionyx-desktop && pytest $(FILE) -v
 
-# Run tests matching pattern (usage: make desktop-test-match PATTERN=test_translate)
-desktop-test-match:
+# Run tests matching pattern (usage: make app-test-match PATTERN=test_translate)
+app-test-match:
 	@echo "Running tests matching '$(PATTERN)'..."
 	cd sionyx-desktop && pytest tests/ -v -k "$(PATTERN)"
 
 # Run tests and stop on first failure
-desktop-test-fail:
-	@echo "Running desktop tests (stop on first failure)..."
+app-test-fail:
+	@echo "Running client tests (stop on first failure)..."
 	cd sionyx-desktop && pytest tests/ -v -x
 
-# Run only fast tests (no Qt/UI tests)
-desktop-test-fast:
-	@echo "Running fast tests (utils and services only)..."
+# Run fast tests (utils and services only - no Qt)
+app-test-fast:
+	@echo "Running fast tests (utils + services)..."
 	cd sionyx-desktop && pytest tests/utils tests/services -v
 
 # Show current version
-desktop-version:
-	@python -c "import json; v=json.load(open('sionyx-desktop/version.json')); print(f\"SIONYX Desktop v{v['version']} (Build #{v.get('buildNumber', 1)})\")"
+app-version:
+	@python -c "import json; v=json.load(open('sionyx-desktop/version.json')); print(f\"SIONYX v{v['version']} (Build #{v.get('buildNumber', 1)})\")"
 
 # Build with patch increment (default)
-desktop-build: desktop-build-patch
+app-build: app-build-patch
 
-desktop-build-patch:
-	@echo "Building desktop with PATCH increment..."
+app-build-patch:
+	@echo "Building client with PATCH increment..."
 	cd sionyx-desktop && python build.py --patch
 
-# Build with minor increment (resets patch to 0)
-desktop-build-minor:
-	@echo "Building desktop with MINOR increment..."
+# Build with minor increment
+app-build-minor:
+	@echo "Building client with MINOR increment..."
 	cd sionyx-desktop && python build.py --minor
 
-# Build with major increment (resets minor and patch to 0)
-desktop-build-major:
-	@echo "Building desktop with MAJOR increment..."
+# Build with major increment
+app-build-major:
+	@echo "Building client with MAJOR increment..."
 	cd sionyx-desktop && python build.py --major
 
-# Dry run - show what would happen
-desktop-build-dry:
+# Dry run - preview version changes
+app-build-dry:
 	@echo "Dry run - previewing version changes..."
 	cd sionyx-desktop && python build.py --dry-run
 
-# Build without uploading (for local testing)
-desktop-build-local:
-	@echo "Building desktop locally (no upload)..."
+# Build without uploading
+app-build-local:
+	@echo "Building client locally (no upload)..."
 	cd sionyx-desktop && python build.py --no-upload --keep-local
 
-# Desktop Code Quality - Check only (no fixing)
-desktop-lint:
-	@echo "Linting desktop Python code..."
-	@cd sionyx-desktop && black --check src/ tests/ || (echo "Black check failed. Run 'make desktop-lint-fix' to fix." && exit 1)
-	@cd sionyx-desktop && isort --check-only src/ tests/ || (echo "isort check failed. Run 'make desktop-lint-fix' to fix." && exit 1)
+# Lint Python code (check only)
+app-lint:
+	@echo "Checking client code style..."
+	@cd sionyx-desktop && black --check src/ tests/ || (echo "Run 'make app-lint-fix' to fix." && exit 1)
+	@cd sionyx-desktop && isort --check-only src/ tests/ || (echo "Run 'make app-lint-fix' to fix." && exit 1)
 	@cd sionyx-desktop && flake8 src/ tests/ --config=.flake8 || (echo "flake8 check failed." && exit 1)
+	@echo "Client code style OK!"
 
-# Desktop Code Quality - Auto-fix all issues
-desktop-lint-fix:
-	@echo "Auto-fixing desktop linting issues..."
-	@echo "Running black (fixing)..."
+# Auto-fix Python code style
+app-lint-fix:
+	@echo "Fixing client code style..."
 	@cd sionyx-desktop && black src/ tests/
-	@echo "Running isort (fixing)..."
 	@cd sionyx-desktop && isort src/ tests/
-	@echo "Running flake8 (checking)..."
-	@cd sionyx-desktop && flake8 src/ tests/ --config=.flake8 || (echo "flake8 check failed - fix remaining issues manually." && exit 1)
-	@echo ""
-	@echo "Desktop linting issues have been auto-fixed!"
+	@cd sionyx-desktop && flake8 src/ tests/ --config=.flake8 || (echo "flake8 check failed - fix manually." && exit 1)
+	@echo "Client code style fixed!"
 
 # ============================================================================
-# Web App (sionyx-web) Commands
+# Web Admin Commands (sionyx-web - React)
 # ============================================================================
 
-# Run web dev server
+# Run dev server
 web-dev:
-	@echo "Starting sionyx-web dev server..."
+	@echo "Starting web admin dev server..."
 	cd sionyx-web && npm run dev
 
-# Build web for production
+# Build for production
 web-build:
-	@echo "Building sionyx-web for production..."
+	@echo "Building web admin for production..."
 	cd sionyx-web && npm run build
 
-# Preview production build locally
+# Preview production build
 web-preview:
-	@echo "Previewing sionyx-web production build..."
+	@echo "Previewing web admin production build..."
 	cd sionyx-web && npm run preview
 
-# Lint web code
+# Lint React code
 web-lint:
-	@echo "Linting sionyx-web..."
+	@echo "Linting web admin code..."
 	cd sionyx-web && npm run lint
 
 # ============================================================================
 # Firebase Deployment Commands
 # ============================================================================
 
-# Deploy everything (hosting, functions, database)
+# Deploy everything
 web-deploy: web-build
 	@echo "Deploying all Firebase services..."
 	firebase deploy
 
-# Deploy hosting only (requires build first)
+# Deploy hosting only
 web-deploy-hosting: web-build
 	@echo "Deploying Firebase Hosting..."
 	firebase deploy --only hosting
