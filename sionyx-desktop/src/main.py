@@ -82,7 +82,11 @@ class SionyxApp:
             self.app.setOrganizationName(APP_NAME)
 
             # Check if .env file exists, if not show error
-            env_path = Path(".env")
+            # Look in repo root (parent of sionyx-desktop) or current directory
+            repo_root = Path(__file__).parent.parent.parent
+            env_path = repo_root / ".env"
+            if not env_path.exists():
+                env_path = Path(".env")
             if not env_path.exists():
                 logger.error(
                     "No .env file found. Please reinstall the application.",

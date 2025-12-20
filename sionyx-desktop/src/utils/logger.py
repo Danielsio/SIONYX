@@ -65,17 +65,17 @@ class ColoredFormatter(logging.Formatter):
     # ANSI color codes
     COLORS = {
         "DEBUG": "\033[38;5;245m",  # Gray
-        "INFO": "\033[38;5;39m",    # Bright Blue
-        "WARNING": "\033[38;5;214m", # Orange
-        "ERROR": "\033[38;5;196m",   # Red
-        "CRITICAL": "\033[38;5;201m", # Magenta/Pink
+        "INFO": "\033[38;5;39m",  # Bright Blue
+        "WARNING": "\033[38;5;214m",  # Orange
+        "ERROR": "\033[38;5;196m",  # Red
+        "CRITICAL": "\033[38;5;201m",  # Magenta/Pink
     }
-    
+
     BG_COLORS = {
         "DEBUG": "",
         "INFO": "",
         "WARNING": "\033[48;5;234m",  # Dark background for warnings
-        "ERROR": "\033[48;5;52m",     # Dark red background
+        "ERROR": "\033[48;5;52m",  # Dark red background
         "CRITICAL": "\033[48;5;53m",  # Dark magenta background
     }
 
@@ -83,12 +83,12 @@ class ColoredFormatter(logging.Formatter):
     BOLD = "\033[1m"
     DIM = "\033[2m"
     ITALIC = "\033[3m"
-    
+
     # Colors for different parts
-    TIME_COLOR = "\033[38;5;244m"      # Medium gray
-    MODULE_COLOR = "\033[38;5;141m"    # Light purple
-    CONTEXT_COLOR = "\033[38;5;244m"   # Gray
-    MESSAGE_COLOR = "\033[38;5;255m"   # White
+    TIME_COLOR = "\033[38;5;244m"  # Medium gray
+    MODULE_COLOR = "\033[38;5;141m"  # Light purple
+    CONTEXT_COLOR = "\033[38;5;244m"  # Gray
+    MESSAGE_COLOR = "\033[38;5;255m"  # White
 
     # Level labels (short, clean)
     LEVEL_LABELS = {

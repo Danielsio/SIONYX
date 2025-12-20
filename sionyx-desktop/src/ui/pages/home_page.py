@@ -33,11 +33,13 @@ from ui.constants.ui_constants import (
     UIStrings,
 )
 
+
 logger = get_logger(__name__)
 
 # Optional modal imports
 try:
     from ui.components.message_modal import MessageModal
+
     MODAL_AVAILABLE = True
 except ImportError:
     MessageModal = None
@@ -143,11 +145,14 @@ class HomePage(QWidget):
 
         return container
 
-    def _create_stat_card(self, icon: str, title: str, value: str, color: str) -> QFrame:
+    def _create_stat_card(
+        self, icon: str, title: str, value: str, color: str
+    ) -> QFrame:
         """Create a statistics card"""
         card = QFrame()
         card.setFixedSize(260, 120)
-        card.setStyleSheet(f"""
+        card.setStyleSheet(
+            f"""
             QFrame {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.BORDER_LIGHT};
@@ -157,7 +162,8 @@ class HomePage(QWidget):
                 border: none;
                 background: transparent;
             }}
-        """)
+        """
+        )
         apply_shadow(card, "md")
 
         layout = QVBoxLayout(card)
@@ -175,7 +181,9 @@ class HomePage(QWidget):
         header_layout.addWidget(icon_lbl)
 
         title_lbl = QLabel(title)
-        title_lbl.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_MEDIUM))
+        title_lbl.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_MEDIUM)
+        )
         title_lbl.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; border: none;")
         header_layout.addWidget(title_lbl)
         header_layout.addStretch()
@@ -185,7 +193,9 @@ class HomePage(QWidget):
         # Value
         value_lbl = QLabel(value)
         value_lbl.setObjectName("timeValue" if "זמן" in title else "printValue")
-        value_lbl.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_2XL, Typography.WEIGHT_BOLD))
+        value_lbl.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_2XL, Typography.WEIGHT_BOLD)
+        )
         value_lbl.setStyleSheet(f"color: {color}; border: none;")
         layout.addWidget(value_lbl)
 
@@ -197,7 +207,8 @@ class HomePage(QWidget):
         card = QFrame()
         card.setObjectName("messageNotificationCard")
         card.setFixedSize(260, 120)
-        card.setStyleSheet(f"""
+        card.setStyleSheet(
+            f"""
             QFrame {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.WARNING};
@@ -207,7 +218,8 @@ class HomePage(QWidget):
                 border: none;
                 background: transparent;
             }}
-        """)
+        """
+        )
         apply_shadow(card, "md")
 
         layout = QVBoxLayout(card)
@@ -225,7 +237,11 @@ class HomePage(QWidget):
         header_layout.addWidget(icon_lbl)
 
         title_lbl = QLabel(UIStrings.NEW_MESSAGES)
-        title_lbl.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_SEMIBOLD))
+        title_lbl.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_SEMIBOLD
+            )
+        )
         title_lbl.setStyleSheet(f"color: {Colors.WARNING_DARK};")
         header_layout.addWidget(title_lbl)
         header_layout.addStretch()
@@ -234,7 +250,9 @@ class HomePage(QWidget):
 
         # Count
         self.message_count_label = QLabel("0 הודעות")
-        self.message_count_label.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE))
+        self.message_count_label.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE)
+        )
         self.message_count_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY};")
         layout.addWidget(self.message_count_label)
 
@@ -242,7 +260,8 @@ class HomePage(QWidget):
         self.view_messages_button = QPushButton("צפה בהודעות")
         self.view_messages_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.view_messages_button.clicked.connect(self.show_message_modal)
-        self.view_messages_button.setStyleSheet(f"""
+        self.view_messages_button.setStyleSheet(
+            f"""
             QPushButton {{
                 background: {Colors.WARNING};
                 color: {Colors.WHITE};
@@ -255,7 +274,8 @@ class HomePage(QWidget):
             QPushButton:hover {{
                 background: {Colors.WARNING_HOVER};
             }}
-        """)
+        """
+        )
         layout.addWidget(self.view_messages_button)
 
         return card
@@ -263,7 +283,8 @@ class HomePage(QWidget):
     def _build_action_card(self) -> QFrame:
         """Build the main action card"""
         card = QFrame()
-        card.setStyleSheet(f"""
+        card.setStyleSheet(
+            f"""
             QFrame {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.BORDER_LIGHT};
@@ -273,7 +294,8 @@ class HomePage(QWidget):
                 border: none;
                 background: transparent;
             }}
-        """)
+        """
+        )
         apply_shadow(card, "lg")
 
         layout = QVBoxLayout(card)
@@ -284,7 +306,9 @@ class HomePage(QWidget):
         # Welcome text
         name = self.current_user.get("firstName", "משתמש")
         self.welcome_label = QLabel(f"👋 שלום, {name}!")
-        self.welcome_label.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_2XL, Typography.WEIGHT_BOLD))
+        self.welcome_label.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_2XL, Typography.WEIGHT_BOLD)
+        )
         self.welcome_label.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
         self.welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.welcome_label)
@@ -292,12 +316,14 @@ class HomePage(QWidget):
         # Instructions
         self.instruction = QLabel("מוכן להתחיל? לחץ על הכפתור למטה")
         self.instruction.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE))
-        self.instruction.setStyleSheet(f"""
+        self.instruction.setStyleSheet(
+            f"""
             color: {Colors.TEXT_SECONDARY};
             background: {Colors.GRAY_50};
             padding: {Spacing.MD}px {Spacing.LG}px;
             border-radius: {BorderRadius.MD}px;
-        """)
+        """
+        )
         self.instruction.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.instruction)
 
@@ -334,33 +360,39 @@ class HomePage(QWidget):
             else:
                 color = Colors.PRIMARY
 
-            time_value.setStyleSheet(f"""
+            time_value.setStyleSheet(
+                f"""
                 color: {color};
                 font-size: {Typography.SIZE_2XL}px;
                 font-weight: {Typography.WEIGHT_BOLD};
-            """)
+            """
+            )
 
         # Update button state
         if remaining <= 0:
             self.start_btn.setEnabled(False)
             self.start_btn.setText("⏸  אין זמן זמין")
             self.instruction.setText("אין לך זמן נותר. רכוש חבילה כדי להמשיך.")
-            self.instruction.setStyleSheet(f"""
+            self.instruction.setStyleSheet(
+                f"""
                 color: {Colors.ERROR_DARK};
                 background: {Colors.ERROR_LIGHT};
                 padding: {Spacing.MD}px {Spacing.LG}px;
                 border-radius: {BorderRadius.MD}px;
-            """)
+            """
+            )
         else:
             self.start_btn.setEnabled(True)
             self.start_btn.setText(f"🚀  {UIStrings.START_SESSION}")
             self.instruction.setText("מוכן להתחיל? לחץ על הכפתור למטה")
-            self.instruction.setStyleSheet(f"""
+            self.instruction.setStyleSheet(
+                f"""
                 color: {Colors.TEXT_SECONDARY};
                 background: {Colors.GRAY_50};
                 padding: {Spacing.MD}px {Spacing.LG}px;
                 border-radius: {BorderRadius.MD}px;
-            """)
+            """
+            )
 
     def refresh_user_data(self):
         """Refresh user data"""
@@ -376,7 +408,7 @@ class HomePage(QWidget):
         """Update prints balance display"""
         if not self.current_user:
             return
-            
+
         balance = self.current_user.get("remainingPrints", 0.0)
         print_value = self.prints_card.findChild(QLabel, "printValue")
         if print_value:
@@ -444,7 +476,9 @@ class HomePage(QWidget):
         if self.message_modal:
             self.message_modal.close()
 
-        self.message_modal = MessageModal(self.pending_messages, self.chat_service, self)
+        self.message_modal = MessageModal(
+            self.pending_messages, self.chat_service, self
+        )
         self.message_modal.message_read.connect(self.on_message_read)
         self.message_modal.all_messages_read.connect(self.on_all_messages_read)
         self.message_modal.show_animated()

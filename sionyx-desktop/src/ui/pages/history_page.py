@@ -39,6 +39,7 @@ from ui.constants.ui_constants import (
     UIStrings,
 )
 
+
 logger = get_logger(__name__)
 
 
@@ -52,7 +53,8 @@ class PurchaseCard(QFrame):
 
     def _build(self):
         self.setFixedHeight(90)
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QFrame {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.BORDER_LIGHT};
@@ -66,7 +68,8 @@ class PurchaseCard(QFrame):
                 border: none;
                 background: transparent;
             }}
-        """)
+        """
+        )
         apply_shadow(self, "sm")
 
         layout = QHBoxLayout(self)
@@ -97,7 +100,11 @@ class PurchaseCard(QFrame):
 
         # Package name
         name = QLabel(self.data.get("packageName", "חבילה"))
-        name.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_SEMIBOLD))
+        name.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_SEMIBOLD
+            )
+        )
         name.setStyleSheet(f"color: {Colors.TEXT_PRIMARY}; background: transparent;")
         content.addWidget(name)
 
@@ -106,7 +113,9 @@ class PurchaseCard(QFrame):
         prints = self.data.get("prints", 0)
         details = QLabel(f"{minutes} דקות • {prints}₪ הדפסות")
         details.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_SM))
-        details.setStyleSheet(f"color: {Colors.TEXT_SECONDARY}; background: transparent;")
+        details.setStyleSheet(
+            f"color: {Colors.TEXT_SECONDARY}; background: transparent;"
+        )
         content.addWidget(details)
 
         # Date
@@ -126,7 +135,9 @@ class PurchaseCard(QFrame):
         # Price
         amount = self._safe_int(self.data.get("amount", 0))
         price = QLabel(f"₪{amount}")
-        price.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_BOLD))
+        price.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_BOLD)
+        )
         price.setStyleSheet(f"color: {Colors.SUCCESS}; background: transparent;")
         right.addWidget(price, alignment=Qt.AlignmentFlag.AlignRight)
 
@@ -218,7 +229,8 @@ class HistoryPage(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setStyleSheet(f"""
+        scroll.setStyleSheet(
+            f"""
             QScrollArea {{ 
                 border: none; 
                 background: transparent; 
@@ -232,7 +244,8 @@ class HistoryPage(QWidget):
                 border-radius: 4px;
                 min-height: 40px;
             }}
-        """)
+        """
+        )
 
         self.list_container = QWidget()
         self.list_layout = QVBoxLayout(self.list_container)
@@ -259,7 +272,8 @@ class HistoryPage(QWidget):
         self.search_box = QLineEdit()
         self.search_box.setPlaceholderText("🔍 חיפוש...")
         self.search_box.setFixedHeight(40)
-        self.search_box.setStyleSheet(f"""
+        self.search_box.setStyleSheet(
+            f"""
             QLineEdit {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.BORDER_LIGHT};
@@ -274,7 +288,8 @@ class HistoryPage(QWidget):
             QLineEdit::placeholder {{
                 color: {Colors.TEXT_MUTED};
             }}
-        """)
+        """
+        )
         self.search_box.textChanged.connect(self._filter)
         layout.addWidget(self.search_box, 1)
 
@@ -282,7 +297,8 @@ class HistoryPage(QWidget):
         self.status_filter = QComboBox()
         self.status_filter.addItems(["כל הסטטוסים", "הושלם", "ממתין", "נכשל"])
         self.status_filter.setFixedHeight(40)
-        self.status_filter.setStyleSheet(f"""
+        self.status_filter.setStyleSheet(
+            f"""
             QComboBox {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.BORDER_LIGHT};
@@ -328,7 +344,8 @@ class HistoryPage(QWidget):
                 background: {Colors.PRIMARY_LIGHT};
                 color: {Colors.PRIMARY};
             }}
-        """)
+        """
+        )
         self.status_filter.currentTextChanged.connect(self._filter)
         layout.addWidget(self.status_filter)
 
@@ -336,7 +353,8 @@ class HistoryPage(QWidget):
         self.sort_btn = QPushButton("📅 מיון")
         self.sort_btn.setFixedHeight(40)
         self.sort_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.sort_btn.setStyleSheet(f"""
+        self.sort_btn.setStyleSheet(
+            f"""
             QPushButton {{
                 background: {Colors.GRAY_100};
                 border: 1px solid {Colors.BORDER_LIGHT};
@@ -348,7 +366,8 @@ class HistoryPage(QWidget):
             QPushButton:hover {{
                 background: {Colors.GRAY_200};
             }}
-        """)
+        """
+        )
         self.sort_btn.clicked.connect(self._toggle_sort)
         layout.addWidget(self.sort_btn)
 
@@ -431,8 +450,7 @@ class HistoryPage(QWidget):
             newest_first = True
 
         self.filtered_purchases.sort(
-            key=lambda x: x.get("createdAt", ""),
-            reverse=not newest_first
+            key=lambda x: x.get("createdAt", ""), reverse=not newest_first
         )
         self._display_purchases()
 

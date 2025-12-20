@@ -58,7 +58,8 @@ class FrostCard(QFrame):
         self._setup_style()
 
     def _setup_style(self):
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QFrame {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.BORDER_LIGHT};
@@ -72,7 +73,8 @@ class FrostCard(QFrame):
                 background: transparent;
                 border: none;
             }}
-        """)
+        """
+        )
         apply_shadow(self, "md")
 
 
@@ -119,7 +121,9 @@ class StatCard(FrostCard):
             header_layout.addWidget(icon_label)
 
         title_label = QLabel(self.title)
-        title_label.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_MEDIUM))
+        title_label.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_MEDIUM)
+        )
         title_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY};")
         header_layout.addWidget(title_label)
         header_layout.addStretch()
@@ -129,7 +133,9 @@ class StatCard(FrostCard):
         # Value
         self.value_label = QLabel(self.value)
         self.value_label.setObjectName("timeValue")
-        self.value_label.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_BOLD))
+        self.value_label.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_BOLD)
+        )
         self.value_label.setStyleSheet(f"color: {self.color};")
         layout.addWidget(self.value_label)
 
@@ -156,7 +162,11 @@ class ActionButton(QPushButton):
     def _setup_style(self):
         self.setStyleSheet(get_button_style(self.variant, self.size))
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_SEMIBOLD))
+        self.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_SEMIBOLD
+            )
+        )
 
 
 class PageHeader(QFrame):
@@ -171,7 +181,8 @@ class PageHeader(QFrame):
         self._build()
 
     def _build(self):
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QFrame {{
                 background: {Gradients.HERO};
                 border-radius: {BorderRadius.XL}px;
@@ -181,7 +192,8 @@ class PageHeader(QFrame):
                 border: none;
                 background: transparent;
             }}
-        """)
+        """
+        )
         apply_shadow(self, "primary")
 
         layout = QVBoxLayout(self)
@@ -191,7 +203,9 @@ class PageHeader(QFrame):
 
         # Title
         title = QLabel(self.title_text)
-        title.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_BOLD))
+        title.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_BOLD)
+        )
         title.setStyleSheet(f"color: {Colors.WHITE}; background: transparent;")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
@@ -199,8 +213,16 @@ class PageHeader(QFrame):
         # Subtitle
         if self.subtitle_text:
             subtitle = QLabel(self.subtitle_text)
-            subtitle.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_NORMAL))
-            subtitle.setStyleSheet("color: rgba(255, 255, 255, 0.85); background: transparent;")
+            subtitle.setFont(
+                QFont(
+                    Typography.FONT_FAMILY,
+                    Typography.SIZE_BASE,
+                    Typography.WEIGHT_NORMAL,
+                )
+            )
+            subtitle.setStyleSheet(
+                "color: rgba(255, 255, 255, 0.85); background: transparent;"
+            )
             subtitle.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(subtitle)
 
@@ -260,7 +282,11 @@ class EmptyState(QWidget):
         layout.addWidget(icon)
 
         title = QLabel(self.title_text)
-        title.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD))
+        title.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD
+            )
+        )
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet(f"color: {Colors.TEXT_SECONDARY};")
         layout.addWidget(title)
@@ -297,7 +323,8 @@ class StatusBadge(QLabel):
         text_color, bg_color = self.VARIANTS.get(
             self.variant, (Colors.TEXT_SECONDARY, Colors.GRAY_100)
         )
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QLabel {{
                 background: {bg_color};
                 color: {text_color};
@@ -306,7 +333,8 @@ class StatusBadge(QLabel):
                 font-size: {Typography.SIZE_SM}px;
                 font-weight: {Typography.WEIGHT_SEMIBOLD};
             }}
-        """)
+        """
+        )
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
@@ -326,7 +354,8 @@ class IconButton(QPushButton):
         super().__init__(icon, parent)
         self.setFixedSize(size, size)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setStyleSheet(f"""
+        self.setStyleSheet(
+            f"""
             QPushButton {{
                 background: {Colors.GRAY_100};
                 border: none;
@@ -336,7 +365,8 @@ class IconButton(QPushButton):
             QPushButton:hover {{
                 background: {Colors.GRAY_200};
             }}
-        """)
+        """
+        )
 
 
 # Legacy compatibility aliases
@@ -344,7 +374,9 @@ BaseCard = FrostCard
 HeaderSection = PageHeader
 
 
-def get_shadow_effect(blur_radius: int = 16, y_offset: int = 4, color: str = "rgba(15, 23, 42, 0.12)"):
+def get_shadow_effect(
+    blur_radius: int = 16, y_offset: int = 4, color: str = "rgba(15, 23, 42, 0.12)"
+):
     """Legacy shadow function"""
     return {
         "blur_radius": blur_radius,

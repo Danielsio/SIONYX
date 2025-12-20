@@ -90,7 +90,9 @@ class Gradients:
 
     # Primary button gradient
     PRIMARY = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #6366F1, stop:1 #4F46E5)"
-    PRIMARY_HOVER = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #4F46E5, stop:1 #4338CA)"
+    PRIMARY_HOVER = (
+        "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #4F46E5, stop:1 #4338CA)"
+    )
 
     # Success gradient
     SUCCESS = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #10B981, stop:1 #059669)"
@@ -327,11 +329,31 @@ class UIStrings:
 def get_shadow(level: str = "md") -> Dict[str, Any]:
     """Get shadow configuration by level"""
     configs = {
-        "sm": {"blur": Shadows.BLUR_SM, "y": Shadows.Y_SM, "color": Shadows.COLOR_LIGHT},
-        "md": {"blur": Shadows.BLUR_MD, "y": Shadows.Y_MD, "color": Shadows.COLOR_MEDIUM},
-        "lg": {"blur": Shadows.BLUR_LG, "y": Shadows.Y_LG, "color": Shadows.COLOR_MEDIUM},
-        "xl": {"blur": Shadows.BLUR_XL, "y": Shadows.Y_XL, "color": Shadows.COLOR_HEAVY},
-        "primary": {"blur": Shadows.BLUR_LG, "y": Shadows.Y_LG, "color": Shadows.COLOR_PRIMARY},
+        "sm": {
+            "blur": Shadows.BLUR_SM,
+            "y": Shadows.Y_SM,
+            "color": Shadows.COLOR_LIGHT,
+        },
+        "md": {
+            "blur": Shadows.BLUR_MD,
+            "y": Shadows.Y_MD,
+            "color": Shadows.COLOR_MEDIUM,
+        },
+        "lg": {
+            "blur": Shadows.BLUR_LG,
+            "y": Shadows.Y_LG,
+            "color": Shadows.COLOR_MEDIUM,
+        },
+        "xl": {
+            "blur": Shadows.BLUR_XL,
+            "y": Shadows.Y_XL,
+            "color": Shadows.COLOR_HEAVY,
+        },
+        "primary": {
+            "blur": Shadows.BLUR_LG,
+            "y": Shadows.Y_LG,
+            "color": Shadows.COLOR_PRIMARY,
+        },
     }
     return configs.get(level, configs["md"])
 
@@ -349,8 +371,12 @@ def get_card_style() -> str:
 
 def get_button_style(variant: str = "primary", size: str = "md") -> str:
     """Get button styling by variant and size"""
-    heights = {"sm": Dimensions.BUTTON_HEIGHT_SM, "md": Dimensions.BUTTON_HEIGHT_MD, 
-               "lg": Dimensions.BUTTON_HEIGHT_LG, "xl": Dimensions.BUTTON_HEIGHT_XL}
+    heights = {
+        "sm": Dimensions.BUTTON_HEIGHT_SM,
+        "md": Dimensions.BUTTON_HEIGHT_MD,
+        "lg": Dimensions.BUTTON_HEIGHT_LG,
+        "xl": Dimensions.BUTTON_HEIGHT_XL,
+    }
     height = heights.get(size, Dimensions.BUTTON_HEIGHT_MD)
 
     if variant == "primary":
@@ -431,7 +457,9 @@ def get_button_style(variant: str = "primary", size: str = "md") -> str:
 
 
 # Legacy compatibility
-def get_shadow_effect(blur_radius: int = 16, y_offset: int = 4, color: str = "rgba(15, 23, 42, 0.12)") -> Dict[str, Any]:
+def get_shadow_effect(
+    blur_radius: int = 16, y_offset: int = 4, color: str = "rgba(15, 23, 42, 0.12)"
+) -> Dict[str, Any]:
     """Legacy shadow function for compatibility"""
     return {
         "blur_radius": blur_radius,

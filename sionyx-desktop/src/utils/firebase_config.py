@@ -18,11 +18,17 @@ class FirebaseConfig:
         if getattr(sys, "frozen", False):
             # Running as PyInstaller executable - look in executable directory
             base_path = Path(sys.executable).parent
+            env_path = base_path / ".env"
         else:
-            # Running as script
-            base_path = Path(__file__).parent.parent.parent
+            # Running as script - look in repo root (parent of sionyx-desktop)
+            # sionyx-desktop/src/utils/firebase_config.py -> go up 4 levels to repo root
+            app_root = Path(__file__).parent.parent.parent  # sionyx-desktop/
+            repo_root = app_root.parent  # repo root
+            # Try repo root first, then app root for backwards compatibility
+            env_path = repo_root / ".env"
+            if not env_path.exists():
+                env_path = app_root / ".env"
 
-        env_path = base_path / ".env"
         load_dotenv(dotenv_path=env_path)
 
         self.api_key = os.getenv("FIREBASE_API_KEY")

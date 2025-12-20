@@ -37,6 +37,7 @@ from ui.constants.ui_constants import (
     UIStrings,
 )
 
+
 logger = get_logger(__name__)
 
 
@@ -79,14 +80,18 @@ class PackagesPage(QWidget):
 
         # Loading spinner
         self.loading_spinner = LoadingSpinner("טוען חבילות...")
-        main_layout.addWidget(self.loading_spinner, alignment=Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(
+            self.loading_spinner, alignment=Qt.AlignmentFlag.AlignCenter
+        )
 
         # Packages container - uses HBoxLayout for proper centering
         self.packages_container = QWidget()
         self.packages_container.setStyleSheet("background: transparent;")
         self.packages_layout = QHBoxLayout(self.packages_container)
         self.packages_layout.setSpacing(Spacing.LG)
-        self.packages_layout.setContentsMargins(Spacing.XL, Spacing.LG, Spacing.XL, Spacing.XL)
+        self.packages_layout.setContentsMargins(
+            Spacing.XL, Spacing.LG, Spacing.XL, Spacing.XL
+        )
         self.packages_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Scroll area - with room for shadows
@@ -98,7 +103,8 @@ class PackagesPage(QWidget):
         scroll.setMinimumHeight(480)
         # Important: Don't clip shadows
         scroll.viewport().setStyleSheet("background: transparent;")
-        scroll.setStyleSheet(f"""
+        scroll.setStyleSheet(
+            f"""
             QScrollArea {{
                 border: none;
                 background: transparent;
@@ -136,7 +142,8 @@ class PackagesPage(QWidget):
             QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
                 width: 0;
             }}
-        """)
+        """
+        )
 
         main_layout.addSpacing(Spacing.SM)
         main_layout.addWidget(scroll, 1)
@@ -195,7 +202,8 @@ class PackagesPage(QWidget):
         """Create a modern package card"""
         card = QFrame()
         card.setFixedSize(280, 400)
-        card.setStyleSheet(f"""
+        card.setStyleSheet(
+            f"""
             QFrame {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.BORDER_LIGHT};
@@ -208,7 +216,8 @@ class PackagesPage(QWidget):
                 border: none;
                 background: transparent;
             }}
-        """)
+        """
+        )
         apply_shadow(card, "md")
 
         layout = QVBoxLayout(card)
@@ -217,7 +226,9 @@ class PackagesPage(QWidget):
 
         # Package name
         name = QLabel(package.get("name", "חבילה"))
-        name.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_XL, Typography.WEIGHT_BOLD))
+        name.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_XL, Typography.WEIGHT_BOLD)
+        )
         name.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
         name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         name.setWordWrap(True)
@@ -264,7 +275,11 @@ class PackagesPage(QWidget):
         # Price
         price = package.get("price", 0)
         price_lbl = QLabel(f"₪{price}")
-        price_lbl.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_EXTRABOLD))
+        price_lbl.setFont(
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_EXTRABOLD
+            )
+        )
         price_lbl.setStyleSheet(f"color: {Colors.PRIMARY};")
         price_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(price_lbl)
@@ -279,14 +294,18 @@ class PackagesPage(QWidget):
     def _create_feature_label(self, text: str, color: str) -> QLabel:
         """Create a feature label with icon"""
         label = QLabel(text)
-        label.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_MEDIUM))
-        label.setStyleSheet(f"""
+        label.setFont(
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_MEDIUM)
+        )
+        label.setStyleSheet(
+            f"""
             background: {color}15;
             color: {color};
             padding: {Spacing.SM}px {Spacing.MD}px;
             border-radius: {BorderRadius.SM}px;
             border-right: 3px solid {color};
-        """)
+        """
+        )
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         return label
 
@@ -295,6 +314,7 @@ class PackagesPage(QWidget):
         logger.info(f"Purchase initiated: {package.get('name')}")
 
         from PyQt6.QtWidgets import QMessageBox
+
         from ui.payment_dialog import PaymentDialog
 
         dialog = PaymentDialog(package, self)
@@ -314,18 +334,20 @@ class PackagesPage(QWidget):
     def _show_success(self, package: Dict):
         """Show success message"""
         from PyQt6.QtWidgets import QMessageBox
+
         QMessageBox.information(
             self,
             "רכישה הושלמה! 🎉",
             f"הרכישה בוצעה בהצלחה!\n\n"
             f"נוספו לחשבונך:\n"
             f"• {package.get('minutes')} דקות\n"
-            f"• {package.get('prints')}₪ יתרת הדפסות"
+            f"• {package.get('prints')}₪ יתרת הדפסות",
         )
 
     def _show_payment_error(self):
         """Show payment error"""
         from PyQt6.QtWidgets import QMessageBox
+
         QMessageBox.critical(self, "שגיאה", "לא התקבל אישור תשלום")
 
     def refresh_user_data(self):
