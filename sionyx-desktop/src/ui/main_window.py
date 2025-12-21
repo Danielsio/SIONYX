@@ -17,9 +17,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.services.session_service import SessionService
-from src.utils.const import APP_NAME
-from src.utils.logger import get_logger
+from services.session_service import SessionService
+from utils.const import APP_NAME
+from utils.logger import get_logger
 from ui.base_window import BaseKioskWindow
 from ui.components.base_components import ActionButton
 from ui.constants.ui_constants import (

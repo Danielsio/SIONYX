@@ -78,8 +78,18 @@ class Colors:
     BG_CARD = "#FFFFFF"
     BG_SIDEBAR = "#0F172A"
     BG_SIDEBAR_HOVER = "#1E293B"
+    
+    # Additional Background Colors (for dialogs)
+    BG_PRIMARY = "#FFFFFF"
+    BG_SECONDARY = "#F1F5F9"  # GRAY_100
+    BG_HOVER = "#E2E8F0"  # GRAY_200
+    BG_DISABLED = "#CBD5E1"  # GRAY_300
+    
+    # Additional Text Colors (for dialogs)
+    TEXT_DISABLED = "#94A3B8"  # GRAY_400
 
     # Border Colors
+    BORDER = "#CBD5E1"  # GRAY_300
     BORDER_LIGHT = "#E2E8F0"
     BORDER_DEFAULT = "#CBD5E1"
     BORDER_FOCUS = "#6366F1"
@@ -212,6 +222,12 @@ class Spacing:
     CARD_PADDING = 24
     SECTION_GAP = 32
     ELEMENT_GAP = 16
+
+    # Additional semantic spacing (for dialogs)
+    PAGE_MARGIN = 24
+    SECTION_MARGIN = 16
+    SECTION_SPACING = 16
+    BUTTON_SPACING = 12
 
 
 class BorderRadius:

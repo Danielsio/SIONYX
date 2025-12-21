@@ -7,9 +7,9 @@ from typing import Any, Dict
 
 import requests
 
-from src.utils.error_translations import translate_error
-from src.utils.firebase_config import get_firebase_config
-from src.utils.logger import get_logger
+from utils.error_translations import translate_error
+from utils.firebase_config import get_firebase_config
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)

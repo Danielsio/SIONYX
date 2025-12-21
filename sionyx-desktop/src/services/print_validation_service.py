@@ -8,9 +8,9 @@ from typing import Dict
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from src.services.firebase_client import FirebaseClient
-from src.services.print_budget_service import PrintBudgetService
-from src.utils.logger import get_logger
+from services.firebase_client import FirebaseClient
+from services.print_budget_service import PrintBudgetService
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)

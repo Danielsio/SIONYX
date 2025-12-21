@@ -55,6 +55,24 @@ module = [
 ]
 ignore_missing_imports = true
 
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/test_*.py",
+    "*/*_test.py",
+    "*/__pycache__/*",
+    "*/conftest.py",
+    "*/ui/styles/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
+show_missing = true
+
 [tool.pylint]
 max-line-length = 88
 disable = [

@@ -7,8 +7,8 @@ from typing import Dict
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
-from src.services.print_validation_service import PrintValidationService
-from src.utils.logger import get_logger
+from services.print_validation_service import PrintValidationService
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)

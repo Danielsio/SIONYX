@@ -15,8 +15,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.services.chat_service import ChatService
-from src.utils.logger import get_logger
+from services.chat_service import ChatService
+from utils.logger import get_logger
 from ui.components.base_components import (
     ActionButton,
     FrostCard,
