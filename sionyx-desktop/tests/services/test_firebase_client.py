@@ -36,19 +36,14 @@ class TestFirebaseClient:
 
     def test_get_org_path(self, firebase_client):
         """Test organization path generation for multi-tenancy"""
-        # Test basic path
         assert (
             firebase_client._get_org_path("users/123")
             == "organizations/test-org/users/123"
         )
-
-        # Test path with leading/trailing slashes
         assert (
             firebase_client._get_org_path("/users/123/")
             == "organizations/test-org/users/123"
         )
-
-        # Test root path
         assert firebase_client._get_org_path("") == "organizations/test-org"
         assert firebase_client._get_org_path("/") == "organizations/test-org"
 
@@ -132,7 +127,6 @@ class TestFirebaseClient:
         """Test ensure_valid_token when no tokens are present"""
         firebase_client.id_token = None
         firebase_client.refresh_token = None
-
         result = firebase_client.ensure_valid_token()
         assert result is False
 
@@ -141,7 +135,6 @@ class TestFirebaseClient:
         firebase_client.id_token = "test-token"
         firebase_client.refresh_token = "test-refresh"
         firebase_client.token_expiry = datetime.now() + timedelta(hours=1)
-
         result = firebase_client.ensure_valid_token()
         assert result is True
 
@@ -149,9 +142,7 @@ class TestFirebaseClient:
         """Test ensure_valid_token when token is expiring soon"""
         firebase_client.id_token = "test-token"
         firebase_client.refresh_token = "test-refresh"
-        firebase_client.token_expiry = datetime.now() + timedelta(
-            minutes=3
-        )  # Less than 5 minutes
+        firebase_client.token_expiry = datetime.now() + timedelta(minutes=3)
 
         mock_response = Mock()
         mock_response.json.return_value = {
@@ -186,9 +177,7 @@ class TestFirebaseClient:
     def test_db_get_not_authenticated(self, firebase_client):
         """Test database get when not authenticated"""
         firebase_client.id_token = None
-
         result = firebase_client.db_get("users/123")
-
         assert result["success"] is False
         assert result["error"] == "Not authenticated"
 
@@ -203,8 +192,7 @@ class TestFirebaseClient:
         mock_response.raise_for_status.return_value = None
         mock_requests.put.return_value = mock_response
 
-        test_data = {"name": "test-data"}
-        result = firebase_client.db_set("users/123", test_data)
+        result = firebase_client.db_set("users/123", {"name": "test-data"})
 
         assert result["success"] is True
         assert result["data"] == {"name": "test-data"}
@@ -221,8 +209,7 @@ class TestFirebaseClient:
         mock_response.raise_for_status.return_value = None
         mock_requests.patch.return_value = mock_response
 
-        test_data = {"name": "updated-data"}
-        result = firebase_client.db_update("users/123", test_data)
+        result = firebase_client.db_update("users/123", {"name": "updated-data"})
 
         assert result["success"] is True
         assert result["data"] == {"updated": True}

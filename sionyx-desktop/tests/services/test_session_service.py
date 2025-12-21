@@ -16,11 +16,9 @@ class TestSessionService:
     @pytest.fixture
     def session_service(self, mock_firebase_client, qtbot):
         """Create SessionService instance with mocked dependencies"""
-        with patch("src.services.session_service.ComputerService"), patch(
-            "src.services.session_service.PrintValidationService"
-        ):
-            service = SessionService(mock_firebase_client, "test-user-id", "test-org")
-            return service
+        with patch("src.services.session_service.ComputerService"):
+            with patch("src.services.session_service.PrintValidationService"):
+                return SessionService(mock_firebase_client, "test-user-id", "test-org")
 
     def test_initialization(self, session_service):
         """Test SessionService initialization"""
@@ -38,7 +36,7 @@ class TestSessionService:
 
     def test_start_session_success(self, session_service, mock_firebase_client, qtbot):
         """Test successful session start"""
-        initial_time = 3600  # 1 hour
+        initial_time = 3600
         mock_firebase_client.db_update.return_value = {"success": True}
         session_service.computer_service.get_computer_info.return_value = {
             "success": True,
@@ -60,23 +58,19 @@ class TestSessionService:
     def test_start_session_already_active(self, session_service):
         """Test starting session when already active"""
         session_service.is_active = True
-
         result = session_service.start_session(3600)
-
         assert result["success"] is False
         assert result["error"] == "Session already active"
 
     def test_start_session_no_time(self, session_service):
         """Test starting session with no remaining time"""
         result = session_service.start_session(0)
-
         assert result["success"] is False
         assert result["error"] == "No time remaining"
 
     def test_start_session_negative_time(self, session_service):
         """Test starting session with negative time"""
         result = session_service.start_session(-100)
-
         assert result["success"] is False
         assert result["error"] == "No time remaining"
 
@@ -84,7 +78,6 @@ class TestSessionService:
         self, session_service, mock_firebase_client, qtbot
     ):
         """Test session start with Firebase failure"""
-        initial_time = 3600
         mock_firebase_client.db_update.return_value = {
             "success": False,
             "error": "Database error",
@@ -97,7 +90,7 @@ class TestSessionService:
         with patch.object(
             session_service, "_get_current_computer_id", return_value="test-computer-id"
         ):
-            result = session_service.start_session(initial_time)
+            result = session_service.start_session(3600)
 
         assert result["success"] is False
         assert result["error"] == "Database error"
@@ -105,12 +98,10 @@ class TestSessionService:
 
     def test_end_session_success(self, session_service, mock_firebase_client, qtbot):
         """Test successful session end"""
-        # Setup active session
         session_service.is_active = True
         session_service.session_id = "test-session-id"
         session_service.remaining_time = 1800
         session_service.start_time = datetime.now() - timedelta(minutes=30)
-
         mock_firebase_client.db_update.return_value = {"success": True}
 
         result = session_service.end_session("user")
@@ -123,7 +114,6 @@ class TestSessionService:
     def test_end_session_not_active(self, session_service):
         """Test ending session when not active"""
         result = session_service.end_session("user")
-
         assert result["success"] is False
         assert result["error"] == "No active session"
 
@@ -131,11 +121,9 @@ class TestSessionService:
         self, session_service, mock_firebase_client, qtbot
     ):
         """Test session end with Firebase failure"""
-        # Setup active session
         session_service.is_active = True
         session_service.session_id = "test-session-id"
         session_service.remaining_time = 1800
-
         mock_firebase_client.db_update.return_value = {
             "success": False,
             "error": "Database error",
@@ -153,16 +141,9 @@ class TestSessionService:
         session_service.warned_5min = False
         session_service.warned_1min = False
 
-        # Connect signal to capture emissions
         time_updated_signals = []
-        warning_5min_signals = []
-        warning_1min_signals = []
-
         session_service.time_updated.connect(lambda x: time_updated_signals.append(x))
-        session_service.warning_5min.connect(lambda: warning_5min_signals.append(True))
-        session_service.warning_1min.connect(lambda: warning_1min_signals.append(True))
 
-        # Simulate countdown tick
         session_service._on_countdown_tick()
 
         assert session_service.remaining_time == 99
@@ -172,7 +153,7 @@ class TestSessionService:
     def test_countdown_tick_5min_warning(self, session_service, qtbot):
         """Test countdown tick triggering 5-minute warning"""
         session_service.is_active = True
-        session_service.remaining_time = 300  # 5 minutes
+        session_service.remaining_time = 300
         session_service.warned_5min = False
         session_service.warned_1min = False
 
@@ -187,7 +168,7 @@ class TestSessionService:
     def test_countdown_tick_1min_warning(self, session_service, qtbot):
         """Test countdown tick triggering 1-minute warning"""
         session_service.is_active = True
-        session_service.remaining_time = 60  # 1 minute
+        session_service.remaining_time = 60
         session_service.warned_5min = True
         session_service.warned_1min = False
 
@@ -228,7 +209,6 @@ class TestSessionService:
         session_service.time_used = 1800
         session_service.is_online = True
         session_service.consecutive_sync_failures = 2
-
         mock_firebase_client.db_update.return_value = {"success": True}
 
         sync_restored_signals = []
@@ -251,7 +231,6 @@ class TestSessionService:
         session_service.remaining_time = 1800
         session_service.is_online = True
         session_service.consecutive_sync_failures = 0
-
         mock_firebase_client.db_update.return_value = {
             "success": False,
             "error": "Network error",
@@ -274,8 +253,7 @@ class TestSessionService:
         session_service.is_active = True
         session_service.remaining_time = 1800
         session_service.is_online = False
-        session_service.consecutive_sync_failures = 4  # Max is 5
-
+        session_service.consecutive_sync_failures = 4
         mock_firebase_client.db_update.return_value = {
             "success": False,
             "error": "Network error",
@@ -299,34 +277,25 @@ class TestSessionService:
     ):
         """Test Firebase sync when session is not active"""
         session_service.is_active = False
-
         session_service._sync_to_firebase()
-
-        # Should not call Firebase
         mock_firebase_client.db_update.assert_not_called()
 
     def test_get_remaining_time(self, session_service):
         """Test getting remaining time"""
         session_service.remaining_time = 1800
-
         result = session_service.get_remaining_time()
-
         assert result == 1800
 
     def test_get_time_used(self, session_service):
         """Test getting time used"""
         session_service.time_used = 900
-
         result = session_service.get_time_used()
-
         assert result == 900
 
     def test_is_session_active(self, session_service):
         """Test checking if session is active"""
         session_service.is_active = True
-
         result = session_service.is_session_active()
-
         assert result is True
 
     def test_pause_session(self, session_service, qtbot):
@@ -364,9 +333,7 @@ class TestSessionService:
     def test_resume_session_already_active(self, session_service):
         """Test resuming session when already active"""
         session_service.is_active = True
-
         result = session_service.resume_session()
-
         assert result["success"] is False
         assert result["error"] == "Session already active"
 
@@ -377,7 +344,6 @@ class TestSessionService:
             return_value="test-computer-id",
         ):
             result = session_service._get_current_computer_id()
-
         assert result == "test-computer-id"
 
     def test_timer_cleanup_on_destroy(self, session_service, qtbot):
@@ -386,7 +352,6 @@ class TestSessionService:
         session_service.countdown_timer.isActive.return_value = True
         session_service.sync_timer.isActive.return_value = True
 
-        # Simulate destruction
         session_service.__del__()
 
         session_service.countdown_timer.stop.assert_called_once()
@@ -395,11 +360,11 @@ class TestSessionService:
     @pytest.mark.parametrize(
         "remaining_time,expected_warning",
         [
-            (300, "5min"),  # Exactly 5 minutes
-            (301, None),  # Just over 5 minutes
-            (60, "1min"),  # Exactly 1 minute
-            (61, None),  # Just over 1 minute
-            (30, None),  # Less than 1 minute
+            (300, "5min"),
+            (301, None),
+            (60, "1min"),
+            (61, None),
+            (30, None),
         ],
     )
     def test_warning_triggers(
