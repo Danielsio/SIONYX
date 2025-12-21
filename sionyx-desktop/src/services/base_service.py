@@ -10,8 +10,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from src.services.firebase_client import FirebaseClient
-from src.utils.logger import get_logger
+from services.firebase_client import FirebaseClient
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)

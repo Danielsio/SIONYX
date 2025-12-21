@@ -15,8 +15,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.services.print_validation_service import PrintValidationService
-from src.utils.logger import get_logger
+from services.print_validation_service import PrintValidationService
+from utils.logger import get_logger
 
 
 try:

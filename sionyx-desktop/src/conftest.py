@@ -8,8 +8,8 @@ import pytest
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication
 
-from src.services.firebase_client import FirebaseClient
-from src.utils.firebase_config import FirebaseConfig
+from services.firebase_client import FirebaseClient
+from utils.firebase_config import FirebaseConfig
 
 
 @pytest.fixture(scope="session")
@@ -19,7 +19,6 @@ def qapp():
     if app is None:
         app = QApplication([])
     yield app
-    # Cleanup handled by pytest-qt
 
 
 @pytest.fixture
@@ -45,7 +44,6 @@ def mock_firebase_client(mock_firebase_config):
     client.refresh_token = "test-refresh-token"
     client.user_id = "test-user-id"
 
-    # Mock common methods
     client.sign_up.return_value = {"success": True, "uid": "test-user-id"}
     client.sign_in.return_value = {"success": True, "uid": "test-user-id"}
     client.db_get.return_value = {"success": True, "data": {}}
@@ -59,14 +57,23 @@ def mock_firebase_client(mock_firebase_config):
 
 @pytest.fixture
 def mock_requests():
-    """Mock requests library for HTTP calls"""
+    """Mock requests library for HTTP calls - patches requests in firebase_client"""
+    from unittest.mock import patch
+    import requests as real_requests
+    
     mock = Mock()
     mock.get.return_value.status_code = 200
     mock.post.return_value.status_code = 200
     mock.put.return_value.status_code = 200
     mock.patch.return_value.status_code = 200
     mock.delete.return_value.status_code = 200
-    yield mock
+    
+    # Preserve the real exceptions module so except clauses work
+    mock.exceptions = real_requests.exceptions
+    
+    # Actually patch requests in the firebase_client module
+    with patch("services.firebase_client.requests", mock):
+        yield mock
 
 
 @pytest.fixture
@@ -117,12 +124,10 @@ def sample_package_data():
     }
 
 
-# PyQt6 specific fixtures
 @pytest.fixture
 def qtbot(qapp):
     """QtBot instance for PyQt6 testing"""
     from pytestqt.qtbot import QtBot
-
     return QtBot(qapp)
 
 

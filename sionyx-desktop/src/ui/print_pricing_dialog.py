@@ -17,8 +17,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
-from src.services.organization_metadata_service import OrganizationMetadataService
-from src.utils.logger import get_logger
+from services.organization_metadata_service import OrganizationMetadataService
+from utils.logger import get_logger
 from ui.styles.base import Colors, Spacing
 
 

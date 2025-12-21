@@ -6,8 +6,8 @@ Handles print budget validation, pricing, and deduction
 import traceback
 from typing import Dict
 
-from src.services.firebase_client import FirebaseClient
-from src.utils.logger import get_logger
+from services.firebase_client import FirebaseClient
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)

@@ -18,8 +18,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.services.package_service import PackageService
-from src.utils.logger import get_logger
+from services.package_service import PackageService
+from utils.logger import get_logger
 from ui.components.base_components import (
     ActionButton,
     EmptyState,

@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 # Add project root to Python path BEFORE any imports
-# This allows imports like "from src.services..." to work regardless of how the script is run
+# This allows imports like "from services..." to work regardless of how the script is run
 if __name__ == "__main__":
     # Get the project root directory (parent of src)
     project_root = Path(__file__).parent.parent
@@ -20,11 +20,11 @@ if __name__ == "__main__":
 from PyQt6.QtCore import QCoreApplication, Qt
 from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
 
-from src.services.auth_service import AuthService
-from src.services.global_hotkey_service import GlobalHotkeyService
-from src.utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
-from src.utils.firebase_config import get_firebase_config
-from src.utils.logger import (
+from services.auth_service import AuthService
+from services.global_hotkey_service import GlobalHotkeyService
+from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
+from utils.firebase_config import get_firebase_config
+from utils.logger import (
     SionyxLogger,
     generate_request_id,
     get_logger,

@@ -6,9 +6,9 @@ Handles computer registration, tracking, and association with users
 from datetime import datetime
 from typing import Dict
 
-from src.services.firebase_client import FirebaseClient
-from src.utils.device_info import get_computer_info
-from src.utils.logger import get_logger
+from services.firebase_client import FirebaseClient
+from utils.device_info import get_computer_info
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)
