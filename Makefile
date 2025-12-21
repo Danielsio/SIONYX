@@ -25,17 +25,17 @@ help:
 	@echo ""
 	@echo "Client App Commands:"
 	@echo "  dev             - Run client app"
-	@echo "  test            - Run tests"
+	@echo "  test            - Run tests (co-located in src/)"
 	@echo "  test-cov        - Run tests with coverage"
-	@echo "  test-fast       - Run fast tests (no Qt)"
+	@echo "  test-fast       - Run fast tests (utils + services)"
 	@echo "  test-fail       - Run tests, stop on first failure"
 	@echo "  lint            - Check code style"
 	@echo "  lint-fix        - Fix code style"
-	@echo "  build           - Build installer (patch version)"
-	@echo "  build-minor     - Build installer (minor version)"
-	@echo "  build-major     - Build installer (major version)"
-	@echo "  build-dry       - Preview version changes"
-	@echo "  build-local     - Build without uploading"
+	@echo "  build           - Build installer (patch version, runs tests first)"
+	@echo "  build-minor     - Build installer (minor version, runs tests first)"
+	@echo "  build-major     - Build installer (major version, runs tests first)"
+	@echo "  build-dry       - Preview version changes (no tests)"
+	@echo "  build-local     - Build without uploading (runs tests first)"
 	@echo "  version         - Show current version"
 	@echo ""
 	@echo "Web Admin Commands:"
@@ -64,52 +64,52 @@ dev:
 
 run: dev
 
-# Run tests
+# Run tests (co-located in src/)
 test:
 	@echo "Running client tests..."
-	cd sionyx-desktop && pytest tests/ -v
+	cd sionyx-desktop && pytest src/ -v
 
 # Run tests with coverage
 test-cov:
 	@echo "Running client tests with coverage..."
-	cd sionyx-desktop && pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html
+	cd sionyx-desktop && pytest src/ -v --cov=src --cov-report=term-missing --cov-report=html
 	@echo ""
 	@echo "Coverage report: sionyx-desktop/htmlcov/index.html"
 
-# Run fast tests (no Qt)
+# Run fast tests (utils + services only)
 test-fast:
 	@echo "Running fast tests (utils + services)..."
-	cd sionyx-desktop && pytest tests/utils tests/services -v
+	cd sionyx-desktop && pytest src/utils/ src/services/ -v -k "test_"
 
 # Run tests, stop on first failure
 test-fail:
 	@echo "Running client tests (stop on first failure)..."
-	cd sionyx-desktop && pytest tests/ -v -x
+	cd sionyx-desktop && pytest src/ -v -x
 
-# Run specific test file (usage: make test-file FILE=tests/utils/test_device_info.py)
+# Run specific test file (usage: make test-file FILE=src/services/test_auth_service.py)
 test-file:
 	@echo "Running tests in $(FILE)..."
 	cd sionyx-desktop && pytest $(FILE) -v
 
-# Run tests matching pattern (usage: make test-match PATTERN=test_translate)
+# Run tests matching pattern (usage: make test-match PATTERN=test_login)
 test-match:
 	@echo "Running tests matching '$(PATTERN)'..."
-	cd sionyx-desktop && pytest tests/ -v -k "$(PATTERN)"
+	cd sionyx-desktop && pytest src/ -v -k "$(PATTERN)"
 
 # Lint client code
 lint:
 	@echo "Checking client code style..."
-	@cd sionyx-desktop && black --check src/ tests/ || (echo "Run 'make lint-fix' to fix." && exit 1)
-	@cd sionyx-desktop && isort --check-only src/ tests/ || (echo "Run 'make lint-fix' to fix." && exit 1)
-	@cd sionyx-desktop && flake8 src/ tests/ --config=.flake8 || (echo "flake8 check failed." && exit 1)
+	@cd sionyx-desktop && black --check src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
+	@cd sionyx-desktop && isort --check-only src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
+	@cd sionyx-desktop && flake8 src/ --config=.flake8 || (echo "flake8 check failed." && exit 1)
 	@echo "Client code style OK!"
 
 # Fix client code style
 lint-fix:
 	@echo "Fixing client code style..."
-	@cd sionyx-desktop && black src/ tests/
-	@cd sionyx-desktop && isort src/ tests/
-	@cd sionyx-desktop && flake8 src/ tests/ --config=.flake8 || (echo "flake8 check failed - fix manually." && exit 1)
+	@cd sionyx-desktop && black src/
+	@cd sionyx-desktop && isort src/
+	@cd sionyx-desktop && flake8 src/ --config=.flake8 || (echo "flake8 check failed - fix manually." && exit 1)
 	@echo "Client code style fixed!"
 
 # Show version
@@ -117,17 +117,18 @@ version:
 	@python -c "import json; v=json.load(open('sionyx-desktop/version.json')); print(f\"SIONYX v{v['version']} (Build #{v.get('buildNumber', 1)})\")"
 
 # Build installer (patch version - default)
+# All builds depend on tests passing first
 build: build-patch
 
-build-patch:
+build-patch: test
 	@echo "Building client (patch version)..."
 	cd sionyx-desktop && python build.py --patch
 
-build-minor:
+build-minor: test
 	@echo "Building client (minor version)..."
 	cd sionyx-desktop && python build.py --minor
 
-build-major:
+build-major: test
 	@echo "Building client (major version)..."
 	cd sionyx-desktop && python build.py --major
 
@@ -135,7 +136,7 @@ build-dry:
 	@echo "Dry run - previewing version changes..."
 	cd sionyx-desktop && python build.py --dry-run
 
-build-local:
+build-local: test
 	@echo "Building client locally (no upload)..."
 	cd sionyx-desktop && python build.py --no-upload --keep-local
 
