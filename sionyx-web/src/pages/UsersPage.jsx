@@ -868,10 +868,14 @@ const UsersPage = () => {
                   {selectedUser.email || 'לא זמין'}
                 </Descriptions.Item>
                 <Descriptions.Item label='סטטוס'>
-                  <Badge
-                    status={selectedUser.isActive ? 'success' : 'default'}
-                    text={selectedUser.isActive ? 'פעיל' : 'לא פעיל'}
-                  />
+                  {(() => {
+                    const status = getUserStatus(selectedUser);
+                    const statusLabel = getUserStatusLabel(status);
+                    const statusColor = getUserStatusColor(status);
+                    return (
+                      <Tag color={statusColor}>{statusLabel}</Tag>
+                    );
+                  })()}
                 </Descriptions.Item>
                 <Descriptions.Item label='תפקיד'>
                   {selectedUser.isAdmin ? (
