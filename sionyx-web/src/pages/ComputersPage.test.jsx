@@ -239,6 +239,101 @@ describe('ComputersPage', () => {
     // Should show status indicators
     expect(document.body).toBeInTheDocument();
   });
+
+  // BUG TESTS - Session Time and Status Display
+  describe('Session Time Bug Tests', () => {
+    it('should show "לא פעיל" (not just "לא") for inactive session status', async () => {
+      // Mock user who is on computer but NOT in active session
+      getActiveComputerUsers.mockResolvedValue({
+        success: true,
+        data: [{
+          userId: 'user-1',
+          userName: 'יוסי כהן',
+          computerId: 'comp-1',
+          computerName: 'PC-001',
+          loginTime: new Date(Date.now() - 1800000).toISOString(),
+          sessionActive: false, // NOT in paid session
+          sessionStartTime: null, // No session started
+          remainingTime: 3600,
+        }],
+      });
+
+      render(<ComputersPage />);
+
+      await waitFor(() => {
+        expect(getActiveComputerUsers).toHaveBeenCalled();
+      });
+
+      // Should show "לא פעיל" not just "לא"
+      await waitFor(() => {
+        const statusTags = screen.queryAllByText('לא פעיל');
+        // At least one "לא פעיל" should appear
+        expect(statusTags.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should show "--" activity time when session has not started', async () => {
+      // Mock user who is logged in but hasn't started paid session
+      getActiveComputerUsers.mockResolvedValue({
+        success: true,
+        data: [{
+          userId: 'user-1',
+          userName: 'יוסי כהן',
+          computerId: 'comp-1',
+          computerName: 'PC-001',
+          loginTime: new Date(Date.now() - 3600000).toISOString(), // Logged in 1 hour ago
+          sessionActive: false,
+          sessionStartTime: null, // No paid session started!
+          remainingTime: 3600,
+        }],
+      });
+
+      render(<ComputersPage />);
+
+      await waitFor(() => {
+        expect(getActiveComputerUsers).toHaveBeenCalled();
+      });
+
+      // Should NOT show 1 hour of activity time since session hasn't started
+      // Activity time should show "--" placeholder
+      await waitFor(() => {
+        const placeholders = screen.queryAllByText('--');
+        expect(placeholders.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('should use sessionStartTime for activity calculation, not loginTime', async () => {
+      const now = Date.now();
+      // User logged into computer 2 hours ago, but started session 30 minutes ago
+      getActiveComputerUsers.mockResolvedValue({
+        success: true,
+        data: [{
+          userId: 'user-1',
+          userName: 'יוסי כהן',
+          computerId: 'comp-1',
+          computerName: 'PC-001',
+          loginTime: new Date(now - 7200000).toISOString(), // 2 hours ago
+          sessionActive: true,
+          sessionStartTime: new Date(now - 1800000).toISOString(), // 30 minutes ago
+          remainingTime: 3600,
+        }],
+      });
+
+      render(<ComputersPage />);
+
+      await waitFor(() => {
+        expect(getActiveComputerUsers).toHaveBeenCalled();
+      });
+
+      // Activity time should show ~30 minutes, NOT 2 hours
+      // Looking for time in format like "0:30:XX" or "30:XX"
+      await waitFor(() => {
+        // Should NOT see 2 hours (2:XX:XX or 1:XX:XX)
+        const twoHourTime = screen.queryByText(/^2:[0-5][0-9]:[0-5][0-9]$/);
+        expect(twoHourTime).toBeNull();
+      });
+    });
+  });
 });
 
 

@@ -193,11 +193,18 @@ const ComputersPage = () => {
       title: 'זמן פעילות',
       key: 'currentSession',
       width: 110,
-      render: (_, record) => (
-        <Text strong style={{ color: '#52c41a' }}>
-          {formatSessionTime(record.loginTime)}
-        </Text>
-      ),
+      render: (_, record) => {
+        // FIX: Use sessionStartTime (when paid session started), not loginTime
+        // If no active session, show placeholder
+        if (!record.sessionActive || !record.sessionStartTime) {
+          return <Text type="secondary">--</Text>;
+        }
+        return (
+          <Text strong style={{ color: '#52c41a' }}>
+            {formatSessionTime(record.sessionStartTime)}
+          </Text>
+        );
+      },
     },
     {
       title: 'נותר',
@@ -217,7 +224,8 @@ const ComputersPage = () => {
       width: 80,
       responsive: ['md'],
       render: active => (
-        <Tag color={active ? 'green' : 'default'}>{active ? 'פעיל' : 'לא'}</Tag>
+        // FIX: Show "לא פעיל" instead of just "לא" for consistency
+        <Tag color={active ? 'green' : 'default'}>{active ? 'פעיל' : 'לא פעיל'}</Tag>
       ),
     },
     {
