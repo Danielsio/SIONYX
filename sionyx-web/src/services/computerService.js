@@ -253,6 +253,8 @@ export const getActiveComputerUsers = async () => {
             computerName: computer.computerName || 'Unknown',
             computerLocation: computer.location || '',
             loginTime: computer.lastUserLogin || '',
+            // FIX: Use sessionStartTime for activity calculation, not loginTime
+            sessionStartTime: userData.sessionStartTime || null,
             sessionActive: userData.isSessionActive || false,
             remainingTime: userData.remainingTime || 0,
             remainingPrints: userData.remainingPrints || 0,

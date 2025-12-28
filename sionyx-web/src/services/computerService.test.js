@@ -7,6 +7,7 @@ import {
   updateComputer,
   deleteComputer,
   forceLogoutUser,
+  getActiveComputerUsers,
 } from './computerService';
 
 vi.mock('firebase/database');
@@ -230,6 +231,81 @@ describe('computerService', () => {
 
       expect(result.success).toBe(true);
       expect(result.data.totalComputers).toBe(0);
+    });
+  });
+
+  describe('getActiveComputerUsers - Session Time Bug Tests', () => {
+    it('should return sessionStartTime for activity time, not loginTime', async () => {
+      // Mock computers with a user
+      get.mockResolvedValueOnce({
+        exists: () => true,
+        val: () => ({
+          'comp-1': { 
+            computerName: 'PC-1', 
+            isActive: true, 
+            currentUserId: 'user-1',
+            lastUserLogin: '2024-01-15T08:00:00Z', // When user logged into computer
+          },
+        }),
+      });
+      // Mock user data with session info
+      get.mockResolvedValueOnce({
+        exists: () => true,
+        val: () => ({ 
+          firstName: 'Test', 
+          lastName: 'User',
+          phoneNumber: '0501234567',
+          isSessionActive: true,
+          sessionStartTime: '2024-01-15T10:00:00Z', // When paid session actually started
+          remainingTime: 3600,
+        }),
+      });
+
+      const result = await getActiveComputerUsers();
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      
+      const activeUser = result.data[0];
+      // BUG TEST: sessionStartTime should be returned, not loginTime
+      expect(activeUser.sessionStartTime).toBe('2024-01-15T10:00:00Z');
+    });
+
+    it('should return null sessionStartTime when user has not started paid session', async () => {
+      // Mock computers with a user who logged in but hasn't started session
+      get.mockResolvedValueOnce({
+        exists: () => true,
+        val: () => ({
+          'comp-1': { 
+            computerName: 'PC-1', 
+            isActive: true, 
+            currentUserId: 'user-1',
+            lastUserLogin: '2024-01-15T08:00:00Z',
+          },
+        }),
+      });
+      // Mock user data - logged in but NO active session
+      get.mockResolvedValueOnce({
+        exists: () => true,
+        val: () => ({ 
+          firstName: 'Test', 
+          lastName: 'User',
+          phoneNumber: '0501234567',
+          isSessionActive: false, // NOT in active session
+          sessionStartTime: null, // No session started
+          remainingTime: 3600,
+        }),
+      });
+
+      const result = await getActiveComputerUsers();
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      
+      const activeUser = result.data[0];
+      // Session start time should be null when not in active session
+      expect(activeUser.sessionStartTime).toBeNull();
+      expect(activeUser.sessionActive).toBe(false);
     });
   });
 });
