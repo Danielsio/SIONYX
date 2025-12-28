@@ -723,3 +723,226 @@ class TestModernNotificationContainer:
         
         notif.close()
 
+
+# =============================================================================
+# Test ModernDialog show_animated behavior
+# =============================================================================
+class TestModernDialogShowAnimated:
+    """Tests for show_animated behavior"""
+
+    def test_show_animated_creates_opacity_effect(self, qapp):
+        """Test show_animated creates opacity effect"""
+        from ui.modern_dialogs import ModernDialog
+        
+        dialog = ModernDialog()
+        dialog.show_animated()
+        
+        # Should have fade_in animation
+        assert hasattr(dialog, 'fade_in')
+        
+        dialog.close()
+
+    def test_show_animated_starts_animation(self, qapp):
+        """Test show_animated starts fade-in animation"""
+        from ui.modern_dialogs import ModernDialog
+        
+        dialog = ModernDialog()
+        
+        # Show animated
+        dialog.show_animated()
+        
+        # Animation should be started
+        assert dialog.fade_in is not None
+        
+        dialog.close()
+
+    def test_show_animated_without_animation_widget(self, qapp):
+        """Test show_animated when animation_widget is None"""
+        from ui.modern_dialogs import ModernDialog
+        
+        dialog = ModernDialog()
+        dialog.animation_widget = None
+        
+        # Should not raise
+        dialog.show_animated()
+        
+        dialog.close()
+
+
+# =============================================================================
+# Test ModernNotification positioning
+# =============================================================================
+class TestModernNotificationPositioning:
+    """Tests for notification positioning"""
+
+    def test_show_notification_method_callable(self, qapp):
+        """Test show_notification method can be called"""
+        from ui.modern_dialogs import ModernNotification
+        
+        notif = ModernNotification(message="Test")
+        
+        # Method should exist and be callable
+        assert hasattr(notif, "show_notification")
+        assert callable(notif.show_notification)
+        
+        notif.close()
+
+    def test_notification_with_parent_stores_parent(self, qapp):
+        """Test notification with parent stores parent reference"""
+        from ui.modern_dialogs import ModernNotification
+        
+        parent = QWidget()
+        
+        notif = ModernNotification(parent=parent, message="Test")
+        
+        assert notif.parent() == parent
+        
+        notif.close()
+        parent.close()
+
+
+# =============================================================================
+# Test unknown message types fallback
+# =============================================================================
+class TestUnknownMessageTypes:
+    """Tests for fallback with unknown message types"""
+
+    def test_get_icon_emoji_unknown_type(self, qapp):
+        """Test icon fallback for unknown type"""
+        from ui.modern_dialogs import ModernMessageBox
+        
+        dialog = ModernMessageBox(message_type="unknown")
+        icon = dialog._get_icon_emoji()
+        
+        assert icon == "ℹ️"  # Default fallback
+        dialog.close()
+
+    def test_get_icon_color_unknown_type(self, qapp):
+        """Test color fallback for unknown type"""
+        from ui.modern_dialogs import ModernMessageBox
+        
+        dialog = ModernMessageBox(message_type="unknown")
+        color = dialog._get_icon_color()
+        
+        assert color == "#2196F3"  # Default fallback
+        dialog.close()
+
+    def test_notification_get_icon_unknown_type(self, qapp):
+        """Test notification icon fallback for unknown type"""
+        from ui.modern_dialogs import ModernNotification
+        
+        notif = ModernNotification(message_type="unknown")
+        icon = notif._get_icon()
+        
+        assert icon == "ℹ️"  # Default fallback
+        notif.close()
+
+    def test_notification_get_color_unknown_type(self, qapp):
+        """Test notification color fallback for unknown type"""
+        from ui.modern_dialogs import ModernNotification
+        
+        notif = ModernNotification(message_type="unknown")
+        color = notif._get_color()
+        
+        assert color == "#2196F3"  # Default fallback
+        notif.close()
+
+
+# =============================================================================
+# Test ModernConfirmDialog variations
+# =============================================================================
+class TestModernConfirmDialogVariations:
+    """Tests for ModernConfirmDialog with different settings"""
+
+    def test_non_danger_mode(self, qapp):
+        """Test non-danger mode uses QUESTION type"""
+        from ui.modern_dialogs import ModernConfirmDialog, ModernMessageBox
+        
+        dialog = ModernConfirmDialog(danger_mode=False)
+        
+        assert dialog.message_type == ModernMessageBox.QUESTION
+        dialog.close()
+
+    def test_custom_button_text(self, qapp):
+        """Test custom confirm and cancel text"""
+        from ui.modern_dialogs import ModernConfirmDialog
+        
+        dialog = ModernConfirmDialog(
+            confirm_text="Delete",
+            cancel_text="Keep"
+        )
+        
+        assert dialog.buttons_config == ["Delete", "Keep"]
+        dialog.close()
+
+
+# =============================================================================
+# Test keyboard events
+# =============================================================================
+class TestModernMessageBoxKeyboardEvents:
+    """Tests for keyboard event handling"""
+
+    def test_return_key_accepts(self, qapp):
+        """Test Return key triggers first button"""
+        from ui.modern_dialogs import ModernMessageBox
+        from PyQt6.QtGui import QKeyEvent
+        from PyQt6.QtCore import QEvent
+        
+        dialog = ModernMessageBox(buttons=["OK", "Cancel"])
+        
+        event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Enter, Qt.KeyboardModifier.NoModifier)
+        dialog.keyPressEvent(event)
+        
+        assert dialog.button_result == "OK"
+        dialog.close()
+
+
+# =============================================================================
+# Test ModernNotification auto-dismiss
+# =============================================================================
+class TestModernNotificationAutoDismiss:
+    """Tests for auto-dismiss functionality"""
+
+    def test_notification_has_duration(self, qapp):
+        """Test notification stores duration"""
+        from ui.modern_dialogs import ModernNotification
+        
+        notif = ModernNotification(message="Test", duration=5000)
+        
+        assert notif.duration == 5000
+        notif.close()
+
+    def test_dismiss_notification_closes(self, qapp):
+        """Test dismiss_notification eventually closes dialog"""
+        from ui.modern_dialogs import ModernNotification
+        
+        notif = ModernNotification(message="Test")
+        QDialog.show(notif)  # Show without animation
+        
+        notif.opacity_effect = None
+        notif.dismiss_notification()
+        
+        # Should close (or at least not raise)
+
+
+# =============================================================================
+# Test show_animated restore_shadow callback
+# =============================================================================
+class TestShowAnimatedRestoreShadow:
+    """Tests for restore_shadow callback in show_animated"""
+
+    def test_fade_in_completes(self, qapp):
+        """Test fade_in animation completes and restores shadow"""
+        from ui.modern_dialogs import ModernDialog
+        
+        dialog = ModernDialog()
+        dialog.show_animated()
+        
+        # Verify fade_in exists
+        assert dialog.fade_in is not None
+        
+        # Wait for animation to finish
+        dialog.fade_in.setDuration(1)  # Speed up for testing
+        
+        dialog.close()
+

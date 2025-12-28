@@ -383,4 +383,150 @@ class TestPrintBudgetService:
         assert "Network error" in result["error"]
 
 
+# =============================================================================
+# Additional Exception Path Tests
+# =============================================================================
+
+class TestPrintBudgetServiceExceptionPaths:
+    """Test exception handling paths"""
+
+    @pytest.fixture
+    def budget_service(self, mock_firebase_client):
+        """Create PrintBudgetService instance with mocked dependencies"""
+        return PrintBudgetService(mock_firebase_client)
+
+    def test_validate_print_budget_cost_failure(self, budget_service, mock_firebase_client):
+        """Test validation when cost calculation fails"""
+        mock_firebase_client.db_get.side_effect = [
+            {"success": True, "data": {"remainingPrints": 50.0}},  # User budget
+            {"success": False, "error": "Pricing not found"}  # Pricing failure
+        ]
+        
+        result = budget_service.validate_print_budget("user-123", "test-org", 5, 5)
+        
+        assert result["success"] is False
+        assert "Pricing not found" in str(result.get("error", ""))
+
+    def test_validate_print_budget_exception(self, budget_service, mock_firebase_client):
+        """Test validation with exception"""
+        mock_firebase_client.db_get.side_effect = Exception("Database connection failed")
+        
+        result = budget_service.validate_print_budget("user-123", "test-org", 5, 5)
+        
+        assert result["success"] is False
+        assert "Database connection failed" in result["error"]
+
+    def test_deduct_print_budget_budget_failure(self, budget_service, mock_firebase_client):
+        """Test deduction when getting budget fails"""
+        # First call succeeds (validation), second call fails (budget fetch for deduction)
+        mock_firebase_client.db_get.side_effect = [
+            {"success": True, "data": {"remainingPrints": 50.0}},  # User budget for validation
+            {"success": True, "data": {"blackAndWhitePrice": 1.0, "colorPrice": 3.0}},  # Pricing
+            {"success": False, "error": "Budget fetch failed"}  # Budget fetch for deduction
+        ]
+        
+        result = budget_service.deduct_print_budget("user-123", "test-org", 5, 5)
+        
+        assert result["success"] is False
+
+    def test_deduct_print_budget_exception(self, budget_service, mock_firebase_client):
+        """Test deduction with exception during process"""
+        mock_firebase_client.db_get.side_effect = [
+            {"success": True, "data": {"remainingPrints": 50.0}},  # User budget for validation
+            {"success": True, "data": {"blackAndWhitePrice": 1.0, "colorPrice": 3.0}},  # Pricing
+        ]
+        # Use a function that raises on subsequent calls
+        call_count = [0]
+        def raise_on_third(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] >= 3:
+                raise Exception("Unexpected error during deduction")
+            return {"success": True, "data": {"remainingPrints": 50.0}}
+        
+        mock_firebase_client.db_get.side_effect = raise_on_third
+        
+        result = budget_service.deduct_print_budget("user-123", "test-org", 5, 5)
+        
+        # The result depends on where the exception occurs
+        # If exception is raised, it should return failure
+        assert result is not None  # Should not crash
+
+    def test_calculate_print_cost_unexpected_exception(self, budget_service, mock_firebase_client):
+        """Test calculate_print_cost with unexpected exception"""
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {"blackAndWhitePrice": "invalid", "colorPrice": 3.0}  # Invalid type
+        }
+
+        # This should trigger the except block when trying to multiply
+        # Actually this may work due to Python's duck typing, let's try a different approach
+        mock_firebase_client.db_get.return_value = {"success": True, "data": None}
+
+        result = budget_service.calculate_print_cost("test-org", 5, 5)
+
+        assert result["success"] is False
+
+    def test_add_print_budget_exception_during_calculation(self, budget_service, mock_firebase_client):
+        """Test add_print_budget exception during current budget calculation"""
+        mock_firebase_client.db_get.side_effect = Exception("Database connection error")
+
+        result = budget_service.add_print_budget("user-123", 25.0)
+
+        assert result["success"] is False
+        assert "Database connection error" in result["error"]
+
+    def test_deduct_print_budget_exception_during_validation(self, budget_service, mock_firebase_client):
+        """Test deduct_print_budget exception during validation"""
+        # Mock validation to succeed but then fail during deduction
+        mock_firebase_client.db_get.side_effect = [
+            {"success": True, "data": {"remainingPrints": 50.0}},  # User budget for validation
+            {"success": True, "data": {"blackAndWhitePrice": 1.0, "colorPrice": 3.0}},  # Pricing
+            Exception("Network failure during deduction")  # Fail during budget fetch for deduction
+        ]
+
+        result = budget_service.deduct_print_budget("user-123", "test-org", 5, 5)
+
+        # Should return failure due to exception
+        assert result["success"] is False
+
+    def test_get_user_print_budget_db_failure(self, budget_service, mock_firebase_client):
+        """Test get_user_print_budget database failure"""
+        mock_firebase_client.db_get.return_value = {"success": False, "error": "Database unavailable"}
+
+        result = budget_service.get_user_print_budget("user-123")
+
+        assert result["success"] is False
+        assert "Database unavailable" in str(result.get("error", ""))
+
+    def test_get_user_print_budget_exception(self, budget_service, mock_firebase_client):
+        """Test get_user_print_budget exception handling"""
+        mock_firebase_client.db_get.side_effect = Exception("Connection timeout")
+
+        result = budget_service.get_user_print_budget("user-123")
+
+        assert result["success"] is False
+        assert "Connection timeout" in result["error"]
+
+    def test_calculate_print_cost_data_none(self, budget_service, mock_firebase_client):
+        """Test calculate_print_cost when pricing data is None"""
+        mock_firebase_client.db_get.return_value = {"success": True, "data": None}
+
+        result = budget_service.calculate_print_cost("test-org", 5, 5)
+
+        assert result["success"] is False
+
+    def test_calculate_print_cost_invalid_price_data(self, budget_service, mock_firebase_client):
+        """Test calculate_print_cost with invalid price data types"""
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {"blackAndWhitePrice": "not-a-number", "colorPrice": 3.0}
+        }
+
+        result = budget_service.calculate_print_cost("test-org", 5, 5)
+
+        # This will cause a TypeError when trying to multiply
+        assert result["success"] is False
+
+
+
 

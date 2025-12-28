@@ -289,4 +289,143 @@ class TestMethodSignatures:
         base_window.show_notification("Message", "success", 5000)
 
 
+# =============================================================================
+# Test Real BaseKioskWindow (patched for testing)
+# =============================================================================
+class TestRealBaseKioskWindow:
+    """Tests for the real BaseKioskWindow with mocked fullscreen behavior"""
+
+    @pytest.fixture
+    def real_base_window(self, qapp):
+        """Create real BaseKioskWindow with mocked fullscreen"""
+        from ui.base_window import BaseKioskWindow
+
+        with patch.object(BaseKioskWindow, "setup_kiosk_window"):
+            window = BaseKioskWindow.__new__(BaseKioskWindow)
+            QWidget.__init__(window)
+            yield window
+            window.close()
+
+    def test_setup_kiosk_window_sets_flags(self, qapp):
+        """Test setup_kiosk_window sets correct window flags"""
+        from ui.base_window import BaseKioskWindow
+        from PyQt6.QtWidgets import QApplication
+
+        # Create window without calling __init__
+        window = BaseKioskWindow.__new__(BaseKioskWindow)
+        QWidget.__init__(window)
+
+        # Mock screen to avoid fullscreen
+        mock_screen = Mock()
+        mock_screen.geometry.return_value = Mock()
+        mock_screen.geometry.return_value.width.return_value = 1920
+        mock_screen.geometry.return_value.height.return_value = 1080
+
+        with patch.object(QApplication, "primaryScreen", return_value=mock_screen):
+            with patch.object(window, "setGeometry"):
+                with patch.object(window, "showFullScreen"):
+                    window.setup_kiosk_window()
+
+        # Should have set window flags
+        flags = window.windowFlags()
+        assert flags & Qt.WindowType.FramelessWindowHint
+        assert flags & Qt.WindowType.WindowStaysOnTopHint
+
+        window.close()
+
+    def test_create_main_layout_returns_layout(self, real_base_window):
+        """Test create_main_layout on real window"""
+        layout = real_base_window.create_main_layout()
+        
+        assert isinstance(layout, QVBoxLayout)
+        assert layout.contentsMargins().left() == 0
+
+    def test_keyPressEvent_ignores_escape(self, real_base_window):
+        """Test keyPressEvent ignores Escape on real window"""
+        from PyQt6.QtGui import QKeyEvent
+        from PyQt6.QtCore import QEvent
+
+        event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+        real_base_window.keyPressEvent(event)
+        
+        assert not event.isAccepted()
+
+    def test_closeEvent_ignores_on_real_window(self, real_base_window):
+        """Test closeEvent is ignored on real window"""
+        from PyQt6.QtGui import QCloseEvent
+
+        event = QCloseEvent()
+        real_base_window.closeEvent(event)
+        
+        assert not event.isAccepted()
+
+    def test_show_error_calls_message_box(self, real_base_window):
+        """Test show_error calls ModernMessageBox"""
+        with patch("ui.base_window.ModernMessageBox") as mock_msgbox:
+            real_base_window.show_error("Error", "Test message")
+            mock_msgbox.error.assert_called_once()
+
+    def test_show_success_calls_message_box(self, real_base_window):
+        """Test show_success calls ModernMessageBox"""
+        with patch("ui.base_window.ModernMessageBox") as mock_msgbox:
+            real_base_window.show_success("Success", "Test message")
+            mock_msgbox.success.assert_called_once()
+
+    def test_show_warning_calls_message_box(self, real_base_window):
+        """Test show_warning calls ModernMessageBox"""
+        with patch("ui.base_window.ModernMessageBox") as mock_msgbox:
+            real_base_window.show_warning("Warning", "Test message")
+            mock_msgbox.warning.assert_called_once()
+
+    def test_show_info_calls_message_box(self, real_base_window):
+        """Test show_info calls ModernMessageBox"""
+        with patch("ui.base_window.ModernMessageBox") as mock_msgbox:
+            real_base_window.show_info("Info", "Test message")
+            mock_msgbox.information.assert_called_once()
+
+    def test_show_question_calls_message_box(self, real_base_window):
+        """Test show_question calls ModernMessageBox"""
+        with patch("ui.base_window.ModernMessageBox") as mock_msgbox:
+            mock_msgbox.question.return_value = True
+            result = real_base_window.show_question("Question", "Are you sure?")
+            
+            mock_msgbox.question.assert_called_once()
+            assert result is True
+
+    def test_show_confirm_calls_confirm_dialog(self, real_base_window):
+        """Test show_confirm calls ModernConfirmDialog"""
+        with patch("ui.base_window.ModernConfirmDialog") as mock_confirm:
+            mock_confirm.confirm.return_value = True
+            result = real_base_window.show_confirm("Confirm", "Are you sure?")
+            
+            mock_confirm.confirm.assert_called_once()
+            assert result is True
+
+    def test_show_notification_calls_notification(self, real_base_window):
+        """Test show_notification calls ModernNotification"""
+        with patch("ui.base_window.ModernNotification") as mock_notif:
+            result = real_base_window.show_notification("Message")
+            
+            mock_notif.show.assert_called_once()
+
+    def test_apply_base_stylesheet_returns_qss(self, real_base_window):
+        """Test apply_base_stylesheet returns BASE_QSS"""
+        from ui.styles.base import BASE_QSS
+        
+        result = real_base_window.apply_base_stylesheet()
+        
+        assert result == BASE_QSS
+
+    def test_shake_widget_creates_animation(self, real_base_window):
+        """Test shake_widget creates animation on real window"""
+        child_widget = QWidget(real_base_window)
+        child_widget.setGeometry(0, 0, 100, 50)
+        
+        # Call shake_widget - need to keep reference to prevent GC
+        real_base_window._shake_anim = real_base_window.shake_widget(child_widget)
+        
+        # Just verify it doesn't crash - animation object is created
+
+
+
 

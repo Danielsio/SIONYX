@@ -251,5 +251,85 @@ class TestAuthService:
         auth_service.computer_service.register_computer.assert_called_once()
         auth_service.computer_service.associate_user_with_computer.assert_not_called()
 
+    def test_handle_computer_registration_association_failure(self, auth_service):
+        """Test computer registration with association failure"""
+        auth_service.computer_service.register_computer.return_value = {"success": True, "computer_id": "test-id"}
+        auth_service.computer_service.associate_user_with_computer.return_value = {"success": False, "error": "Assoc failed"}
+
+        auth_service._handle_computer_registration("test-user-id")
+
+        auth_service.computer_service.register_computer.assert_called_once()
+        auth_service.computer_service.associate_user_with_computer.assert_called_once()
+
+    def test_handle_computer_registration_exception(self, auth_service):
+        """Test computer registration with exception"""
+        auth_service.computer_service.register_computer.side_effect = Exception("Network error")
+
+        # Should not raise
+        auth_service._handle_computer_registration("test-user-id")
+
+    def test_recover_orphaned_session_no_user_data(self, auth_service, mock_firebase_client):
+        """Test orphaned session recovery when user data not found"""
+        mock_firebase_client.db_get.return_value = {"success": False}
+
+        # Should not raise
+        auth_service._recover_orphaned_session("test-user-id")
+
+    def test_recover_orphaned_session_no_last_activity(self, auth_service, mock_firebase_client):
+        """Test orphaned session recovery when lastActivity is missing"""
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {"isSessionActive": True}  # No lastActivity
+        }
+        mock_firebase_client.db_update.return_value = {"success": True}
+
+        auth_service._recover_orphaned_session("test-user-id")
+
+        # Should clean up session
+        mock_firebase_client.db_update.assert_called_once()
+
+    def test_recover_orphaned_session_invalid_timestamp(self, auth_service, mock_firebase_client):
+        """Test orphaned session recovery with invalid timestamp format"""
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {"isSessionActive": True, "lastActivity": "invalid-timestamp"}
+        }
+
+        # Should not raise
+        auth_service._recover_orphaned_session("test-user-id")
+
+    def test_recover_orphaned_session_exception(self, auth_service, mock_firebase_client):
+        """Test orphaned session recovery with exception"""
+        mock_firebase_client.db_get.side_effect = Exception("Network error")
+
+        # Should not raise
+        auth_service._recover_orphaned_session("test-user-id")
+
+    def test_get_current_user(self, auth_service, sample_user_data):
+        """Test getting current user"""
+        auth_service.current_user = sample_user_data
+
+        result = auth_service.get_current_user()
+
+        assert result == sample_user_data
+
+    def test_get_current_user_none(self, auth_service):
+        """Test getting current user when not logged in"""
+        auth_service.current_user = None
+
+        result = auth_service.get_current_user()
+
+        assert result is None
+
+    def test_logout_clears_credentials(self, auth_service):
+        """Test logout clears stored credentials"""
+        auth_service.current_user = {"uid": "test-user"}
+
+        auth_service.logout()
+
+        auth_service.local_db.clear_tokens.assert_called_once()
+        assert auth_service.current_user is None
+
+
 
 
