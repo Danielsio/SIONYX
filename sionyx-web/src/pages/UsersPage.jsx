@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
   Card,
-  Table,
   Tag,
   Space,
   Button,
@@ -16,6 +15,11 @@ import {
   Form,
   InputNumber,
   Dropdown,
+  Row,
+  Col,
+  Empty,
+  Avatar,
+  Table,
 } from 'antd';
 import { getStatusLabel as getPurchaseStatusLabel, getStatusColor as getPurchaseStatusColor } from '../constants/purchaseStatus';
 import { getUserStatus, getStatusLabel as getUserStatusLabel, getStatusColor as getUserStatusColor } from '../constants/userStatus';
@@ -32,6 +36,8 @@ import {
   MinusCircleOutlined,
   MessageOutlined,
   SendOutlined,
+  PhoneOutlined,
+  MailOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -320,185 +326,229 @@ const UsersPage = () => {
     }
   };
 
-  const columns = [
-    {
-      title: 'שם',
-      key: 'name',
-      fixed: 'right',
-      width: 150,
-      render: (_, record) => (
-        <Space>
-          <UserOutlined style={{ color: '#1890ff' }} />
-          <span style={{ whiteSpace: 'nowrap' }}>
-            {`${record.firstName || ''} ${record.lastName || ''}`.trim() || 'לא זמין'}
-          </span>
-        </Space>
-      ),
-      sorter: (a, b) =>
-        `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`),
-    },
-    {
-      title: 'טלפון',
-      dataIndex: 'phoneNumber',
-      key: 'phoneNumber',
-      width: 120,
-      render: phone => phone || 'לא זמין',
-      responsive: ['sm'],
-    },
-    {
-      title: 'אימייל',
-      dataIndex: 'email',
-      key: 'email',
-      width: 180,
-      ellipsis: true,
-      render: email => email || 'לא זמין',
-      responsive: ['lg'],
-    },
-    {
-      title: 'זמן',
-      dataIndex: 'remainingTime',
-      key: 'remainingTime',
-      width: 100,
-      render: time => (
-        <Space size={4}>
-          <ClockCircleOutlined />
-          <Text>{formatTime(time || 0)}</Text>
-        </Space>
-      ),
-      sorter: (a, b) => (a.remainingTime || 0) - (b.remainingTime || 0),
-    },
-    {
-      title: 'הדפסות',
-      dataIndex: 'remainingPrints',
-      key: 'remainingPrints',
-      width: 90,
-      render: prints => (
-        <Space size={4}>
-          <PrinterOutlined />
-          <Text>{prints || 0}₪</Text>
-        </Space>
-      ),
-      sorter: (a, b) => (a.remainingPrints || 0) - (b.remainingPrints || 0),
-      responsive: ['sm'],
-    },
-    {
-      title: 'סטטוס',
-      key: 'status',
-      width: 100,
-      render: (_, record) => {
-        const status = getUserStatus(record);
-        return (
-          <Tag color={getUserStatusColor(status)}>
-            {getUserStatusLabel(status)}
-          </Tag>
-        );
-      },
-      filters: [
-        { text: 'פעיל', value: 'active' },
-        { text: 'מחובר', value: 'connected' },
-        { text: 'לא מחובר', value: 'offline' },
-      ],
-      onFilter: (value, record) => getUserStatus(record) === value,
-    },
-    {
-      title: 'נוצר',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      width: 110,
-      render: date => (date ? dayjs(date).format('DD/MM/YY') : 'לא זמין'),
-      sorter: (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0),
-      responsive: ['md'],
-    },
-    {
-      title: 'תפקיד',
-      dataIndex: 'isAdmin',
-      key: 'isAdmin',
-      width: 80,
-      render: isAdmin =>
-        isAdmin ? (
-          <Tag color='gold' icon={<CrownOutlined />}>
-            מנהל
-          </Tag>
-        ) : (
-          <Tag color='default'>משתמש</Tag>
-        ),
-      filters: [
-        { text: 'מנהל', value: true },
-        { text: 'משתמש', value: false },
-      ],
-      onFilter: (value, record) => record.isAdmin === value,
-      responsive: ['sm'],
-    },
-    {
-      title: 'פעולות',
-      key: 'action',
-      fixed: 'left',
-      width: 100,
-      render: (_, record) => {
-        const menuItems = [
-          {
-            key: 'view',
-            icon: <EyeOutlined />,
-            label: 'צפה בפרטים',
-            onClick: () => handleViewUser(record),
-          },
-          {
-            key: 'message',
-            icon: <MessageOutlined />,
-            label: 'שלח הודעה',
-            onClick: () => handleSendMessageToUser(record),
-          },
-          {
-            key: 'adjust',
-            icon: <EditOutlined />,
-            label: 'התאם יתרה',
-            onClick: () => handleAdjustBalance(record),
-          },
-          {
-            type: 'divider',
-          },
-          // Only show kick button if user is not already kicked
-          record.forceLogout !== true
-            ? {
-                key: 'kick',
-                icon: <MinusCircleOutlined />,
-                label: 'נתק משתמש',
-                danger: true,
-                onClick: () => handleKickUser(record),
-                disabled: kicking,
-              }
-            : {
-                key: 'kicked',
-                icon: <MinusCircleOutlined />,
-                label: 'הותקן',
-                disabled: true,
-              },
-          record.isAdmin
-            ? {
-                key: 'revoke',
-                icon: <MinusCircleOutlined />,
-                label: 'הסר הרשאות מנהל',
-                danger: true,
-                onClick: () => handleRevokeAdmin(record),
-              }
-            : {
-                key: 'grant',
-                icon: <CrownOutlined />,
-                label: 'הענק הרשאות מנהל',
-                onClick: () => handleGrantAdmin(record),
-              },
-        ];
+  // User Card Component
+  const UserCard = ({ userRecord }) => {
+    const status = getUserStatus(userRecord);
+    const statusColor = getUserStatusColor(status);
+    const statusLabel = getUserStatusLabel(status);
+    const userName = `${userRecord.firstName || ''} ${userRecord.lastName || ''}`.trim() || 'לא זמין';
 
-        return (
-          <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-            <Button type='primary' size='small' icon={<MoreOutlined />}>
-              פעולות
-            </Button>
-          </Dropdown>
-        );
+    const menuItems = [
+      {
+        key: 'view',
+        icon: <EyeOutlined />,
+        label: 'צפה בפרטים',
+        onClick: () => handleViewUser(userRecord),
       },
-    },
-  ];
+      {
+        key: 'message',
+        icon: <MessageOutlined />,
+        label: 'שלח הודעה',
+        onClick: () => handleSendMessageToUser(userRecord),
+      },
+      {
+        key: 'adjust',
+        icon: <EditOutlined />,
+        label: 'התאם יתרה',
+        onClick: () => handleAdjustBalance(userRecord),
+      },
+      {
+        type: 'divider',
+      },
+      userRecord.forceLogout !== true
+        ? {
+            key: 'kick',
+            icon: <MinusCircleOutlined />,
+            label: 'נתק משתמש',
+            danger: true,
+            onClick: () => handleKickUser(userRecord),
+            disabled: kicking,
+          }
+        : {
+            key: 'kicked',
+            icon: <MinusCircleOutlined />,
+            label: 'הותקן',
+            disabled: true,
+          },
+      userRecord.isAdmin
+        ? {
+            key: 'revoke',
+            icon: <MinusCircleOutlined />,
+            label: 'הסר הרשאות מנהל',
+            danger: true,
+            onClick: () => handleRevokeAdmin(userRecord),
+          }
+        : {
+            key: 'grant',
+            icon: <CrownOutlined />,
+            label: 'הענק הרשאות מנהל',
+            onClick: () => handleGrantAdmin(userRecord),
+          },
+    ];
+
+    return (
+      <Card
+        hoverable
+        onClick={() => handleViewUser(userRecord)}
+        style={{
+          borderRadius: 16,
+          overflow: 'hidden',
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+        styles={{
+          body: {
+            padding: 0,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
+      >
+        {/* Header with status indicator */}
+        <div
+          style={{
+            background: status === 'active' 
+              ? 'linear-gradient(135deg, #52c41a 0%, #73d13d 100%)'
+              : status === 'connected'
+              ? 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)'
+              : 'linear-gradient(135deg, #8c8c8c 0%, #bfbfbf 100%)',
+            padding: '16px',
+            color: '#fff',
+            position: 'relative',
+          }}
+        >
+          {/* Admin Badge */}
+          {userRecord.isAdmin && (
+            <Tag
+              color='gold'
+              icon={<CrownOutlined />}
+              style={{
+                position: 'absolute',
+                top: 12,
+                left: 12,
+                fontWeight: 'bold',
+                borderRadius: 8,
+              }}
+            >
+              מנהל
+            </Tag>
+          )}
+          
+          {/* Actions dropdown */}
+          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: 8, right: 8 }}>
+            <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+              <Button
+                type='text'
+                icon={<MoreOutlined />}
+                style={{ color: '#fff' }}
+                size='small'
+              />
+            </Dropdown>
+          </div>
+
+          {/* User Avatar and Name */}
+          <div style={{ textAlign: 'center', paddingTop: 8 }}>
+            <Avatar
+              size={56}
+              icon={<UserOutlined />}
+              style={{ 
+                backgroundColor: 'rgba(255,255,255,0.2)',
+                marginBottom: 8,
+              }}
+            />
+            <Title level={5} style={{ color: '#fff', margin: 0, marginBottom: 4 }}>
+              {userName}
+            </Title>
+            <Tag color={statusColor} style={{ borderRadius: 12 }}>
+              {statusLabel}
+            </Tag>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {/* Contact Info */}
+          <div style={{ marginBottom: 12 }}>
+            {userRecord.phoneNumber && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                <PhoneOutlined style={{ color: '#8c8c8c' }} />
+                <Text type='secondary' style={{ direction: 'ltr', display: 'inline-block' }}>
+                  {userRecord.phoneNumber}
+                </Text>
+              </div>
+            )}
+            {userRecord.email && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <MailOutlined style={{ color: '#8c8c8c' }} />
+                <Text 
+                  type='secondary' 
+                  style={{ fontSize: 12 }}
+                  ellipsis={{ tooltip: userRecord.email }}
+                >
+                  {userRecord.email}
+                </Text>
+              </div>
+            )}
+          </div>
+
+          {/* Balance Info */}
+          <div style={{ flex: 1 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 12px',
+                background: '#f0f5ff',
+                borderRadius: 8,
+                marginBottom: 8,
+              }}
+            >
+              <ClockCircleOutlined style={{ color: '#1890ff', fontSize: 18 }} />
+              <div>
+                <Text style={{ color: '#1890ff', fontWeight: 600, fontSize: 16 }}>
+                  {formatTime(userRecord.remainingTime || 0)}
+                </Text>
+                <Text type='secondary' style={{ display: 'block', fontSize: 11 }}>
+                  זמן נותר
+                </Text>
+              </div>
+            </div>
+            
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 12px',
+                background: '#f6ffed',
+                borderRadius: 8,
+              }}
+            >
+              <PrinterOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+              <div>
+                <Text style={{ color: '#52c41a', fontWeight: 600, fontSize: 16 }}>
+                  ₪{userRecord.remainingPrints || 0}
+                </Text>
+                <Text type='secondary' style={{ display: 'block', fontSize: 11 }}>
+                  יתרת הדפסות
+                </Text>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer info */}
+          <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 12 }}>
+            <Text type='secondary' style={{ fontSize: 11 }}>
+              הצטרף: {userRecord.createdAt ? dayjs(userRecord.createdAt).format('DD/MM/YYYY') : 'לא זמין'}
+            </Text>
+          </div>
+        </div>
+      </Card>
+    );
+  };
 
   const purchaseColumns = [
     {
@@ -607,8 +657,14 @@ const UsersPage = () => {
           }}
         >
           <div>
-            <Title level={2} style={{ marginBottom: 4 }}>
+            <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <UserOutlined />
               משתמשים
+              <Badge 
+                count={users.length} 
+                style={{ backgroundColor: '#1890ff' }}
+                overflowCount={999}
+              />
             </Title>
             <Text type='secondary'>נהל וצפה בכל המשתמשים בארגון שלך</Text>
           </div>
@@ -617,7 +673,7 @@ const UsersPage = () => {
           </Button>
         </div>
 
-        {/* Search and Filters */}
+        {/* Search */}
         <Card>
           <Search
             placeholder='חפש לפי שם, טלפון או אימייל'
@@ -629,27 +685,30 @@ const UsersPage = () => {
           />
         </Card>
 
-        {/* Users Table */}
-        <Card bodyStyle={{ padding: 0, overflow: 'hidden' }}>
-          <Table
-            columns={columns}
-            dataSource={filteredUsers}
-            rowKey='uid'
-            loading={loading}
-            scroll={{ x: 'max-content' }}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: total => `סך ${total} משתמשים`,
-              responsive: true,
-              showQuickJumper: false,
-              size: 'small',
-            }}
-            size='small'
-            tableLayout='fixed'
-            style={{ direction: 'rtl' }}
-          />
-        </Card>
+        {/* Users Grid */}
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 60 }}>
+            <Spin size='large' />
+            <div style={{ marginTop: 16 }}>
+              <Text type='secondary'>טוען משתמשים...</Text>
+            </div>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <Card>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={searchText ? 'לא נמצאו משתמשים תואמים' : 'אין משתמשים'}
+            />
+          </Card>
+        ) : (
+          <Row gutter={[16, 16]}>
+            {filteredUsers.map(userRecord => (
+              <Col key={userRecord.uid} xs={24} sm={12} lg={8} xl={6}>
+                <UserCard userRecord={userRecord} />
+              </Col>
+            ))}
+          </Row>
+        )}
       </Space>
 
       {/* Adjust Balance Modal */}
@@ -793,6 +852,49 @@ const UsersPage = () => {
               </Descriptions>
             </Card>
 
+            {/* Quick Actions */}
+            <Card title='פעולות מהירות'>
+              <Space wrap>
+                <Button 
+                  icon={<MessageOutlined />} 
+                  onClick={() => setSendMessageVisible(true)}
+                >
+                  שלח הודעה
+                </Button>
+                <Button 
+                  icon={<EditOutlined />} 
+                  onClick={() => handleAdjustBalance(selectedUser)}
+                >
+                  התאם יתרה
+                </Button>
+                {selectedUser.isAdmin ? (
+                  <Button 
+                    icon={<MinusCircleOutlined />} 
+                    danger
+                    onClick={() => handleRevokeAdmin(selectedUser)}
+                  >
+                    הסר הרשאות מנהל
+                  </Button>
+                ) : (
+                  <Button 
+                    icon={<CrownOutlined />} 
+                    onClick={() => handleGrantAdmin(selectedUser)}
+                  >
+                    הענק הרשאות מנהל
+                  </Button>
+                )}
+                {selectedUser.forceLogout !== true && (
+                  <Button 
+                    icon={<MinusCircleOutlined />} 
+                    danger
+                    onClick={() => handleKickUser(selectedUser)}
+                  >
+                    נתק משתמש
+                  </Button>
+                )}
+              </Space>
+            </Card>
+
             <Card title='היסטוריית רכישות'>
               {loadingPurchases ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
@@ -805,6 +907,7 @@ const UsersPage = () => {
                   rowKey='id'
                   size='small'
                   pagination={{ pageSize: 5 }}
+                  scroll={{ x: 'max-content' }}
                 />
               )}
             </Card>
@@ -836,6 +939,7 @@ const UsersPage = () => {
                   rowKey='id'
                   size='small'
                   pagination={{ pageSize: 5 }}
+                  scroll={{ x: 'max-content' }}
                   locale={{ emptyText: 'אין הודעות' }}
                 />
               )}
