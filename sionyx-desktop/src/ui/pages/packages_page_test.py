@@ -74,13 +74,42 @@ class TestPackagesPage:
             "success": True,
             "data": MOCK_PACKAGES.copy(),
         }
+
+        # Mock calculate_final_price to return correct pricing
+        def mock_calculate_final_price(package):
+            original = package.get("price", 0)
+            discount = package.get("discountPercent", 0)
+            final = original * (1 - discount / 100)
+            savings = original - final
+            return {
+                "original_price": original,
+                "discount_percent": discount,
+                "final_price": round(final, 2),
+                "savings": round(savings, 2),
+            }
+
+        service.calculate_final_price.side_effect = mock_calculate_final_price
         return service
 
     @pytest.fixture
     def packages_page(self, mock_auth_service, mock_package_service, qapp):
         """Create PackagesPage with mocked dependencies"""
+        def mock_calculate_final_price(package):
+            original = package.get("price", 0)
+            discount = package.get("discountPercent", 0)
+            final = original * (1 - discount / 100)
+            savings = original - final
+            return {
+                "original_price": original,
+                "discount_percent": discount,
+                "final_price": round(final, 2),
+                "savings": round(savings, 2),
+            }
+
         with patch(
             "ui.pages.packages_page.PackageService", return_value=mock_package_service
+        ), patch(
+            "ui.pages.packages_page.PackageService.calculate_final_price", side_effect=mock_calculate_final_price
         ):
             # Create page - note: load_packages is called in __init__ via QTimer
             page = PackagesPage(mock_auth_service)
@@ -174,7 +203,7 @@ class TestPackagesPage:
         assert "חבילת אולטימטיבית" in found_names
 
     def test_package_card_contains_price(self, packages_page):
-        """Test each package card displays the price"""
+        """Test each package card displays the final (discounted) price"""
         found_prices = []
         for i in range(packages_page.packages_layout.count()):
             item = packages_page.packages_layout.itemAt(i)
@@ -183,9 +212,9 @@ class TestPackagesPage:
                 labels = card.findChildren(QLabel)
                 for label in labels:
                     text = label.text()
-                    # Prices are displayed as ₪15.0, ₪45.0, ₪80.0
+                    # Final prices after discount: ₪15.0, ₪36.0, ₪68.0
                     if "₪" in text and any(
-                        str(p) in text for p in [15, 45, 80]
+                        str(p) in text for p in [15, 36, 68]
                     ):
                         found_prices.append(text)
 
@@ -360,7 +389,20 @@ class TestPackagesPage:
             {"success": True, "data": MOCK_PACKAGES},
         ]
 
-        with patch("ui.pages.packages_page.PackageService", return_value=mock_service):
+        def mock_calculate_final_price(package):
+            original = package.get("price", 0)
+            discount = package.get("discountPercent", 0)
+            final = original * (1 - discount / 100)
+            savings = original - final
+            return {
+                "original_price": original,
+                "discount_percent": discount,
+                "final_price": round(final, 2),
+                "savings": round(savings, 2),
+            }
+
+        with patch("ui.pages.packages_page.PackageService", return_value=mock_service), \
+             patch("ui.pages.packages_page.PackageService.calculate_final_price", side_effect=mock_calculate_final_price):
             page = PackagesPage(mock_auth_service)
             page._fetch_packages()  # First fetch - empty
 

@@ -272,17 +272,72 @@ class PackagesPage(QWidget):
         layout.addWidget(features)
         layout.addStretch()
 
-        # Price
-        price = package.get("price", 0)
-        price_lbl = QLabel(f"₪{price}")
-        price_lbl.setFont(
-            QFont(
-                Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_EXTRABOLD
+        # Price (with discount if applicable)
+        pricing = PackageService.calculate_final_price(package)
+        final_price = pricing["final_price"]
+        original_price = pricing["original_price"]
+        discount_percent = pricing["discount_percent"]
+
+        # Price container
+        price_container = QWidget()
+        price_layout = QVBoxLayout(price_container)
+        price_layout.setContentsMargins(0, 0, 0, 0)
+        price_layout.setSpacing(Spacing.XS)
+
+        if discount_percent > 0:
+            # Show original price crossed out
+            original_price_lbl = QLabel(f"₪{original_price}")
+            original_price_lbl.setFont(
+                QFont(
+                    Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_MEDIUM
+                )
             )
-        )
-        price_lbl.setStyleSheet(f"color: {Colors.PRIMARY};")
-        price_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(price_lbl)
+            original_price_lbl.setStyleSheet(f"""
+                color: {Colors.GRAY_500};
+                text-decoration: line-through;
+            """)
+            original_price_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            price_layout.addWidget(original_price_lbl)
+
+            # Show final price
+            final_price_lbl = QLabel(f"₪{final_price}")
+            final_price_lbl.setFont(
+                QFont(
+                    Typography.FONT_FAMILY, Typography.SIZE_2XL, Typography.WEIGHT_EXTRABOLD
+                )
+            )
+            final_price_lbl.setStyleSheet(f"color: {Colors.SUCCESS};")
+            final_price_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            price_layout.addWidget(final_price_lbl)
+
+            # Show discount badge
+            discount_badge = QLabel(f"חסכון {int(discount_percent)}%")
+            discount_badge.setFont(
+                QFont(
+                    Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_BOLD
+                )
+            )
+            discount_badge.setStyleSheet(f"""
+                color: {Colors.WHITE};
+                background-color: {Colors.SUCCESS};
+                padding: {Spacing.XS}px {Spacing.SM}px;
+                border-radius: {BorderRadius.SM}px;
+            """)
+            discount_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            price_layout.addWidget(discount_badge)
+        else:
+            # No discount - just show the price
+            price_lbl = QLabel(f"₪{final_price}")
+            price_lbl.setFont(
+                QFont(
+                    Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_EXTRABOLD
+                )
+            )
+            price_lbl.setStyleSheet(f"color: {Colors.PRIMARY};")
+            price_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            price_layout.addWidget(price_lbl)
+
+        layout.addWidget(price_container)
 
         # Buy button
         buy_btn = ActionButton(UIStrings.BUY_NOW, "primary", "md")
