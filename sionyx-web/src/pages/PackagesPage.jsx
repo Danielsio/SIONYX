@@ -298,7 +298,7 @@ const PackagesPage = () => {
                 }}
               >
                 <PrinterOutlined style={{ color: '#52c41a' }} />
-                <Text style={{ color: '#52c41a' }}>{pkg.prints}₪ יתרת הדפסות</Text>
+                <Text style={{ color: '#52c41a' }}>₪{pkg.prints} תקציב הדפסות</Text>
               </div>
             )}
           </div>
@@ -450,7 +450,7 @@ const PackagesPage = () => {
             <Col xs={24} sm={12}>
               <Form.Item
                 name='prints'
-                label='יתרת הדפסות (₪)'
+                label='תקציב הדפסות (₪)'
                 rules={[{ type: 'number', min: 0, message: 'חייב להיות חיובי' }]}
               >
                 <InputNumber style={{ width: '100%' }} placeholder='0' min={0} />
@@ -503,8 +503,8 @@ const PackagesPage = () => {
             <Descriptions.Item label='זמן כלול'>
               {formatTime(viewingPackage.minutes) || 'אין'}
             </Descriptions.Item>
-            <Descriptions.Item label='יתרת הדפסות'>
-              {viewingPackage.prints ? `${viewingPackage.prints}₪` : 'אין'}
+            <Descriptions.Item label='תקציב הדפסות'>
+              {viewingPackage.prints ? `₪${viewingPackage.prints}` : 'אין'}
             </Descriptions.Item>
             <Descriptions.Item label='נוצר'>
               {viewingPackage.createdAt ? dayjs(viewingPackage.createdAt).format('DD/MM/YYYY HH:mm') : 'לא זמין'}

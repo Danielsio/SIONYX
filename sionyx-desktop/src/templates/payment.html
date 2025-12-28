@@ -311,8 +311,8 @@
                 <strong id="packageTime">60 דקות</strong>
             </div>
             <div class="package-details">
-                <span>הדפסות:</span>
-                <strong id="packagePrints">10 הדפסות</strong>
+                <span>תקציב הדפסות:</span>
+                <strong id="packagePrints">₪10</strong>
             </div>
             <div class="package-details price-row">
                 <span>סכום לתשלום:</span>
@@ -421,7 +421,7 @@
             // Update UI
             document.getElementById('packageName').textContent = config.packageName;
             document.getElementById('packageTime').textContent = config.packageMinutes + ' דקות';
-            document.getElementById('packagePrints').textContent = config.packagePrints + ' הדפסות';
+            document.getElementById('packagePrints').textContent = '₪' + config.packagePrints;
             document.getElementById('packagePrice').textContent = '₪' + config.amount;
             document.getElementById('clientName').value = config.userName;
         }
