@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Typography, Space, Badge, Drawer, Button } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Typography, Space, Badge, Drawer, Button, Tooltip } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
   AppstoreOutlined,
   LogoutOutlined,
   MenuUnfoldOutlined,
+  MenuFoldOutlined,
   SettingOutlined,
   PhoneOutlined,
   MessageOutlined,
   DesktopOutlined,
   DollarOutlined,
+  HomeOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { signOut } from '../services/authService';
@@ -48,7 +50,15 @@ const MainLayout = () => {
     navigate('/admin/login');
   };
 
+  const handleBackToHome = () => {
+    navigate('/');
+  };
+
   const handleMenuClick = ({ key }) => {
+    if (key === 'logout') {
+      handleLogout();
+      return;
+    }
     navigate(key);
     if (isMobile) {
       setMobileDrawerVisible(false);
@@ -63,6 +73,7 @@ const MainLayout = () => {
     }
   };
 
+  // Main navigation menu items
   const menuItems = [
     {
       key: '/admin',
@@ -96,6 +107,7 @@ const MainLayout = () => {
     },
   ];
 
+  // User profile dropdown items (without logout - logout is in sidebar)
   const userMenuItems = [
     {
       key: 'profile',
@@ -109,20 +121,15 @@ const MainLayout = () => {
       label: 'הגדרות',
       disabled: true,
     },
-    {
-      type: 'divider',
-    },
-    {
-      key: 'logout',
-      icon: <LogoutOutlined />,
-      label: 'התנתק',
-      onClick: handleLogout,
-      danger: true,
-    },
   ];
 
   const renderSidebar = () => (
-    <>
+    <div style={{ 
+      display: 'flex', 
+      flexDirection: 'column', 
+      height: '100%',
+    }}>
+      {/* Logo */}
       <div
         style={{
           height: 64,
@@ -134,6 +141,7 @@ const MainLayout = () => {
           fontWeight: 'bold',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           gap: collapsed ? 0 : 8,
+          flexShrink: 0,
         }}
       >
         <img
@@ -148,15 +156,44 @@ const MainLayout = () => {
         {!collapsed && <span>SIONYX</span>}
       </div>
 
+      {/* Main Menu */}
       <Menu
         theme='dark'
         mode='inline'
         selectedKeys={[location.pathname]}
         items={menuItems}
         onClick={handleMenuClick}
-        style={{ marginTop: 16 }}
+        style={{ marginTop: 16, flex: 1 }}
       />
-    </>
+
+      {/* Bottom Section - Logout */}
+      <div
+        style={{
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          padding: collapsed ? '12px 8px' : '12px 16px',
+          flexShrink: 0,
+        }}
+      >
+        <Button
+          type='text'
+          danger
+          block
+          icon={<LogoutOutlined />}
+          onClick={handleLogout}
+          style={{
+            color: '#ff4d4f',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: collapsed ? 'center' : 'flex-start',
+            gap: 8,
+            height: 40,
+            borderRadius: 8,
+          }}
+        >
+          {!collapsed && 'התנתק'}
+        </Button>
+      </div>
+    </div>
   );
 
   return (
@@ -201,14 +238,18 @@ const MainLayout = () => {
           onClose={() => setMobileDrawerVisible(false)}
           open={mobileDrawerVisible}
           width={280}
-          bodyStyle={{ padding: 0 }}
-          headerStyle={{
-            background: '#001529',
-            color: '#fff',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          styles={{
+            body: { padding: 0 },
+            header: {
+              background: '#001529',
+              color: '#fff',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+            },
           }}
         >
-          <div style={{ background: '#001529', height: '100%' }}>{renderSidebar()}</div>
+          <div style={{ background: '#001529', height: '100%' }}>
+            {renderSidebar()}
+          </div>
         </Drawer>
       )}
 
@@ -220,7 +261,7 @@ const MainLayout = () => {
       >
         <Header
           style={{
-            padding: isMobile ? '0 16px' : '0 24px',
+            padding: isMobile ? '0 12px' : '0 24px',
             background: '#fff',
             display: 'flex',
             alignItems: 'center',
@@ -229,14 +270,36 @@ const MainLayout = () => {
             minHeight: 64,
           }}
         >
-          <div>
-            <MenuUnfoldOutlined
-              style={{ fontSize: 18, cursor: 'pointer' }}
-              onClick={toggleSidebar}
-            />
-          </div>
+          {/* Left side - Menu toggle + Back to home */}
+          <Space size='middle'>
+            <Tooltip title={collapsed ? 'הרחב תפריט' : 'צמצם תפריט'}>
+              <Button
+                type='text'
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={toggleSidebar}
+                style={{ fontSize: 18 }}
+              />
+            </Tooltip>
 
-          <Space size={isMobile ? 'small' : 'middle'} wrap>
+            <Tooltip title='חזרה לדף הראשי'>
+              <Button
+                type='default'
+                icon={<HomeOutlined />}
+                onClick={handleBackToHome}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  borderRadius: 8,
+                }}
+              >
+                {!isMobile && 'חזרה לדף הראשי'}
+              </Button>
+            </Tooltip>
+          </Space>
+
+          {/* Right side - Org info + User avatar */}
+          <Space size={isMobile ? 'small' : 'middle'}>
             {!isMobile && (
               <Space>
                 <Text type='secondary'>ארגון:</Text>
@@ -245,7 +308,11 @@ const MainLayout = () => {
               </Space>
             )}
 
-            <Dropdown menu={{ items: userMenuItems }} placement='bottomRight'>
+            <Dropdown 
+              menu={{ items: userMenuItems }} 
+              placement='bottomRight'
+              disabled={userMenuItems.every(item => item.disabled)}
+            >
               <Space style={{ cursor: 'pointer' }}>
                 <Avatar style={{ backgroundColor: '#667eea' }} icon={<UserOutlined />} />
                 {!isMobile && (
@@ -269,21 +336,6 @@ const MainLayout = () => {
                 )}
               </Space>
             </Dropdown>
-
-            {/* Prominent Logout Button */}
-            <Button
-              type='text'
-              danger
-              icon={<LogoutOutlined />}
-              onClick={handleLogout}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center',
-                gap: 4,
-              }}
-            >
-              {!isMobile && 'התנתק'}
-            </Button>
           </Space>
         </Header>
 

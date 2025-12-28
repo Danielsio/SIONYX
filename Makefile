@@ -11,7 +11,7 @@
 #   make web-lint → lint web admin
 
 .PHONY: help dev run test test-cov test-fast test-fail lint lint-fix build build-patch build-minor build-major build-dry build-local version clean \
-        web-dev web-build web-preview web-lint web-deploy web-deploy-hosting web-deploy-functions web-deploy-database
+        web-dev web-build web-preview web-lint web-test web-test-cov web-test-ui web-deploy web-deploy-hosting web-deploy-functions web-deploy-database
 
 # Default target
 help:
@@ -43,6 +43,9 @@ help:
 	@echo "  web-build       - Build for production"
 	@echo "  web-preview     - Preview production build"
 	@echo "  web-lint        - Lint code"
+	@echo "  web-test        - Run tests"
+	@echo "  web-test-cov    - Run tests with coverage"
+	@echo "  web-test-ui     - Run tests with UI"
 	@echo "  web-deploy      - Deploy all to Firebase"
 	@echo "  web-deploy-hosting   - Deploy hosting only"
 	@echo "  web-deploy-functions - Deploy functions only"
@@ -163,6 +166,23 @@ web-preview:
 web-lint:
 	@echo "Linting web admin code..."
 	cd sionyx-web && npm run lint
+
+# Run web tests
+web-test:
+	@echo "Running web admin tests..."
+	cd sionyx-web && npm run test
+
+# Run web tests with coverage
+web-test-cov:
+	@echo "Running web admin tests with coverage..."
+	cd sionyx-web && npm run test:coverage
+	@echo ""
+	@echo "Coverage report: sionyx-web/coverage/index.html"
+
+# Run web tests with UI
+web-test-ui:
+	@echo "Running web admin tests with UI..."
+	cd sionyx-web && npm run test:ui
 
 # Deploy to Firebase
 web-deploy: web-build
