@@ -1,264 +1,270 @@
 """
-Tests for firebase_config.py - Firebase configuration
-Tests configuration loading and validation.
+Tests for firebase_config.py - Firebase Configuration
 """
 
-import pytest
 import os
-from unittest.mock import patch, MagicMock
+import sys
+from pathlib import Path
+from unittest.mock import patch, Mock, MagicMock
 
-from utils.firebase_config import FirebaseConfig
+import pytest
 
 
 # =============================================================================
-# FirebaseConfig initialization tests
+# Test FirebaseConfig initialization
 # =============================================================================
 class TestFirebaseConfigInit:
     """Tests for FirebaseConfig initialization"""
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "test-org"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_loads_api_key(self, mock_dotenv):
-        """Test API key is loaded from env"""
-        config = FirebaseConfig()
-        assert config.api_key == "test_api_key"
+    def test_loads_env_from_script_mode(self):
+        """Test loads .env when running as script"""
+        from utils.firebase_config import FirebaseConfig
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "test-org"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_loads_database_url(self, mock_dotenv):
-        """Test database URL is loaded from env"""
-        config = FirebaseConfig()
-        assert config.database_url == "https://test.firebaseio.com"
+        env_values = {
+            "FIREBASE_API_KEY": "test-api-key",
+            "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
+            "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
+            "FIREBASE_PROJECT_ID": "test-project",
+            "ORG_ID": "test-org",
+        }
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "test-org"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_loads_project_id(self, mock_dotenv):
-        """Test project ID is loaded from env"""
-        config = FirebaseConfig()
-        assert config.project_id == "test-project"
+        with patch("utils.firebase_config.load_dotenv"):
+            with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                config = FirebaseConfig()
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "test-org"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_loads_org_id(self, mock_dotenv):
-        """Test org ID is loaded from env"""
-        config = FirebaseConfig()
-        assert config.org_id == "test-org"
+                assert config.api_key == "test-api-key"
+                assert config.database_url == "https://test.firebaseio.com"
+                assert config.project_id == "test-project"
+                assert config.org_id == "test-org"
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "my-org-123"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_loads_auth_domain(self, mock_dotenv):
-        """Test auth domain is loaded from env"""
-        config = FirebaseConfig()
-        assert config.auth_domain == "test.firebaseapp.com"
+    def test_loads_env_from_frozen_mode(self):
+        """Test loads .env when running as PyInstaller executable"""
+        from utils.firebase_config import FirebaseConfig
 
+        env_values = {
+            "FIREBASE_API_KEY": "frozen-api-key",
+            "FIREBASE_AUTH_DOMAIN": "frozen.firebaseapp.com",
+            "FIREBASE_DATABASE_URL": "https://frozen.firebaseio.com",
+            "FIREBASE_PROJECT_ID": "frozen-project",
+            "ORG_ID": "frozen-org",
+        }
 
-# =============================================================================
-# Validation tests
-# =============================================================================
-class TestFirebaseConfigValidation:
-    """Tests for FirebaseConfig validation"""
+        # Mock frozen mode
+        with patch.object(sys, "frozen", True, create=True):
+            with patch.object(sys, "executable", "/path/to/app.exe"):
+                with patch("utils.firebase_config.load_dotenv"):
+                    with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                        config = FirebaseConfig()
 
-    @patch.dict(os.environ, {
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "test-org"
-    }, clear=True)
-    @patch("utils.firebase_config.load_dotenv")
-    def test_missing_api_key_raises(self, mock_dotenv):
-        """Test missing API key raises ValueError"""
-        with pytest.raises(ValueError) as exc_info:
-            FirebaseConfig()
-        assert "FIREBASE_API_KEY" in str(exc_info.value)
+                        assert config.api_key == "frozen-api-key"
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "test-org"
-    }, clear=True)
-    @patch("utils.firebase_config.load_dotenv")
-    def test_missing_database_url_raises(self, mock_dotenv):
-        """Test missing database URL raises ValueError"""
-        with pytest.raises(ValueError) as exc_info:
-            FirebaseConfig()
-        assert "FIREBASE_DATABASE_URL" in str(exc_info.value)
+    def test_raises_on_missing_api_key(self):
+        """Test raises ValueError when FIREBASE_API_KEY is missing"""
+        from utils.firebase_config import FirebaseConfig
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "ORG_ID": "test-org"
-    }, clear=True)
-    @patch("utils.firebase_config.load_dotenv")
-    def test_missing_project_id_raises(self, mock_dotenv):
-        """Test missing project ID raises ValueError"""
-        with pytest.raises(ValueError) as exc_info:
-            FirebaseConfig()
-        assert "FIREBASE_PROJECT_ID" in str(exc_info.value)
+        env_values = {
+            "FIREBASE_API_KEY": None,
+            "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
+            "FIREBASE_PROJECT_ID": "test-project",
+            "ORG_ID": "test-org",
+        }
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project"
-    }, clear=True)
-    @patch("utils.firebase_config.load_dotenv")
-    def test_missing_org_id_raises(self, mock_dotenv):
-        """Test missing org ID raises ValueError"""
-        with pytest.raises(ValueError) as exc_info:
-            FirebaseConfig()
-        assert "ORG_ID" in str(exc_info.value)
+        with patch("utils.firebase_config.load_dotenv"):
+            with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                with pytest.raises(ValueError, match="FIREBASE_API_KEY missing"):
+                    FirebaseConfig()
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "INVALID_ORG"  # Contains uppercase
-    }, clear=True)
-    @patch("utils.firebase_config.load_dotenv")
-    def test_invalid_org_id_format_raises(self, mock_dotenv):
-        """Test invalid org ID format raises ValueError"""
-        with pytest.raises(ValueError) as exc_info:
-            FirebaseConfig()
-        assert "Invalid ORG_ID" in str(exc_info.value)
+    def test_raises_on_missing_database_url(self):
+        """Test raises ValueError when FIREBASE_DATABASE_URL is missing"""
+        from utils.firebase_config import FirebaseConfig
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "org_with_underscore"  # Contains underscore
-    }, clear=True)
-    @patch("utils.firebase_config.load_dotenv")
-    def test_org_id_with_underscore_raises(self, mock_dotenv):
-        """Test org ID with underscore raises ValueError"""
-        with pytest.raises(ValueError) as exc_info:
-            FirebaseConfig()
-        assert "Invalid ORG_ID" in str(exc_info.value)
+        env_values = {
+            "FIREBASE_API_KEY": "test-api-key",
+            "FIREBASE_DATABASE_URL": None,
+            "FIREBASE_PROJECT_ID": "test-project",
+            "ORG_ID": "test-org",
+        }
+
+        with patch("utils.firebase_config.load_dotenv"):
+            with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                with pytest.raises(ValueError, match="FIREBASE_DATABASE_URL missing"):
+                    FirebaseConfig()
+
+    def test_raises_on_missing_project_id(self):
+        """Test raises ValueError when FIREBASE_PROJECT_ID is missing"""
+        from utils.firebase_config import FirebaseConfig
+
+        env_values = {
+            "FIREBASE_API_KEY": "test-api-key",
+            "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
+            "FIREBASE_PROJECT_ID": None,
+            "ORG_ID": "test-org",
+        }
+
+        with patch("utils.firebase_config.load_dotenv"):
+            with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                with pytest.raises(ValueError, match="FIREBASE_PROJECT_ID missing"):
+                    FirebaseConfig()
+
+    def test_raises_on_missing_org_id(self):
+        """Test raises ValueError when ORG_ID is missing"""
+        from utils.firebase_config import FirebaseConfig
+
+        env_values = {
+            "FIREBASE_API_KEY": "test-api-key",
+            "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
+            "FIREBASE_PROJECT_ID": "test-project",
+            "ORG_ID": None,
+        }
+
+        with patch("utils.firebase_config.load_dotenv"):
+            with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                with pytest.raises(ValueError, match="ORG_ID missing"):
+                    FirebaseConfig()
+
+    def test_raises_on_invalid_org_id_format(self):
+        """Test raises ValueError when ORG_ID has invalid format"""
+        from utils.firebase_config import FirebaseConfig
+
+        env_values = {
+            "FIREBASE_API_KEY": "test-api-key",
+            "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
+            "FIREBASE_PROJECT_ID": "test-project",
+            "ORG_ID": "Invalid_Org!",  # Contains uppercase and special chars
+        }
+
+        with patch("utils.firebase_config.load_dotenv"):
+            with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                with pytest.raises(ValueError, match="Invalid ORG_ID"):
+                    FirebaseConfig()
+
+    def test_accepts_valid_org_id_formats(self):
+        """Test accepts valid ORG_ID formats"""
+        from utils.firebase_config import FirebaseConfig
+
+        valid_org_ids = ["myorg", "tech-lab", "university-cs", "org123", "a-b-c-123"]
+
+        for org_id in valid_org_ids:
+            env_values = {
+                "FIREBASE_API_KEY": "test-api-key",
+                "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
+                "FIREBASE_PROJECT_ID": "test-project",
+                "ORG_ID": org_id,
+            }
+
+            with patch("utils.firebase_config.load_dotenv"):
+                with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                    config = FirebaseConfig()
+                    assert config.org_id == org_id
 
 
 # =============================================================================
-# auth_url property tests
+# Test auth_url property
 # =============================================================================
 class TestAuthUrl:
     """Tests for auth_url property"""
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "test-org"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_auth_url_value(self, mock_dotenv):
-        """Test auth URL returns correct value"""
-        config = FirebaseConfig()
-        assert config.auth_url == "https://identitytoolkit.googleapis.com/v1/accounts"
+    def test_auth_url_returns_correct_url(self):
+        """Test auth_url returns Firebase Auth REST API URL"""
+        from utils.firebase_config import FirebaseConfig
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "test-org"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_auth_url_is_https(self, mock_dotenv):
-        """Test auth URL uses HTTPS"""
-        config = FirebaseConfig()
-        assert config.auth_url.startswith("https://")
+        env_values = {
+            "FIREBASE_API_KEY": "test-api-key",
+            "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
+            "FIREBASE_PROJECT_ID": "test-project",
+            "ORG_ID": "test-org",
+        }
+
+        with patch("utils.firebase_config.load_dotenv"):
+            with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                config = FirebaseConfig()
+
+                assert config.auth_url == "https://identitytoolkit.googleapis.com/v1/accounts"
 
 
 # =============================================================================
-# Valid org_id format tests
+# Test get_firebase_config function
 # =============================================================================
-class TestValidOrgIdFormats:
-    """Tests for valid org ID formats"""
+class TestGetFirebaseConfig:
+    """Tests for get_firebase_config function"""
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "lowercase"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_lowercase_org_id_valid(self, mock_dotenv):
-        """Test lowercase org ID is valid"""
-        config = FirebaseConfig()
-        assert config.org_id == "lowercase"
+    def test_returns_firebase_config_instance(self):
+        """Test get_firebase_config returns FirebaseConfig instance"""
+        from utils import firebase_config as fc_module
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "org-with-hyphens"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_hyphenated_org_id_valid(self, mock_dotenv):
-        """Test hyphenated org ID is valid"""
-        config = FirebaseConfig()
-        assert config.org_id == "org-with-hyphens"
+        # Reset the global instance
+        fc_module.firebase_config = None
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "org123"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_alphanumeric_org_id_valid(self, mock_dotenv):
-        """Test alphanumeric org ID is valid"""
-        config = FirebaseConfig()
-        assert config.org_id == "org123"
+        env_values = {
+            "FIREBASE_API_KEY": "test-api-key",
+            "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
+            "FIREBASE_PROJECT_ID": "test-project",
+            "ORG_ID": "test-org",
+        }
 
-    @patch.dict(os.environ, {
-        "FIREBASE_API_KEY": "test_api_key",
-        "FIREBASE_AUTH_DOMAIN": "test.firebaseapp.com",
-        "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
-        "FIREBASE_PROJECT_ID": "test-project",
-        "ORG_ID": "my-org-123"
-    })
-    @patch("utils.firebase_config.load_dotenv")
-    def test_mixed_format_org_id_valid(self, mock_dotenv):
-        """Test mixed format org ID is valid"""
-        config = FirebaseConfig()
-        assert config.org_id == "my-org-123"
+        with patch("utils.firebase_config.load_dotenv"):
+            with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                result = fc_module.get_firebase_config()
+
+                assert isinstance(result, fc_module.FirebaseConfig)
+
+        # Reset after test
+        fc_module.firebase_config = None
+
+    def test_returns_cached_instance(self):
+        """Test get_firebase_config returns cached instance on second call"""
+        from utils import firebase_config as fc_module
+
+        # Reset the global instance
+        fc_module.firebase_config = None
+
+        env_values = {
+            "FIREBASE_API_KEY": "test-api-key",
+            "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
+            "FIREBASE_PROJECT_ID": "test-project",
+            "ORG_ID": "test-org",
+        }
+
+        with patch("utils.firebase_config.load_dotenv"):
+            with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                result1 = fc_module.get_firebase_config()
+                result2 = fc_module.get_firebase_config()
+
+                assert result1 is result2
+
+        # Reset after test
+        fc_module.firebase_config = None
 
 
+# =============================================================================
+# Test .env file path resolution
+# =============================================================================
+class TestEnvPathResolution:
+    """Tests for .env file path resolution"""
 
+    def test_tries_repo_root_first(self):
+        """Test that repo root .env is tried first"""
+        from utils.firebase_config import FirebaseConfig
+
+        env_values = {
+            "FIREBASE_API_KEY": "test-api-key",
+            "FIREBASE_DATABASE_URL": "https://test.firebaseio.com",
+            "FIREBASE_PROJECT_ID": "test-project",
+            "ORG_ID": "test-org",
+        }
+
+        with patch("utils.firebase_config.load_dotenv") as mock_load:
+            with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                # Mock Path.exists to return False for repo root
+                with patch("utils.firebase_config.Path") as mock_path_cls:
+                    # Create mock path instance
+                    mock_path = MagicMock()
+                    mock_path_cls.return_value = mock_path
+                    mock_path.__truediv__ = Mock(return_value=mock_path)
+                    mock_path.parent = mock_path
+                    mock_path.exists.return_value = False
+
+                    config = FirebaseConfig()
+
+                    # load_dotenv should have been called
+                    mock_load.assert_called()

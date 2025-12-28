@@ -630,3 +630,272 @@ class TestPaymentDialogEdgeCases:
         dialog = create_payment_dialog_mock(hebrew_package, mock_parent_widget)
         assert dialog.package["name"] == "חבילת פרימיום"
         dialog.close()
+
+
+# =============================================================================
+# Tests for FirebaseStreamListener edge cases
+# =============================================================================
+class TestFirebaseStreamListenerEdgeCases:
+    """Additional edge case tests for FirebaseStreamListener"""
+
+    @pytest.fixture
+    def stream_listener(self, qapp):
+        """Create FirebaseStreamListener instance"""
+        from ui.payment_dialog import FirebaseStreamListener
+
+        listener = FirebaseStreamListener(
+            database_url="https://test-project.firebaseio.com",
+            auth_token="test-token",
+            purchase_id="purchase-123",
+            org_id="test-org",
+        )
+        return listener
+
+    def test_handles_null_line_in_stream(self, stream_listener, qtbot):
+        """Test that 'null' lines are ignored"""
+        mock_response = Mock()
+        mock_response.status_code = 200
+
+        # Simulate null line followed by valid data
+        chunks = list('null\n{"status": "completed"}\n')
+        mock_response.iter_content = Mock(return_value=iter(chunks))
+
+        signal_received = []
+        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+
+        with patch("ui.payment_dialog.requests.get", return_value=mock_response):
+            stream_listener.run()
+
+        assert len(signal_received) == 1
+        assert signal_received[0]["status"] == "completed"
+
+    def test_handles_empty_line_in_stream(self, stream_listener, qtbot):
+        """Test that empty lines are ignored"""
+        mock_response = Mock()
+        mock_response.status_code = 200
+
+        # Simulate empty lines
+        chunks = list('\n\n{"status": "completed"}\n')
+        mock_response.iter_content = Mock(return_value=iter(chunks))
+
+        signal_received = []
+        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+
+        with patch("ui.payment_dialog.requests.get", return_value=mock_response):
+            stream_listener.run()
+
+        assert len(signal_received) == 1
+
+    def test_handles_non_dict_json(self, stream_listener, qtbot):
+        """Test handling of JSON that is not a dict"""
+        mock_response = Mock()
+        mock_response.status_code = 200
+
+        # Simulate non-dict JSON
+        chunks = list('["array", "data"]\n{"status": "completed"}\n')
+        mock_response.iter_content = Mock(return_value=iter(chunks))
+
+        signal_received = []
+        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+
+        with patch("ui.payment_dialog.requests.get", return_value=mock_response):
+            stream_listener.run()
+
+        # Should only get the dict with completed status
+        assert len(signal_received) == 1
+
+    def test_handles_generic_exception(self, stream_listener, qtbot):
+        """Test handling of generic exception during stream"""
+        signal_received = []
+        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+
+        with patch("ui.payment_dialog.requests.get", side_effect=Exception("Network error")):
+            stream_listener.run()  # Should not raise
+
+        assert len(signal_received) == 0
+
+    def test_stop_with_running_thread(self, stream_listener, qapp):
+        """Test stop when thread is running"""
+        # Mock isRunning to return True
+        with patch.object(stream_listener, "isRunning", return_value=True):
+            with patch.object(stream_listener, "quit") as mock_quit:
+                with patch.object(stream_listener, "wait") as mock_wait:
+                    stream_listener.stop()
+
+                    assert stream_listener.running is False
+                    mock_quit.assert_called_once()
+                    mock_wait.assert_called_once_with(1000)
+
+
+# =============================================================================
+# Tests for PaymentDialog UI initialization
+# =============================================================================
+class TestPaymentDialogUI:
+    """Tests for PaymentDialog UI methods"""
+
+    @pytest.fixture
+    def payment_dialog(self, qapp, sample_package, mock_parent_widget):
+        """Create PaymentDialog instance with mocks"""
+        dialog = create_payment_dialog_mock(sample_package, mock_parent_widget)
+        dialog.web_view = Mock()
+        dialog.web_view.page.return_value = Mock()
+        dialog.web_view.hide = Mock()
+        yield dialog
+        dialog.close()
+
+    def test_get_payment_response_returns_none_initially(self, payment_dialog):
+        """Test get_payment_response returns None when no payment made"""
+        assert payment_dialog.get_payment_response() is None
+
+    def test_get_payment_response_returns_response_after_payment(self, payment_dialog):
+        """Test get_payment_response returns response after payment"""
+        payment_dialog.payment_response = {"transactionId": "txn-123"}
+        assert payment_dialog.get_payment_response() == {"transactionId": "txn-123"}
+
+    def test_on_payment_success_logs_message(self, payment_dialog):
+        """Test on_payment_success logs appropriately"""
+        # Should not raise
+        payment_dialog.on_payment_success({"transactionId": "txn-123"})
+
+    def test_on_purchase_created_sets_purchase_id(self, payment_dialog):
+        """Test on_purchase_created sets purchase_id and starts listener"""
+        with patch.object(payment_dialog, "setup_purchase_listener"):
+            payment_dialog.on_purchase_created("test-purchase-id")
+
+            assert payment_dialog.purchase_id == "test-purchase-id"
+
+    def test_show_success_via_javascript_runs_js(self, payment_dialog):
+        """Test show_success_via_javascript runs JavaScript"""
+        mock_page = Mock()
+        payment_dialog.web_view.page.return_value = mock_page
+
+        payment_dialog.show_success_via_javascript()
+
+        mock_page.runJavaScript.assert_called_once_with("showSuccess();")
+
+    def test_show_success_via_javascript_handles_exception(self, payment_dialog):
+        """Test show_success_via_javascript handles exception"""
+        payment_dialog.web_view.page.side_effect = Exception("JS error")
+
+        with patch.object(payment_dialog, "show_success_message"):
+            payment_dialog.show_success_via_javascript()
+
+
+# =============================================================================
+# Tests for PaymentDialog polling edge cases
+# =============================================================================
+class TestPaymentDialogPollingEdgeCases:
+    """Additional tests for polling edge cases"""
+
+    @pytest.fixture
+    def payment_dialog(self, qapp, sample_package, mock_parent_widget):
+        """Create PaymentDialog for polling tests"""
+        dialog = create_payment_dialog_mock(sample_package, mock_parent_widget)
+        dialog.purchase_id = "test-purchase-id"
+        dialog.web_view = Mock()
+        yield dialog
+
+        if hasattr(dialog, "status_timer") and dialog.status_timer:
+            dialog.status_timer.stop()
+        dialog.close()
+
+    def test_check_purchase_status_handles_http_error(self, payment_dialog, mock_auth_service):
+        """Test check_purchase_status handles HTTP errors"""
+        payment_dialog.start_exponential_backoff_polling()
+
+        mock_response = Mock()
+        mock_response.status_code = 500
+
+        with patch("ui.payment_dialog.requests.get", return_value=mock_response):
+            payment_dialog.check_purchase_status()
+
+        # Should continue polling
+        assert payment_dialog.check_count == 1
+
+        payment_dialog.status_timer.stop()
+
+    def test_check_purchase_status_handles_exception(self, payment_dialog, mock_auth_service):
+        """Test check_purchase_status handles exceptions"""
+        payment_dialog.start_exponential_backoff_polling()
+
+        with patch("ui.payment_dialog.requests.get", side_effect=Exception("Network error")):
+            payment_dialog.check_purchase_status()
+
+        # Should continue polling
+        assert payment_dialog.check_count == 1
+
+        payment_dialog.status_timer.stop()
+
+    def test_check_purchase_status_stops_listener_on_complete(self, payment_dialog, mock_auth_service):
+        """Test check_purchase_status stops listener thread on completion"""
+        payment_dialog.start_exponential_backoff_polling()
+        payment_dialog.listener_thread = Mock()
+        payment_dialog.listener_thread.isRunning.return_value = True
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"status": "completed", "rawResponse": {}}
+
+        with patch("ui.payment_dialog.requests.get", return_value=mock_response):
+            with patch.object(payment_dialog, "on_purchase_completed"):
+                payment_dialog.check_purchase_status()
+
+        payment_dialog.listener_thread.stop.assert_called_once()
+
+    def test_check_purchase_status_handles_none_purchase(self, payment_dialog, mock_auth_service):
+        """Test check_purchase_status handles None purchase data"""
+        payment_dialog.start_exponential_backoff_polling()
+
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = None
+
+        with patch("ui.payment_dialog.requests.get", return_value=mock_response):
+            payment_dialog.check_purchase_status()
+
+        # Should continue polling
+        assert payment_dialog.check_count == 1
+
+        payment_dialog.status_timer.stop()
+
+
+# =============================================================================
+# Tests for PaymentDialog cleanup edge cases
+# =============================================================================
+class TestPaymentDialogCleanupEdgeCases:
+    """Additional cleanup edge case tests"""
+
+    @pytest.fixture
+    def payment_dialog(self, qapp, sample_package, mock_parent_widget):
+        """Create PaymentDialog for cleanup tests"""
+        dialog = create_payment_dialog_mock(sample_package, mock_parent_widget)
+        dialog.web_view = Mock()
+        yield dialog
+
+    def test_close_event_without_timer(self, payment_dialog):
+        """Test closeEvent when no timer exists"""
+        from PyQt6.QtGui import QCloseEvent
+
+        event = QCloseEvent()
+        payment_dialog.listener_thread = None
+        payment_dialog._local_server = None
+
+        # Should not raise
+        payment_dialog.closeEvent(event)
+
+    def test_on_payment_cancelled_without_timer(self, payment_dialog):
+        """Test on_payment_cancelled when no timer exists"""
+        payment_dialog.listener_thread = None
+
+        # Should not raise
+        payment_dialog.on_payment_cancelled()
+
+    def test_on_payment_cancelled_with_stopped_listener(self, payment_dialog):
+        """Test on_payment_cancelled when listener is not running"""
+        payment_dialog.listener_thread = Mock()
+        payment_dialog.listener_thread.isRunning.return_value = False
+
+        # Should not call stop
+        payment_dialog.on_payment_cancelled()
+
+        payment_dialog.listener_thread.stop.assert_not_called()

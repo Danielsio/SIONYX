@@ -606,3 +606,63 @@ class TestPollingConfiguration:
         """Test max empty polls before interval increase"""
         assert chat_service.max_empty_polls == 3
 
+
+# =============================================================================
+# Additional Edge Case Tests
+# =============================================================================
+class TestEdgeCases:
+    """Tests for edge cases and error paths"""
+
+    def test_mark_message_read_timestamp_failure(self, chat_service, mock_firebase):
+        """Test mark_message_as_read when setting timestamp fails but read flag succeeds"""
+        # First call sets read flag (succeeds), second call sets readAt (fails)
+        call_count = [0]
+        def db_set_side_effect(path, value=None):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return {"success": True}  # read flag
+            return {"success": False, "error": "Timestamp update failed"}  # readAt
+        
+        mock_firebase.db_set.side_effect = db_set_side_effect
+        
+        result = chat_service.mark_message_as_read("msg-123")
+        
+        # Should still return success because read flag was set
+        assert result["success"] is True
+
+    def test_smart_polling_initial_interval(self, chat_service):
+        """Test initial polling interval matches base"""
+        assert chat_service.current_poll_interval == chat_service.base_poll_interval
+
+    def test_smart_polling_consecutive_empty_initial(self, chat_service):
+        """Test consecutive empty polls starts at 0"""
+        assert chat_service.consecutive_empty_polls == 0
+
+    def test_is_user_active_with_recent_timestamp(self, chat_service):
+        """Test is_user_active returns True for recent activity"""
+        recent_time = datetime.now().isoformat()
+        
+        result = chat_service.is_user_active(recent_time)
+        
+        assert result is True
+
+    def test_is_user_active_with_old_timestamp(self, chat_service):
+        """Test is_user_active returns False for old activity"""
+        old_time = (datetime.now() - timedelta(minutes=10)).isoformat()
+        
+        result = chat_service.is_user_active(old_time)
+        
+        assert result is False
+
+    def test_is_user_active_with_empty_timestamp(self, chat_service):
+        """Test is_user_active returns False for empty timestamp"""
+        result = chat_service.is_user_active("")
+        
+        assert result is False
+
+    def test_is_user_active_with_none_timestamp(self, chat_service):
+        """Test is_user_active returns False for None timestamp"""
+        result = chat_service.is_user_active(None)
+        
+        assert result is False
+
