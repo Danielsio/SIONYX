@@ -11,7 +11,7 @@
 #   make web-lint → lint web admin
 
 .PHONY: help dev run test test-cov test-fast test-fail lint lint-fix build build-patch build-minor build-major build-dry build-local version clean \
-        web-dev web-build web-preview web-lint web-test web-test-cov web-test-ui web-deploy web-deploy-hosting web-deploy-functions web-deploy-database
+        web-dev web-build web-preview web-lint web-test web-test-run web-test-cov web-test-ui web-deploy web-deploy-hosting web-deploy-functions web-deploy-database
 
 # Default target
 help:
@@ -184,14 +184,19 @@ web-test-ui:
 	@echo "Running web admin tests with UI..."
 	cd sionyx-web && npm run test:ui
 
-# Deploy to Firebase
-web-deploy: web-build
+# Deploy to Firebase (runs tests first)
+web-deploy: web-test-run web-build
 	@echo "Deploying all Firebase services..."
 	firebase deploy
 
-web-deploy-hosting: web-build
+web-deploy-hosting: web-test-run web-build
 	@echo "Deploying Firebase Hosting..."
 	firebase deploy --only hosting
+
+# Run tests without watch mode (for CI/deploy)
+web-test-run:
+	@echo "Running web admin tests..."
+	cd sionyx-web && npm run test:run
 
 web-deploy-functions:
 	@echo "Deploying Firebase Functions..."

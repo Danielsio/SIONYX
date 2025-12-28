@@ -326,12 +326,37 @@ const UsersPage = () => {
     }
   };
 
+  // Color palette for user cards - vibrant and pleasant
+  const cardGradients = [
+    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', // Purple-Indigo
+    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', // Pink-Rose
+    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', // Blue-Cyan
+    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', // Green-Teal
+    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', // Pink-Yellow
+    'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)', // Mint-Pink (light)
+    'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', // Coral-Pink
+    'linear-gradient(135deg, #5ee7df 0%, #b490ca 100%)', // Teal-Purple
+    'linear-gradient(135deg, #d299c2 0%, #fef9d7 100%)', // Lavender-Cream
+    'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)', // Sky-Blue
+  ];
+
+  // Get consistent color for a user based on their ID
+  const getUserGradient = (userId) => {
+    if (!userId) return cardGradients[0];
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return cardGradients[Math.abs(hash) % cardGradients.length];
+  };
+
   // User Card Component
   const UserCard = ({ userRecord }) => {
     const status = getUserStatus(userRecord);
     const statusColor = getUserStatusColor(status);
     const statusLabel = getUserStatusLabel(status);
     const userName = `${userRecord.firstName || ''} ${userRecord.lastName || ''}`.trim() || 'לא זמין';
+    const userGradient = getUserGradient(userRecord.uid);
 
     const menuItems = [
       {
@@ -391,11 +416,14 @@ const UsersPage = () => {
         hoverable
         onClick={() => handleViewUser(userRecord)}
         style={{
-          borderRadius: 16,
+          borderRadius: 20,
           overflow: 'hidden',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
+          border: 'none',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          transition: 'all 0.3s ease',
         }}
         styles={{
           body: {
@@ -406,19 +434,37 @@ const UsersPage = () => {
           },
         }}
       >
-        {/* Header with status indicator */}
+        {/* Header with vibrant gradient */}
         <div
           style={{
-            background: status === 'active' 
-              ? 'linear-gradient(135deg, #52c41a 0%, #73d13d 100%)'
-              : status === 'connected'
-              ? 'linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)'
-              : 'linear-gradient(135deg, #8c8c8c 0%, #bfbfbf 100%)',
+            background: userGradient,
             padding: '16px',
             color: '#fff',
             position: 'relative',
           }}
         >
+          {/* Status indicator dot */}
+          <div
+            style={{
+              position: 'absolute',
+              top: 12,
+              right: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <div
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: status === 'active' ? '#52c41a' : status === 'connected' ? '#1890ff' : '#d9d9d9',
+                boxShadow: status === 'active' ? '0 0 8px #52c41a' : status === 'connected' ? '0 0 8px #1890ff' : 'none',
+              }}
+            />
+          </div>
+
           {/* Admin Badge */}
           {userRecord.isAdmin && (
             <Tag
@@ -426,10 +472,11 @@ const UsersPage = () => {
               icon={<CrownOutlined />}
               style={{
                 position: 'absolute',
-                top: 12,
-                left: 12,
+                top: 10,
+                left: 10,
                 fontWeight: 'bold',
                 borderRadius: 8,
+                fontSize: 11,
               }}
             >
               מנהל
@@ -437,59 +484,65 @@ const UsersPage = () => {
           )}
           
           {/* Actions dropdown */}
-          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: 8, right: 8 }}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 8, right: 8 }}>
             <Dropdown menu={{ items: menuItems }} trigger={['click']}>
               <Button
                 type='text'
                 icon={<MoreOutlined />}
-                style={{ color: '#fff' }}
+                style={{ color: '#fff', background: 'rgba(255,255,255,0.2)', borderRadius: 8 }}
                 size='small'
               />
             </Dropdown>
           </div>
 
           {/* User Avatar and Name */}
-          <div style={{ textAlign: 'center', paddingTop: 8 }}>
+          <div style={{ textAlign: 'center', paddingTop: 4 }}>
             <Avatar
-              size={56}
+              size={64}
               icon={<UserOutlined />}
               style={{ 
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                marginBottom: 8,
+                backgroundColor: 'rgba(255,255,255,0.25)',
+                marginBottom: 10,
+                border: '3px solid rgba(255,255,255,0.3)',
               }}
             />
-            <Title level={5} style={{ color: '#fff', margin: 0, marginBottom: 4 }}>
+            <Title level={5} style={{ color: '#fff', margin: 0, marginBottom: 6, textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
               {userName}
             </Title>
-            <Tag color={statusColor} style={{ borderRadius: 12 }}>
+            <Tag 
+              color={status === 'active' ? 'green' : status === 'connected' ? 'blue' : 'default'} 
+              style={{ borderRadius: 12, fontWeight: 500 }}
+            >
               {statusLabel}
             </Tag>
           </div>
         </div>
 
         {/* Body */}
-        <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column', background: '#fafafa' }}>
           {/* Contact Info */}
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 12, background: '#fff', padding: 10, borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
             {userRecord.phoneNumber && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <PhoneOutlined style={{ color: '#8c8c8c' }} />
-                <Text type='secondary' style={{ direction: 'ltr', display: 'inline-block' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <PhoneOutlined style={{ color: '#667eea' }} />
+                <Text style={{ direction: 'ltr', display: 'inline-block', color: '#333' }}>
                   {userRecord.phoneNumber}
                 </Text>
               </div>
             )}
             {userRecord.email && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <MailOutlined style={{ color: '#8c8c8c' }} />
+                <MailOutlined style={{ color: '#667eea' }} />
                 <Text 
-                  type='secondary' 
-                  style={{ fontSize: 12 }}
+                  style={{ fontSize: 12, color: '#666' }}
                   ellipsis={{ tooltip: userRecord.email }}
                 >
                   {userRecord.email}
                 </Text>
               </div>
+            )}
+            {!userRecord.phoneNumber && !userRecord.email && (
+              <Text type='secondary' style={{ fontSize: 12 }}>אין פרטי קשר</Text>
             )}
           </div>
 
@@ -499,16 +552,17 @@ const UsersPage = () => {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                padding: '10px 12px',
-                background: '#f0f5ff',
-                borderRadius: 8,
+                gap: 10,
+                padding: '12px 14px',
+                background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%)',
+                borderRadius: 10,
                 marginBottom: 8,
+                border: '1px solid #d6e4ff',
               }}
             >
-              <ClockCircleOutlined style={{ color: '#1890ff', fontSize: 18 }} />
+              <ClockCircleOutlined style={{ color: '#1890ff', fontSize: 20 }} />
               <div>
-                <Text style={{ color: '#1890ff', fontWeight: 600, fontSize: 16 }}>
+                <Text style={{ color: '#1890ff', fontWeight: 700, fontSize: 18 }}>
                   {formatTime(userRecord.remainingTime || 0)}
                 </Text>
                 <Text type='secondary' style={{ display: 'block', fontSize: 11 }}>
@@ -521,28 +575,29 @@ const UsersPage = () => {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 8,
-                padding: '10px 12px',
-                background: '#f6ffed',
-                borderRadius: 8,
+                gap: 10,
+                padding: '12px 14px',
+                background: 'linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%)',
+                borderRadius: 10,
+                border: '1px solid #b7eb8f',
               }}
             >
-              <PrinterOutlined style={{ color: '#52c41a', fontSize: 18 }} />
+              <PrinterOutlined style={{ color: '#52c41a', fontSize: 20 }} />
               <div>
-                <Text style={{ color: '#52c41a', fontWeight: 600, fontSize: 16 }}>
+                <Text style={{ color: '#52c41a', fontWeight: 700, fontSize: 18 }}>
                   ₪{userRecord.remainingPrints || 0}
                 </Text>
                 <Text type='secondary' style={{ display: 'block', fontSize: 11 }}>
-                  יתרת הדפסות
+                  תקציב הדפסות
                 </Text>
               </div>
             </div>
           </div>
 
           {/* Footer info */}
-          <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12, marginTop: 12 }}>
+          <div style={{ paddingTop: 12, marginTop: 12, textAlign: 'center' }}>
             <Text type='secondary' style={{ fontSize: 11 }}>
-              הצטרף: {userRecord.createdAt ? dayjs(userRecord.createdAt).format('DD/MM/YYYY') : 'לא זמין'}
+              🗓️ הצטרף: {userRecord.createdAt ? dayjs(userRecord.createdAt).format('DD/MM/YYYY') : 'לא זמין'}
             </Text>
           </div>
         </div>
@@ -757,8 +812,8 @@ const UsersPage = () => {
 
               <Form.Item
                 name='prints'
-                label='יתרת הדפסות'
-                tooltip='ערוך את סך ההדפסות שהמשתמש צריך לקבל'
+                label='יתרת הדפסות (₪)'
+                tooltip='ערוך את סך תקציב ההדפסות בשקלים שהמשתמש צריך לקבל'
                 rules={[
                   { required: true, message: 'אנא הכנס הדפסות' },
                   { type: 'number', min: 0, message: 'הדפסות לא יכולות להיות שליליות' },
@@ -833,10 +888,10 @@ const UsersPage = () => {
                     {formatTime(selectedUser.remainingTime || 0)}
                   </Space>
                 </Descriptions.Item>
-                <Descriptions.Item label='יתרת הדפסות'>
+                <Descriptions.Item label='תקציב הדפסות'>
                   <Space>
                     <PrinterOutlined />
-                    {selectedUser.remainingPrints || 0}₪
+                    <Text style={{ fontWeight: 600 }}>₪{selectedUser.remainingPrints || 0}</Text>
                   </Space>
                 </Descriptions.Item>
                 <Descriptions.Item label='נוצר'>
