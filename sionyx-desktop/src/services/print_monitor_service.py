@@ -1,10 +1,14 @@
 """
-Print Monitor Service (MVP)
+Print Monitor Service
 Monitors Windows Print Spooler and validates print jobs against user's budget.
 
+Architecture: Event-driven WMI with polling fallback
+- Primary: WMI event subscription for instant job detection
+- Fallback: Polling every 2 seconds as safety net
+
 Flow:
-1. Poll print spooler every second for new jobs
-2. Pause new jobs immediately
+1. WMI event fires when new print job created (or polling detects it)
+2. Pause job immediately
 3. Get page count and calculate cost (B&W or Color price from org metadata)
 4. If user has sufficient budget: resume job + deduct budget
 5. If insufficient: cancel job + emit signal for UI notification
@@ -12,6 +16,7 @@ Flow:
 
 import threading
 import traceback
+from datetime import datetime
 from typing import Dict, Optional, Set
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
@@ -25,6 +30,14 @@ try:
 except ImportError:
     win32print = None  # Will be mocked in tests
 
+# WMI is only available on Windows
+try:
+    import pythoncom
+    import wmi
+except ImportError:
+    pythoncom = None
+    wmi = None
+
 logger = get_logger(__name__)
 
 
@@ -36,7 +49,7 @@ JOB_CONTROL_CANCEL = 3
 
 class PrintMonitorService(QObject):
     """
-    MVP Print Monitor - polls Windows Print Spooler and validates jobs against budget.
+    Print Monitor - uses WMI events for instant detection with polling fallback.
     """
 
     # Signals for UI notifications
@@ -59,7 +72,15 @@ class PrintMonitorService(QObject):
         # Monitoring state
         self._is_monitoring = False
         self._known_jobs: Dict[str, Set[int]] = {}  # printer_name -> set of job_ids
+        self._processed_jobs: Set[str] = set()  # "printer:job_id" to avoid duplicates
         self._poll_timer: Optional[QTimer] = None
+
+        # WMI event watcher thread
+        self._wmi_thread: Optional[threading.Thread] = None
+        self._wmi_stop_event = threading.Event()
+
+        # Thread safety lock
+        self._lock = threading.Lock()
 
         # Cached pricing (refreshed on start)
         self._bw_price = 1.0  # Default fallback
@@ -84,13 +105,19 @@ class PrintMonitorService(QObject):
             # Initialize known jobs (ignore existing jobs in queue)
             self._initialize_known_jobs()
 
-            # Start polling timer (every 1 second)
+            # Clear processed jobs set
+            self._processed_jobs.clear()
+
+            # Start WMI event watcher (primary - instant detection)
+            self._start_wmi_watcher()
+
+            # Start polling timer (fallback - every 2 seconds)
             self._poll_timer = QTimer()
             self._poll_timer.timeout.connect(self._poll_spooler)
-            self._poll_timer.start(1000)
+            self._poll_timer.start(2000)  # 2 seconds fallback
 
             self._is_monitoring = True
-            logger.info("Print monitor started successfully")
+            logger.info("Print monitor started (WMI events + polling fallback)")
             return {"success": True}
 
         except Exception as e:
@@ -105,12 +132,18 @@ class PrintMonitorService(QObject):
         try:
             logger.info("Stopping print monitor service")
 
+            # Stop WMI watcher
+            self._stop_wmi_watcher()
+
+            # Stop polling timer
             if self._poll_timer:
                 self._poll_timer.stop()
                 self._poll_timer = None
 
             self._is_monitoring = False
-            self._known_jobs.clear()
+            with self._lock:
+                self._known_jobs.clear()
+                self._processed_jobs.clear()
 
             logger.info("Print monitor stopped")
             return {"success": True}
@@ -122,6 +155,126 @@ class PrintMonitorService(QObject):
     def is_monitoring(self) -> bool:
         """Check if monitoring is active."""
         return self._is_monitoring
+
+    # =========================================================================
+    # WMI EVENT WATCHER
+    # =========================================================================
+
+    def _start_wmi_watcher(self):
+        """Start WMI event watcher in background thread."""
+        if not wmi or not pythoncom:
+            logger.warning("WMI not available, using polling only")
+            return
+
+        self._wmi_stop_event.clear()
+        self._wmi_thread = threading.Thread(
+            target=self._wmi_watch_loop,
+            name="PrintMonitor-WMI",
+            daemon=True,
+        )
+        self._wmi_thread.start()
+        logger.info("WMI event watcher started")
+
+    def _stop_wmi_watcher(self):
+        """Stop WMI event watcher thread."""
+        if self._wmi_thread and self._wmi_thread.is_alive():
+            logger.info("Stopping WMI event watcher...")
+            self._wmi_stop_event.set()
+            # Give thread time to exit gracefully
+            self._wmi_thread.join(timeout=3.0)
+            if self._wmi_thread.is_alive():
+                logger.warning("WMI thread did not stop gracefully")
+            self._wmi_thread = None
+
+    def _wmi_watch_loop(self):
+        """Background thread loop watching for WMI print job events."""
+        try:
+            # Initialize COM for this thread
+            pythoncom.CoInitialize()
+
+            try:
+                c = wmi.WMI()
+
+                # Watch for new print job creation events
+                # Query: SELECT * FROM __InstanceCreationEvent within 1 second
+                # WHERE TargetInstance ISA 'Win32_PrintJob'
+                watcher = c.Win32_PrintJob.watch_for(
+                    notification_type="Creation",
+                    delay_secs=1,
+                )
+
+                logger.info("WMI watcher initialized, listening for print jobs...")
+
+                while not self._wmi_stop_event.is_set():
+                    try:
+                        # Wait for event with timeout (allows checking stop flag)
+                        event = watcher(timeout_ms=1000)
+                        if event:
+                            self._on_wmi_print_job_event(event)
+                    except wmi.x_wmi_timed_out:
+                        # Timeout is normal, just continue loop
+                        continue
+                    except Exception as e:
+                        if not self._wmi_stop_event.is_set():
+                            logger.error(f"WMI event error: {e}")
+                        break
+
+            finally:
+                pythoncom.CoUninitialize()
+
+        except Exception as e:
+            logger.error(f"WMI watch loop error: {e}")
+            logger.error(traceback.format_exc())
+
+    def _on_wmi_print_job_event(self, event):
+        """Handle WMI print job creation event."""
+        try:
+            # Extract job info from WMI event
+            # WMI Win32_PrintJob properties: Name format is "PrinterName, JobId"
+            job_name = event.Name  # e.g., "HP LaserJet, 42"
+            if "," not in job_name:
+                logger.warning(f"Unexpected job name format: {job_name}")
+                return
+
+            parts = job_name.rsplit(",", 1)
+            printer_name = parts[0].strip()
+            job_id = int(parts[1].strip())
+
+            logger.info(f"WMI event: New print job {job_id} on '{printer_name}'")
+
+            # Build job data from WMI event
+            job_data = {
+                "JobId": job_id,
+                "pDocument": getattr(event, "Document", "Unknown"),
+                "TotalPages": getattr(event, "TotalPages", 0),
+            }
+
+            # Process job (thread-safe)
+            self._process_job_thread_safe(printer_name, job_data)
+
+        except Exception as e:
+            logger.error(f"Error handling WMI event: {e}")
+            logger.error(traceback.format_exc())
+
+    def _process_job_thread_safe(self, printer_name: str, job_data: dict):
+        """Process a print job with thread safety (can be called from WMI thread)."""
+        job_id = job_data.get("JobId", 0)
+        job_key = f"{printer_name}:{job_id}"
+
+        with self._lock:
+            # Check if already processed (avoid duplicates from WMI + polling)
+            if job_key in self._processed_jobs:
+                logger.debug(f"Job {job_key} already processed, skipping")
+                return
+            self._processed_jobs.add(job_key)
+
+            # Update known jobs
+            if printer_name not in self._known_jobs:
+                self._known_jobs[printer_name] = set()
+            self._known_jobs[printer_name].add(job_id)
+
+        # Handle the job (actual processing)
+        self._handle_new_job(printer_name, job_data)
 
     # =========================================================================
     # PRICING
@@ -168,8 +321,6 @@ class PrintMonitorService(QObject):
         try:
             current_budget = self._get_user_budget()
             new_budget = max(0.0, current_budget - amount)
-
-            from datetime import datetime
 
             result = self.firebase.db_update(
                 f"users/{self.user_id}",
@@ -271,36 +422,39 @@ class PrintMonitorService(QObject):
             return False
 
     # =========================================================================
-    # MONITORING LOGIC
+    # POLLING FALLBACK
     # =========================================================================
 
     def _initialize_known_jobs(self):
         """Record existing jobs so we don't process them."""
-        self._known_jobs.clear()
-        for printer_name in self._get_all_printers():
-            jobs = self._get_printer_jobs(printer_name)
-            self._known_jobs[printer_name] = {job.get("JobId", 0) for job in jobs}
-            if self._known_jobs[printer_name]:
-                logger.debug(
-                    f"Ignoring {len(self._known_jobs[printer_name])} existing jobs "
-                    f"on {printer_name}"
-                )
+        with self._lock:
+            self._known_jobs.clear()
+            for printer_name in self._get_all_printers():
+                jobs = self._get_printer_jobs(printer_name)
+                self._known_jobs[printer_name] = {job.get("JobId", 0) for job in jobs}
+                if self._known_jobs[printer_name]:
+                    logger.debug(
+                        f"Ignoring {len(self._known_jobs[printer_name])} existing jobs "
+                        f"on {printer_name}"
+                    )
 
     def _poll_spooler(self):
-        """Check for new print jobs (called by timer)."""
+        """Check for new print jobs (fallback, called by timer)."""
         if not self._is_monitoring:
             return
 
         try:
             for printer_name in self._get_all_printers():
-                if printer_name not in self._known_jobs:
-                    self._known_jobs[printer_name] = set()
+                with self._lock:
+                    if printer_name not in self._known_jobs:
+                        self._known_jobs[printer_name] = set()
+                    known = self._known_jobs[printer_name].copy()
 
                 current_jobs = self._get_printer_jobs(printer_name)
                 current_ids = {job.get("JobId", 0) for job in current_jobs}
 
-                # Find new jobs
-                new_ids = current_ids - self._known_jobs[printer_name]
+                # Find new jobs not yet known
+                new_ids = current_ids - known
 
                 for job_id in new_ids:
                     job_data = next(
@@ -308,14 +462,30 @@ class PrintMonitorService(QObject):
                         None,
                     )
                     if job_data:
-                        self._handle_new_job(printer_name, job_data)
+                        # Use thread-safe processing (may have been caught by WMI already)
+                        self._process_job_thread_safe(printer_name, job_data)
 
-                # Update known jobs
-                self._known_jobs[printer_name] = current_ids
+                # Update known jobs for removed jobs
+                with self._lock:
+                    self._known_jobs[printer_name] = current_ids
+
+                    # Clean up processed jobs set (remove jobs no longer in queue)
+                    keys_to_remove = [
+                        key
+                        for key in self._processed_jobs
+                        if key.startswith(f"{printer_name}:")
+                        and int(key.split(":")[1]) not in current_ids
+                    ]
+                    for key in keys_to_remove:
+                        self._processed_jobs.discard(key)
 
         except Exception as e:
             logger.error(f"Error polling spooler: {e}")
             logger.error(traceback.format_exc())
+
+    # =========================================================================
+    # JOB HANDLING
+    # =========================================================================
 
     def _handle_new_job(self, printer_name: str, job_data: dict):
         """Process a newly detected print job."""
@@ -364,4 +534,3 @@ class PrintMonitorService(QObject):
                 f"Job BLOCKED: '{doc_name}' - cost {cost}₪, budget {budget}₪"
             )
             self.job_blocked.emit(doc_name, total_pages, cost, budget)
-

@@ -28,3 +28,7 @@ PyJWT
 
 # Global Hotkey Support
 keyboard
+
+# Windows Print Monitoring (Windows only)
+pywin32
+WMI
