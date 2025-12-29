@@ -125,7 +125,7 @@ class BaseKioskWindow(QWidget):
         self, message: str, message_type: str = "info", duration: int = 3000
     ):
         """Show auto-dismissing notification toast"""
-        return ModernNotification.show(self, message, message_type, duration)
+        return ModernNotification.show_toast(self, message, message_type, duration)
 
     def apply_base_stylesheet(self):
         """Apply base stylesheet - consistent across all windows"""

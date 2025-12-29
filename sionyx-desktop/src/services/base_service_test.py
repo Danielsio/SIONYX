@@ -710,16 +710,15 @@ class TestDatabaseServiceAdditional:
         assert result["data"] == []
 
     def test_get_all_documents_null_data(self, db_service, mock_firebase):
-        """Test get_all_documents with null data"""
+        """Test get_all_documents with null data (empty collection)"""
         mock_firebase.db_get.return_value = {
             "success": True,
-            "data": None
+            "data": None  # Firebase returns None for empty collections
         }
         result = db_service.get_all_documents()
-        # When data is None, iterating over None items raises TypeError
-        # which gets caught and returns error response
-        # Let's just check the result was returned
-        assert "success" in result
+        # Should handle None gracefully and return empty list
+        assert result["success"] is True
+        assert result["data"] == []
 
     def test_query_documents_no_matches(self, db_service, mock_firebase):
         """Test query_documents with no matches"""

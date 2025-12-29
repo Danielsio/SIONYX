@@ -189,7 +189,7 @@ class DatabaseService(BaseService):
             result = self.firebase.db_get(self.collection_name)
 
             if result.get("success"):
-                data = result.get("data", {})
+                data = result.get("data") or {}  # Handle None case
                 # Convert Firebase dict to list with IDs
                 documents = []
                 for doc_id, doc_data in data.items():
