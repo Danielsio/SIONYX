@@ -68,13 +68,15 @@ class MainWindow(BaseKioskWindow):
         # Connect session signals
         self.session_service.time_updated.connect(self.on_time_updated)
         self.session_service.session_ended.connect(self.on_session_ended)
-
-        # Connect print validation signals
-        self.session_service.print_validation_service.print_budget_updated.connect(
-            self.on_print_budget_updated
-        )
         self.session_service.warning_5min.connect(self.on_warning_5min)
         self.session_service.warning_1min.connect(self.on_warning_1min)
+
+        # Connect print monitor signals
+        self.session_service.print_monitor.job_allowed.connect(self.on_print_allowed)
+        self.session_service.print_monitor.job_blocked.connect(self.on_print_blocked)
+        self.session_service.print_monitor.budget_updated.connect(
+            self.on_print_budget_updated
+        )
 
         # Data refresh optimization
         self.page_data_ages = {}  # Track when each page was last refreshed
@@ -570,21 +572,6 @@ class MainWindow(BaseKioskWindow):
             if purchase_more:
                 self.show_page(self.PAGES["PACKAGES"])
 
-    def on_print_budget_updated(self, new_budget: float):
-        """Handle print budget update"""
-        logger.info(f"Print budget updated: {new_budget} NIS")
-
-        # Update floating timer if active
-        if self.floating_timer:
-            self.floating_timer.update_print_balance(new_budget)
-
-        # Update current user data
-        self.current_user["remainingPrints"] = new_budget
-
-        # Refresh home page if it's the current page
-        if hasattr(self, "current_page") and self.current_page == self.PAGES["home"]:
-            self.refresh_current_page()
-
     def on_warning_5min(self):
         """5 minute warning"""
         self.show_notification(
@@ -600,6 +587,40 @@ class MainWindow(BaseKioskWindow):
             message_type="error",
             duration=6000,
         )
+
+    def on_print_allowed(
+        self, doc_name: str, pages: int, cost: float, remaining: float
+    ):
+        """Handle print job allowed"""
+        logger.info(f"Print allowed: '{doc_name}' ({pages} pages) - {cost}₪")
+        self.show_notification(
+            f"🖨️ הדפסה אושרה: {pages} עמודים, {cost:.2f}₪",
+            message_type="success",
+            duration=3000,
+        )
+        # Update floating timer with new balance
+        if self.floating_timer:
+            self.floating_timer.update_print_balance(remaining)
+        # Update current user data
+        self.current_user["remainingPrints"] = remaining
+
+    def on_print_blocked(
+        self, doc_name: str, pages: int, cost: float, budget: float
+    ):
+        """Handle print job blocked due to insufficient budget"""
+        logger.warning(f"Print blocked: '{doc_name}' - need {cost}₪, have {budget}₪")
+        self.show_notification(
+            f"❌ הדפסה נחסמה: נדרש {cost:.2f}₪, יש לך {budget:.2f}₪",
+            message_type="error",
+            duration=5000,
+        )
+
+    def on_print_budget_updated(self, new_budget: float):
+        """Handle print budget update"""
+        logger.info(f"Print budget updated: {new_budget}₪")
+        if self.floating_timer:
+            self.floating_timer.update_print_balance(new_budget)
+        self.current_user["remainingPrints"] = new_budget
 
     def on_sync_failed(self, error: str):
         """Handle sync failure"""

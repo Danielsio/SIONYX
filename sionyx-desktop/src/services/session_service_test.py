@@ -17,7 +17,7 @@ class TestSessionService:
     def session_service(self, mock_firebase_client, qtbot):
         """Create SessionService instance with mocked dependencies"""
         with patch("services.session_service.ComputerService"):
-            with patch("services.session_service.PrintValidationService"):
+            with patch("services.session_service.PrintMonitorService"):
                 return SessionService(mock_firebase_client, "test-user-id", "test-org")
 
     def test_initialization(self, session_service):
@@ -281,7 +281,7 @@ class TestSessionServiceAdditional:
     def session_service(self, mock_firebase_client, qtbot):
         """Create SessionService instance with mocked dependencies"""
         with patch("services.session_service.ComputerService"):
-            with patch("services.session_service.PrintValidationService"):
+            with patch("services.session_service.PrintMonitorService"):
                 return SessionService(mock_firebase_client, "test-user-id", "test-org")
 
     def test_countdown_tick_when_not_active(self, session_service):
@@ -338,75 +338,3 @@ class TestSessionServiceAdditional:
         result = session_service._get_current_computer_id()
 
         assert result == "unknown"
-
-    def test_validate_print_job_when_active(self, session_service):
-        """Test validate_print_job when session is active"""
-        session_service.is_active = True
-        session_service.print_validation_service.validate_print_job.return_value = {
-            "success": True,
-            "can_print": True
-        }
-
-        result = session_service.validate_print_job(5, 2)
-
-        assert result["success"] is True
-        session_service.print_validation_service.validate_print_job.assert_called_once_with(5, 2)
-
-    def test_validate_print_job_when_not_active(self, session_service):
-        """Test validate_print_job when session is not active"""
-        session_service.is_active = False
-
-        result = session_service.validate_print_job(5, 2)
-
-        assert result["success"] is False
-        assert result["error"] == "No active session"
-
-    def test_process_successful_print_when_active(self, session_service):
-        """Test process_successful_print when session is active"""
-        session_service.is_active = True
-        session_service.print_validation_service.process_successful_print.return_value = {
-            "success": True,
-            "new_budget": 45.0
-        }
-
-        result = session_service.process_successful_print(5, 2)
-
-        assert result["success"] is True
-        session_service.print_validation_service.process_successful_print.assert_called_once_with(5, 2)
-
-    def test_process_successful_print_when_not_active(self, session_service):
-        """Test process_successful_print when session is not active"""
-        session_service.is_active = False
-
-        result = session_service.process_successful_print(5, 2)
-
-        assert result["success"] is False
-        assert result["error"] == "No active session"
-
-    def test_get_print_budget(self, session_service):
-        """Test get_print_budget returns current budget"""
-        session_service.print_validation_service.get_current_budget.return_value = {
-            "success": True,
-            "budget": 50.0
-        }
-
-        result = session_service.get_print_budget()
-
-        assert result["success"] is True
-        session_service.print_validation_service.get_current_budget.assert_called_once()
-
-    def test_get_print_pricing(self, session_service):
-        """Test get_print_pricing returns pricing info"""
-        session_service.print_validation_service.get_print_pricing.return_value = {
-            "success": True,
-            "pricing": {"black_and_white_price": 1.0}
-        }
-
-        result = session_service.get_print_pricing()
-
-        assert result["success"] is True
-        session_service.print_validation_service.get_print_pricing.assert_called_once()
-
-
-
-

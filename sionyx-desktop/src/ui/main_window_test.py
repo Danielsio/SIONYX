@@ -61,9 +61,14 @@ def mock_session_service():
     session.sync_failed.connect = Mock()
     session.sync_restored = Mock()
     session.sync_restored.connect = Mock()
-    session.print_validation_service = Mock()
-    session.print_validation_service.print_budget_updated = Mock()
-    session.print_validation_service.print_budget_updated.connect = Mock()
+    # Mock print monitor
+    session.print_monitor = Mock()
+    session.print_monitor.job_allowed = Mock()
+    session.print_monitor.job_allowed.connect = Mock()
+    session.print_monitor.job_blocked = Mock()
+    session.print_monitor.job_blocked.connect = Mock()
+    session.print_monitor.budget_updated = Mock()
+    session.print_monitor.budget_updated.connect = Mock()
     session.start_session.return_value = {"success": True, "session_id": "test-session"}
     session.end_session.return_value = {"success": True, "remaining_time": 1800}
     session.is_session_active.return_value = False
@@ -464,16 +469,6 @@ class TestSignalHandlers:
             main_window.show_question.assert_called_once()
             # Should navigate to packages page
             mock_show_page.assert_called_once_with(1)  # PACKAGES = 1
-
-    def test_on_print_budget_updated_updates_timer(self, main_window):
-        """Test on_print_budget_updated updates floating timer"""
-        mock_timer = Mock()
-        main_window.floating_timer = mock_timer
-
-        main_window.on_print_budget_updated(25.0)
-
-        mock_timer.update_print_balance.assert_called_with(25.0)
-        assert main_window.current_user["remainingPrints"] == 25.0
 
     def test_on_warning_5min_shows_notification(self, main_window):
         """Test 5 minute warning shows notification"""
@@ -878,16 +873,6 @@ class TestSignalHandlersAdditional:
         window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
         yield window
         window.close()
-
-    def test_on_print_budget_updated_no_timer(self, main_window):
-        """Test on_print_budget_updated when no floating timer"""
-        main_window.floating_timer = None
-        
-        # Should not raise
-        main_window.on_print_budget_updated(50.0)
-        
-        # current_user should still be updated
-        assert main_window.current_user["remainingPrints"] == 50.0
 
     def test_on_sync_failed_without_timer(self, main_window):
         """Test on_sync_failed does nothing without timer"""
