@@ -33,7 +33,7 @@ def mock_auth_service(mock_firebase_client):
         "lastName": "User",
         "email": "test@example.com",
         "remainingTime": 3600,
-        "remainingPrints": 50.0,
+        "printBalance": 50.0,
     }
     auth_service.logout = Mock()
     return auth_service
@@ -833,7 +833,7 @@ class TestSessionManagementAdditional:
         """Test on_time_updated also updates print balance"""
         mock_timer = Mock()
         main_window.floating_timer = mock_timer
-        main_window.current_user["remainingPrints"] = 25.0
+        main_window.current_user["printBalance"] = 25.0
         
         main_window.on_time_updated(1800)
         

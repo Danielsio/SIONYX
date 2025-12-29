@@ -152,7 +152,7 @@ class AuthService:
             "phoneNumber": phone,
             "email": email if email else "",
             "remainingTime": 0,  # Start with 0 seconds
-            "remainingPrints": 0.0,  # Start with 0 NIS print budget
+            "printBalance": 0.0,  # Start with 0 NIS print budget
             "isActive": True,
             "isAdmin": False,  # Regular users are not admins
             "createdAt": datetime.now().isoformat(),
@@ -198,7 +198,7 @@ class AuthService:
     def update_user_data(self, updates: Dict) -> Dict:
         """
         Update current user's data in database
-        Example: {'remainingTime': 3600, 'remainingPrints': 50}
+        Example: {'remainingTime': 3600, 'printBalance': 50}
         """
         if not self.current_user:
             return {"success": False, "error": "No user logged in"}

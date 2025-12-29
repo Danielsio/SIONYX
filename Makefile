@@ -176,8 +176,6 @@ web-test:
 web-test-cov:
 	@echo "Running web admin tests with coverage..."
 	cd sionyx-web && npm run test:coverage
-	@echo ""
-	@echo "Coverage report: sionyx-web/coverage/index.html"
 
 # Run web tests with UI
 web-test-ui:

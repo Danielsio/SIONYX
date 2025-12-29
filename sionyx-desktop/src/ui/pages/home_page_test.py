@@ -25,7 +25,7 @@ MOCK_USER_WITH_TIME = {
     "firstName": "יוסי",
     "lastName": "כהן",
     "remainingTime": 3600,  # 1 hour
-    "remainingPrints": 25.50,
+    "printBalance": 25.50,
 }
 
 MOCK_USER_NO_TIME = {
@@ -33,7 +33,7 @@ MOCK_USER_NO_TIME = {
     "firstName": "דני",
     "lastName": "לוי",
     "remainingTime": 0,
-    "remainingPrints": 10.00,
+    "printBalance": 10.00,
 }
 
 MOCK_USER_LOW_TIME = {
@@ -41,7 +41,7 @@ MOCK_USER_LOW_TIME = {
     "firstName": "שרה",
     "lastName": "אברהם",
     "remainingTime": 180,  # 3 minutes
-    "remainingPrints": 5.00,
+    "printBalance": 5.00,
 }
 
 MOCK_MESSAGES = [
@@ -277,7 +277,7 @@ class TestHomePage:
             "uid": "test-user-123",
             "firstName": "אבי",
             "remainingTime": 7200,
-            "remainingPrints": 50.00,
+            "printBalance": 50.00,
         }
         mock_auth_service.get_current_user.return_value = new_user_data
 
@@ -292,7 +292,7 @@ class TestHomePage:
             "uid": "test-user-123",
             "firstName": "אבי",
             "remainingTime": 7200,
-            "remainingPrints": 100.00,
+            "printBalance": 100.00,
         }
         mock_auth_service.get_current_user.return_value = new_user_data
 
@@ -415,7 +415,7 @@ class TestHomePage:
 
     def test_update_prints_display(self, home_page):
         """Test prints display updates correctly"""
-        home_page.current_user["remainingPrints"] = 123.45
+        home_page.current_user["printBalance"] = 123.45
         home_page.update_prints_display()
 
         print_value = home_page.prints_card.findChild(QLabel, "printValue")
@@ -423,7 +423,7 @@ class TestHomePage:
 
     def test_update_prints_display_zero(self, home_page):
         """Test prints display with zero balance"""
-        home_page.current_user["remainingPrints"] = 0
+        home_page.current_user["printBalance"] = 0
         home_page.update_prints_display()
 
         print_value = home_page.prints_card.findChild(QLabel, "printValue")

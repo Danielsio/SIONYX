@@ -130,7 +130,7 @@ class HomePage(QWidget):
         layout.addWidget(self.time_card)
 
         # Print balance card
-        balance = self.current_user.get("remainingPrints", 0.0)
+        balance = self.current_user.get("printBalance", 0.0)
         self.prints_card = self._create_stat_card(
             "🖨️", UIStrings.PRINT_BALANCE, f"{balance:.2f}₪", Colors.ACCENT
         )
@@ -409,7 +409,7 @@ class HomePage(QWidget):
         if not self.current_user:
             return
 
-        balance = self.current_user.get("remainingPrints", 0.0)
+        balance = self.current_user.get("printBalance", 0.0)
         print_value = self.prints_card.findChild(QLabel, "printValue")
         if print_value:
             print_value.setText(f"{balance:.2f}₪")

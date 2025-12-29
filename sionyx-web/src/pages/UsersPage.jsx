@@ -146,7 +146,7 @@ const UsersPage = () => {
     // Set current values as form initial values
     form.setFieldsValue({
       minutes: Math.floor((record.remainingTime || 0) / 60), // Convert seconds to minutes
-      prints: record.remainingPrints || 0,
+      prints: record.printBalance || 0,
     });
     setAdjustBalanceVisible(true);
   };
@@ -160,7 +160,7 @@ const UsersPage = () => {
 
       // Calculate the difference between new values and current values
       const currentTimeMinutes = Math.floor((adjustingUser.remainingTime || 0) / 60);
-      const currentPrints = adjustingUser.remainingPrints || 0;
+      const currentPrints = adjustingUser.printBalance || 0;
 
       const adjustments = {
         timeSeconds: (values.minutes - currentTimeMinutes) * 60, // Difference in seconds
@@ -182,7 +182,7 @@ const UsersPage = () => {
           setSelectedUser({
             ...selectedUser,
             remainingTime: result.newBalance.remainingTime,
-            remainingPrints: result.newBalance.remainingPrints,
+            printBalance: result.newBalance.printBalance,
           });
         }
       } else {
@@ -585,7 +585,7 @@ const UsersPage = () => {
               <PrinterOutlined style={{ color: '#52c41a', fontSize: 20 }} />
               <div>
                 <Text style={{ color: '#52c41a', fontWeight: 700, fontSize: 18 }}>
-                  ₪{userRecord.remainingPrints || 0}
+                  ₪{userRecord.printBalance || 0}
                 </Text>
                 <Text type='secondary' style={{ display: 'block', fontSize: 11 }}>
                   תקציב הדפסות
@@ -895,7 +895,7 @@ const UsersPage = () => {
                 <Descriptions.Item label='תקציב הדפסות'>
                   <Space>
                     <PrinterOutlined />
-                    <Text style={{ fontWeight: 600 }}>₪{selectedUser.remainingPrints || 0}</Text>
+                    <Text style={{ fontWeight: 600 }}>₪{selectedUser.printBalance || 0}</Text>
                   </Space>
                 </Descriptions.Item>
                 <Descriptions.Item label='נוצר'>

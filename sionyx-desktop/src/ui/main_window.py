@@ -495,8 +495,8 @@ class MainWindow(BaseKioskWindow):
         self.floating_timer.update_time(remaining_time)
         self.floating_timer.update_usage_time(0)  # Start with 0 usage time
 
-        # Update print balance with user's actual print budget (stored in remainingPrints)
-        print_balance = self.current_user.get("remainingPrints", 0.0)
+        # Update print balance with user's actual print budget (stored in printBalance)
+        print_balance = self.current_user.get("printBalance", 0.0)
         self.floating_timer.update_print_balance(print_balance)
 
         self.floating_timer.show()
@@ -543,7 +543,7 @@ class MainWindow(BaseKioskWindow):
             time_used = self.session_service.get_time_used()
             self.floating_timer.update_usage_time(time_used)
             # Update print balance in case it changed
-            print_balance = self.current_user.get("remainingPrints", 0)
+            print_balance = self.current_user.get("printBalance", 0)
             self.floating_timer.update_print_balance(print_balance)
 
     def on_session_ended(self, reason: str):
@@ -602,7 +602,7 @@ class MainWindow(BaseKioskWindow):
         if self.floating_timer:
             self.floating_timer.update_print_balance(remaining)
         # Update current user data
-        self.current_user["remainingPrints"] = remaining
+        self.current_user["printBalance"] = remaining
 
     def on_print_blocked(
         self, doc_name: str, pages: int, cost: float, budget: float
@@ -620,7 +620,7 @@ class MainWindow(BaseKioskWindow):
         logger.info(f"Print budget updated: {new_budget}₪")
         if self.floating_timer:
             self.floating_timer.update_print_balance(new_budget)
-        self.current_user["remainingPrints"] = new_budget
+        self.current_user["printBalance"] = new_budget
 
     def on_sync_failed(self, error: str):
         """Handle sync failure"""
