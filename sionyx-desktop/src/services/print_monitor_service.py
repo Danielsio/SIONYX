@@ -111,10 +111,10 @@ class PrintMonitorService(QObject):
             # Start WMI event watcher (primary - instant detection)
             self._start_wmi_watcher()
 
-            # Start polling timer (fallback - every 2 seconds)
+            # Start polling timer (fallback - every 500ms for faster detection)
             self._poll_timer = QTimer()
             self._poll_timer.timeout.connect(self._poll_spooler)
-            self._poll_timer.start(2000)  # 2 seconds fallback
+            self._poll_timer.start(500)  # 500ms for faster detection
 
             self._is_monitoring = True
             logger.info("Print monitor started (WMI events + polling fallback)")
@@ -365,13 +365,30 @@ class PrintMonitorService(QObject):
         try:
             handle = win32print.OpenPrinter(printer_name)
             try:
-                jobs = win32print.EnumJobs(handle, 0, -1, 1)  # Level 1 info
+                # Use Level 2 to get TotalPages
+                jobs = win32print.EnumJobs(handle, 0, -1, 2)
                 return list(jobs) if jobs else []
             finally:
                 win32print.ClosePrinter(handle)
         except Exception as e:
             logger.error(f"Error getting jobs for {printer_name}: {e}")
             return []
+
+    def _get_job_info(self, printer_name: str, job_id: int) -> dict:
+        """Get detailed info for a specific job (with retry for page count)."""
+        if not win32print:
+            return {}
+        try:
+            handle = win32print.OpenPrinter(printer_name)
+            try:
+                # Use Level 2 to get TotalPages
+                job_info = win32print.GetJob(handle, job_id, 2)
+                return job_info if job_info else {}
+            finally:
+                win32print.ClosePrinter(handle)
+        except Exception as e:
+            logger.debug(f"Error getting job info for {job_id}: {e}")
+            return {}
 
     def _pause_job(self, printer_name: str, job_id: int) -> bool:
         """Pause a print job."""
@@ -429,11 +446,22 @@ class PrintMonitorService(QObject):
         """Record existing jobs so we don't process them."""
         with self._lock:
             self._known_jobs.clear()
-            for printer_name in self._get_all_printers():
+            printers = self._get_all_printers()
+
+            if not printers:
+                logger.warning("No printers found! Print monitoring may not work.")
+                logger.info(
+                    "Tip: Make sure pywin32 is installed: pip install pywin32"
+                )
+                return
+
+            logger.info(f"Found {len(printers)} printer(s): {printers}")
+
+            for printer_name in printers:
                 jobs = self._get_printer_jobs(printer_name)
                 self._known_jobs[printer_name] = {job.get("JobId", 0) for job in jobs}
                 if self._known_jobs[printer_name]:
-                    logger.debug(
+                    logger.info(
                         f"Ignoring {len(self._known_jobs[printer_name])} existing jobs "
                         f"on {printer_name}"
                     )
@@ -444,7 +472,21 @@ class PrintMonitorService(QObject):
             return
 
         try:
-            for printer_name in self._get_all_printers():
+            printers = self._get_all_printers()
+            if not printers:
+                logger.debug("No printers found during poll")
+                return
+
+            # Log occasionally to confirm polling is running (every ~30 seconds)
+            import time
+            if not hasattr(self, "_last_poll_log"):
+                self._last_poll_log = 0
+            now = time.time()
+            if now - self._last_poll_log > 30:
+                logger.info(f"Print monitor active - polling {len(printers)} printers")
+                self._last_poll_log = now
+
+            for printer_name in printers:
                 with self._lock:
                     if printer_name not in self._known_jobs:
                         self._known_jobs[printer_name] = set()
@@ -453,8 +495,17 @@ class PrintMonitorService(QObject):
                 current_jobs = self._get_printer_jobs(printer_name)
                 current_ids = {job.get("JobId", 0) for job in current_jobs}
 
+                # Log if any jobs are in queue (for debugging)
+                if current_jobs:
+                    logger.info(
+                        f"Jobs in queue for '{printer_name}': {len(current_jobs)} - IDs: {current_ids}"
+                    )
+
                 # Find new jobs not yet known
                 new_ids = current_ids - known
+
+                if new_ids:
+                    logger.info(f"New job(s) detected: {new_ids}")
 
                 for job_id in new_ids:
                     job_data = next(
@@ -487,19 +538,98 @@ class PrintMonitorService(QObject):
     # JOB HANDLING
     # =========================================================================
 
+    def _get_copies_from_devmode(self, devmode) -> int:
+        """Extract number of copies from DEVMODE structure."""
+        if devmode is None:
+            return 1
+        try:
+            # PyDEVMODEW has a Copies attribute
+            copies = getattr(devmode, "Copies", 1)
+            return copies if copies and copies > 0 else 1
+        except Exception as e:
+            logger.debug(f"Could not get copies from devmode: {e}")
+            return 1
+
     def _handle_new_job(self, printer_name: str, job_data: dict):
         """Process a newly detected print job."""
+        import time
+
         job_id = job_data.get("JobId", 0)
         doc_name = job_data.get("pDocument", "Unknown")
+
+        # Get number of copies from DEVMODE
+        devmode = job_data.get("pDevMode")
+        copies = self._get_copies_from_devmode(devmode)
+        logger.info(f"Copies requested: {copies}")
+
+        # Status 8 = JOB_STATUS_SPOOLING - document still being processed
+        JOB_STATUS_SPOOLING = 8
+
+        # Wait for spooling to complete to get accurate page count
+        # Large documents take time to spool
         total_pages = job_data.get("TotalPages", 0)
+        status = job_data.get("Status", 0)
 
-        # Handle case where page count is 0 or unknown
+        logger.info(f"Initial: TotalPages={total_pages}, Status={status}, Size={job_data.get('Size', 0)}")
+
+        # If still spooling or page count is low, wait for spooling to complete
+        if status & JOB_STATUS_SPOOLING or total_pages <= 1:
+            logger.info("Document still spooling, waiting for complete page count...")
+            last_pages = total_pages
+            stable_count = 0
+
+            for attempt in range(20):  # Wait up to 10 seconds (20 × 500ms)
+                time.sleep(0.5)  # Wait 500ms
+                job_info = self._get_job_info(printer_name, job_id)
+
+                if not job_info:
+                    logger.warning("Job no longer exists, may have completed")
+                    break
+
+                current_pages = job_info.get("TotalPages", 0)
+                current_status = job_info.get("Status", 0)
+                current_size = job_info.get("Size", 0)
+
+                # Also update copies if available
+                if job_info.get("pDevMode"):
+                    copies = self._get_copies_from_devmode(job_info.get("pDevMode"))
+
+                logger.debug(
+                    f"Attempt {attempt + 1}: pages={current_pages}, "
+                    f"status={current_status}, size={current_size}"
+                )
+
+                # Check if spooling is complete (status no longer has SPOOLING flag)
+                if not (current_status & JOB_STATUS_SPOOLING) and current_pages > 0:
+                    total_pages = current_pages
+                    logger.info(f"Spooling complete! TotalPages={total_pages}")
+                    break
+
+                # Also check if page count has stabilized
+                if current_pages > 0 and current_pages == last_pages:
+                    stable_count += 1
+                    if stable_count >= 3:  # Same count for 3 checks = stable
+                        total_pages = current_pages
+                        logger.info(f"Page count stable at {total_pages}")
+                        break
+                else:
+                    stable_count = 0
+                    if current_pages > total_pages:
+                        total_pages = current_pages
+
+                last_pages = current_pages
+
+        # Final fallback if still 0
         if total_pages <= 0:
-            total_pages = 1  # Assume at least 1 page
+            logger.warning("Could not determine page count, defaulting to 1")
+            total_pages = 1
 
+        # Calculate actual pages (pages × copies)
+        actual_pages = total_pages * copies
         logger.info(
-            f"New print job: '{doc_name}' ({total_pages} pages) on {printer_name}"
+            f"New print job: '{doc_name}' ({total_pages} pages × {copies} copies = {actual_pages} total) on {printer_name}"
         )
+        total_pages = actual_pages  # Use actual total for billing
 
         # Step 1: Pause the job immediately
         if not self._pause_job(printer_name, job_id):

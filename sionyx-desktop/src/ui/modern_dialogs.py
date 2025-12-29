@@ -675,7 +675,7 @@ class ModernNotification(QDialog):
             self.close()
 
     @staticmethod
-    def show(parent, message, message_type="info", duration=3000):
+    def show_toast(parent, message, message_type="info", duration=3000):
         """Show notification toast"""
         notification = ModernNotification(parent, message, message_type, duration)
         notification.show_notification()

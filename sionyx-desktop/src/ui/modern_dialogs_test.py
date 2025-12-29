@@ -506,7 +506,7 @@ class TestModernNotificationMethods:
         """Test static show method exists"""
         from ui.modern_dialogs import ModernNotification
         assert hasattr(ModernNotification, "show")
-        assert callable(ModernNotification.show)
+        assert callable(ModernNotification.show_toast)
 
 
 # =============================================================================
@@ -704,7 +704,7 @@ class TestModernNotificationShowMethods:
         
         # Verify static method exists
         assert hasattr(ModernNotification, "show")
-        assert callable(ModernNotification.show)
+        assert callable(ModernNotification.show_toast)
 
 
 class TestModernNotificationContainer:

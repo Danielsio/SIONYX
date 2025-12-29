@@ -406,7 +406,7 @@ class TestRealBaseKioskWindow:
         with patch("ui.base_window.ModernNotification") as mock_notif:
             result = real_base_window.show_notification("Message")
             
-            mock_notif.show.assert_called_once()
+            mock_notif.show_toast.assert_called_once()
 
     def test_apply_base_stylesheet_returns_qss(self, real_base_window):
         """Test apply_base_stylesheet returns BASE_QSS"""

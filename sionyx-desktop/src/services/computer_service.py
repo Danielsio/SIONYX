@@ -263,14 +263,14 @@ class ComputerService:
             if not computers_result.get("success"):
                 return computers_result
 
-            computers = computers_result.get("data", {})
+            computers = computers_result.get("data") or {}
 
             # Get all users
             users_result = self.firebase.db_get("users")
             if not users_result.get("success"):
                 return users_result
 
-            users = users_result.get("data", {})
+            users = users_result.get("data") or {}
 
             # Process statistics
             stats = {
