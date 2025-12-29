@@ -117,9 +117,9 @@ export const adjustUserBalance = async (orgId, userId, adjustments) => {
     }
 
     if (adjustments.prints !== undefined) {
-      updates.remainingPrints = (currentUser.remainingPrints || 0) + adjustments.prints;
+      updates.printBalance = (currentUser.printBalance || 0) + adjustments.prints;
       // Ensure it doesn't go negative
-      if (updates.remainingPrints < 0) updates.remainingPrints = 0;
+      if (updates.printBalance < 0) updates.printBalance = 0;
     }
 
     await update(userRef, updates);
@@ -129,7 +129,7 @@ export const adjustUserBalance = async (orgId, userId, adjustments) => {
       message: 'User balance adjusted successfully',
       newBalance: {
         remainingTime: updates.remainingTime,
-        remainingPrints: updates.remainingPrints,
+        printBalance: updates.printBalance,
       },
     };
   } catch (error) {

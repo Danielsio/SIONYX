@@ -257,7 +257,7 @@ export const getActiveComputerUsers = async () => {
             sessionStartTime: userData.sessionStartTime || null,
             sessionActive: userData.isSessionActive || false,
             remainingTime: userData.remainingTime || 0,
-            remainingPrints: userData.remainingPrints || 0,
+            printBalance: userData.printBalance || 0,
           });
         }
       }

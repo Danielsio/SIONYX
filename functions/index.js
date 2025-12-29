@@ -317,12 +317,12 @@ exports.nedarimCallback = onRequest(async (req, res) => {
           hasUser: !!user,
           userId: purchase.userId,
           currentTime: (user && user.remainingTime) || 0,
-          currentPrints: (user && user.remainingPrints) || 0,
+          currentPrints: (user && user.printBalance) || 0,
         });
 
         if (user) {
           const currentTime = user.remainingTime || 0;
-          const currentPrintBudget = user.remainingPrints || 0;
+          const currentPrintBudget = user.printBalance || 0;
           const addingMinutes = purchase.minutes || 0;
           const addingPrintBudget = purchase.printBudget || 0;
           const newTime = currentTime + (addingMinutes * 60);
@@ -342,7 +342,7 @@ exports.nedarimCallback = onRequest(async (req, res) => {
           const userUpdateTimer = createTimer("user-crediting-update");
           await userRef.update({
             remainingTime: newTime,
-            remainingPrints: newPrintBudget, // Now stores print budget in NIS
+            printBalance: newPrintBudget, // Now stores print budget in NIS
             updatedAt: new Date().toISOString(),
             lastCreditedAt: new Date().toISOString(),
             lastCreditedBy: "nedarim-callback",

@@ -153,11 +153,11 @@ class PrintMonitorService(QObject):
     # =========================================================================
 
     def _get_user_budget(self) -> float:
-        """Get user's current print budget (remainingPrints field)."""
+        """Get user's current print budget (printBalance field)."""
         try:
             result = self.firebase.db_get(f"users/{self.user_id}")
             if result.get("success") and result.get("data"):
-                return float(result["data"].get("remainingPrints", 0.0))
+                return float(result["data"].get("printBalance", 0.0))
             return 0.0
         except Exception as e:
             logger.error(f"Error getting user budget: {e}")
@@ -174,7 +174,7 @@ class PrintMonitorService(QObject):
             result = self.firebase.db_update(
                 f"users/{self.user_id}",
                 {
-                    "remainingPrints": new_budget,
+                    "printBalance": new_budget,
                     "updatedAt": datetime.now().isoformat(),
                 },
             )

@@ -135,7 +135,7 @@ describe('userService', () => {
     it('adds time correctly', async () => {
       get.mockResolvedValue({
         exists: () => true,
-        val: () => ({ remainingTime: 100, remainingPrints: 10 }),
+        val: () => ({ remainingTime: 100, printBalance: 10 }),
       });
       update.mockResolvedValue();
 
@@ -152,7 +152,7 @@ describe('userService', () => {
     it('adds prints correctly', async () => {
       get.mockResolvedValue({
         exists: () => true,
-        val: () => ({ remainingTime: 100, remainingPrints: 10 }),
+        val: () => ({ remainingTime: 100, printBalance: 10 }),
       });
       update.mockResolvedValue();
 
@@ -162,13 +162,13 @@ describe('userService', () => {
 
       expect(result.success).toBe(true);
       const updateCall = update.mock.calls[0][1];
-      expect(updateCall.remainingPrints).toBe(15); // 10 + 5
+      expect(updateCall.printBalance).toBe(15); // 10 + 5
     });
 
     it('prevents negative time', async () => {
       get.mockResolvedValue({
         exists: () => true,
-        val: () => ({ remainingTime: 30, remainingPrints: 10 }),
+        val: () => ({ remainingTime: 30, printBalance: 10 }),
       });
       update.mockResolvedValue();
 
@@ -183,7 +183,7 @@ describe('userService', () => {
     it('prevents negative prints', async () => {
       get.mockResolvedValue({
         exists: () => true,
-        val: () => ({ remainingTime: 100, remainingPrints: 5 }),
+        val: () => ({ remainingTime: 100, printBalance: 5 }),
       });
       update.mockResolvedValue();
 
@@ -192,7 +192,7 @@ describe('userService', () => {
       });
 
       const updateCall = update.mock.calls[0][1];
-      expect(updateCall.remainingPrints).toBe(0); // Not negative
+      expect(updateCall.printBalance).toBe(0); // Not negative
     });
   });
 

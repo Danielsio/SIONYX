@@ -248,7 +248,7 @@ describe('dataStore', () => {
 
     it('partially updates user (merges properties)', () => {
       useDataStore.getState().setUsers([
-        { uid: 'user-1', firstName: 'John', remainingTime: 100, remainingPrints: 50 },
+        { uid: 'user-1', firstName: 'John', remainingTime: 100, printBalance: 50 },
       ]);
 
       useDataStore.getState().updateUser('user-1', { remainingTime: 200 });
@@ -256,7 +256,7 @@ describe('dataStore', () => {
       const user = useDataStore.getState().users[0];
       expect(user.firstName).toBe('John'); // Unchanged
       expect(user.remainingTime).toBe(200); // Updated
-      expect(user.remainingPrints).toBe(50); // Unchanged
+      expect(user.printBalance).toBe(50); // Unchanged
     });
 
     it('does nothing if user uid not found', () => {
