@@ -1,5 +1,19 @@
 # SIONYX - TODO & Roadmap
 
+## 🎨 UI/UX Improvements
+
+- [ ] **UI Makeover** - Pages currently look awful, need full redesign
+  - HomePage, PackagesPage, HistoryPage, HelpPage
+  - Modern design, better layout, improved visuals
+
+- [ ] **Notification UI** - Improve desktop notification appearance
+  - Better styling, animations, positioning
+  - Different styles for success/warning/error
+
+- [ ] **Session Return Flow** - Improve handling when returning to app during session
+  - Smoother transition from floating timer back to main window
+  - Better state management
+
 ## 🚀 Features (Planned)
 
 - [ ] **Media Blocker** - Block video players and streaming sites during sessions
@@ -10,6 +24,12 @@
 - [ ] **Color Print Detection** - Detect if print job is color vs B&W
   - Currently assumes all prints are B&W
   - Would allow different pricing for color
+
+## ⚡ Performance
+
+- [ ] **Firebase Polling Optimization** - Improve message service listener
+  - Better SSE connection handling
+  - Reduce unnecessary polling/reconnects
 
 ## 🐛 Known Issues
 
