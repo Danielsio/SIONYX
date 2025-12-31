@@ -40,13 +40,6 @@
   - Currently assumes all prints are B&W
   - Would allow different pricing for color
 
-## 🧹 Code Cleanup
-
-- [ ] **User Field Refactor** - Clean up user data structure
-  - Keep only relevant/used fields
-  - Remove unused fields from user object
-  - Update Firebase schema accordingly
-
 ## ⚡ Performance
 
 - [ ] **Firebase Polling Optimization** - Improve message service listener
@@ -61,6 +54,10 @@
 
 ## ✅ Recently Completed
 
+- [x] **User Field Refactor** - Cleaned up user data structure
+  - Fixed orphan session recovery bug (wasn't clearing computer association)
+  - Removed unused fields: computerHistory, sessionComputerName, lastComputerLogin
+  - Reduces Firebase writes and simplifies data model
 - [x] **Print Monitor Service** - WMI event-driven + polling fallback
 - [x] **Page count detection** - Wait for spooling to complete
 - [x] **Multiple copies support** - Detect copies from DEVMODE
