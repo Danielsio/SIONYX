@@ -2,6 +2,11 @@
 
 ## 🎨 UI/UX Improvements
 
+- [ ] **App Logo** - Add application logo/icon
+  - Taskbar icon, window title bar
+  - About page/splash screen
+  - Desktop shortcut icon
+
 - [ ] **UI Makeover** - Pages currently look awful, need full redesign
   - HomePage, PackagesPage, HistoryPage, HelpPage
   - Modern design, better layout, improved visuals
@@ -16,6 +21,16 @@
 
 ## 🚀 Features (Planned)
 
+- [ ] **Single Session Enforcement** - Prevent user from logging in on multiple computers
+  - If already logged in elsewhere, reject new login attempt
+  - Show dedicated error message/notification to user
+  - Track active sessions in Firebase
+
+- [ ] **Kiosk Mode / Auto-Run** - App runs automatically on system startup
+  - Add to Windows startup registry on install
+  - Only admin can exit the application
+  - Prevent regular users from closing/killing the app
+
 - [ ] **Media Blocker** - Block video players and streaming sites during sessions
   - Monitor processes (VLC, Netflix, etc.)
   - Detect browser tabs with YouTube, Netflix via window titles
@@ -24,6 +39,13 @@
 - [ ] **Color Print Detection** - Detect if print job is color vs B&W
   - Currently assumes all prints are B&W
   - Would allow different pricing for color
+
+## 🧹 Code Cleanup
+
+- [ ] **User Field Refactor** - Clean up user data structure
+  - Keep only relevant/used fields
+  - Remove unused fields from user object
+  - Update Firebase schema accordingly
 
 ## ⚡ Performance
 
@@ -46,5 +68,5 @@
 - [x] **Handle empty Firebase collections** - No crash on missing data
 
 ---
-*Last updated: 2024-12-30*
+*Last updated: 2024-12-31*
 
