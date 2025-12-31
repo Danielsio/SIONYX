@@ -157,21 +157,8 @@ class ComputerService:
             user_updates = {
                 "currentComputerId": computer_id,
                 "currentComputerName": computer_name,
-                "lastComputerLogin": now,
                 "updatedAt": now,
             }
-
-            # Add to computer history (keep last 10)
-            user_result = self.firebase.db_get(f"users/{user_id}")
-            if user_result.get("success"):
-                user_data = user_result["data"]
-                computer_history = user_data.get("computerHistory", [])
-
-                # Add current computer if not already in history
-                if computer_id not in computer_history:
-                    computer_history.insert(0, computer_id)  # Add to beginning
-                    computer_history = computer_history[:10]  # Keep only last 10
-                    user_updates["computerHistory"] = computer_history
 
             result = self.firebase.db_update(f"users/{user_id}", user_updates)
 

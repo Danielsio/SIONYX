@@ -142,12 +142,9 @@ class TestComputerService:
 
     def test_associate_user_with_computer_success(self, computer_service, mock_firebase_client):
         """Test associating user with computer"""
-        mock_firebase_client.db_get.side_effect = [
-            # First call - get computer info
-            {"success": True, "data": {"computerName": "TEST-PC"}},
-            # Second call - get user info
-            {"success": True, "data": {"computerHistory": []}}
-        ]
+        mock_firebase_client.db_get.return_value = {
+            "success": True, "data": {"computerName": "TEST-PC"}
+        }
         mock_firebase_client.db_update.return_value = {"success": True}
         
         result = computer_service.associate_user_with_computer("user-123", "computer-123")
@@ -155,6 +152,11 @@ class TestComputerService:
         assert result["success"] is True
         # Should update both user and computer
         assert mock_firebase_client.db_update.call_count >= 1
+        # Verify currentComputerId is set
+        user_update_call = mock_firebase_client.db_update.call_args_list[0]
+        user_updates = user_update_call[0][1]
+        assert user_updates.get("currentComputerId") == "computer-123"
+        assert user_updates.get("currentComputerName") == "TEST-PC"
 
     def test_associate_user_with_computer_not_found(self, computer_service, mock_firebase_client):
         """Test associating user with non-existent computer"""
@@ -163,22 +165,6 @@ class TestComputerService:
         result = computer_service.associate_user_with_computer("user-123", "computer-123")
         
         assert result["success"] is False
-
-    def test_associate_user_with_computer_updates_history(self, computer_service, mock_firebase_client):
-        """Test that computer history is updated correctly"""
-        mock_firebase_client.db_get.side_effect = [
-            {"success": True, "data": {"computerName": "TEST-PC"}},
-            {"success": True, "data": {"computerHistory": ["old-computer-1", "old-computer-2"]}}
-        ]
-        mock_firebase_client.db_update.return_value = {"success": True}
-        
-        result = computer_service.associate_user_with_computer("user-123", "new-computer")
-        
-        assert result["success"] is True
-        # Check that history was updated
-        user_update_call = mock_firebase_client.db_update.call_args_list[0]
-        user_updates = user_update_call[0][1]
-        assert user_updates.get("currentComputerId") == "new-computer"
 
     def test_associate_user_with_computer_exception(self, computer_service, mock_firebase_client):
         """Test association with exception"""
