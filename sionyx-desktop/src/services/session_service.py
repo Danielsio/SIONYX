@@ -89,21 +89,12 @@ class SessionService(QObject):
         # Store everything on user record to save 50% more writes
         now = datetime.now().isoformat()
 
-        # Get current computer info for session tracking
-        computer_info = self.computer_service.get_computer_info(
-            self._get_current_computer_id()
-        )
-        computer_name = "Unknown PC"
-        if computer_info.get("success") and computer_info.get("data"):
-            computer_name = computer_info["data"].get("computerName", "Unknown PC")
-
         result = self.firebase.db_update(
             f"users/{self.user_id}",
             {
                 "isSessionActive": True,
                 "sessionStartTime": now,
                 "lastActivity": now,
-                "sessionComputerName": computer_name,
                 "updatedAt": now,
             },
         )
