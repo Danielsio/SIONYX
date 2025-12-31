@@ -208,18 +208,29 @@ class TestAuthService:
         mock_firebase_client.db_update.assert_not_called()
 
     def test_recover_orphaned_session_old_session(self, auth_service, mock_firebase_client):
-        """Test orphaned session recovery with old session"""
+        """Test orphaned session recovery with old session clears computer association"""
         old_time = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         mock_firebase_client.db_get.return_value = {
             "success": True,
-            "data": {"isSessionActive": True, "lastActivity": old_time.isoformat()},
+            "data": {
+                "isSessionActive": True,
+                "lastActivity": old_time.isoformat(),
+                "currentComputerId": "orphaned-computer-123",
+            },
         }
 
         auth_service._recover_orphaned_session("test-user-id")
 
+        # Should disassociate user from computer
+        auth_service.computer_service.disassociate_user_from_computer.assert_called_once_with(
+            "test-user-id", "orphaned-computer-123"
+        )
+        # Should clear session and computer fields
         mock_firebase_client.db_update.assert_called_once()
         call_args = mock_firebase_client.db_update.call_args
         assert call_args[0][1]["isSessionActive"] is False
+        assert call_args[0][1]["currentComputerId"] is None
+        assert call_args[0][1]["currentComputerName"] is None
 
     def test_recover_orphaned_session_recent_session(self, auth_service, mock_firebase_client):
         """Test orphaned session recovery with recent session"""
@@ -276,17 +287,27 @@ class TestAuthService:
         auth_service._recover_orphaned_session("test-user-id")
 
     def test_recover_orphaned_session_no_last_activity(self, auth_service, mock_firebase_client):
-        """Test orphaned session recovery when lastActivity is missing"""
+        """Test orphaned session recovery when lastActivity is missing clears computer"""
         mock_firebase_client.db_get.return_value = {
             "success": True,
-            "data": {"isSessionActive": True}  # No lastActivity
+            "data": {
+                "isSessionActive": True,
+                "currentComputerId": "orphaned-computer-456",
+            }  # No lastActivity
         }
         mock_firebase_client.db_update.return_value = {"success": True}
 
         auth_service._recover_orphaned_session("test-user-id")
 
-        # Should clean up session
+        # Should disassociate user from computer
+        auth_service.computer_service.disassociate_user_from_computer.assert_called_once_with(
+            "test-user-id", "orphaned-computer-456"
+        )
+        # Should clean up session and computer fields
         mock_firebase_client.db_update.assert_called_once()
+        call_args = mock_firebase_client.db_update.call_args
+        assert call_args[0][1]["currentComputerId"] is None
+        assert call_args[0][1]["currentComputerName"] is None
 
     def test_recover_orphaned_session_invalid_timestamp(self, auth_service, mock_firebase_client):
         """Test orphaned session recovery with invalid timestamp format"""

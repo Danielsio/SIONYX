@@ -247,12 +247,19 @@ class AuthService:
             last_activity_str = user_data.get("lastActivity")
             if not last_activity_str:
                 logger.warning("Session has no lastActivity, cleaning up anyway")
-                # Just clean up
+                # Clean up session AND computer association
+                current_computer_id = user_data.get("currentComputerId")
+                if current_computer_id:
+                    self.computer_service.disassociate_user_from_computer(
+                        user_id, current_computer_id
+                    )
                 self.firebase.db_update(
                     f"users/{user_id}",
                     {
                         "isSessionActive": False,
                         "sessionStartTime": None,
+                        "currentComputerId": None,
+                        "currentComputerName": None,
                         "updatedAt": datetime.now().isoformat(),
                     },
                 )
@@ -279,17 +286,24 @@ class AuthService:
                 )
                 logger.info("Max time 'lost': 60 seconds from last sync - acceptable!")
 
-                # Clean up session WITHOUT deducting time
+                # Clean up session AND computer association WITHOUT deducting time
+                current_computer_id = user_data.get("currentComputerId")
+                if current_computer_id:
+                    self.computer_service.disassociate_user_from_computer(
+                        user_id, current_computer_id
+                    )
                 self.firebase.db_update(
                     f"users/{user_id}",
                     {
                         "isSessionActive": False,
                         "sessionStartTime": None,
+                        "currentComputerId": None,
+                        "currentComputerName": None,
                         "updatedAt": now.isoformat(),
                     },
                 )
 
-                logger.info("✅ Session cleaned up (no time deducted)")
+                logger.info("✅ Session and computer association cleaned up (no time deducted)")
 
             else:
                 logger.debug(
