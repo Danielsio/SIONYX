@@ -125,6 +125,9 @@ vi.mock('@ant-design/icons', () => {
     EnvironmentOutlined: createMockIcon('EnvironmentOutlined'),
     LaptopOutlined: createMockIcon('LaptopOutlined'),
     MobileOutlined: createMockIcon('MobileOutlined'),
+    UserAddOutlined: createMockIcon('UserAddOutlined'),
+    KeyOutlined: createMockIcon('KeyOutlined'),
+    SafetyOutlined: createMockIcon('SafetyOutlined'),
   };
 });
 

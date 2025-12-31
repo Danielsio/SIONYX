@@ -153,7 +153,7 @@ class AuthService:
             "email": email if email else "",
             "remainingTime": 0,  # Start with 0 seconds
             "printBalance": 0.0,  # Start with 0 NIS print budget
-            "isActive": True,
+            "isActive": False,  # Active session is managed by sionyx-desktop only
             "isAdmin": False,  # Regular users are not admins
             "createdAt": datetime.now().isoformat(),
             "updatedAt": datetime.now().isoformat(),
