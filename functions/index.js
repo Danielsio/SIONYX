@@ -428,8 +428,21 @@ exports.nedarimCallback = onRequest(async (req, res) => {
 });
 
 /**
+ * Convert phone number to email format for Firebase Auth
+ * Same logic as desktop client for consistency
+ * @param {string} phone - Phone number (e.g., "0501234567")
+ * @return {string} Email format (e.g., "0501234567@sionyx.app")
+ */
+const phoneToEmail = (phone) => {
+  // Remove all non-digit characters
+  const cleanPhone = phone.replace(/\D/g, "");
+  return `${cleanPhone}@sionyx.app`;
+};
+
+/**
  * Organization Registration Function
  * Handles secure registration of new organizations with NEDARIM credentials
+ * AND creates the first admin user for the organization
  */
 exports.registerOrganization = onCall(async (request) => {
   const correlationId = generateCorrelationId();
@@ -445,60 +458,35 @@ exports.registerOrganization = onCall(async (request) => {
   });
 
   try {
-    const {organizationName, nedarimMosadId, nedarimApiValid} = request.data;
+    const {
+      organizationName,
+      nedarimMosadId,
+      nedarimApiValid,
+      // Admin user fields
+      adminPhone,
+      adminPassword,
+      adminFirstName,
+      adminLastName,
+      adminEmail,
+    } = request.data;
 
-    // Validate required fields
-    if (!organizationName || !nedarimMosadId || !nedarimApiValid) {
-      const missingFields = [];
-      if (!organizationName) missingFields.push("organizationName");
-      if (!nedarimMosadId) missingFields.push("nedarimMosadId");
-      if (!nedarimApiValid) missingFields.push("nedarimApiValid");
-
-      log.error("Missing required fields", null, {
-        missingFields,
-        receivedFields: Object.keys(request.data || {}),
-      });
-
+    // Minimal safety check - UI handles detailed validation
+    if (!organizationName || !nedarimMosadId || !nedarimApiValid ||
+        !adminPhone || !adminPassword || !adminFirstName || !adminLastName) {
       throw new functions.https.HttpsError(
           "invalid-argument",
-          "Missing required fields: " + missingFields.join(", "),
-      );
-    }
-
-    // Validate organization name format
-    if (typeof organizationName !== "string" ||
-        organizationName.trim().length < 2) {
-      throw new functions.https.HttpsError(
-          "invalid-argument",
-          "Organization name must be at least 2 characters long",
-      );
-    }
-
-    // Validate NEDARIM credentials format
-    if (typeof nedarimMosadId !== "string" ||
-        nedarimMosadId.trim().length === 0) {
-      throw new functions.https.HttpsError(
-          "invalid-argument",
-          "NEDARIM Mosad ID is required",
-      );
-    }
-
-    if (typeof nedarimApiValid !== "string" ||
-        nedarimApiValid.trim().length === 0) {
-      throw new functions.https.HttpsError(
-          "invalid-argument",
-          "NEDARIM API Valid key is required",
+          "חסרים שדות חובה",
       );
     }
 
     const cleanOrgName = organizationName.trim();
     const cleanMosadId = nedarimMosadId.trim();
     const cleanApiValid = nedarimApiValid.trim();
+    const cleanAdminPhone = adminPhone.replace(/\D/g, "");
 
-    log.info("Input validation completed", {
+    log.info("Processing registration", {
       orgNameLength: cleanOrgName.length,
-      hasMosadId: !!cleanMosadId,
-      hasApiValid: !!cleanApiValid,
+      hasAdminPhone: !!cleanAdminPhone,
     });
 
     // Use organization name as ID (normalized)
@@ -540,7 +528,40 @@ exports.registerOrganization = onCall(async (request) => {
       orgName: cleanOrgName,
     });
 
-    // Prepare metadata with encrypted sensitive data
+    // Step 1: Create admin user in Firebase Auth
+    const adminFirebaseEmail = phoneToEmail(cleanAdminPhone);
+    log.info("Creating admin user in Firebase Auth", {
+      email: adminFirebaseEmail,
+      phone: cleanAdminPhone,
+    });
+
+    let adminUid;
+    try {
+      const userRecord = await admin.auth().createUser({
+        email: adminFirebaseEmail,
+        password: adminPassword,
+        displayName: `${adminFirstName} ${adminLastName}`,
+      });
+      adminUid = userRecord.uid;
+      log.info("Admin user created in Firebase Auth", {uid: adminUid});
+    } catch (authError) {
+      log.error("Failed to create admin user in Firebase Auth", authError);
+
+      // Handle specific Firebase Auth errors
+      if (authError.code === "auth/email-already-exists") {
+        throw new functions.https.HttpsError(
+            "already-exists",
+            "מספר הטלפון כבר רשום במערכת",
+        );
+      }
+
+      throw new functions.https.HttpsError(
+          "internal",
+          "Failed to create admin user: " + authError.message,
+      );
+    }
+
+    // Step 2: Prepare and save organization metadata
     const metadata = {
       name: cleanOrgName,
       nedarim_mosad_id: encryptData(cleanMosadId),
@@ -548,6 +569,7 @@ exports.registerOrganization = onCall(async (request) => {
       created_at: new Date().toISOString(),
       status: "active",
       created_by: "public-registration",
+      admin_uid: adminUid,
       correlation_id: correlationId,
     };
 
@@ -555,10 +577,38 @@ exports.registerOrganization = onCall(async (request) => {
     const orgRef = admin.database().ref(`organizations/${orgId}/metadata`);
     await orgRef.set(metadata);
 
-    log.info("Organization registered successfully", {
+    log.info("Organization metadata saved", {
       orgId,
       orgName: cleanOrgName,
       created_at: metadata.created_at,
+    });
+
+    // Step 3: Create admin user data in organization's users collection
+    const adminUserData = {
+      firstName: adminFirstName.trim(),
+      lastName: adminLastName.trim(),
+      phoneNumber: cleanAdminPhone,
+      email: adminEmail ? adminEmail.trim() : "",
+      remainingTime: 0, // Admins don't need time balance for admin dashboard
+      printBalance: 0.0,
+      isActive: false, // Active session is managed by sionyx-desktop only
+      isAdmin: true, // This user is the organization admin
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: "organization-registration",
+      correlation_id: correlationId,
+    };
+
+    // Save admin user to organizations/{orgId}/users/{adminUid}
+    const adminUserRef = admin.database()
+        .ref(`organizations/${orgId}/users/${adminUid}`);
+    await adminUserRef.set(adminUserData);
+
+    log.info("Admin user data saved to organization", {
+      orgId,
+      adminUid,
+      adminPhone: cleanAdminPhone,
+      isAdmin: true,
     });
 
     // Performance timing for entire request
@@ -567,7 +617,8 @@ exports.registerOrganization = onCall(async (request) => {
     return {
       success: true,
       orgId,
-      message: "Organization registered successfully",
+      adminUid,
+      message: "Organization and admin user registered successfully",
       correlationId,
     };
   } catch (error) {
