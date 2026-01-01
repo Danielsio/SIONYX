@@ -6,7 +6,7 @@
 !define APP_PUBLISHER "SIONYX Technologies"
 !define APP_URL "https://sionyx.app"
 !define APP_EXECUTABLE "SIONYX.exe"
-!define APP_ICON "logo.ico"
+!define APP_ICON "app-logo.ico"
 !define INSTALLER_NAME "SIONYX-Installer.exe"
 
 ; Modern UI
@@ -27,8 +27,8 @@ RequestExecutionLevel admin
 
 ; Interface Settings
 !define MUI_ABORTWARNING
-; !define MUI_ICON "${APP_ICON}"
-; !define MUI_UNICON "${APP_ICON}"
+!define MUI_ICON "${APP_ICON}"
+!define MUI_UNICON "${APP_ICON}"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
@@ -50,6 +50,9 @@ Section "Main Application" SecMain
     
     ; Copy main executable
     File "${APP_EXECUTABLE}"
+    
+    ; Copy application icon
+    File "${APP_ICON}"
     
     ; Web assets removed - build separately
     
@@ -104,18 +107,18 @@ Section "Main Application" SecMain
     ; Add to Add/Remove Programs
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayName" "${APP_NAME}"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString" '"$INSTDIR\Uninstall.exe"'
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayIcon" '"$INSTDIR\${APP_EXECUTABLE}"'
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayIcon" '"$INSTDIR\${APP_ICON}"'
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "Publisher" "${APP_PUBLISHER}"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "URLInfoAbout" "${APP_URL}"
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "NoModify" 1
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "NoRepair" 1
     
-    ; Create desktop shortcut
-    CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "" "$INSTDIR\${APP_EXECUTABLE}" 0
+    ; Create desktop shortcut with icon
+    CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "" "$INSTDIR\${APP_ICON}" 0
     
-    ; Create start menu shortcut
+    ; Create start menu shortcut with icon
     CreateDirectory "$SMPROGRAMS\${APP_NAME}"
-    CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "" "$INSTDIR\${APP_EXECUTABLE}" 0
+    CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "" "$INSTDIR\${APP_ICON}" 0
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
 SectionEnd
 
@@ -123,6 +126,7 @@ SectionEnd
 Section "Uninstall"
     ; Remove files
     Delete "$INSTDIR\${APP_EXECUTABLE}"
+    Delete "$INSTDIR\${APP_ICON}"
     Delete "$INSTDIR\Uninstall.exe"
     Delete "$INSTDIR\env.example"
     RMDir /r "$INSTDIR\web"

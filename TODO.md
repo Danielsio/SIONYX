@@ -2,10 +2,11 @@
 
 ## 🎨 UI/UX Improvements
 
-- [ ] **App Logo** - Add application logo/icon
-  - Taskbar icon, window title bar
-  - About page/splash screen
-  - Desktop shortcut icon
+- [x] **App Logo** - Add application logo/icon
+  - ✅ Taskbar icon, window title bar (BaseKioskWindow sets icon)
+  - ✅ Desktop shortcut icon (installer uses app-logo.ico)
+  - ✅ Executable icon (PyInstaller embeds icon)
+  - ✅ Installer icon (NSIS uses icon)
 
 - [ ] **UI Makeover** - Pages currently look awful, need full redesign
   - HomePage, PackagesPage, HistoryPage, HelpPage

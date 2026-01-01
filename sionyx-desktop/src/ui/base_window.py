@@ -2,7 +2,11 @@
 Base Window - Shared functionality for all fullscreen kiosk windows
 """
 
+import os
+import sys
+
 from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
 from utils.logger import get_logger
@@ -13,12 +17,43 @@ from ui.styles.base import BASE_QSS
 logger = get_logger(__name__)
 
 
+def get_app_icon_path():
+    """Get the path to the application icon"""
+    # When running as PyInstaller bundle
+    if getattr(sys, "frozen", False):
+        base_path = sys._MEIPASS
+    else:
+        # When running in development
+        base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+
+    # Try ICO first (Windows), then PNG
+    ico_path = os.path.join(base_path, "app-logo.ico")
+    if os.path.exists(ico_path):
+        return ico_path
+
+    png_path = os.path.join(base_path, "app-logo.png")
+    if os.path.exists(png_path):
+        return png_path
+
+    return None
+
+
 class BaseKioskWindow(QWidget):
     """Base class for fullscreen kiosk windows"""
 
     def __init__(self):
         super().__init__()
+        self.setup_window_icon()
         self.setup_kiosk_window()
+
+    def setup_window_icon(self):
+        """Set the application icon for taskbar and title bar"""
+        icon_path = get_app_icon_path()
+        if icon_path:
+            self.setWindowIcon(QIcon(icon_path))
+            logger.debug(f"Window icon set from: {icon_path}")
+        else:
+            logger.warning("App icon not found")
 
     def setup_kiosk_window(self):
         """Setup fullscreen kiosk mode - common to all windows"""
