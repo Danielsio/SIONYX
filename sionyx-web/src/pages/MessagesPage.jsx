@@ -408,7 +408,7 @@ const MessagesPage = () => {
                 <Text type='secondary' style={{ fontSize: 12 }}>
                   {selectedUser.phoneNumber}
                   {isUserActive(selectedUser.lastSeen) && (
-                    <Tag color='green' style={{ marginRight: 8 }}>מחובר</Tag>
+                    <Tag color='green' style={{ marginRight: 8 }}>פעיל</Tag>
                   )}
                 </Text>
               </div>

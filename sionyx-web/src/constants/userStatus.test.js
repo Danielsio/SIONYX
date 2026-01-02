@@ -29,8 +29,8 @@ describe('userStatus constants', () => {
 
     it('has Hebrew labels for all statuses', () => {
       expect(USER_STATUS_CONFIG[USER_STATUS.ACTIVE].label).toBe('פעיל');
-      expect(USER_STATUS_CONFIG[USER_STATUS.CONNECTED].label).toBe('מחובר');
-      expect(USER_STATUS_CONFIG[USER_STATUS.OFFLINE].label).toBe('לא מחובר');
+      expect(USER_STATUS_CONFIG[USER_STATUS.CONNECTED].label).toBe('מושהה');
+      expect(USER_STATUS_CONFIG[USER_STATUS.OFFLINE].label).toBe('לא פעיל');
     });
 
     it('has colors for all statuses', () => {
@@ -91,11 +91,11 @@ describe('userStatus constants', () => {
     });
 
     it('returns Hebrew label for CONNECTED status', () => {
-      expect(getStatusLabel(USER_STATUS.CONNECTED)).toBe('מחובר');
+      expect(getStatusLabel(USER_STATUS.CONNECTED)).toBe('מושהה');
     });
 
     it('returns Hebrew label for OFFLINE status', () => {
-      expect(getStatusLabel(USER_STATUS.OFFLINE)).toBe('לא מחובר');
+      expect(getStatusLabel(USER_STATUS.OFFLINE)).toBe('לא פעיל');
     });
 
     it('returns "לא ידוע" for unknown status', () => {
