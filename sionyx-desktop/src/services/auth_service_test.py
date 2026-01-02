@@ -112,12 +112,39 @@ class TestAuthService:
         }
         mock_firebase_client.db_set.return_value = {"success": True}
 
-        result = auth_service.register("1234567890", "password123", "John", "Doe", "john@example.com")
+        with patch.object(auth_service, "_handle_computer_registration") as mock_handle_registration:
+            result = auth_service.register("1234567890", "password123", "John", "Doe", "john@example.com")
+
+            assert result["success"] is True
+            assert result["user"]["firstName"] == "John"
+            assert result["user"]["lastName"] == "Doe"
+            auth_service.local_db.store_credentials.assert_called_once()
+            # Verify _handle_computer_registration was called to set isLoggedIn=True
+            mock_handle_registration.assert_called_once_with("test-user-id")
+
+    def test_register_calls_handle_computer_registration(self, auth_service, mock_firebase_client):
+        """Test that register() calls _handle_computer_registration to set isLoggedIn"""
+        mock_firebase_client.sign_up.return_value = {
+            "success": True,
+            "uid": "new-user-id",
+            "refresh_token": "test-refresh-token",
+        }
+        mock_firebase_client.db_set.return_value = {"success": True}
+        auth_service.computer_service.register_computer.return_value = {
+            "success": True,
+            "computer_id": "computer-123"
+        }
+        auth_service.computer_service.associate_user_with_computer.return_value = {"success": True}
+
+        result = auth_service.register("0501234567", "password123", "Jane", "Smith")
 
         assert result["success"] is True
-        assert result["user"]["firstName"] == "John"
-        assert result["user"]["lastName"] == "Doe"
-        auth_service.local_db.store_credentials.assert_called_once()
+        # Verify computer registration was called
+        auth_service.computer_service.register_computer.assert_called_once()
+        # Verify user was associated with computer and isLoggedIn was set
+        auth_service.computer_service.associate_user_with_computer.assert_called_once_with(
+            "new-user-id", "computer-123", is_login=True
+        )
 
     def test_register_weak_password(self, auth_service):
         """Test registration with weak password"""
@@ -146,10 +173,13 @@ class TestAuthService:
         }
         mock_firebase_client.db_set.return_value = {"success": False}
 
-        result = auth_service.register("1234567890", "password123", "John", "Doe")
+        with patch.object(auth_service, "_handle_computer_registration") as mock_handle_registration:
+            result = auth_service.register("1234567890", "password123", "John", "Doe")
 
-        assert result["success"] is False
-        assert result["error"] == "Failed to create user profile"
+            assert result["success"] is False
+            assert result["error"] == "Failed to create user profile"
+            # Should NOT call computer registration if DB save fails
+            mock_handle_registration.assert_not_called()
 
     def test_logout(self, auth_service, sample_user_data):
         """Test user logout"""
@@ -208,7 +238,7 @@ class TestAuthService:
         mock_firebase_client.db_update.assert_not_called()
 
     def test_recover_orphaned_session_old_session(self, auth_service, mock_firebase_client):
-        """Test orphaned session recovery with old session clears computer association"""
+        """Test orphaned session recovery with old session clears computer association and isLoggedIn"""
         old_time = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         mock_firebase_client.db_get.return_value = {
             "success": True,
@@ -221,9 +251,9 @@ class TestAuthService:
 
         auth_service._recover_orphaned_session("test-user-id")
 
-        # Should disassociate user from computer
+        # Should disassociate user from computer with is_logout=True (crashed = logged out)
         auth_service.computer_service.disassociate_user_from_computer.assert_called_once_with(
-            "test-user-id", "orphaned-computer-123"
+            "test-user-id", "orphaned-computer-123", is_logout=True
         )
         # Should clear session and computer fields
         mock_firebase_client.db_update.assert_called_once()
@@ -244,14 +274,17 @@ class TestAuthService:
         mock_firebase_client.db_update.assert_not_called()
 
     def test_handle_computer_registration_success(self, auth_service):
-        """Test successful computer registration"""
+        """Test successful computer registration sets isLoggedIn"""
         auth_service.computer_service.register_computer.return_value = {"success": True, "computer_id": "test-id"}
         auth_service.computer_service.associate_user_with_computer.return_value = {"success": True}
 
         auth_service._handle_computer_registration("test-user-id")
 
         auth_service.computer_service.register_computer.assert_called_once()
-        auth_service.computer_service.associate_user_with_computer.assert_called_once()
+        # Should call with is_login=True to set isLoggedIn
+        auth_service.computer_service.associate_user_with_computer.assert_called_once_with(
+            "test-user-id", "test-id", is_login=True
+        )
 
     def test_handle_computer_registration_failure(self, auth_service):
         """Test computer registration failure"""
@@ -287,7 +320,7 @@ class TestAuthService:
         auth_service._recover_orphaned_session("test-user-id")
 
     def test_recover_orphaned_session_no_last_activity(self, auth_service, mock_firebase_client):
-        """Test orphaned session recovery when lastActivity is missing clears computer"""
+        """Test orphaned session recovery when lastActivity is missing clears computer and isLoggedIn"""
         mock_firebase_client.db_get.return_value = {
             "success": True,
             "data": {
@@ -299,9 +332,9 @@ class TestAuthService:
 
         auth_service._recover_orphaned_session("test-user-id")
 
-        # Should disassociate user from computer
+        # Should disassociate user from computer with is_logout=True (crashed = logged out)
         auth_service.computer_service.disassociate_user_from_computer.assert_called_once_with(
-            "test-user-id", "orphaned-computer-456"
+            "test-user-id", "orphaned-computer-456", is_logout=True
         )
         # Should clean up session and computer fields
         mock_firebase_client.db_update.assert_called_once()
@@ -350,6 +383,35 @@ class TestAuthService:
 
         auth_service.local_db.clear_tokens.assert_called_once()
         assert auth_service.current_user is None
+
+    def test_logout_disassociates_from_computer(self, auth_service, mock_firebase_client):
+        """Test logout disassociates user from computer and sets isLoggedIn to False"""
+        auth_service.current_user = {
+            "uid": "test-user-id",
+            "currentComputerId": "computer-123",
+        }
+
+        auth_service.logout()
+
+        # Should call disassociate with is_logout=True
+        auth_service.computer_service.disassociate_user_from_computer.assert_called_once_with(
+            "test-user-id", "computer-123", is_logout=True
+        )
+
+    def test_logout_updates_db_when_no_computer(self, auth_service, mock_firebase_client):
+        """Test logout updates isLoggedIn in DB even when no computer association"""
+        auth_service.current_user = {
+            "uid": "test-user-id",
+            "currentComputerId": None,
+        }
+
+        auth_service.logout()
+
+        # Should update isLoggedIn directly in DB
+        mock_firebase_client.db_update.assert_called_once()
+        call_args = mock_firebase_client.db_update.call_args
+        assert call_args[0][0] == "users/test-user-id"
+        assert call_args[0][1]["isLoggedIn"] is False
 
 
 

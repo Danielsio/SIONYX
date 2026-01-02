@@ -154,6 +154,7 @@ class AuthService:
             "remainingTime": 0,  # Start with 0 seconds
             "printBalance": 0.0,  # Start with 0 NIS print budget
             "isActive": False,  # Active session is managed by sionyx-desktop only
+            "isLoggedIn": False,  # User is not logged in until they log in
             "isAdmin": False,  # Regular users are not admins
             "createdAt": datetime.now().isoformat(),
             "updatedAt": datetime.now().isoformat(),
@@ -177,13 +178,33 @@ class AuthService:
             user_data=user_data,
         )
 
+        # Register/update computer and associate with user (sets isLoggedIn=True)
+        self._handle_computer_registration(uid)
+
         logger.info(f"Registration successful for {phone}")
         return {"success": True, "user": self.current_user}
 
     def logout(self):
         """Logout current user"""
         if self.current_user:
-            logger.info(f"User logged out: {self.current_user.get('uid')}")
+            user_id = self.current_user.get("uid")
+            logger.info(f"User logged out: {user_id}")
+
+            # Disassociate user from computer and mark as logged out
+            current_computer_id = self.current_user.get("currentComputerId")
+            if current_computer_id:
+                self.computer_service.disassociate_user_from_computer(
+                    user_id, current_computer_id, is_logout=True
+                )
+            else:
+                # Even if no computer ID cached, still update isLoggedIn in DB
+                self.firebase.db_update(
+                    f"users/{user_id}",
+                    {
+                        "isLoggedIn": False,
+                        "updatedAt": datetime.now().isoformat(),
+                    },
+                )
 
         self.firebase.id_token = None
         self.firebase.refresh_token = None
@@ -247,11 +268,11 @@ class AuthService:
             last_activity_str = user_data.get("lastActivity")
             if not last_activity_str:
                 logger.warning("Session has no lastActivity, cleaning up anyway")
-                # Clean up session AND computer association
+                # Clean up session AND computer association (crashed = logged out)
                 current_computer_id = user_data.get("currentComputerId")
                 if current_computer_id:
                     self.computer_service.disassociate_user_from_computer(
-                        user_id, current_computer_id
+                        user_id, current_computer_id, is_logout=True
                     )
                 self.firebase.db_update(
                     f"users/{user_id}",
@@ -286,11 +307,11 @@ class AuthService:
                 )
                 logger.info("Max time 'lost': 60 seconds from last sync - acceptable!")
 
-                # Clean up session AND computer association WITHOUT deducting time
+                # Clean up session AND computer association (crashed = logged out)
                 current_computer_id = user_data.get("currentComputerId")
                 if current_computer_id:
                     self.computer_service.disassociate_user_from_computer(
-                        user_id, current_computer_id
+                        user_id, current_computer_id, is_logout=True
                     )
                 self.firebase.db_update(
                     f"users/{user_id}",
@@ -330,9 +351,9 @@ class AuthService:
                 computer_id = computer_result["computer_id"]
                 logger.info(f"Computer registered/updated: {computer_id}")
 
-                # Associate user with computer
+                # Associate user with computer and mark as logged in
                 association_result = self.computer_service.associate_user_with_computer(
-                    user_id, computer_id
+                    user_id, computer_id, is_login=True
                 )
 
                 if association_result.get("success"):

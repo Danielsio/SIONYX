@@ -131,13 +131,16 @@ class ComputerService:
             logger.error(f"Failed to update computer activity: {e}")
             return {"success": False, "error": str(e)}
 
-    def associate_user_with_computer(self, user_id: str, computer_id: str) -> Dict:
+    def associate_user_with_computer(
+        self, user_id: str, computer_id: str, is_login: bool = False
+    ) -> Dict:
         """
         Associate a user with a computer (when they log in)
 
         Args:
             user_id: The user ID
             computer_id: The computer ID
+            is_login: If True, also sets isLoggedIn to True (called during login)
 
         Returns:
             {'success': bool, 'error': str}
@@ -160,6 +163,10 @@ class ComputerService:
                 "updatedAt": now,
             }
 
+            # Set isLoggedIn to True if this is a login operation
+            if is_login:
+                user_updates["isLoggedIn"] = True
+
             result = self.firebase.db_update(f"users/{user_id}", user_updates)
 
             if result.get("success"):
@@ -180,13 +187,16 @@ class ComputerService:
             logger.error(f"Failed to associate user with computer: {e}")
             return {"success": False, "error": str(e)}
 
-    def disassociate_user_from_computer(self, user_id: str, computer_id: str) -> Dict:
+    def disassociate_user_from_computer(
+        self, user_id: str, computer_id: str, is_logout: bool = False
+    ) -> Dict:
         """
         Disassociate a user from a computer (when they log out)
 
         Args:
             user_id: The user ID
             computer_id: The computer ID
+            is_logout: If True, also sets isLoggedIn to False (called during logout)
 
         Returns:
             {'success': bool, 'error': str}
@@ -194,16 +204,20 @@ class ComputerService:
         try:
             now = datetime.now().isoformat()
 
+            # Build user updates
+            user_updates = {
+                "currentComputerId": None,
+                "currentComputerName": None,
+                "lastComputerLogout": now,
+                "updatedAt": now,
+            }
+
+            # Set isLoggedIn to False if this is a logout operation
+            if is_logout:
+                user_updates["isLoggedIn"] = False
+
             # Clear user's current computer
-            user_result = self.firebase.db_update(
-                f"users/{user_id}",
-                {
-                    "currentComputerId": None,
-                    "currentComputerName": None,
-                    "lastComputerLogout": now,
-                    "updatedAt": now,
-                },
-            )
+            user_result = self.firebase.db_update(f"users/{user_id}", user_updates)
 
             # Clear computer's current user and mark as inactive
             computer_result = self.firebase.db_update(

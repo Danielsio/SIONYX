@@ -157,6 +157,23 @@ class TestComputerService:
         user_updates = user_update_call[0][1]
         assert user_updates.get("currentComputerId") == "computer-123"
         assert user_updates.get("currentComputerName") == "TEST-PC"
+        # isLoggedIn should NOT be set when is_login=False (default)
+        assert "isLoggedIn" not in user_updates
+
+    def test_associate_user_with_computer_sets_is_logged_in(self, computer_service, mock_firebase_client):
+        """Test associating user with computer sets isLoggedIn when is_login=True"""
+        mock_firebase_client.db_get.return_value = {
+            "success": True, "data": {"computerName": "TEST-PC"}
+        }
+        mock_firebase_client.db_update.return_value = {"success": True}
+        
+        result = computer_service.associate_user_with_computer("user-123", "computer-123", is_login=True)
+        
+        assert result["success"] is True
+        # Verify isLoggedIn is set to True
+        user_update_call = mock_firebase_client.db_update.call_args_list[0]
+        user_updates = user_update_call[0][1]
+        assert user_updates.get("isLoggedIn") is True
 
     def test_associate_user_with_computer_not_found(self, computer_service, mock_firebase_client):
         """Test associating user with non-existent computer"""
@@ -183,6 +200,22 @@ class TestComputerService:
         
         assert result["success"] is True
         assert mock_firebase_client.db_update.call_count == 2  # User and computer updates
+        # isLoggedIn should NOT be set when is_logout=False (default)
+        user_update_call = mock_firebase_client.db_update.call_args_list[0]
+        user_updates = user_update_call[0][1]
+        assert "isLoggedIn" not in user_updates
+
+    def test_disassociate_user_from_computer_sets_logged_out(self, computer_service, mock_firebase_client):
+        """Test disassociating user from computer sets isLoggedIn=False when is_logout=True"""
+        mock_firebase_client.db_update.return_value = {"success": True}
+        
+        result = computer_service.disassociate_user_from_computer("user-123", "computer-123", is_logout=True)
+        
+        assert result["success"] is True
+        # Verify isLoggedIn is set to False
+        user_update_call = mock_firebase_client.db_update.call_args_list[0]
+        user_updates = user_update_call[0][1]
+        assert user_updates.get("isLoggedIn") is False
 
     def test_disassociate_user_from_computer_exception(self, computer_service, mock_firebase_client):
         """Test disassociation with exception"""

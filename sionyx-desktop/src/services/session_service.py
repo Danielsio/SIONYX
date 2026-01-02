@@ -157,13 +157,9 @@ class SessionService(QObject):
         # Stop print monitoring
         self.print_monitor.stop_monitoring()
 
-        # Disassociate user from computer if logging out
-        if reason in ["user", "expired", "admin_kick"]:
-            computer_id = self._get_current_computer_id()
-            if computer_id != "unknown":
-                self.computer_service.disassociate_user_from_computer(
-                    self.user_id, computer_id
-                )
+        # NOTE: We do NOT disassociate user from computer here.
+        # The user is still logged in, just not in an active session.
+        # Disassociation only happens on actual logout (via auth_service.logout).
 
         # Final sync
         self._final_sync(reason)

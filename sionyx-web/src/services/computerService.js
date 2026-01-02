@@ -278,16 +278,18 @@ export const getActiveComputerUsers = async () => {
 
 /**
  * Force logout user from computer
+ * This is a full logout - clears session, computer association, AND login status
  */
 export const forceLogoutUser = async (userId, computerId) => {
   try {
-    // Clear user's current computer
+    // Clear user's current computer and mark as logged out
     const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
     const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
     await update(userRef, {
       currentComputerId: null,
       currentComputerName: null,
       isSessionActive: false,
+      isLoggedIn: false,  // User is now logged out
       sessionStartTime: null,
       lastComputerLogout: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
