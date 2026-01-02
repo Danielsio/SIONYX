@@ -89,7 +89,24 @@ class AuthService:
             logger.error(f"User data not found for {uid}")
             return {"success": False, "error": translate_error("user data not found")}
 
-        self.current_user = user_result["data"]
+        user_data = user_result["data"]
+
+        # SINGLE SESSION ENFORCEMENT: Check if user is already logged in elsewhere
+        if user_data.get("isLoggedIn") is True:
+            current_computer_id = self.computer_service.get_computer_id()
+            logged_in_computer = user_data.get("currentComputerId")
+            
+            # Allow re-login on the same computer, but reject login on different computer
+            if logged_in_computer and logged_in_computer != current_computer_id:
+                logger.warning(
+                    f"Login rejected: User {uid} already logged in on computer {logged_in_computer}"
+                )
+                return {
+                    "success": False,
+                    "error": "המשתמש כבר מחובר במחשב אחר. יש להתנתק שם קודם.",
+                }
+
+        self.current_user = user_data
         self.current_user["uid"] = uid
 
         # Check for crashed/orphaned session and recover time

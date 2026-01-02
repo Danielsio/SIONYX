@@ -22,11 +22,6 @@
 
 ## 🚀 Features (Planned)
 
-- [ ] **Single Session Enforcement** - Prevent user from logging in on multiple computers
-  - If already logged in elsewhere, reject new login attempt
-  - Show dedicated error message/notification to user
-  - Track active sessions in Firebase
-
 - [ ] **Kiosk Mode / Auto-Run** - App runs automatically on system startup
   - Add to Windows startup registry on install
   - Only admin can exit the application
@@ -55,6 +50,10 @@
 
 ## ✅ Recently Completed
 
+- [x] **Single Session Enforcement** - Prevent user from logging in on multiple computers
+  - If already logged in elsewhere, reject new login attempt with message "המשתמש כבר מחובר במחשב אחר"
+  - Allow re-login on the same computer (for app restart scenarios)
+  - Uses isLoggedIn and currentComputerId from Firebase
 - [x] **Active Users Card Layout** - Unified users display with computers
   - Converted "משתמשים פעילים" table to card-based layout
   - Matching style with "סקירת מחשבים" cards
