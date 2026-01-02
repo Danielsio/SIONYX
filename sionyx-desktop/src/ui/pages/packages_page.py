@@ -201,7 +201,7 @@ class PackagesPage(QWidget):
     def _create_package_card(self, package: Dict) -> QFrame:
         """Create a modern package card"""
         card = QFrame()
-        card.setFixedSize(280, 400)
+        card.setFixedSize(Dimensions.PACKAGE_CARD_WIDTH, Dimensions.PACKAGE_CARD_HEIGHT)
         card.setStyleSheet(
             f"""
             QFrame {{
@@ -270,7 +270,7 @@ class PackagesPage(QWidget):
         features_layout.addWidget(prints_lbl)
 
         layout.addWidget(features)
-        layout.addStretch()
+        layout.addStretch(1)
 
         # Price (with discount if applicable)
         pricing = PackageService.calculate_final_price(package)
@@ -278,10 +278,11 @@ class PackagesPage(QWidget):
         original_price = pricing["original_price"]
         discount_percent = pricing["discount_percent"]
 
-        # Price container
+        # Price container - give it minimum height to prevent cutoff
         price_container = QWidget()
+        price_container.setMinimumHeight(80 if discount_percent > 0 else 50)
         price_layout = QVBoxLayout(price_container)
-        price_layout.setContentsMargins(0, 0, 0, 0)
+        price_layout.setContentsMargins(0, Spacing.SM, 0, Spacing.SM)
         price_layout.setSpacing(Spacing.XS)
 
         if discount_percent > 0:
