@@ -31,17 +31,25 @@ export const USER_STATUS_CONFIG = {
 };
 
 /**
- * Get user status based on session and computer data
- * @param {Object} user - User object with isSessionActive and currentComputerId
+ * Get user status based on login, session, and computer data
+ * @param {Object} user - User object with isLoggedIn, isSessionActive, and currentComputerId
  * @returns {string} User status key
+ * 
+ * User States:
+ * - ACTIVE: User is logged in AND in an active session
+ * - CONNECTED: User is logged in but NOT in an active session
+ * - OFFLINE: User is not logged in
  */
 export const getUserStatus = (user) => {
   if (!user) return USER_STATUS.OFFLINE;
   
-  const isLoggedIn = user.isSessionActive === true;
-  const isUsingComputer = isLoggedIn && user.currentComputerId;
+  // Check if user is logged in to the desktop app
+  const isLoggedIn = user.isLoggedIn === true;
   
-  if (isUsingComputer) return USER_STATUS.ACTIVE;
+  // Check if user has an active session
+  const isInSession = isLoggedIn && user.isSessionActive === true;
+  
+  if (isInSession) return USER_STATUS.ACTIVE;
   if (isLoggedIn) return USER_STATUS.CONNECTED;
   return USER_STATUS.OFFLINE;
 };

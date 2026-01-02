@@ -293,35 +293,36 @@ class TestSessionServiceAdditional:
 
         assert session_service.remaining_time == 100  # Unchanged
 
-    def test_end_session_disassociates_user_for_user_reason(self, session_service, mock_firebase_client, qtbot):
-        """Test end_session disassociates user from computer for 'user' reason"""
+    def test_end_session_does_not_disassociate_user(self, session_service, mock_firebase_client, qtbot):
+        """Test end_session does NOT disassociate user from computer.
+        
+        The user is still logged in, just not in an active session.
+        Disassociation only happens on actual logout (via auth_service.logout).
+        """
         session_service.is_active = True
         session_service.session_id = "test-session-id"
         session_service.remaining_time = 1800
         mock_firebase_client.db_update.return_value = {"success": True}
-        mock_firebase_client.db_get.return_value = {
-            "success": True,
-            "data": {"currentComputerId": "computer-123"}
-        }
 
         session_service.end_session("user")
 
-        session_service.computer_service.disassociate_user_from_computer.assert_called_once()
+        # Should NOT call disassociate - user is still logged in
+        session_service.computer_service.disassociate_user_from_computer.assert_not_called()
 
-    def test_end_session_disassociates_user_for_expired_reason(self, session_service, mock_firebase_client, qtbot):
-        """Test end_session disassociates user from computer for 'expired' reason"""
+    def test_end_session_expired_does_not_disassociate_user(self, session_service, mock_firebase_client, qtbot):
+        """Test end_session for 'expired' reason does NOT disassociate user.
+        
+        Even when session expires, user remains logged in and associated with computer.
+        """
         session_service.is_active = True
         session_service.session_id = "test-session-id"
         session_service.remaining_time = 0
         mock_firebase_client.db_update.return_value = {"success": True}
-        mock_firebase_client.db_get.return_value = {
-            "success": True,
-            "data": {"currentComputerId": "computer-123"}
-        }
 
         session_service.end_session("expired")
 
-        session_service.computer_service.disassociate_user_from_computer.assert_called_once()
+        # Should NOT call disassociate - user is still logged in
+        session_service.computer_service.disassociate_user_from_computer.assert_not_called()
 
     def test_get_current_computer_id_db_failure(self, session_service, mock_firebase_client):
         """Test _get_current_computer_id handles database failure"""

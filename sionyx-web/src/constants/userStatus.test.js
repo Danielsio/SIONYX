@@ -55,33 +55,54 @@ describe('userStatus constants', () => {
       expect(getUserStatus(undefined)).toBe(USER_STATUS.OFFLINE);
     });
 
-    it('returns OFFLINE for user not logged in', () => {
-      const user = { isSessionActive: false };
+    it('returns OFFLINE for user not logged in (isLoggedIn: false)', () => {
+      const user = { isLoggedIn: false, isSessionActive: false };
       expect(getUserStatus(user)).toBe(USER_STATUS.OFFLINE);
     });
 
-    it('returns CONNECTED for logged in user without computer', () => {
-      const user = { isSessionActive: true, currentComputerId: null };
-      expect(getUserStatus(user)).toBe(USER_STATUS.CONNECTED);
-    });
-
-    it('returns CONNECTED for logged in user with undefined computer', () => {
+    it('returns OFFLINE when isLoggedIn is not set', () => {
       const user = { isSessionActive: true };
+      expect(getUserStatus(user)).toBe(USER_STATUS.OFFLINE);
+    });
+
+    it('returns CONNECTED for logged in user without active session', () => {
+      const user = { isLoggedIn: true, isSessionActive: false };
       expect(getUserStatus(user)).toBe(USER_STATUS.CONNECTED);
     });
 
-    it('returns ACTIVE for logged in user with computer', () => {
-      const user = { isSessionActive: true, currentComputerId: 'computer-123' };
+    it('returns CONNECTED for logged in user with null session', () => {
+      const user = { isLoggedIn: true, isSessionActive: null };
+      expect(getUserStatus(user)).toBe(USER_STATUS.CONNECTED);
+    });
+
+    it('returns ACTIVE for logged in user with active session', () => {
+      const user = { isLoggedIn: true, isSessionActive: true };
       expect(getUserStatus(user)).toBe(USER_STATUS.ACTIVE);
     });
 
-    it('returns OFFLINE for user with computer but not logged in', () => {
-      const user = { isSessionActive: false, currentComputerId: 'computer-123' };
+    it('returns ACTIVE for user with active session and computer', () => {
+      const user = { isLoggedIn: true, isSessionActive: true, currentComputerId: 'computer-123' };
+      expect(getUserStatus(user)).toBe(USER_STATUS.ACTIVE);
+    });
+
+    it('returns OFFLINE for user with session but not logged in', () => {
+      const user = { isLoggedIn: false, isSessionActive: true };
       expect(getUserStatus(user)).toBe(USER_STATUS.OFFLINE);
     });
 
     it('handles empty object as OFFLINE', () => {
       expect(getUserStatus({})).toBe(USER_STATUS.OFFLINE);
+    });
+
+    it('returns CONNECTED for logged in user who ended session but did not logout', () => {
+      // This is the key scenario: user logged in, started session, then ended it
+      const user = { 
+        isLoggedIn: true, 
+        isSessionActive: false,
+        currentComputerId: 'computer-123',  // Still has computer association
+        currentComputerName: 'PC-1'
+      };
+      expect(getUserStatus(user)).toBe(USER_STATUS.CONNECTED);
     });
   });
 
