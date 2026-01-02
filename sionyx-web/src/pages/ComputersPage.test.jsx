@@ -273,6 +273,8 @@ describe('ComputersPage', () => {
     });
 
     it('should show "--" activity time when session has not started', async () => {
+      const user = userEvent.setup();
+      
       // Mock user who is logged in but hasn't started paid session
       getActiveComputerUsers.mockResolvedValue({
         success: true,
@@ -293,6 +295,14 @@ describe('ComputersPage', () => {
       await waitFor(() => {
         expect(getActiveComputerUsers).toHaveBeenCalled();
       });
+
+      // Navigate to the "active users" tab (activity time is shown in UserCard which is on this tab)
+      const activeUsersTab = await screen.findByRole('tab', { name: /משתמשים פעילים/i });
+      await user.click(activeUsersTab);
+
+      // Click on the user card to expand it (activity time is in expanded section)
+      const userCards = await screen.findAllByText('יוסי כהן');
+      await user.click(userCards[0]);
 
       // Should NOT show 1 hour of activity time since session hasn't started
       // Activity time should show "--" placeholder

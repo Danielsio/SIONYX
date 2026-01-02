@@ -357,6 +357,9 @@ class AuthService:
                 )
 
                 if association_result.get("success"):
+                    # CRITICAL: Update self.current_user so logout() can find the computer ID
+                    if self.current_user:
+                        self.current_user["currentComputerId"] = computer_id
                     logger.info(
                         f"User {user_id} associated with computer {computer_id}"
                     )
