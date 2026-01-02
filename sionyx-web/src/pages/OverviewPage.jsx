@@ -229,18 +229,26 @@ const OverviewPage = () => {
             <Row gutter={[12, 12]}>
               {recentUsers.map(u => {
                 const status = getUserStatus(u);
+                const statusColors = {
+                  active: '#52c41a',
+                  connected: '#1890ff',
+                  offline: '#d9d9d9',
+                };
                 return (
-                  <Col key={u.uid} xs={24} sm={12} md={8} lg={6}>
+                  <Col key={u.uid} xs={24} sm={12} lg={8} xl={6}>
                     <Card 
                       size='small' 
                       style={{ 
                         borderRadius: 12,
-                        borderRight: `4px solid ${status === 'active' ? '#52c41a' : status === 'connected' ? '#1890ff' : '#d9d9d9'}`,
+                        borderRight: `4px solid ${statusColors[status] || '#d9d9d9'}`,
                       }}
+                      styles={{ body: { padding: '12px 16px' } }}
                     >
-                      <Space>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <Avatar
+                          size={40}
                           style={{
+                            flexShrink: 0,
                             background: status === 'active'
                               ? 'linear-gradient(135deg, #52c41a, #73d13d)'
                               : status === 'connected'
@@ -249,22 +257,32 @@ const OverviewPage = () => {
                           }}
                           icon={<UserOutlined />}
                         />
-                        <div>
-                          <Text strong style={{ display: 'block', fontSize: 13 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Text 
+                            strong 
+                            style={{ 
+                              display: 'block', 
+                              fontSize: 14,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}
+                          >
                             {`${u.firstName || ''} ${u.lastName || ''}`.trim() || 'לא זמין'}
                           </Text>
-                          <Space size={4}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
                             <Tag color={getStatusColor(status)} style={{ margin: 0, fontSize: 11 }}>
                               {getStatusLabel(status)}
                             </Tag>
                             {u.currentComputerName && (
                               <Text type='secondary' style={{ fontSize: 11 }}>
-                                <DesktopOutlined /> {u.currentComputerName}
+                                <DesktopOutlined style={{ marginLeft: 2 }} />
+                                {u.currentComputerName}
                               </Text>
                             )}
-                          </Space>
+                          </div>
                         </div>
-                      </Space>
+                      </div>
                     </Card>
                   </Col>
                 );

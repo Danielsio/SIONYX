@@ -16,17 +16,17 @@ export const USER_STATUS_CONFIG = {
   [USER_STATUS.ACTIVE]: {
     label: 'פעיל',
     color: 'success',
-    description: 'המשתמש מחובר ומשתמש במחשב',
+    description: 'המשתמש בסשן פעיל על מחשב',
   },
   [USER_STATUS.CONNECTED]: {
-    label: 'מחובר',
+    label: 'מושהה',
     color: 'processing',
-    description: 'המשתמש מחובר אך לא בשימוש',
+    description: 'המשתמש בסשן אך לא על מחשב',
   },
   [USER_STATUS.OFFLINE]: {
-    label: 'לא מחובר',
+    label: 'לא פעיל',
     color: 'default',
-    description: 'המשתמש לא מחובר',
+    description: 'המשתמש לא בסשן פעיל',
   },
 };
 

@@ -330,8 +330,8 @@ describe('UsersPage', () => {
       expect(getAllUsers).toHaveBeenCalled();
     });
 
-    // Status tags (פעיל/מחובר/לא מחובר) should be visible
-    const statusTags = screen.getAllByText(/פעיל|מחובר/);
+    // Status tags (פעיל/מושהה/לא פעיל) should be visible
+    const statusTags = screen.getAllByText(/פעיל|מושהה/);
     expect(statusTags.length).toBeGreaterThan(0);
   });
 
