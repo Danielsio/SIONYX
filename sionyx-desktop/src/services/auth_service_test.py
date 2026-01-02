@@ -103,6 +103,84 @@ class TestAuthService:
         assert result["success"] is False
         assert result["error"] == "User data not found"
 
+    # =========================================================================
+    # SINGLE SESSION ENFORCEMENT TESTS (Prevent duplicate logins)
+    # =========================================================================
+
+    def test_login_rejected_when_user_already_logged_in_elsewhere(self, auth_service, mock_firebase_client):
+        """Test login is rejected when user is already logged in on another computer"""
+        mock_firebase_client.sign_in.return_value = {
+            "success": True,
+            "uid": "test-user-id",
+            "refresh_token": "test-refresh-token",
+        }
+        # User data shows they're already logged in
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {
+                "uid": "test-user-id",
+                "isLoggedIn": True,  # Already logged in elsewhere!
+                "currentComputerId": "other-computer-123",
+            }
+        }
+
+        with patch("services.auth_service.translate_error", side_effect=lambda x: x):
+            result = auth_service.login("1234567890", "password123")
+
+        assert result["success"] is False
+        assert "already logged in" in result["error"].lower() or "כבר מחובר" in result["error"]
+
+    def test_login_allowed_when_user_not_logged_in(self, auth_service, mock_firebase_client):
+        """Test login succeeds when user is not logged in elsewhere"""
+        mock_firebase_client.sign_in.return_value = {
+            "success": True,
+            "uid": "test-user-id",
+            "refresh_token": "test-refresh-token",
+        }
+        # User data shows they're not logged in
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {
+                "uid": "test-user-id",
+                "isLoggedIn": False,  # Not logged in - OK to proceed
+                "currentComputerId": None,
+            }
+        }
+
+        with patch.object(auth_service, "_recover_orphaned_session"):
+            with patch.object(auth_service, "_handle_computer_registration"):
+                result = auth_service.login("1234567890", "password123")
+
+        assert result["success"] is True
+
+    def test_login_allowed_on_same_computer(self, auth_service, mock_firebase_client):
+        """Test login succeeds when user is logged in on the SAME computer (re-login)"""
+        mock_firebase_client.sign_in.return_value = {
+            "success": True,
+            "uid": "test-user-id",
+            "refresh_token": "test-refresh-token",
+        }
+        
+        # Get this computer's ID
+        current_computer_id = auth_service.computer_service.get_computer_id()
+        
+        # User data shows they're logged in on THIS computer (same device)
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {
+                "uid": "test-user-id",
+                "isLoggedIn": True,  # Logged in, but on same computer
+                "currentComputerId": current_computer_id,  # Same computer!
+            }
+        }
+
+        with patch.object(auth_service, "_recover_orphaned_session"):
+            with patch.object(auth_service, "_handle_computer_registration"):
+                result = auth_service.login("1234567890", "password123")
+
+        # Should succeed - same computer re-login is allowed
+        assert result["success"] is True
+
     def test_register_success(self, auth_service, mock_firebase_client):
         """Test successful user registration"""
         mock_firebase_client.sign_up.return_value = {
