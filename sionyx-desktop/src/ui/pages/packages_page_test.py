@@ -377,6 +377,79 @@ class TestPackagesPage:
         assert prints_label_found
 
     # =========================================================================
+    # ZERO-VALUE FEATURE DISPLAY TESTS (Bug Fix)
+    # =========================================================================
+
+    def test_zero_minutes_hides_time_feature(self, packages_page):
+        """Test that time feature is NOT displayed when minutes is 0"""
+        test_package = {"name": "Test", "minutes": 0, "prints": 50, "price": 10}
+        card = packages_page._create_package_card(test_package)
+
+        labels = card.findChildren(QLabel)
+        time_label_found = False
+        for label in labels:
+            text = label.text()
+            # Check for time-related text (emoji or "שעות")
+            if "⏱️" in text or "שעות" in text:
+                time_label_found = True
+                break
+
+        # Time feature should NOT be shown when minutes is 0
+        assert not time_label_found
+
+    def test_zero_prints_hides_prints_feature(self, packages_page):
+        """Test that prints feature is NOT displayed when prints is 0"""
+        test_package = {"name": "Test", "minutes": 60, "prints": 0, "price": 10}
+        card = packages_page._create_package_card(test_package)
+
+        labels = card.findChildren(QLabel)
+        prints_label_found = False
+        for label in labels:
+            text = label.text()
+            # Check for prints-related text (emoji or "הדפסות")
+            if "🖨️" in text or "הדפסות" in text:
+                prints_label_found = True
+                break
+
+        # Prints feature should NOT be shown when prints is 0
+        assert not prints_label_found
+
+    def test_zero_value_never_shows_unlimited_text(self, packages_page):
+        """Test that 'ללא הגבלה' (unlimited) is never shown for 0-value features"""
+        # Package with both minutes and prints = 0
+        test_package = {"name": "Test", "minutes": 0, "prints": 0, "price": 10}
+        card = packages_page._create_package_card(test_package)
+
+        labels = card.findChildren(QLabel)
+        unlimited_found = False
+        for label in labels:
+            if "ללא הגבלה" in label.text():
+                unlimited_found = True
+                break
+
+        # "ללא הגבלה" should NEVER appear - it's misleading for 0-value features
+        assert not unlimited_found
+
+    def test_both_features_shown_when_both_have_value(self, packages_page):
+        """Test both time and prints features are shown when both have values"""
+        test_package = {"name": "Test", "minutes": 120, "prints": 25, "price": 10}
+        card = packages_page._create_package_card(test_package)
+
+        labels = card.findChildren(QLabel)
+        time_found = False
+        prints_found = False
+        
+        for label in labels:
+            text = label.text()
+            if "⏱️" in text or "שעות" in text:
+                time_found = True
+            if "🖨️" in text or "הדפסות" in text:
+                prints_found = True
+
+        assert time_found, "Time feature should be shown when minutes > 0"
+        assert prints_found, "Prints feature should be shown when prints > 0"
+
+    # =========================================================================
     # RELOAD TESTS
     # =========================================================================
 

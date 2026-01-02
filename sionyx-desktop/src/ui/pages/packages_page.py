@@ -249,25 +249,27 @@ class PackagesPage(QWidget):
         divider.setStyleSheet(f"background: {Colors.BORDER_LIGHT};")
         layout.addWidget(divider)
 
-        # Features
+        # Features - only show features that have value (not 0)
         features = QWidget()
         features_layout = QVBoxLayout(features)
         features_layout.setContentsMargins(0, 0, 0, 0)
         features_layout.setSpacing(Spacing.SM)
 
-        # Time
+        # Time - only show if package includes time
         minutes = package.get("minutes", 0)
-        hours = minutes // 60
-        mins = minutes % 60
-        time_text = f"⏱️  {hours}:{mins:02d} שעות" if minutes > 0 else "⏱️  ללא הגבלה"
-        time_lbl = self._create_feature_label(time_text, Colors.PRIMARY)
-        features_layout.addWidget(time_lbl)
+        if minutes > 0:
+            hours = minutes // 60
+            mins = minutes % 60
+            time_text = f"⏱️  {hours}:{mins:02d} שעות"
+            time_lbl = self._create_feature_label(time_text, Colors.PRIMARY)
+            features_layout.addWidget(time_lbl)
 
-        # Prints
+        # Prints - only show if package includes print balance
         prints = package.get("prints", 0)
-        prints_text = f"🖨️  {prints}₪ יתרת הדפסות" if prints > 0 else "🖨️  ללא הגבלה"
-        prints_lbl = self._create_feature_label(prints_text, Colors.ACCENT)
-        features_layout.addWidget(prints_lbl)
+        if prints > 0:
+            prints_text = f"🖨️  {prints}₪ יתרת הדפסות"
+            prints_lbl = self._create_feature_label(prints_text, Colors.ACCENT)
+            features_layout.addWidget(prints_lbl)
 
         layout.addWidget(features)
         layout.addStretch(1)
