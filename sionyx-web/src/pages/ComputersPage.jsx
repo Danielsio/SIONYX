@@ -33,6 +33,11 @@ import {
   forceLogoutUser,
   deleteComputer,
 } from '../services/computerService';
+import {
+  getUserStatus,
+  getStatusLabel,
+  getStatusColor,
+} from '../constants/userStatus';
 
 const { Title, Text } = Typography;
 
@@ -151,6 +156,15 @@ const ComputersPage = () => {
   const UserCard = ({ user }) => {
     const [expanded, setExpanded] = useState(false);
     const remainingColor = user.remainingTime > 3600 ? '#52c41a' : user.remainingTime > 1800 ? '#faad14' : '#ff4d4f';
+    
+    // Use centralized status logic - map activeUsers data to getUserStatus format
+    // Users in activeUsers list are always logged in (isLoggedIn: true)
+    const userStatus = getUserStatus({
+      isLoggedIn: true,  // They're in activeUsers, so they're logged in
+      isSessionActive: user.sessionActive,
+    });
+    const statusLabel = getStatusLabel(userStatus);
+    const statusColor = getStatusColor(userStatus);
 
     return (
       <Card
@@ -172,10 +186,10 @@ const ComputersPage = () => {
               <UserOutlined style={{ color: '#1890ff', fontSize: 18 }} />
               <Text strong style={{ fontSize: 15 }}>{user.userName}</Text>
               <Tag 
-                color={user.sessionActive ? 'success' : 'default'} 
+                color={statusColor} 
                 style={{ marginRight: 0 }}
               >
-                {user.sessionActive ? 'פעיל' : 'לא פעיל'}
+                {statusLabel}
               </Tag>
             </Space>
           </Col>

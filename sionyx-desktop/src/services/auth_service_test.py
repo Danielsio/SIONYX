@@ -274,7 +274,8 @@ class TestAuthService:
         mock_firebase_client.db_update.assert_not_called()
 
     def test_handle_computer_registration_success(self, auth_service):
-        """Test successful computer registration sets isLoggedIn"""
+        """Test successful computer registration sets isLoggedIn and updates current_user"""
+        auth_service.current_user = {"uid": "test-user-id", "firstName": "Test"}
         auth_service.computer_service.register_computer.return_value = {"success": True, "computer_id": "test-id"}
         auth_service.computer_service.associate_user_with_computer.return_value = {"success": True}
 
@@ -285,6 +286,8 @@ class TestAuthService:
         auth_service.computer_service.associate_user_with_computer.assert_called_once_with(
             "test-user-id", "test-id", is_login=True
         )
+        # CRITICAL: current_user should be updated with computer ID for logout to work
+        assert auth_service.current_user["currentComputerId"] == "test-id"
 
     def test_handle_computer_registration_failure(self, auth_service):
         """Test computer registration failure"""
