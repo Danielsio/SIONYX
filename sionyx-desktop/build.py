@@ -11,6 +11,7 @@ Usage:
     python build.py --no-upload        # Build only, don't upload
     python build.py --version 1.2.3    # Set specific version
     python build.py --dry-run          # Show what would happen
+    python build.py --skip-coverage-check  # Skip coverage regression check
 """
 
 import hashlib
@@ -206,6 +207,94 @@ def run_command(command, cwd=None, check=True):
         if e.stderr:
             print(e.stderr)
         raise
+
+
+# =============================================================================
+# COVERAGE CHECK
+# =============================================================================
+
+def run_tests_with_coverage() -> Optional[float]:
+    """Run tests with coverage and return the total coverage percentage"""
+    print_header("Running Tests with Coverage")
+    
+    try:
+        # Run pytest with coverage
+        result = subprocess.run(
+            ["pytest", "src/", "-v", "--cov=src", "--cov-report=term", "--cov-report=json"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        
+        # Print test output
+        if result.stdout:
+            print(result.stdout)
+        if result.stderr:
+            print(result.stderr)
+        
+        if result.returncode != 0:
+            print_error("Tests failed! Cannot proceed with build.")
+            return None
+        
+        # Parse coverage from coverage.json
+        coverage_file = Path("coverage.json")
+        if coverage_file.exists():
+            with open(coverage_file, "r") as f:
+                coverage_data = json.load(f)
+            
+            total_coverage = coverage_data.get("totals", {}).get("percent_covered", 0)
+            print_success(f"Total coverage: {total_coverage:.2f}%")
+            
+            # Clean up coverage files
+            coverage_file.unlink()
+            if Path(".coverage").exists():
+                Path(".coverage").unlink()
+            
+            return total_coverage
+        else:
+            print_warning("Coverage report not found, skipping coverage check")
+            return None
+            
+    except Exception as e:
+        print_error(f"Failed to run tests: {e}")
+        return None
+
+
+def check_coverage_regression(
+    current_coverage: float, 
+    previous_coverage: Optional[float],
+    skip_check: bool = False
+) -> bool:
+    """
+    Check if coverage has regressed from previous build.
+    
+    Returns True if OK to proceed, False if build should fail.
+    """
+    if skip_check:
+        print_warning("Coverage regression check SKIPPED (--skip-coverage-check)")
+        return True
+    
+    if previous_coverage is None:
+        print_info("No previous coverage baseline, setting initial baseline")
+        return True
+    
+    print_info(f"Previous coverage: {previous_coverage:.2f}%")
+    print_info(f"Current coverage:  {current_coverage:.2f}%")
+    
+    if current_coverage < previous_coverage:
+        drop = previous_coverage - current_coverage
+        print_error(f"Coverage DROPPED by {drop:.2f}%!")
+        print_error(f"Build failed: Coverage must not decrease.")
+        print_info("To override, use: python build.py --skip-coverage-check")
+        return False
+    elif current_coverage > previous_coverage:
+        improvement = current_coverage - previous_coverage
+        print_success(f"Coverage IMPROVED by {improvement:.2f}%! 🎉")
+    else:
+        print_success("Coverage unchanged")
+    
+    return True
 
 
 # =============================================================================
@@ -470,6 +559,7 @@ Examples:
     parser.add_argument("--no-upload", action="store_true", help="Skip upload to Firebase")
     parser.add_argument("--dry-run", action="store_true", help="Show what would happen")
     parser.add_argument("--keep-local", action="store_true", help="Keep local installer after upload")
+    parser.add_argument("--skip-coverage-check", action="store_true", help="Skip coverage regression check")
     
     args = parser.parse_args()
     
@@ -507,6 +597,20 @@ Examples:
             print_warning("DRY RUN - No changes will be made")
             return True
         
+        # Run tests with coverage FIRST
+        current_coverage = run_tests_with_coverage()
+        if current_coverage is None:
+            print_error("Tests failed or coverage could not be determined")
+            return False
+        
+        # Check for coverage regression
+        previous_coverage = version_data.get("coverage")
+        if not check_coverage_regression(current_coverage, previous_coverage, args.skip_coverage_check):
+            return False
+        
+        # Store coverage in new version data
+        new_version_data["coverage"] = round(current_coverage, 2)
+        
         # Check dependencies
         if not check_dependencies():
             return False
@@ -539,6 +643,7 @@ Examples:
         print_header("Build Complete!")
         print(f"  Version:    v{new_version}")
         print(f"  Build:      #{new_version_data['buildNumber']}")
+        print(f"  Coverage:   {new_version_data.get('coverage', 0):.2f}%")
         print(f"  Installer:  {get_installer_filename(new_version)}")
         
         if upload_success:

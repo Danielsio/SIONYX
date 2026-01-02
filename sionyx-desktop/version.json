@@ -5,5 +5,6 @@
   "patch": 15,
   "buildNumber": 15,
   "lastBuildDate": "2026-01-02T14:00:22.615568",
-  "changelog": []
+  "changelog": [],
+  "coverage": 87.45
 }
