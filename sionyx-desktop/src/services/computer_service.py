@@ -54,10 +54,14 @@ class ComputerService:
             if location:
                 computer_info["location"] = location
 
-            # Add timestamps
+            # Add timestamps (currentUserId=None means not active)
             now = datetime.now().isoformat()
             computer_info.update(
-                {"createdAt": now, "updatedAt": now, "lastSeen": now, "isActive": True}
+                {
+                    "currentUserId": None,
+                    "createdAt": now,
+                    "updatedAt": now,
+                }
             )
 
             # Generate computer ID (use device ID as base)
@@ -107,30 +111,6 @@ class ComputerService:
             logger.error(f"Failed to get computer info: {e}")
             return {"success": False, "error": str(e)}
 
-    def update_computer_activity(self, computer_id: str) -> Dict:
-        """
-        Update computer's last seen timestamp
-
-        Args:
-            computer_id: The computer ID to update
-
-        Returns:
-            {'success': bool, 'error': str}
-        """
-        try:
-            now = datetime.now().isoformat()
-
-            result = self.firebase.db_update(
-                f"computers/{computer_id}",
-                {"lastSeen": now, "updatedAt": now, "isActive": True},
-            )
-
-            return result
-
-        except Exception as e:
-            logger.error(f"Failed to update computer activity: {e}")
-            return {"success": False, "error": str(e)}
-
     def associate_user_with_computer(
         self, user_id: str, computer_id: str, is_login: bool = False
     ) -> Dict:
@@ -148,18 +128,9 @@ class ComputerService:
         try:
             now = datetime.now().isoformat()
 
-            # Get computer info for user record
-            computer_result = self.get_computer_info(computer_id)
-            if not computer_result.get("success"):
-                return computer_result
-
-            computer_data = computer_result["data"]
-            computer_name = computer_data.get("computerName", "Unknown PC")
-
             # Update user record with computer association
             user_updates = {
                 "currentComputerId": computer_id,
-                "currentComputerName": computer_name,
                 "updatedAt": now,
             }
 
@@ -170,13 +141,11 @@ class ComputerService:
             result = self.firebase.db_update(f"users/{user_id}", user_updates)
 
             if result.get("success"):
-                # Also update computer with current user and mark as active
+                # Update computer with current user (this makes it "active")
                 self.firebase.db_update(
                     f"computers/{computer_id}",
                     {
                         "currentUserId": user_id,
-                        "lastUserLogin": now,
-                        "isActive": True,
                         "updatedAt": now,
                     },
                 )
@@ -207,8 +176,6 @@ class ComputerService:
             # Build user updates
             user_updates = {
                 "currentComputerId": None,
-                "currentComputerName": None,
-                "lastComputerLogout": now,
                 "updatedAt": now,
             }
 
@@ -219,13 +186,11 @@ class ComputerService:
             # Clear user's current computer
             user_result = self.firebase.db_update(f"users/{user_id}", user_updates)
 
-            # Clear computer's current user and mark as inactive
+            # Clear computer's current user (this makes it "inactive")
             computer_result = self.firebase.db_update(
                 f"computers/{computer_id}",
                 {
                     "currentUserId": None,
-                    "lastUserLogout": now,
-                    "isActive": False,
                     "updatedAt": now,
                 },
             )
@@ -279,17 +244,15 @@ class ComputerService:
                 "active_computers": 0,
                 "computers_with_users": 0,
                 "computer_details": [],
-                "user_computer_usage": {},
             }
 
             for computer_id, computer_data in computers.items():
-                is_active = computer_data.get("isActive", False)
                 current_user_id = computer_data.get("currentUserId")
+                # Derive isActive from currentUserId
+                is_active = current_user_id is not None
 
                 if is_active:
                     stats["active_computers"] += 1
-
-                if current_user_id:
                     stats["computers_with_users"] += 1
 
                     # Get user info
@@ -300,51 +263,26 @@ class ComputerService:
 
                     stats["computer_details"].append(
                         {
-                            "computer_id": computer_id,
-                            "computer_name": computer_data.get(
+                            "computerId": computer_id,
+                            "computerName": computer_data.get(
                                 "computerName", "Unknown"
                             ),
-                            "location": computer_data.get("location", ""),
-                            "is_active": is_active,
-                            "current_user_id": current_user_id,
-                            "current_user_name": user_name,
-                            "last_seen": computer_data.get("lastSeen", ""),
-                            "os_info": computer_data.get("osInfo", {}),
-                        }
-                    )
-
-                    # Track user's computer usage
-                    if current_user_id not in stats["user_computer_usage"]:
-                        stats["user_computer_usage"][current_user_id] = {
-                            "user_name": user_name,
-                            "computers_used": [],
-                        }
-
-                    stats["user_computer_usage"][current_user_id][
-                        "computers_used"
-                    ].append(
-                        {
-                            "computer_id": computer_id,
-                            "computer_name": computer_data.get(
-                                "computerName", "Unknown"
-                            ),
-                            "login_time": computer_data.get("lastUserLogin", ""),
+                            "isActive": True,
+                            "currentUserId": current_user_id,
+                            "currentUserName": user_name,
                         }
                     )
                 else:
-                    # Computer without user
+                    # Computer without user (not active)
                     stats["computer_details"].append(
                         {
-                            "computer_id": computer_id,
-                            "computer_name": computer_data.get(
+                            "computerId": computer_id,
+                            "computerName": computer_data.get(
                                 "computerName", "Unknown"
                             ),
-                            "location": computer_data.get("location", ""),
-                            "is_active": is_active,
-                            "current_user_id": None,
-                            "current_user_name": None,
-                            "last_seen": computer_data.get("lastSeen", ""),
-                            "os_info": computer_data.get("osInfo", {}),
+                            "isActive": False,
+                            "currentUserId": None,
+                            "currentUserName": None,
                         }
                     )
 
