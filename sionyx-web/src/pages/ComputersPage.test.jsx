@@ -242,8 +242,9 @@ describe('ComputersPage', () => {
 
   // BUG TESTS - Session Time and Status Display
   describe('Session Time Bug Tests', () => {
-    it('should show "לא פעיל" (not just "לא") for inactive session status', async () => {
-      // Mock user who is on computer but NOT in active session
+    it('should show "מושהה" for logged-in user not in active session', async () => {
+      // Mock user who is logged in but NOT in active session
+      // Using centralized userStatus: CONNECTED status = "מושהה" (on hold)
       getActiveComputerUsers.mockResolvedValue({
         success: true,
         data: [{
@@ -264,10 +265,9 @@ describe('ComputersPage', () => {
         expect(getActiveComputerUsers).toHaveBeenCalled();
       });
 
-      // Should show "לא פעיל" not just "לא"
+      // Should show "מושהה" (on hold) - user is connected but not in active session
       await waitFor(() => {
-        const statusTags = screen.queryAllByText('לא פעיל');
-        // At least one "לא פעיל" should appear
+        const statusTags = screen.queryAllByText('מושהה');
         expect(statusTags.length).toBeGreaterThan(0);
       });
     });
