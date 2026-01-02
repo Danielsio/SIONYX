@@ -55,6 +55,21 @@
 
 ## ✅ Recently Completed
 
+- [x] **Computer Data Simplification** - Minimal data model for computers
+  - `isActive` now derived from `currentUserId` (no separate field)
+  - Removed: `lastSeen`, `lastUserLogin`, `lastUserLogout`, `osInfo`, `macAddress`, `hardwareId`, `networkInfo`
+  - User: removed `currentComputerName`, `lastComputerLogout`
+  - Only store: `computerName`, `deviceId`, `currentUserId`, `createdAt`, `updatedAt`
+- [x] **Computers Page Redesign** - Improved admin dashboard computers view
+  - Removed unused columns (מיקום, נראה לאחרונה) - data not collected
+  - Fixed "משתמש נוכחי" to show actual username or "לא בשימוש כעת"
+  - Converted table to responsive card-based layout
+  - Unified "כל המחשבים" tab to use same card layout
+- [x] **Registration Login State Fix** - Fixed bug where signup didn't set isLoggedIn
+  - register() now calls _handle_computer_registration() like login()
+  - User is now properly associated with computer after signup
+  - isLoggedIn is set to true in Firebase after signup
+  - Enables single-session enforcement to work for newly registered users
 - [x] **User Field Refactor** - Cleaned up user data structure
   - Fixed orphan session recovery bug (wasn't clearing computer association)
   - Removed unused fields: computerHistory, sessionComputerName, lastComputerLogin
@@ -66,5 +81,5 @@
 - [x] **Handle empty Firebase collections** - No crash on missing data
 
 ---
-*Last updated: 2024-12-31*
+*Last updated: 2025-01-02*
 

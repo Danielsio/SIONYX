@@ -20,12 +20,10 @@ class TestComputerService:
 
     @pytest.fixture
     def mock_computer_info(self):
-        """Mock computer info data"""
+        """Mock computer info data (minimal - no isActive)"""
         return {
             "deviceId": "abc123def456",
             "computerName": "TEST-PC",
-            "osInfo": {"platform": "win32", "version": "10.0"},
-            "macAddress": "AA:BB:CC:DD:EE:FF"
         }
 
     def test_initialization(self, computer_service, mock_firebase_client):
@@ -42,6 +40,9 @@ class TestComputerService:
         assert result["success"] is True
         assert result["computer_id"] == mock_computer_info["deviceId"]
         assert result["computer_name"] == mock_computer_info["computerName"]
+        # Verify currentUserId is set to None on registration
+        call_args = mock_firebase_client.db_set.call_args
+        assert call_args[0][1].get("currentUserId") is None
 
     def test_register_computer_with_custom_name(self, computer_service, mock_firebase_client, mock_computer_info):
         """Test computer registration with custom name"""
@@ -61,7 +62,6 @@ class TestComputerService:
             result = computer_service.register_computer(location="Lab A")
         
         assert result["success"] is True
-        # Verify location was passed in the db_set call
         call_args = mock_firebase_client.db_set.call_args
         assert call_args[0][1].get("location") == "Lab A"
 
@@ -71,7 +71,6 @@ class TestComputerService:
         computer_info = {
             "deviceId": "abc123def456",
             "computerName": "Unknown-PC",
-            "osInfo": {}
         }
         
         with patch("services.computer_service.get_computer_info", return_value=computer_info):
@@ -100,7 +99,7 @@ class TestComputerService:
 
     def test_get_computer_info_success(self, computer_service, mock_firebase_client):
         """Test getting computer info"""
-        expected_data = {"computerName": "TEST-PC", "isActive": True}
+        expected_data = {"computerName": "TEST-PC", "currentUserId": None}
         mock_firebase_client.db_get.return_value = {"success": True, "data": expected_data}
         
         result = computer_service.get_computer_info("computer-123")
@@ -118,28 +117,6 @@ class TestComputerService:
         assert result["success"] is False
         assert "Network error" in result["error"]
 
-    def test_update_computer_activity_success(self, computer_service, mock_firebase_client):
-        """Test updating computer activity"""
-        mock_firebase_client.db_update.return_value = {"success": True}
-        
-        result = computer_service.update_computer_activity("computer-123")
-        
-        assert result["success"] is True
-        mock_firebase_client.db_update.assert_called_once()
-        call_args = mock_firebase_client.db_update.call_args
-        assert call_args[0][0] == "computers/computer-123"
-        assert "lastSeen" in call_args[0][1]
-        assert call_args[0][1]["isActive"] is True
-
-    def test_update_computer_activity_exception(self, computer_service, mock_firebase_client):
-        """Test updating computer activity with exception"""
-        mock_firebase_client.db_update.side_effect = Exception("Update failed")
-        
-        result = computer_service.update_computer_activity("computer-123")
-        
-        assert result["success"] is False
-        assert "Update failed" in result["error"]
-
     def test_associate_user_with_computer_success(self, computer_service, mock_firebase_client):
         """Test associating user with computer"""
         mock_firebase_client.db_get.return_value = {
@@ -150,13 +127,11 @@ class TestComputerService:
         result = computer_service.associate_user_with_computer("user-123", "computer-123")
         
         assert result["success"] is True
-        # Should update both user and computer
         assert mock_firebase_client.db_update.call_count >= 1
-        # Verify currentComputerId is set
+        # Verify currentComputerId is set on user
         user_update_call = mock_firebase_client.db_update.call_args_list[0]
         user_updates = user_update_call[0][1]
         assert user_updates.get("currentComputerId") == "computer-123"
-        assert user_updates.get("currentComputerName") == "TEST-PC"
         # isLoggedIn should NOT be set when is_login=False (default)
         assert "isLoggedIn" not in user_updates
 
@@ -170,14 +145,27 @@ class TestComputerService:
         result = computer_service.associate_user_with_computer("user-123", "computer-123", is_login=True)
         
         assert result["success"] is True
-        # Verify isLoggedIn is set to True
         user_update_call = mock_firebase_client.db_update.call_args_list[0]
         user_updates = user_update_call[0][1]
         assert user_updates.get("isLoggedIn") is True
 
-    def test_associate_user_with_computer_not_found(self, computer_service, mock_firebase_client):
-        """Test associating user with non-existent computer"""
-        mock_firebase_client.db_get.return_value = {"success": False, "error": "Not found"}
+    def test_associate_user_sets_current_user_on_computer(self, computer_service, mock_firebase_client):
+        """Test that association sets currentUserId on computer (makes it active)"""
+        mock_firebase_client.db_get.return_value = {
+            "success": True, "data": {"computerName": "TEST-PC"}
+        }
+        mock_firebase_client.db_update.return_value = {"success": True}
+        
+        computer_service.associate_user_with_computer("user-123", "computer-123")
+        
+        # Second update call should be to computer
+        computer_update_call = mock_firebase_client.db_update.call_args_list[1]
+        computer_updates = computer_update_call[0][1]
+        assert computer_updates.get("currentUserId") == "user-123"
+
+    def test_associate_user_with_computer_update_failure(self, computer_service, mock_firebase_client):
+        """Test associating user when update fails"""
+        mock_firebase_client.db_update.return_value = {"success": False, "error": "Update failed"}
         
         result = computer_service.associate_user_with_computer("user-123", "computer-123")
         
@@ -185,7 +173,7 @@ class TestComputerService:
 
     def test_associate_user_with_computer_exception(self, computer_service, mock_firebase_client):
         """Test association with exception"""
-        mock_firebase_client.db_get.side_effect = Exception("Database error")
+        mock_firebase_client.db_update.side_effect = Exception("Database error")
         
         result = computer_service.associate_user_with_computer("user-123", "computer-123")
         
@@ -199,11 +187,15 @@ class TestComputerService:
         result = computer_service.disassociate_user_from_computer("user-123", "computer-123")
         
         assert result["success"] is True
-        assert mock_firebase_client.db_update.call_count == 2  # User and computer updates
-        # isLoggedIn should NOT be set when is_logout=False (default)
+        assert mock_firebase_client.db_update.call_count == 2
+        # User update: clear currentComputerId
         user_update_call = mock_firebase_client.db_update.call_args_list[0]
         user_updates = user_update_call[0][1]
-        assert "isLoggedIn" not in user_updates
+        assert user_updates.get("currentComputerId") is None
+        # Computer update: clear currentUserId (makes it inactive)
+        computer_update_call = mock_firebase_client.db_update.call_args_list[1]
+        computer_updates = computer_update_call[0][1]
+        assert computer_updates.get("currentUserId") is None
 
     def test_disassociate_user_from_computer_sets_logged_out(self, computer_service, mock_firebase_client):
         """Test disassociating user from computer sets isLoggedIn=False when is_logout=True"""
@@ -212,7 +204,6 @@ class TestComputerService:
         result = computer_service.disassociate_user_from_computer("user-123", "computer-123", is_logout=True)
         
         assert result["success"] is True
-        # Verify isLoggedIn is set to False
         user_update_call = mock_firebase_client.db_update.call_args_list[0]
         user_updates = user_update_call[0][1]
         assert user_updates.get("isLoggedIn") is False
@@ -250,10 +241,10 @@ class TestComputerService:
         assert "Network error" in result["error"]
 
     def test_get_computer_usage_stats_success(self, computer_service, mock_firebase_client):
-        """Test getting computer usage statistics"""
+        """Test getting computer usage statistics - isActive derived from currentUserId"""
         computers = {
-            "comp-1": {"computerName": "PC-1", "isActive": True, "currentUserId": "user-1"},
-            "comp-2": {"computerName": "PC-2", "isActive": False, "currentUserId": None}
+            "comp-1": {"computerName": "PC-1", "currentUserId": "user-1"},  # Active
+            "comp-2": {"computerName": "PC-2", "currentUserId": None}  # Not active
         }
         users = {
             "user-1": {"firstName": "John", "lastName": "Doe"}
@@ -268,7 +259,7 @@ class TestComputerService:
         assert result["success"] is True
         stats = result["data"]
         assert stats["total_computers"] == 2
-        assert stats["active_computers"] == 1
+        assert stats["active_computers"] == 1  # Derived from currentUserId
         assert stats["computers_with_users"] == 1
 
     def test_get_computer_usage_stats_empty(self, computer_service, mock_firebase_client):
@@ -301,9 +292,3 @@ class TestComputerService:
         
         assert result["success"] is False
         assert "Network error" in result["error"]
-
-
-
-
-
-

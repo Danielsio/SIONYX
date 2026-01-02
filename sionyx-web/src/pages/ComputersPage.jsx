@@ -11,26 +11,23 @@ import {
   Space,
   Typography,
   Spin,
-  Empty,
   Modal,
   message,
-  Tooltip,
   Badge,
 } from 'antd';
 import {
   DesktopOutlined,
   UserOutlined,
-  ClockCircleOutlined,
   LogoutOutlined,
   DeleteOutlined,
   ReloadOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import {
   getAllComputers,
   getComputerUsageStats,
   getActiveComputerUsers,
   forceLogoutUser,
-  updateComputer,
   deleteComputer,
 } from '../services/computerService';
 import { formatDistanceToNow } from 'date-fns';
@@ -124,15 +121,6 @@ const ComputersPage = () => {
     });
   };
 
-  const formatTime = timeString => {
-    if (!timeString) return 'לעולם לא';
-    try {
-      return formatDistanceToNow(new Date(timeString), { addSuffix: true });
-    } catch {
-      return 'תאריך לא תקין';
-    }
-  };
-
   const formatDuration = seconds => {
     if (!seconds) return '0s';
     const hours = Math.floor(seconds / 3600);
@@ -180,22 +168,13 @@ const ComputersPage = () => {
       key: 'computerName',
       width: 120,
       responsive: ['sm'],
-      render: (text, record) => (
-        <Space direction='vertical' size={0}>
-          <Text strong>{text}</Text>
-          <Text type='secondary' style={{ fontSize: '11px' }}>
-            {record.computerLocation}
-          </Text>
-        </Space>
-      ),
+      render: text => <Text strong>{text}</Text>,
     },
     {
       title: 'זמן פעילות',
       key: 'currentSession',
       width: 110,
       render: (_, record) => {
-        // FIX: Use sessionStartTime (when paid session started), not loginTime
-        // If no active session, show placeholder
         if (!record.sessionActive || !record.sessionStartTime) {
           return <Text type="secondary">--</Text>;
         }
@@ -224,7 +203,6 @@ const ComputersPage = () => {
       width: 80,
       responsive: ['md'],
       render: active => (
-        // FIX: Show "לא פעיל" instead of just "לא" for consistency
         <Tag color={active ? 'green' : 'default'}>{active ? 'פעיל' : 'לא פעיל'}</Tag>
       ),
     },
@@ -247,142 +225,121 @@ const ComputersPage = () => {
     },
   ];
 
-  // Computers Table Columns
-  const computersColumns = [
-    {
-      title: 'שם',
-      dataIndex: 'computerName',
-      key: 'computerName',
-      fixed: 'right',
-      width: 130,
-      render: (text, record) => (
-        <Space direction='vertical' size={0}>
-          <Text strong style={{ whiteSpace: 'nowrap' }}>{text}</Text>
-          <Text type='secondary' style={{ fontSize: '11px' }}>
-            {record.location || 'ללא מיקום'}
-          </Text>
-        </Space>
-      ),
-    },
-    {
-      title: 'MAC',
-      dataIndex: 'macAddress',
-      key: 'macAddress',
-      width: 140,
-      responsive: ['md'],
-      render: text => <Text code style={{ fontSize: '11px' }}>{text || 'לא ידוע'}</Text>,
-    },
-    {
-      title: 'IP',
-      dataIndex: ['networkInfo', 'local_ip'],
-      key: 'ip',
-      width: 110,
-      responsive: ['lg'],
-      render: text => <Text code style={{ fontSize: '11px' }}>{text || 'לא ידוע'}</Text>,
-    },
-    {
-      title: 'OS',
-      dataIndex: 'osInfo',
-      key: 'os',
-      width: 100,
-      responsive: ['lg'],
-      render: osInfo => (
-        <Text style={{ fontSize: '12px' }}>
-          {osInfo?.system || '?'}
-        </Text>
-      ),
-    },
-    {
-      title: 'סטטוס',
-      dataIndex: 'isActive',
-      key: 'isActive',
-      width: 80,
-      render: active => (
-        <Tag color={active ? 'green' : 'default'}>{active ? 'פעיל' : 'לא'}</Tag>
-      ),
-    },
-    {
-      title: 'נראה',
-      dataIndex: 'lastSeen',
-      key: 'lastSeen',
-      width: 100,
-      responsive: ['sm'],
-      render: time => <Text type='secondary' style={{ fontSize: '11px' }}>{formatTime(time)}</Text>,
-    },
-    {
-      title: '',
-      key: 'actions',
-      fixed: 'left',
-      width: 70,
-      render: (_, record) => (
-        <Button
-          type='text'
-          danger
-          size='small'
-          icon={<DeleteOutlined />}
-          onClick={() => handleDeleteComputer(record.id)}
-        />
-      ),
-    },
-  ];
+  // Computer Card Component - for overview tab (uses stats.computerDetails structure)
+  const ComputerCard = ({ computer }) => {
+    const hasUser = !!computer.currentUserName;
+    // Derive isActive from currentUserId (if user is associated, it's active)
+    const isActive = !!computer.currentUserId;
 
-  // Overview Table Columns
-  const overviewColumns = [
-    {
-      title: 'מחשב',
-      dataIndex: 'computerName',
-      key: 'computerName',
-      render: (text, record) => (
-        <Space direction='vertical' size={0}>
-          <Text strong>{text}</Text>
-          <Text type='secondary' style={{ fontSize: '12px' }}>
-            {record.macAddress}
-          </Text>
-        </Space>
-      ),
-    },
-    {
-      title: 'מיקום',
-      dataIndex: 'location',
-      key: 'location',
-      render: text => <Text>{text || 'לא צוין'}</Text>,
-    },
-    {
-      title: 'סטטוס',
-      dataIndex: 'isActive',
-      key: 'isActive',
-      render: active => (
-        <Tag color={active ? 'green' : 'default'}>{active ? 'פעיל' : 'לא פעיל'}</Tag>
-      ),
-    },
-    {
-      title: 'משתמש נוכחי',
-      dataIndex: 'currentUserName',
-      key: 'currentUser',
-      render: text => <Text>{text || 'זמין'}</Text>,
-    },
-    {
-      title: 'נראה לאחרונה',
-      dataIndex: 'lastSeen',
-      key: 'lastSeen',
-      render: time => <Text type='secondary'>{formatTime(time)}</Text>,
-    },
-    {
-      title: 'פעולות',
-      key: 'actions',
-      render: (_, record) =>
-        record.currentUserId && (
-          <Button
-            type='text'
-            danger
-            icon={<LogoutOutlined />}
-            onClick={() => handleForceLogout(record.currentUserId, record.computerId)}
-          >
-            התנתק
-          </Button>
-        ),
-    },
-  ];
+    return (
+      <Card
+        size="small"
+        style={{
+          marginBottom: 12,
+          borderRadius: 8,
+          border: isActive ? '1px solid #52c41a' : '1px solid #d9d9d9',
+        }}
+        styles={{ body: { padding: '12px 16px' } }}
+      >
+        <Row align="middle" justify="space-between" gutter={[8, 8]}>
+          {/* Computer Name & Status */}
+          <Col flex="auto">
+            <Space size={8}>
+              <DesktopOutlined style={{ color: isActive ? '#52c41a' : '#bfbfbf', fontSize: 18 }} />
+              <Text strong style={{ fontSize: 15 }}>{computer.computerName}</Text>
+              <Tag 
+                color={isActive ? 'success' : 'default'} 
+                style={{ marginRight: 0 }}
+              >
+                {isActive ? 'פעיל' : 'לא פעיל'}
+              </Tag>
+            </Space>
+          </Col>
+
+          {/* Current User Status */}
+          <Col>
+            <Space size={8} align="center">
+              {hasUser ? (
+                <>
+                  <Space size={4}>
+                    <UserOutlined style={{ color: '#1890ff' }} />
+                    <Text strong style={{ color: '#1890ff' }}>{computer.currentUserName}</Text>
+                  </Space>
+                  <Button
+                    type="link"
+                    danger
+                    size="small"
+                    icon={<LogoutOutlined />}
+                    onClick={() => handleForceLogout(computer.currentUserId, computer.computerId)}
+                    style={{ padding: 0, height: 'auto' }}
+                  >
+                    התנתק
+                  </Button>
+                </>
+              ) : (
+                <Tag icon={<CheckCircleOutlined />} color="default">
+                  לא בשימוש כעת
+                </Tag>
+              )}
+              <Button
+                type="text"
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+                onClick={() => handleDeleteComputer(computer.computerId)}
+              />
+            </Space>
+          </Col>
+        </Row>
+      </Card>
+    );
+  };
+
+  // All Computers Card - for "כל המחשבים" tab (uses computers array structure with id field)
+  const AllComputerCard = ({ computer }) => {
+    // Derive isActive from currentUserId (if user is associated, it's active)
+    const isActive = !!computer.currentUserId;
+    const computerId = computer.id;
+
+    return (
+      <Card
+        size="small"
+        style={{
+          marginBottom: 12,
+          borderRadius: 8,
+          border: isActive ? '1px solid #52c41a' : '1px solid #d9d9d9',
+        }}
+        styles={{ body: { padding: '12px 16px' } }}
+      >
+        <Row align="middle" justify="space-between">
+          {/* Computer Name & Status */}
+          <Col>
+            <Space size={8}>
+              <DesktopOutlined style={{ color: isActive ? '#52c41a' : '#bfbfbf', fontSize: 18 }} />
+              <Text strong style={{ fontSize: 15 }}>{computer.computerName}</Text>
+              <Tag 
+                color={isActive ? 'success' : 'default'} 
+                style={{ marginRight: 0 }}
+              >
+                {isActive ? 'פעיל' : 'לא פעיל'}
+              </Tag>
+            </Space>
+          </Col>
+
+          {/* Delete Button */}
+          <Col>
+            <Button
+              type="text"
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={() => handleDeleteComputer(computerId)}
+            />
+          </Col>
+        </Row>
+      </Card>
+    );
+  };
 
   const tabItems = [
     {
@@ -394,7 +351,7 @@ const ComputersPage = () => {
           <Card
             title='משתמשים פעילים'
             extra={<Badge count={activeUsers.length} showZero color='#52c41a' />}
-            bodyStyle={{ padding: 0, overflow: 'hidden' }}
+            styles={{ body: { padding: 0, overflow: 'hidden' } }}
           >
             <Table
               columns={activeUsersColumns}
@@ -407,15 +364,18 @@ const ComputersPage = () => {
             />
           </Card>
 
-          {/* Computer Overview Table */}
+          {/* Computer Cards - Responsive Layout */}
           <Card title='סקירת מחשבים'>
-            <Table
-              columns={overviewColumns}
-              dataSource={stats?.computerDetails || []}
-              rowKey='computerId'
-              pagination={{ pageSize: 10 }}
-              locale={{ emptyText: 'אין נתונים זמינים' }}
-            />
+            {stats?.computerDetails?.length > 0 ? (
+              stats.computerDetails.map(computer => (
+                <ComputerCard key={computer.computerId} computer={computer} />
+              ))
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#bfbfbf' }}>
+                <DesktopOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+                <div>אין מחשבים רשומים</div>
+              </div>
+            )}
           </Card>
         </Space>
       ),
@@ -442,15 +402,18 @@ const ComputersPage = () => {
       key: 'computers',
       label: 'כל המחשבים',
       children: (
-        <Table
-          columns={computersColumns}
-          dataSource={computers}
-          rowKey='id'
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: 'אין מחשבים זמינים' }}
-          scroll={{ x: 'max-content' }}
-          size='small'
-        />
+        <div>
+          {computers.length > 0 ? (
+            computers.map(computer => (
+              <AllComputerCard key={computer.id} computer={computer} />
+            ))
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#bfbfbf' }}>
+              <DesktopOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+              <div>אין מחשבים רשומים</div>
+            </div>
+          )}
+        </div>
       ),
     },
   ];
