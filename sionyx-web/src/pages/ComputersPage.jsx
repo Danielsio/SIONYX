@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Card,
-  Table,
   Tabs,
   Statistic,
   Row,
@@ -22,6 +21,10 @@ import {
   DeleteOutlined,
   ReloadOutlined,
   CheckCircleOutlined,
+  ClockCircleOutlined,
+  PhoneOutlined,
+  DownOutlined,
+  UpOutlined,
 } from '@ant-design/icons';
 import {
   getAllComputers,
@@ -30,7 +33,6 @@ import {
   forceLogoutUser,
   deleteComputer,
 } from '../services/computerService';
-import { formatDistanceToNow } from 'date-fns';
 
 const { Title, Text } = Typography;
 
@@ -145,85 +147,115 @@ const ComputersPage = () => {
     return formatDuration(diffSeconds);
   };
 
-  // Active Users Table Columns
-  const activeUsersColumns = [
-    {
-      title: 'משתמש',
-      dataIndex: 'userName',
-      key: 'userName',
-      fixed: 'right',
-      width: 140,
-      render: (text, record) => (
-        <Space direction='vertical' size={0}>
-          <Text strong style={{ whiteSpace: 'nowrap' }}>{text}</Text>
-          <Text type='secondary' style={{ fontSize: '11px' }}>
-            {record.userPhone}
-          </Text>
-        </Space>
-      ),
-    },
-    {
-      title: 'מחשב',
-      dataIndex: 'computerName',
-      key: 'computerName',
-      width: 120,
-      responsive: ['sm'],
-      render: text => <Text strong>{text}</Text>,
-    },
-    {
-      title: 'זמן פעילות',
-      key: 'currentSession',
-      width: 110,
-      render: (_, record) => {
-        if (!record.sessionActive || !record.sessionStartTime) {
-          return <Text type="secondary">--</Text>;
-        }
-        return (
-          <Text strong style={{ color: '#52c41a' }}>
-            {formatSessionTime(record.sessionStartTime)}
-          </Text>
-        );
-      },
-    },
-    {
-      title: 'נותר',
-      dataIndex: 'remainingTime',
-      key: 'remainingTime',
-      width: 80,
-      render: time => (
-        <Text style={{ color: time > 3600 ? '#52c41a' : time > 1800 ? '#faad14' : '#ff4d4f' }}>
-          {formatDuration(time)}
-        </Text>
-      ),
-    },
-    {
-      title: 'סטטוס',
-      dataIndex: 'sessionActive',
-      key: 'sessionActive',
-      width: 80,
-      responsive: ['md'],
-      render: active => (
-        <Tag color={active ? 'green' : 'default'}>{active ? 'פעיל' : 'לא פעיל'}</Tag>
-      ),
-    },
-    {
-      title: '',
-      key: 'actions',
-      fixed: 'left',
-      width: 80,
-      render: (_, record) => (
-        <Button
-          type='primary'
-          danger
-          size='small'
-          icon={<LogoutOutlined />}
-          onClick={() => handleForceLogout(record.userId, record.computerId)}
-        >
-          נתק
-        </Button>
-      ),
-    },
-  ];
+  // User Card Component - for active users display
+  const UserCard = ({ user }) => {
+    const [expanded, setExpanded] = useState(false);
+    const remainingColor = user.remainingTime > 3600 ? '#52c41a' : user.remainingTime > 1800 ? '#faad14' : '#ff4d4f';
+
+    return (
+      <Card
+        size="small"
+        style={{
+          marginBottom: 12,
+          borderRadius: 8,
+          border: user.sessionActive ? '1px solid #52c41a' : '1px solid #d9d9d9',
+          cursor: 'pointer',
+        }}
+        styles={{ body: { padding: '12px 16px' } }}
+        onClick={() => setExpanded(!expanded)}
+      >
+        {/* Main Row - Always Visible */}
+        <Row align="middle" justify="space-between" gutter={[8, 8]}>
+          {/* User Name & Status */}
+          <Col flex="auto">
+            <Space size={8}>
+              <UserOutlined style={{ color: '#1890ff', fontSize: 18 }} />
+              <Text strong style={{ fontSize: 15 }}>{user.userName}</Text>
+              <Tag 
+                color={user.sessionActive ? 'success' : 'default'} 
+                style={{ marginRight: 0 }}
+              >
+                {user.sessionActive ? 'פעיל' : 'לא פעיל'}
+              </Tag>
+            </Space>
+          </Col>
+
+          {/* Quick Info & Actions */}
+          <Col>
+            <Space size={8} align="center">
+              {/* Remaining Time */}
+              <Tag 
+                icon={<ClockCircleOutlined />} 
+                color={user.remainingTime > 1800 ? 'default' : 'error'}
+                style={{ marginRight: 0 }}
+              >
+                {formatDuration(user.remainingTime)}
+              </Tag>
+              
+              {/* Logout Button */}
+              <Button
+                type="link"
+                danger
+                size="small"
+                icon={<LogoutOutlined />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleForceLogout(user.userId, user.computerId);
+                }}
+                style={{ padding: 0, height: 'auto' }}
+              >
+                נתק
+              </Button>
+              
+              {/* Expand Icon */}
+              {expanded ? (
+                <UpOutlined style={{ color: '#bfbfbf', fontSize: 12 }} />
+              ) : (
+                <DownOutlined style={{ color: '#bfbfbf', fontSize: 12 }} />
+              )}
+            </Space>
+          </Col>
+        </Row>
+
+        {/* Expanded Details */}
+        {expanded && (
+          <div style={{ 
+            marginTop: 12, 
+            paddingTop: 12, 
+            borderTop: '1px solid #f0f0f0' 
+          }}>
+            <Row gutter={[16, 8]}>
+              <Col xs={12} sm={8}>
+                <Space size={4}>
+                  <DesktopOutlined style={{ color: '#8c8c8c' }} />
+                  <Text type="secondary">מחשב:</Text>
+                  <Text strong>{user.computerName}</Text>
+                </Space>
+              </Col>
+              <Col xs={12} sm={8}>
+                <Space size={4}>
+                  <PhoneOutlined style={{ color: '#8c8c8c' }} />
+                  <Text type="secondary">טלפון:</Text>
+                  <Text>{user.userPhone}</Text>
+                </Space>
+              </Col>
+              <Col xs={12} sm={8}>
+                <Space size={4}>
+                  <ClockCircleOutlined style={{ color: '#8c8c8c' }} />
+                  <Text type="secondary">זמן פעילות:</Text>
+                  <Text strong style={{ color: '#52c41a' }}>
+                    {user.sessionActive && user.sessionStartTime 
+                      ? formatSessionTime(user.sessionStartTime) 
+                      : '--'}
+                  </Text>
+                </Space>
+              </Col>
+            </Row>
+          </div>
+        )}
+      </Card>
+    );
+  };
 
   // Computer Card Component - for overview tab (uses stats.computerDetails structure)
   const ComputerCard = ({ computer }) => {
@@ -347,21 +379,21 @@ const ComputersPage = () => {
       label: 'סקירה כללית',
       children: (
         <Space direction='vertical' size='large' style={{ width: '100%' }}>
-          {/* Active Users Table */}
+          {/* Active Users Cards */}
           <Card
             title='משתמשים פעילים'
             extra={<Badge count={activeUsers.length} showZero color='#52c41a' />}
-            styles={{ body: { padding: 0, overflow: 'hidden' } }}
           >
-            <Table
-              columns={activeUsersColumns}
-              dataSource={activeUsers}
-              rowKey={record => `${record.userId}-${record.computerId}`}
-              pagination={{ pageSize: 5 }}
-              locale={{ emptyText: 'אין משתמשים פעילים' }}
-              size='small'
-              scroll={{ x: 'max-content' }}
-            />
+            {activeUsers.length > 0 ? (
+              activeUsers.map(user => (
+                <UserCard key={`${user.userId}-${user.computerId}`} user={user} />
+              ))
+            ) : (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: '#bfbfbf' }}>
+                <UserOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+                <div>אין משתמשים פעילים</div>
+              </div>
+            )}
           </Card>
 
           {/* Computer Cards - Responsive Layout */}
@@ -389,13 +421,18 @@ const ComputersPage = () => {
         </Space>
       ),
       children: (
-        <Table
-          columns={activeUsersColumns}
-          dataSource={activeUsers}
-          rowKey={record => `${record.userId}-${record.computerId}`}
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: 'אין משתמשים פעילים' }}
-        />
+        <div>
+          {activeUsers.length > 0 ? (
+            activeUsers.map(user => (
+              <UserCard key={`${user.userId}-${user.computerId}`} user={user} />
+            ))
+          ) : (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#bfbfbf' }}>
+              <UserOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+              <div>אין משתמשים פעילים</div>
+            </div>
+          )}
+        </div>
       ),
     },
     {
