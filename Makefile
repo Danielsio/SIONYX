@@ -31,11 +31,14 @@ help:
 	@echo "  test-fail       - Run tests, stop on first failure"
 	@echo "  lint            - Check code style"
 	@echo "  lint-fix        - Fix code style"
-	@echo "  build           - Build installer (patch version, runs tests first)"
-	@echo "  build-minor     - Build installer (minor version, runs tests first)"
-	@echo "  build-major     - Build installer (major version, runs tests first)"
-	@echo "  build-dry       - Preview version changes (no tests)"
-	@echo "  build-local     - Build without uploading (runs tests first)"
+	@echo "  build           - Build installer (patch version, runs tests with coverage)"
+	@echo "  build-minor     - Build installer (minor version, runs tests with coverage)"
+	@echo "  build-major     - Build installer (major version, runs tests with coverage)"
+	@echo "  build-dry       - Preview version changes"
+	@echo "  build-local     - Build without uploading (runs tests with coverage)"
+	@echo ""
+	@echo "  NOTE: Build fails if test coverage drops. Use SKIP_COV=true to override:"
+	@echo "        make build SKIP_COV=true"
 	@echo "  version         - Show current version"
 	@echo ""
 	@echo "Web Admin Commands:"
@@ -120,28 +123,31 @@ version:
 	@python -c "import json; v=json.load(open('sionyx-desktop/version.json')); print(f\"SIONYX v{v['version']} (Build #{v.get('buildNumber', 1)})\")"
 
 # Build installer (patch version - default)
-# All builds depend on tests passing first
+# Tests with coverage are now run by build.py, no separate test dependency needed
+# Use SKIP_COV=true to skip coverage regression check (e.g., make build SKIP_COV=true)
+SKIP_COV_FLAG := $(if $(SKIP_COV),--skip-coverage-check,)
+
 build: build-patch
 
-build-patch: test
+build-patch:
 	@echo "Building client (patch version)..."
-	cd sionyx-desktop && python build.py --patch
+	cd sionyx-desktop && python build.py --patch $(SKIP_COV_FLAG)
 
-build-minor: test
+build-minor:
 	@echo "Building client (minor version)..."
-	cd sionyx-desktop && python build.py --minor
+	cd sionyx-desktop && python build.py --minor $(SKIP_COV_FLAG)
 
-build-major: test
+build-major:
 	@echo "Building client (major version)..."
-	cd sionyx-desktop && python build.py --major
+	cd sionyx-desktop && python build.py --major $(SKIP_COV_FLAG)
 
 build-dry:
 	@echo "Dry run - previewing version changes..."
 	cd sionyx-desktop && python build.py --dry-run
 
-build-local: test
+build-local:
 	@echo "Building client locally (no upload)..."
-	cd sionyx-desktop && python build.py --no-upload --keep-local
+	cd sionyx-desktop && python build.py --no-upload --keep-local $(SKIP_COV_FLAG)
 
 # ============================================================================
 # Web Admin Commands (sionyx-web)
