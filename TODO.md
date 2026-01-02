@@ -55,6 +55,11 @@
 
 ## ✅ Recently Completed
 
+- [x] **Active Users Card Layout** - Unified users display with computers
+  - Converted "משתמשים פעילים" table to card-based layout
+  - Matching style with "סקירת מחשבים" cards
+  - Click to expand for details (phone, computer, session time)
+  - Responsive and clean UI
 - [x] **Computer Data Simplification** - Minimal data model for computers
   - `isActive` now derived from `currentUserId` (no separate field)
   - Removed: `lastSeen`, `lastUserLogin`, `lastUserLogout`, `osInfo`, `macAddress`, `hardwareId`, `networkInfo`
