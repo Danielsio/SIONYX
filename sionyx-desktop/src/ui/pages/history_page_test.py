@@ -562,3 +562,79 @@ class TestHistoryPage:
 
         assert found
 
+
+# =============================================================================
+# EDGE CASE TESTS
+# =============================================================================
+class TestEdgeCases:
+    """Tests for edge cases and error handling"""
+
+    @pytest.fixture
+    def mock_auth_service(self, mock_firebase_client):
+        """Create mock auth service"""
+        auth = Mock()
+        auth.firebase = mock_firebase_client
+        auth.get_current_user.return_value = MOCK_USER.copy()
+        return auth
+
+    @pytest.fixture
+    def mock_purchase_service(self):
+        """Create mock purchase service"""
+        service = Mock()
+        service.get_user_purchase_history.return_value = {
+            "success": True,
+            "data": MOCK_PURCHASES.copy(),
+        }
+        return service
+
+    @pytest.fixture
+    def history_page(self, mock_auth_service, mock_purchase_service, qapp):
+        """Create basic history page"""
+        with patch("ui.pages.history_page.PurchaseService", return_value=mock_purchase_service):
+            page = HistoryPage(mock_auth_service)
+            yield page
+
+    def test_toggle_sort_single_item(self, history_page):
+        """Test toggle sort with single item defaults to newest first"""
+        history_page.filtered_purchases = [
+            {"id": "1", "createdAt": "2024-01-01T10:00:00Z"}
+        ]
+
+        history_page._toggle_sort()
+
+        # Should not crash and should have single item
+        assert len(history_page.filtered_purchases) == 1
+
+    def test_load_data_no_current_user(self, mock_purchase_service, qapp):
+        """Test load_data handles missing current user"""
+        auth_service = Mock()
+        auth_service.get_current_user.return_value = None
+
+        with patch("ui.pages.history_page.PurchaseService", return_value=mock_purchase_service):
+            page = HistoryPage(auth_service)
+            page.current_user = None
+
+            # Should not crash
+            page._load_data()
+
+    def test_load_data_no_user_id(self, mock_auth_service, mock_purchase_service, qapp):
+        """Test load_data handles missing user ID"""
+        mock_auth_service.get_current_user.return_value = {"name": "test"}  # No uid
+
+        with patch("ui.pages.history_page.PurchaseService", return_value=mock_purchase_service):
+            page = HistoryPage(mock_auth_service)
+            page.current_user = {"name": "test"}  # No uid
+
+            # Should not crash
+            page._load_data()
+
+    def test_load_data_service_exception(self, mock_auth_service, mock_purchase_service, qapp):
+        """Test load_data handles service exceptions"""
+        mock_purchase_service.get_user_purchase_history.side_effect = Exception("Network error")
+
+        with patch("ui.pages.history_page.PurchaseService", return_value=mock_purchase_service):
+            page = HistoryPage(mock_auth_service)
+
+            # Should not crash and should display error
+            page._load_data(use_cache=False)
+

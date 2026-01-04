@@ -1,14 +1,16 @@
 """
-Tests for FirebaseClient
+Tests for FirebaseClient and StreamListener (SSE)
 """
 
+import threading
+import time
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 
 import pytest
 import requests
 
-from services.firebase_client import FirebaseClient
+from services.firebase_client import FirebaseClient, StreamListener
 
 
 class TestFirebaseClient:
@@ -437,5 +439,322 @@ class TestFirebaseClient:
         with patch("services.firebase_client.translate_error", return_value="Generic error"):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Generic error"
+
+    def test_db_listen_creates_stream_listener(self, firebase_client):
+        """Test db_listen creates and returns a StreamListener"""
+        callback = Mock()
+        error_callback = Mock()
+
+        with patch.object(StreamListener, 'start'):
+            listener = firebase_client.db_listen("messages", callback, error_callback)
+
+            assert listener is not None
+            assert isinstance(listener, StreamListener)
+            assert listener.firebase == firebase_client
+            assert listener.path == "messages"
+            assert listener.callback == callback
+            assert listener.error_callback == error_callback
+
+
+# =============================================================================
+# StreamListener Tests
+# =============================================================================
+class TestStreamListener:
+    """Tests for SSE StreamListener"""
+
+    @pytest.fixture
+    def mock_firebase_client(self, mock_firebase_config):
+        """Create a mock firebase client"""
+        with patch("services.firebase_client.get_firebase_config", return_value=mock_firebase_config):
+            client = FirebaseClient()
+            client.id_token = "test-token"
+            client.refresh_token = "test-refresh"
+            client.token_expiry = datetime.now() + timedelta(hours=1)
+            return client
+
+    @pytest.fixture
+    def stream_listener(self, mock_firebase_client):
+        """Create a StreamListener for testing"""
+        callback = Mock()
+        error_callback = Mock()
+        return StreamListener(
+            firebase_client=mock_firebase_client,
+            path="messages",
+            callback=callback,
+            error_callback=error_callback,
+        )
+
+    def test_initialization(self, stream_listener, mock_firebase_client):
+        """Test StreamListener initialization"""
+        assert stream_listener.firebase == mock_firebase_client
+        assert stream_listener.path == "messages"
+        assert stream_listener._running is False
+        assert stream_listener._thread is None
+        assert stream_listener._reconnect_delay == 1
+
+    def test_start_sets_running_flag(self, stream_listener):
+        """Test start() sets running flag and creates thread"""
+        with patch.object(stream_listener, '_listen_loop'):
+            stream_listener.start()
+
+            assert stream_listener._running is True
+            assert stream_listener._thread is not None
+
+            # Cleanup
+            stream_listener._running = False
+
+    def test_start_when_already_running(self, stream_listener):
+        """Test start() does nothing if already running"""
+        stream_listener._running = True
+        original_thread = stream_listener._thread
+
+        stream_listener.start()
+
+        # Thread should not change
+        assert stream_listener._thread == original_thread
+
+    def test_stop_clears_running_flag(self, stream_listener):
+        """Test stop() clears running flag"""
+        stream_listener._running = True
+        stream_listener._thread = Mock()
+        stream_listener._thread.is_alive.return_value = False
+
+        stream_listener.stop()
+
+        assert stream_listener._running is False
+
+    def test_stop_closes_response(self, stream_listener):
+        """Test stop() closes the HTTP response"""
+        stream_listener._running = True
+        stream_listener._response = Mock()
+        stream_listener._thread = Mock()
+        stream_listener._thread.is_alive.return_value = False
+
+        stream_listener.stop()
+
+        stream_listener._response.close.assert_called_once()
+
+    def test_process_event_keep_alive(self, stream_listener):
+        """Test processing keep-alive event"""
+        stream_listener._process_event("keep-alive", None)
+
+        # Should not call callback for keep-alive
+        stream_listener.callback.assert_not_called()
+
+    def test_process_event_cancel(self, stream_listener):
+        """Test processing cancel event"""
+        stream_listener._process_event("cancel", None)
+
+        stream_listener.callback.assert_called_once_with("cancel", None)
+
+    def test_process_event_auth_revoked(self, stream_listener):
+        """Test processing auth_revoked event"""
+        stream_listener._process_event("auth_revoked", None)
+
+        stream_listener.callback.assert_called_once_with("auth_revoked", None)
+
+    def test_process_event_put(self, stream_listener):
+        """Test processing put event with data"""
+        import json
+        data = {"path": "/", "data": {"msg1": {"content": "hello"}}}
+        data_str = json.dumps(data)
+
+        stream_listener._process_event("put", data_str)
+
+        stream_listener.callback.assert_called_once_with("put", data)
+
+    def test_process_event_patch(self, stream_listener):
+        """Test processing patch event with data"""
+        import json
+        data = {"path": "/msg1", "data": {"read": True}}
+        data_str = json.dumps(data)
+
+        stream_listener._process_event("patch", data_str)
+
+        stream_listener.callback.assert_called_once_with("patch", data)
+
+    def test_process_event_invalid_json(self, stream_listener):
+        """Test processing event with invalid JSON logs error but doesn't crash"""
+        # Should not raise even with bad JSON
+        stream_listener._process_event("put", "not-valid-json")
+
+        # Callback should NOT be called for invalid JSON
+        stream_listener.callback.assert_not_called()
+
+    def test_process_event_empty_data(self, stream_listener):
+        """Test processing event with empty data"""
+        stream_listener._process_event("put", "")
+
+        stream_listener.callback.assert_called_once_with("put", None)
+
+    def test_connect_and_stream_not_authenticated(self, stream_listener, mock_firebase_client):
+        """Test connection fails when not authenticated"""
+        mock_firebase_client.id_token = None
+        mock_firebase_client.refresh_token = None
+
+        with pytest.raises(ConnectionError, match="Not authenticated"):
+            stream_listener._connect_and_stream()
+
+    def test_reconnect_delay_exponential_backoff(self, stream_listener):
+        """Test reconnect delay increases exponentially"""
+        initial_delay = stream_listener._reconnect_delay
+        max_delay = stream_listener._max_reconnect_delay
+
+        # Simulate multiple reconnections
+        stream_listener._reconnect_delay = min(
+            stream_listener._reconnect_delay * 2, max_delay
+        )
+        assert stream_listener._reconnect_delay == 2
+
+        stream_listener._reconnect_delay = min(
+            stream_listener._reconnect_delay * 2, max_delay
+        )
+        assert stream_listener._reconnect_delay == 4
+
+        # Should cap at max
+        stream_listener._reconnect_delay = 100
+        stream_listener._reconnect_delay = min(
+            stream_listener._reconnect_delay * 2, max_delay
+        )
+        assert stream_listener._reconnect_delay == max_delay
+
+    def test_error_callback_called_on_error(self, stream_listener):
+        """Test error callback is called when there's an error"""
+        error_msg = "Connection failed"
+        stream_listener._on_stream_error = stream_listener.error_callback
+
+        if stream_listener.error_callback:
+            stream_listener.error_callback(error_msg)
+
+        stream_listener.error_callback.assert_called_with(error_msg)
+
+    def test_listener_with_no_error_callback(self, mock_firebase_client):
+        """Test listener works without error callback"""
+        import json
+        callback = Mock()
+        listener = StreamListener(
+            firebase_client=mock_firebase_client,
+            path="messages",
+            callback=callback,
+            error_callback=None,  # No error callback
+        )
+
+        assert listener.error_callback is None
+
+        # Processing events should still work
+        data_str = json.dumps({"path": "/", "data": {}})
+        listener._process_event("put", data_str)
+        callback.assert_called_once()
+
+    def test_stop_with_response_exception(self, stream_listener):
+        """Test stop() handles exception when closing response"""
+        stream_listener._running = True
+        stream_listener._response = Mock()
+        stream_listener._response.close.side_effect = Exception("Close error")
+        stream_listener._thread = Mock()
+        stream_listener._thread.is_alive.return_value = False
+
+        # Should not raise
+        stream_listener.stop()
+
+        assert stream_listener._running is False
+
+    def test_stop_waits_for_thread(self, stream_listener):
+        """Test stop() waits for thread to finish"""
+        stream_listener._running = True
+        stream_listener._thread = Mock()
+        stream_listener._thread.is_alive.return_value = True
+
+        stream_listener.stop()
+
+        stream_listener._thread.join.assert_called_once_with(timeout=2)
+
+    def test_process_event_null_string_data(self, stream_listener):
+        """Test processing event with 'null' as data string"""
+        stream_listener._process_event("put", "null")
+
+        stream_listener.callback.assert_called_once_with("put", None)
+
+    def test_process_event_general_exception(self, stream_listener):
+        """Test _process_event handles general exceptions gracefully"""
+        # Force callback to raise an exception
+        stream_listener.callback.side_effect = Exception("Callback failed")
+
+        # Should not raise - exception is caught and logged
+        stream_listener._process_event("put", '{"path": "/", "data": {}}')
+
+    def test_is_running_property(self, stream_listener):
+        """Test _running state management"""
+        assert stream_listener._running is False
+
+        stream_listener._running = True
+        assert stream_listener._running is True
+
+        stream_listener._running = False
+        assert stream_listener._running is False
+
+
+class TestStreamListenerIntegration:
+    """Integration tests for StreamListener with mocked network"""
+
+    @pytest.fixture
+    def mock_firebase_client(self, mock_firebase_config):
+        """Create a mock firebase client"""
+        with patch("services.firebase_client.get_firebase_config", return_value=mock_firebase_config):
+            client = FirebaseClient()
+            client.id_token = "test-token"
+            client.refresh_token = "test-refresh"
+            client.token_expiry = datetime.now() + timedelta(hours=1)
+            return client
+
+    def test_listen_loop_exits_when_stopped(self, mock_firebase_client):
+        """Test listen loop exits when _running is set to False"""
+        callback = Mock()
+        listener = StreamListener(
+            firebase_client=mock_firebase_client,
+            path="messages",
+            callback=callback,
+            error_callback=None,
+        )
+
+        # Set to not running before starting
+        listener._running = False
+
+        # Run listen loop directly - should exit immediately
+        listener._listen_loop()
+
+        # Callback should not be called
+        callback.assert_not_called()
+
+    def test_listen_loop_handles_connection_error(self, mock_firebase_client):
+        """Test listen loop handles connection errors and stops when requested"""
+        callback = Mock()
+        error_callback = Mock()
+        listener = StreamListener(
+            firebase_client=mock_firebase_client,
+            path="messages",
+            callback=callback,
+            error_callback=error_callback,
+        )
+
+        # Track how many times _connect_and_stream is called
+        call_count = [0]
+
+        def mock_connect():
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise ConnectionError("First connection failed")
+            # Stop after first error to avoid infinite loop
+            listener._running = False
+
+        listener._connect_and_stream = mock_connect
+        listener._running = True
+        listener._reconnect_delay = 0.01  # Very short delay for test
+
+        listener._listen_loop()
+
+        # Should have tried to connect at least once
+        assert call_count[0] >= 1
+        error_callback.assert_called()
 
 

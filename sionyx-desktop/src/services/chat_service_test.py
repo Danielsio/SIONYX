@@ -747,3 +747,118 @@ class TestSSEEventHandling:
         callback.assert_called_once()
         assert callback.call_args[0][0]["success"] is True
 
+    def test_on_stream_event_cancel_event(self, chat_service):
+        """Test cancel event is logged and returns"""
+        # Should not raise and should not emit messages
+        received = []
+        chat_service.messages_received.connect(lambda result: received.append(result))
+
+        chat_service._on_stream_event("cancel", None)
+
+        # No messages should be emitted for cancel
+        assert len(received) == 0
+
+    def test_on_stream_event_auth_revoked_event(self, chat_service):
+        """Test auth_revoked event is handled"""
+        received = []
+        chat_service.messages_received.connect(lambda result: received.append(result))
+
+        chat_service._on_stream_event("auth_revoked", None)
+
+        # No messages should be emitted for auth_revoked
+        assert len(received) == 0
+
+    def test_on_stream_event_unknown_event_type(self, chat_service):
+        """Test unknown event types are ignored"""
+        received = []
+        chat_service.messages_received.connect(lambda result: received.append(result))
+
+        chat_service._on_stream_event("unknown_event", {"some": "data"})
+
+        # No messages should be emitted for unknown events
+        assert len(received) == 0
+
+    def test_on_stream_event_patch_event(self, chat_service, mock_firebase, sample_messages):
+        """Test patch event triggers full refresh"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": sample_messages
+        }
+        mock_firebase.db_set.return_value = {"success": True}
+
+        received = []
+        chat_service.messages_received.connect(lambda result: received.append(result))
+
+        # Patch events trigger a full refresh
+        chat_service._on_stream_event("patch", {"path": "/msg1/read", "data": True})
+
+        # Should have fetched full messages
+        mock_firebase.db_get.assert_called()
+        assert len(received) == 1
+
+    def test_on_stream_event_put_non_root_path(self, chat_service, mock_firebase, sample_messages):
+        """Test put event with non-root path triggers refresh"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": sample_messages
+        }
+        mock_firebase.db_set.return_value = {"success": True}
+
+        received = []
+        chat_service.messages_received.connect(lambda result: received.append(result))
+
+        # Put on specific path (not "/") also triggers refresh
+        chat_service._on_stream_event("put", {"path": "/msg1", "data": {"content": "updated"}})
+
+        # Should have fetched full messages
+        mock_firebase.db_get.assert_called()
+
+    def test_on_stream_event_exception_handling(self, chat_service):
+        """Test exception in event processing is caught"""
+        # Force an exception by passing bad data type
+        with patch.object(chat_service, '_update_cache', side_effect=Exception("Cache error")):
+            # Should not raise
+            chat_service._on_stream_event("put", {"path": "/", "data": {"msg1": {"toUserId": "user123"}}})
+
+    def test_emit_messages_callback_exception(self, chat_service):
+        """Test exception in callback doesn't crash emit"""
+        callback = Mock(side_effect=Exception("Callback error"))
+        chat_service._message_callback = callback
+
+        # Should not raise
+        chat_service._emit_messages([{"id": "msg1"}])
+
+        # Callback was called even though it raised
+        callback.assert_called_once()
+
+    def test_extract_user_messages_skips_non_dict_items(self, chat_service):
+        """Test _extract_user_messages skips non-dict message items"""
+        messages = {
+            "msg1": {"toUserId": "user123", "content": "valid"},  # Valid
+            "msg2": "not a dict",  # Invalid - should skip
+            "msg3": None,  # Invalid - should skip
+            "msg4": ["list", "not", "dict"],  # Invalid - should skip
+            "msg5": {"toUserId": "user123", "content": "also valid"},  # Valid
+        }
+
+        result = chat_service._extract_user_messages(messages)
+
+        # Only valid dict items should be included
+        assert len(result) == 2
+        assert all(isinstance(m, dict) for m in result)
+
+    def test_on_stream_event_patch_when_get_fails(self, chat_service, mock_firebase):
+        """Test patch event when get_unread_messages fails"""
+        mock_firebase.db_get.return_value = {"success": False, "error": "Network error"}
+        mock_firebase.db_set.return_value = {"success": True}
+
+        received = []
+        chat_service.messages_received.connect(lambda result: received.append(result))
+
+        chat_service._on_stream_event("patch", {"path": "/msg1", "data": True})
+
+        # Should have tried to get but not emitted due to failure
+        mock_firebase.db_get.assert_called()
+        # No successful emit on failed fetch
+        assert len(received) == 0
+
