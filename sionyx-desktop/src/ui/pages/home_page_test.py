@@ -435,3 +435,111 @@ class TestHomePage:
         # Should not raise exception
         home_page.update_prints_display()
 
+    # =========================================================================
+    # SESSION AND MESSAGE HANDLING TESTS
+    # =========================================================================
+
+    def test_handle_start_session_no_time(self, home_page_no_time):
+        """Test handle_start_session does nothing when no remaining time"""
+        # Track if parent methods are called
+        parent_mock = Mock()
+        parent_mock.parent.return_value.parent.return_value.start_user_session = Mock()
+
+        with patch.object(home_page_no_time, 'parent', return_value=parent_mock):
+            # Should return early - no time
+            home_page_no_time.handle_start_session()
+
+        # start_user_session should not be called
+        parent_mock.parent.return_value.parent.return_value.start_user_session.assert_not_called()
+
+    def test_show_message_notification_zero_count(self, home_page):
+        """Test message notification hides when count is 0"""
+        home_page.message_card.show()  # Ensure visible first
+        home_page.show_message_notification(0)
+        assert not home_page.message_card.isVisible()
+
+    def test_show_message_notification_single(self, home_page):
+        """Test message notification shows singular text for 1 message"""
+        home_page.show_message_notification(1)
+        # Check text is set correctly (visibility requires parent to be shown)
+        assert "הודעה חדשה" in home_page.message_count_label.text()
+
+    def test_show_message_notification_multiple(self, home_page):
+        """Test message notification shows plural text for multiple messages"""
+        home_page.show_message_notification(3)
+        # Check text is set correctly
+        assert "3 הודעות" in home_page.message_count_label.text()
+
+    def test_on_all_messages_read(self, home_page):
+        """Test on_all_messages_read clears pending messages and hides card"""
+        home_page.pending_messages = [{"id": "1"}, {"id": "2"}]
+        home_page.message_card.show()
+
+        home_page.on_all_messages_read()
+
+        assert home_page.pending_messages == []
+        assert not home_page.message_card.isVisible()
+
+    def test_on_message_read(self, home_page):
+        """Test on_message_read does nothing (placeholder)"""
+        # Should not raise
+        home_page.on_message_read("msg-id-123")
+
+    def test_cleanup_stops_timer(self, home_page, mock_chat_service):
+        """Test cleanup stops the countdown timer"""
+        home_page.chat_service = mock_chat_service
+        home_page.countdown_timer.start(1000)
+
+        home_page.cleanup()
+
+        assert not home_page.countdown_timer.isActive()
+        mock_chat_service.cleanup.assert_called_once()
+
+    def test_show_message_modal_no_pending_messages(self, home_page):
+        """Test show_message_modal does nothing when no pending messages"""
+        home_page.pending_messages = []
+        home_page.message_modal = None
+
+        home_page.show_message_modal()
+
+        assert home_page.message_modal is None
+
+    def test_handle_new_messages_success(self, home_page):
+        """Test handle_new_messages updates pending messages and shows notification"""
+        messages = [{"id": "msg1"}, {"id": "msg2"}]
+        result = {"success": True, "messages": messages}
+
+        home_page.handle_new_messages(result)
+
+        assert home_page.pending_messages == messages
+        # Notification text should be updated
+        assert "2 הודעות" in home_page.message_count_label.text()
+
+    def test_handle_new_messages_failure(self, home_page):
+        """Test handle_new_messages ignores failed results"""
+        home_page.pending_messages = []
+        result = {"success": False, "error": "Network error"}
+
+        home_page.handle_new_messages(result)
+
+        assert home_page.pending_messages == []
+
+    def test_load_messages_success(self, mock_auth_service, qapp):
+        """Test load_messages fetches and stores messages"""
+        mock_chat = Mock()
+        mock_chat.is_listening = False
+        mock_chat.get_unread_messages = Mock(return_value={
+            "success": True,
+            "messages": [{"id": "m1"}]
+        })
+        mock_chat.messages_received = Mock()
+        mock_chat.messages_received.connect = Mock()
+
+        with patch("ui.pages.home_page.ChatService", return_value=mock_chat):
+            page = HomePage(mock_auth_service)
+
+            page.load_messages()
+
+            assert len(page.pending_messages) == 1
+            page.countdown_timer.stop()
+

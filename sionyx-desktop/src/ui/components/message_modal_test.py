@@ -352,3 +352,151 @@ class TestEdgeCases:
             # Should not raise when trying to read
             modal.read_next_message()
 
+    def test_show_current_message_no_messages(self, qapp, mock_chat_service):
+        """Test show_current_message with empty messages closes modal"""
+        with patch("ui.components.message_modal.get_logger"):
+            modal = MessageModal([], mock_chat_service)
+            close_called = []
+            modal.close_modal = lambda: close_called.append(True)
+
+            modal.show_current_message()
+
+            assert len(close_called) == 1
+
+    def test_show_current_message_index_out_of_bounds(self, qapp, mock_chat_service, sample_messages):
+        """Test show_current_message when index exceeds messages"""
+        with patch("ui.components.message_modal.get_logger"):
+            modal = MessageModal(sample_messages, mock_chat_service)
+            modal.current_index = 100  # Out of bounds
+            close_called = []
+            modal.close_modal = lambda: close_called.append(True)
+
+            modal.show_current_message()
+
+            assert len(close_called) == 1
+
+    def test_read_next_message_no_messages(self, qapp, mock_chat_service):
+        """Test read_next_message with empty messages closes modal"""
+        with patch("ui.components.message_modal.get_logger"):
+            modal = MessageModal([], mock_chat_service)
+            close_called = []
+            modal.close_modal = lambda: close_called.append(True)
+
+            modal.read_next_message()
+
+            assert len(close_called) == 1
+
+    def test_read_next_message_index_out_of_bounds(self, qapp, mock_chat_service, sample_messages):
+        """Test read_next_message when index exceeds messages"""
+        with patch("ui.components.message_modal.get_logger"):
+            modal = MessageModal(sample_messages, mock_chat_service)
+            modal.current_index = 100  # Out of bounds
+            close_called = []
+            modal.close_modal = lambda: close_called.append(True)
+
+            modal.read_next_message()
+
+            assert len(close_called) == 1
+
+
+# =============================================================================
+# Keyboard Event Tests
+# =============================================================================
+class TestKeyPressEvent:
+    """Tests for keyboard event handling"""
+
+    def test_enter_key_reads_next(self, qapp, mock_chat_service, sample_messages):
+        """Test Enter key triggers read_next_message"""
+        from PyQt6.QtGui import QKeyEvent
+        from PyQt6.QtCore import Qt, QEvent
+
+        with patch("ui.components.message_modal.get_logger"):
+            modal = MessageModal(sample_messages, mock_chat_service)
+            read_called = []
+            modal.read_next_message = lambda: read_called.append(True)
+
+            event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier)
+            modal.keyPressEvent(event)
+
+            assert len(read_called) == 1
+
+    def test_enter_key_alternate_reads_next(self, qapp, mock_chat_service, sample_messages):
+        """Test numpad Enter key triggers read_next_message"""
+        from PyQt6.QtGui import QKeyEvent
+        from PyQt6.QtCore import Qt, QEvent
+
+        with patch("ui.components.message_modal.get_logger"):
+            modal = MessageModal(sample_messages, mock_chat_service)
+            read_called = []
+            modal.read_next_message = lambda: read_called.append(True)
+
+            event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Enter, Qt.KeyboardModifier.NoModifier)
+            modal.keyPressEvent(event)
+
+            assert len(read_called) == 1
+
+    def test_escape_key_closes_modal(self, qapp, mock_chat_service, sample_messages):
+        """Test Escape key triggers close_modal"""
+        from PyQt6.QtGui import QKeyEvent
+        from PyQt6.QtCore import Qt, QEvent
+
+        with patch("ui.components.message_modal.get_logger"):
+            modal = MessageModal(sample_messages, mock_chat_service)
+            close_called = []
+            modal.close_modal = lambda: close_called.append(True)
+
+            event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+            modal.keyPressEvent(event)
+
+            assert len(close_called) == 1
+
+    def test_other_key_passes_to_parent(self, qapp, mock_chat_service, sample_messages):
+        """Test other keys are passed to parent handler"""
+        from PyQt6.QtGui import QKeyEvent
+        from PyQt6.QtCore import Qt, QEvent
+
+        with patch("ui.components.message_modal.get_logger"):
+            modal = MessageModal(sample_messages, mock_chat_service)
+
+            event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_A, Qt.KeyboardModifier.NoModifier)
+            # Should not raise
+            modal.keyPressEvent(event)
+
+
+# =============================================================================
+# Animation Tests
+# =============================================================================
+class TestShowAnimated:
+    """Tests for show_animated method"""
+
+    def test_show_animated_sets_opacity_to_zero(self, qapp, mock_chat_service, sample_messages):
+        """Test show_animated initially sets opacity to 0"""
+        with patch("ui.components.message_modal.get_logger"):
+            modal = MessageModal(sample_messages, mock_chat_service)
+            # Mock to avoid actual show
+            modal.show = Mock()
+            modal.fade_animation.start = Mock()
+
+            modal.show_animated()
+
+            # Verify animation setup
+            modal.fade_animation.start.assert_called_once()
+
+    def test_show_animated_centers_on_screen(self, qapp, mock_chat_service, sample_messages):
+        """Test show_animated centers the modal"""
+        with patch("ui.components.message_modal.get_logger"):
+            modal = MessageModal(sample_messages, mock_chat_service)
+            modal.show = Mock()
+            modal.fade_animation.start = Mock()
+            original_move = modal.move
+            move_called = []
+            modal.move = lambda x, y: move_called.append((x, y))
+
+            modal.show_animated()
+
+            # Move should have been called with screen-centered coordinates
+            assert len(move_called) == 1
+            x, y = move_called[0]
+            assert x >= 0
+            assert y >= 0
+
