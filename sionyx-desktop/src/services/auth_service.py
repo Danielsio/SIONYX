@@ -163,6 +163,8 @@ class AuthService:
         uid = result["uid"]
 
         # Create user document in Realtime Database
+        # Note: isSessionActive is set when a session starts (not here)
+        # updatedAt is used for both session sync timing AND last activity
         user_data = {
             "firstName": first_name,
             "lastName": last_name,
@@ -170,7 +172,6 @@ class AuthService:
             "email": email if email else "",
             "remainingTime": 0,  # Start with 0 seconds
             "printBalance": 0.0,  # Start with 0 NIS print budget
-            "isActive": False,  # Active session is managed by sionyx-desktop only
             "isLoggedIn": False,  # User is not logged in until they log in
             "isAdmin": False,  # Regular users are not admins
             "createdAt": datetime.now().isoformat(),
@@ -265,6 +266,8 @@ class AuthService:
         - Could be innocent: power outage, crash, forgot to logout
         - Better to be forgiving than punish users for technical issues
         - Runs only on login (free, no extra cost)
+
+        Uses updatedAt to detect stale sessions (updated every 60s during active session)
         """
         try:
             logger.info(f"Checking for orphaned session for user: {user_id}")
@@ -281,10 +284,10 @@ class AuthService:
                 logger.debug("No active session to clean up")
                 return
 
-            # Parse last activity
-            last_activity_str = user_data.get("lastActivity")
-            if not last_activity_str:
-                logger.warning("Session has no lastActivity, cleaning up anyway")
+            # Use updatedAt to detect stale sessions (synced every 60s during session)
+            updated_at_str = user_data.get("updatedAt")
+            if not updated_at_str:
+                logger.warning("Session has no updatedAt, cleaning up anyway")
                 # Clean up session AND computer association (crashed = logged out)
                 current_computer_id = user_data.get("currentComputerId")
                 if current_computer_id:
@@ -297,27 +300,27 @@ class AuthService:
                         "isSessionActive": False,
                         "sessionStartTime": None,
                         "currentComputerId": None,
-                        "currentComputerName": None,
                         "updatedAt": datetime.now().isoformat(),
                     },
                 )
                 return
 
-            # Calculate time since last activity
+            # Calculate time since last update
             try:
-                last_activity = datetime.fromisoformat(last_activity_str)
+                last_update = datetime.fromisoformat(updated_at_str)
             except (ValueError, TypeError):
-                logger.warning(f"Invalid lastActivity format: {last_activity_str}")
+                logger.warning(f"Invalid updatedAt format: {updated_at_str}")
                 return
 
             now = datetime.now()
-            time_since_activity = (now - last_activity).total_seconds()
+            time_since_update = (now - last_update).total_seconds()
 
-            # If activity is older than 2 minutes, session ended abnormally
-            if time_since_activity > 120:  # 2 minutes
+            # If update is older than 2 minutes, session ended abnormally
+            # (normal sync happens every 60s, so 2min = missed 2 syncs)
+            if time_since_update > 120:  # 2 minutes
                 logger.info(
                     f"🧹 Orphaned session detected "
-                    f"({time_since_activity:.0f}s since last activity)"
+                    f"({time_since_update:.0f}s since last sync)"
                 )
                 logger.info(
                     "Being kind: NOT deducting time (could be power outage/crash)"
@@ -336,7 +339,6 @@ class AuthService:
                         "isSessionActive": False,
                         "sessionStartTime": None,
                         "currentComputerId": None,
-                        "currentComputerName": None,
                         "updatedAt": now.isoformat(),
                     },
                 )
@@ -345,7 +347,7 @@ class AuthService:
 
             else:
                 logger.debug(
-                    f"Session is recent ({time_since_activity:.0f}s old), "
+                    f"Session is recent ({time_since_update:.0f}s old), "
                     f"no cleanup needed"
                 )
 

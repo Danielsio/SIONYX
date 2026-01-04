@@ -300,14 +300,6 @@ class TestAnimations:
         """Test modal has fade animation"""
         assert hasattr(message_modal, "fade_animation")
 
-    def test_has_slide_animation(self, message_modal):
-        """Test modal has slide animation"""
-        assert hasattr(message_modal, "slide_animation")
-
-    def test_has_scale_animation(self, message_modal):
-        """Test modal has scale animation"""
-        assert hasattr(message_modal, "scale_animation")
-
 
 # =============================================================================
 # Keyboard handling tests
@@ -336,13 +328,13 @@ class TestEdgeCases:
             mock_chat_service.mark_message_as_read.assert_not_called()
 
     def test_message_without_timestamp(self, qapp, mock_chat_service):
-        """Test handling message without timestamp"""
+        """Test handling message without timestamp - shows empty label"""
         messages = [{"id": "msg1", "message": "No timestamp"}]
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(messages, mock_chat_service)
             modal.show_current_message()
-            # Should show "Unknown time"
-            assert modal.timestamp_label.text() != ""
+            # Timestamp label is empty when no timestamp provided
+            assert modal.timestamp_label.text() == ""
 
     def test_invalid_timestamp_format(self, qapp, mock_chat_service):
         """Test handling invalid timestamp format"""

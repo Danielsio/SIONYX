@@ -75,12 +75,6 @@ export const signInAdmin = async (phone, password, orgId) => {
       };
     }
 
-    // Update last login timestamp
-    await set(
-      ref(database, `organizations/${cleanOrgId}/users/${userId}/lastLogin`),
-      new Date().toISOString()
-    );
-
     // Store orgId in localStorage for future use
     localStorage.setItem('adminOrgId', cleanOrgId);
 

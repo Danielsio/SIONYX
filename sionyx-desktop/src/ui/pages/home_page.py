@@ -206,12 +206,12 @@ class HomePage(QWidget):
         """Create the messages notification card"""
         card = QFrame()
         card.setObjectName("messageNotificationCard")
-        card.setFixedSize(260, 120)
+        card.setFixedSize(280, 160)  # Increased size for better visibility
         card.setStyleSheet(
             f"""
             QFrame {{
                 background: {Colors.WHITE};
-                border: 1px solid {Colors.WARNING};
+                border: 2px solid {Colors.WARNING};
                 border-radius: {BorderRadius.XL}px;
             }}
             QLabel {{
@@ -223,8 +223,8 @@ class HomePage(QWidget):
         apply_shadow(card, "md")
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(Spacing.LG, Spacing.BASE, Spacing.LG, Spacing.BASE)
-        layout.setSpacing(Spacing.SM)
+        layout.setContentsMargins(Spacing.LG, Spacing.LG, Spacing.LG, Spacing.LG)
+        layout.setSpacing(Spacing.BASE)
 
         # Header
         header = QWidget()
@@ -233,13 +233,13 @@ class HomePage(QWidget):
         header_layout.setSpacing(Spacing.SM)
 
         icon_lbl = QLabel("💬")
-        icon_lbl.setFont(QFont(Typography.FONT_FAMILY, 18))
+        icon_lbl.setFont(QFont(Typography.FONT_FAMILY, 22))
         header_layout.addWidget(icon_lbl)
 
         title_lbl = QLabel(UIStrings.NEW_MESSAGES)
         title_lbl.setFont(
             QFont(
-                Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_SEMIBOLD
+                Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_SEMIBOLD
             )
         )
         title_lbl.setStyleSheet(f"color: {Colors.WARNING_DARK};")
@@ -251,28 +251,31 @@ class HomePage(QWidget):
         # Count
         self.message_count_label = QLabel("0 הודעות")
         self.message_count_label.setFont(
-            QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE)
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD)
         )
-        self.message_count_label.setStyleSheet(f"color: {Colors.TEXT_SECONDARY};")
+        self.message_count_label.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
         layout.addWidget(self.message_count_label)
 
-        # View button
-        self.view_messages_button = QPushButton("צפה בהודעות")
+        # View button - more prominent
+        self.view_messages_button = QPushButton("📬 צפה בהודעות")
         self.view_messages_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.view_messages_button.clicked.connect(self.show_message_modal)
+        self.view_messages_button.setFixedHeight(40)
         self.view_messages_button.setStyleSheet(
             f"""
             QPushButton {{
-                background: {Colors.WARNING};
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {Colors.WARNING}, stop:1 {Colors.WARNING_DARK});
                 color: {Colors.WHITE};
                 border: none;
-                border-radius: {BorderRadius.SM}px;
-                padding: 6px 12px;
-                font-size: {Typography.SIZE_SM}px;
-                font-weight: {Typography.WEIGHT_SEMIBOLD};
+                border-radius: {BorderRadius.LG}px;
+                padding: 10px 16px;
+                font-size: {Typography.SIZE_BASE}px;
+                font-weight: {Typography.WEIGHT_BOLD};
             }}
             QPushButton:hover {{
-                background: {Colors.WARNING_HOVER};
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {Colors.WARNING_HOVER}, stop:1 {Colors.WARNING});
             }}
         """
         )
