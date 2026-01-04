@@ -1,13 +1,11 @@
 """
 Tests for chat_service.py - Client-side message handling
-Tests message fetching, marking as read, caching, and listening functionality.
+Tests message fetching, marking as read, caching, and SSE listening functionality.
 """
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime, timedelta
-import time
-import threading
 
 from services.chat_service import ChatService
 
@@ -98,9 +96,9 @@ class TestChatServiceInit:
         """Test initial listening state is False"""
         assert chat_service.is_listening is False
 
-    def test_initial_poll_interval(self, chat_service):
-        """Test initial poll interval is base interval"""
-        assert chat_service.current_poll_interval == chat_service.base_poll_interval
+    def test_initial_stream_listener_is_none(self, chat_service):
+        """Test initial SSE stream listener is None"""
+        assert chat_service._stream_listener is None
 
     def test_initial_cache_state(self, chat_service):
         """Test initial cache is empty"""
@@ -433,15 +431,20 @@ class TestListening:
         # Cleanup
         chat_service.stop_listening()
 
-    def test_start_listening_creates_thread(self, chat_service, mock_firebase):
-        """Test start_listening creates a listening thread"""
-        mock_firebase.db_get.return_value = {"success": True, "data": None}
-        mock_firebase.db_set.return_value = {"success": True}
+    def test_start_listening_creates_stream_listener(self, chat_service, mock_firebase):
+        """Test start_listening creates an SSE stream listener"""
+        # Mock db_listen to return a mock StreamListener
+        mock_listener = Mock()
+        mock_firebase.db_listen.return_value = mock_listener
 
         chat_service.start_listening()
 
-        assert chat_service.listen_thread is not None
-        assert chat_service.listen_thread.is_alive()
+        assert chat_service._stream_listener is not None
+        mock_firebase.db_listen.assert_called_once_with(
+            path="messages",
+            callback=chat_service._on_stream_event,
+            error_callback=chat_service._on_stream_error,
+        )
         
         # Cleanup
         chat_service.stop_listening()
@@ -509,24 +512,6 @@ class TestIsUserActive:
 class TestCaching:
     """Tests for caching functionality"""
 
-    def test_is_cache_valid_empty(self, chat_service):
-        """Test empty cache is invalid"""
-        assert chat_service._is_cache_valid() is False
-
-    def test_is_cache_valid_fresh(self, chat_service):
-        """Test fresh cache is valid"""
-        chat_service.cached_messages = [{"id": "msg1"}]
-        chat_service.cache_timestamp = datetime.now()
-
-        assert chat_service._is_cache_valid() is True
-
-    def test_is_cache_valid_stale(self, chat_service):
-        """Test stale cache is invalid"""
-        chat_service.cached_messages = [{"id": "msg1"}]
-        chat_service.cache_timestamp = datetime.now() - timedelta(seconds=15)
-
-        assert chat_service._is_cache_valid() is False
-
     def test_update_cache(self, chat_service):
         """Test cache update"""
         messages = [{"id": "msg1"}, {"id": "msg2"}]
@@ -544,6 +529,31 @@ class TestCaching:
 
         assert chat_service.cached_messages == []
         assert chat_service.cache_timestamp is None
+
+    def test_cache_used_when_sse_listening(self, chat_service, mock_firebase):
+        """Test cache is used when SSE is actively listening"""
+        # Simulate SSE is active
+        chat_service.is_listening = True
+        chat_service.cached_messages = [{"id": "msg1", "toUserId": "user123"}]
+        chat_service.cache_timestamp = datetime.now()
+
+        result = chat_service.get_unread_messages(use_cache=True)
+
+        # Should return cached messages without calling Firebase
+        mock_firebase.db_get.assert_not_called()
+        assert result["success"] is True
+        assert result["messages"] == chat_service.cached_messages
+
+    def test_cache_used_when_fresh(self, chat_service, mock_firebase):
+        """Test recent cache is used even when not listening"""
+        chat_service.is_listening = False
+        chat_service.cached_messages = [{"id": "msg1"}]
+        chat_service.cache_timestamp = datetime.now()  # Fresh cache
+
+        result = chat_service.get_unread_messages(use_cache=True)
+
+        mock_firebase.db_get.assert_not_called()
+        assert result["success"] is True
 
 
 # =============================================================================
@@ -585,26 +595,22 @@ class TestSignals:
 
 
 # =============================================================================
-# Polling configuration tests
+# SSE configuration tests
 # =============================================================================
-class TestPollingConfiguration:
-    """Tests for smart polling configuration"""
+class TestSSEConfiguration:
+    """Tests for SSE streaming configuration"""
 
-    def test_base_poll_interval_default(self, chat_service):
-        """Test default base poll interval"""
-        assert chat_service.base_poll_interval == 5
+    def test_last_seen_debounce_seconds_default(self, chat_service):
+        """Test default last seen debounce interval"""
+        assert chat_service.last_seen_debounce_seconds == 60
 
-    def test_max_poll_interval_default(self, chat_service):
-        """Test default max poll interval"""
-        assert chat_service.max_poll_interval == 60
+    def test_initial_message_callback_is_none(self, chat_service):
+        """Test initial message callback is None"""
+        assert chat_service._message_callback is None
 
-    def test_initial_consecutive_empty_polls(self, chat_service):
-        """Test initial empty poll counter is 0"""
-        assert chat_service.consecutive_empty_polls == 0
-
-    def test_max_empty_polls_threshold(self, chat_service):
-        """Test max empty polls before interval increase"""
-        assert chat_service.max_empty_polls == 3
+    def test_initial_last_seen_update_time_is_none(self, chat_service):
+        """Test initial last seen update time is None"""
+        assert chat_service.last_seen_update_time is None
 
 
 # =============================================================================
@@ -629,14 +635,6 @@ class TestEdgeCases:
         
         # Should still return success because read flag was set
         assert result["success"] is True
-
-    def test_smart_polling_initial_interval(self, chat_service):
-        """Test initial polling interval matches base"""
-        assert chat_service.current_poll_interval == chat_service.base_poll_interval
-
-    def test_smart_polling_consecutive_empty_initial(self, chat_service):
-        """Test consecutive empty polls starts at 0"""
-        assert chat_service.consecutive_empty_polls == 0
 
     def test_is_user_active_with_recent_timestamp(self, chat_service):
         """Test is_user_active returns True for recent activity"""
@@ -665,4 +663,87 @@ class TestEdgeCases:
         result = chat_service.is_user_active(None)
         
         assert result is False
+
+
+# =============================================================================
+# SSE Event Handling Tests
+# =============================================================================
+class TestSSEEventHandling:
+    """Tests for SSE stream event handling"""
+
+    def test_on_stream_event_put_with_data(self, chat_service):
+        """Test handling of 'put' event with message data"""
+        messages_data = {
+            "msg1": {
+                "toUserId": "user123",
+                "content": "Hello",
+                "timestamp": "2024-01-15T10:00:00",
+                "read": False
+            }
+        }
+        data = {"path": "/", "data": messages_data}
+        
+        # Connect a signal receiver
+        received = []
+        chat_service.messages_received.connect(lambda r: received.append(r))
+        
+        chat_service._on_stream_event("put", data)
+        
+        assert len(received) == 1
+        assert received[0]["success"] is True
+        assert len(received[0]["messages"]) == 1
+
+    def test_on_stream_event_put_with_empty_data(self, chat_service):
+        """Test handling of 'put' event with no data"""
+        received = []
+        chat_service.messages_received.connect(lambda r: received.append(r))
+        
+        chat_service._on_stream_event("put", None)
+        
+        assert len(received) == 1
+        assert received[0]["messages"] == []
+
+    def test_on_stream_event_keep_alive(self, chat_service, mock_firebase):
+        """Test keep-alive event triggers last seen update"""
+        mock_firebase.db_set.return_value = {"success": True}
+        
+        chat_service._on_stream_event("keep-alive", None)
+        
+        # Should have called update_last_seen
+        mock_firebase.db_set.assert_called()
+
+    def test_on_stream_error_logs_error(self, chat_service):
+        """Test stream error is handled gracefully"""
+        # Should not raise
+        chat_service._on_stream_error("Connection lost")
+
+    def test_extract_user_messages_filters_correctly(self, chat_service, sample_messages):
+        """Test _extract_user_messages filters for current user's unread messages"""
+        result = chat_service._extract_user_messages(sample_messages)
+        
+        # Should only have msg1 and msg2 (user123's unread messages)
+        assert len(result) == 2
+        for msg in result:
+            assert msg["toUserId"] == "user123"
+            assert msg.get("read", False) is False
+
+    def test_extract_user_messages_with_none(self, chat_service):
+        """Test _extract_user_messages handles None"""
+        result = chat_service._extract_user_messages(None)
+        assert result == []
+
+    def test_extract_user_messages_with_empty_dict(self, chat_service):
+        """Test _extract_user_messages handles empty dict"""
+        result = chat_service._extract_user_messages({})
+        assert result == []
+
+    def test_emit_messages_calls_callback(self, chat_service):
+        """Test _emit_messages calls legacy callback"""
+        callback = Mock()
+        chat_service._message_callback = callback
+        
+        chat_service._emit_messages([{"id": "msg1"}])
+        
+        callback.assert_called_once()
+        assert callback.call_args[0][0]["success"] is True
 
