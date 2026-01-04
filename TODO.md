@@ -47,9 +47,12 @@
 
 ## ⚡ Performance
 
-- [ ] **Firebase Polling Optimization** - Improve message service listener
-  - Better SSE connection handling
-  - Reduce unnecessary polling/reconnects
+- [x] **Firebase Polling Optimization** - Replaced polling with SSE streaming
+  - Added `StreamListener` class to `FirebaseClient` for real-time SSE connections
+  - Refactored `ChatService` to use SSE instead of polling
+  - Instant message notifications (no 5-60 second delay)
+  - Single persistent connection instead of repeated HTTP requests
+  - Auto-reconnect with exponential backoff on connection errors
 
 ## 🐛 Known Issues
 

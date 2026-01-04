@@ -1,15 +1,17 @@
 """
 Chat Service - Client-side message handling
+
+Uses Firebase SSE (Server-Sent Events) for real-time message updates.
+This is much more efficient than polling - a single persistent connection
+receives push notifications instantly when messages change.
 """
 
-import threading
-import time
 from datetime import datetime
-from typing import Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from services.firebase_client import FirebaseClient
+from services.firebase_client import FirebaseClient, StreamListener
 from utils.logger import get_logger
 
 
@@ -17,7 +19,15 @@ logger = get_logger(__name__)
 
 
 class ChatService(QObject):
-    """Service for handling chat messages on client side"""
+    """
+    Service for handling chat messages on client side.
+
+    Uses SSE (Server-Sent Events) for real-time updates instead of polling.
+    Benefits:
+    - Instant message notifications (no 5-60 second delay)
+    - Single persistent connection (not repeated HTTP requests)
+    - Minimal bandwidth (only sends changes, not full data)
+    """
 
     # Qt signals for thread-safe communication
     messages_received = pyqtSignal(dict)  # Emitted when new messages are received
@@ -27,31 +37,30 @@ class ChatService(QObject):
         self.firebase = firebase_client
         self.user_id = user_id
         self.org_id = org_id
-        self.message_listeners = []
         self.is_listening = False
-        self.listen_thread = None
 
-        # Smart polling configuration
-        self.base_poll_interval = 5  # Base interval in seconds
-        self.max_poll_interval = 60  # Maximum interval in seconds
-        self.current_poll_interval = self.base_poll_interval
-        self.consecutive_empty_polls = 0
-        self.max_empty_polls = 3  # After 3 empty polls, increase interval
+        # SSE stream listener (replaces polling thread)
+        self._stream_listener: Optional[StreamListener] = None
 
         # Last seen update optimization
         self.last_seen_update_time = None
-        self.last_seen_debounce_seconds = 30  # Only update every 30 seconds
+        self.last_seen_debounce_seconds = 60  # Only update every 60 seconds
 
-        # Data caching
-        self.cached_messages = []
-        self.cache_timestamp = None
-        self.cache_duration_seconds = 10  # Cache for 10 seconds
+        # Data caching - still useful for get_unread_messages() calls
+        self.cached_messages: List[Dict] = []
+        self.cache_timestamp: Optional[datetime] = None
 
-        logger.info(f"Chat service initialized for user {user_id}")
+        # Legacy callback support
+        self._message_callback: Optional[Callable[[Dict], None]] = None
+
+        logger.info(f"Chat service initialized for user {user_id} (SSE mode)")
 
     def get_unread_messages(self, use_cache: bool = True) -> Dict:
         """
-        Get all unread messages for the current user with caching
+        Get all unread messages for the current user.
+
+        When SSE is active, the cache is kept up-to-date automatically.
+        Falls back to HTTP GET when cache is empty or use_cache=False.
 
         Args:
             use_cache: Whether to use cached data if available
@@ -63,12 +72,19 @@ class ChatService(QObject):
                 'error': str (if failed)
             }
         """
-        # Check cache first if enabled
-        if use_cache and self._is_cache_valid():
-            logger.debug("Using cached messages")
+        # Use cache if available and SSE is keeping it fresh
+        if use_cache and self.cached_messages is not None and self.is_listening:
+            logger.debug("Using SSE-cached messages")
             return {"success": True, "messages": self.cached_messages}
 
-        logger.debug("Fetching unread messages", action="get_messages")
+        # Also use cache if it's recent (within 10 seconds)
+        if use_cache and self.cache_timestamp:
+            cache_age = (datetime.now() - self.cache_timestamp).total_seconds()
+            if cache_age < 10:
+                logger.debug("Using recent cached messages")
+                return {"success": True, "messages": self.cached_messages}
+
+        logger.debug("Fetching unread messages via HTTP", action="get_messages")
 
         # Get all messages for this user (Firebase client handles org path)
         result = self.firebase.db_get("messages")
@@ -86,17 +102,8 @@ class ChatService(QObject):
             self._update_cache([])
             return {"success": True, "messages": []}
 
-        # Filter messages for this user and unread status
-        user_messages = []
-        for message_id, message_data in data.items():
-            if message_data.get("toUserId") == self.user_id and not message_data.get(
-                "read", False
-            ):
-                message_data["id"] = message_id
-                user_messages.append(message_data)
-
-        # Sort by timestamp (oldest first for display)
-        user_messages.sort(key=lambda x: x.get("timestamp", ""))
+        # Extract messages for this user
+        user_messages = self._extract_user_messages(data)
 
         # Update cache
         self._update_cache(user_messages)
@@ -218,7 +225,10 @@ class ChatService(QObject):
 
     def start_listening(self, callback: Callable[[Dict], None] = None) -> bool:
         """
-        Start listening for new messages in real-time
+        Start listening for new messages in real-time using SSE.
+
+        This opens a persistent connection to Firebase that receives
+        push notifications instantly when messages change - no polling!
 
         Args:
             callback: Optional callback function (deprecated, use signals instead)
@@ -231,13 +241,16 @@ class ChatService(QObject):
             return False
 
         self.is_listening = True
-        self.message_callback = callback  # Keep for backward compatibility
+        self._message_callback = callback  # Keep for backward compatibility
 
-        # Start listening thread
-        self.listen_thread = threading.Thread(target=self._listen_loop, daemon=True)
-        self.listen_thread.start()
+        # Start SSE stream listener for messages path
+        self._stream_listener = self.firebase.db_listen(
+            path="messages",
+            callback=self._on_stream_event,
+            error_callback=self._on_stream_error,
+        )
 
-        logger.debug("Started listening for messages", action="start_listening")
+        logger.info("Started SSE listener for messages", action="start_listening")
         return True
 
     def stop_listening(self):
@@ -247,61 +260,105 @@ class ChatService(QObject):
 
         self.is_listening = False
 
-        if self.listen_thread and self.listen_thread.is_alive():
-            self.listen_thread.join(timeout=1)
+        if self._stream_listener:
+            self._stream_listener.stop()
+            self._stream_listener = None
 
-        logger.debug("Stopped listening for messages", action="stop_listening")
+        logger.info("Stopped SSE listener for messages", action="stop_listening")
 
-    def _listen_loop(self):
-        """Internal method for listening loop with smart polling"""
-        last_check = None
+    def _on_stream_event(self, event_type: str, data: Any):
+        """
+        Handle SSE stream events from Firebase.
 
-        while self.is_listening:
-            try:
-                # Get current messages (use cache for efficiency)
-                result = self.get_unread_messages(use_cache=True)
-
-                if result.get("success"):
-                    messages = result.get("messages", [])
-                    message_count = len(messages)
-
-                    # Check if there are new messages
-                    if last_check is None or message_count != last_check:
-                        # Emit signal for thread-safe UI updates
-                        self.messages_received.emit(result)
-
-                        # Also call callback for backward compatibility
-                        if hasattr(self, "message_callback") and self.message_callback:
-                            self.message_callback(result)
-                        last_check = message_count
-
-                        # Reset polling interval when we find messages
-                        self.current_poll_interval = self.base_poll_interval
-                        self.consecutive_empty_polls = 0
-                    else:
-                        # No new messages, increment empty poll counter
-                        self.consecutive_empty_polls += 1
-
-                        # Increase polling interval if we've had many empty polls
-                        if self.consecutive_empty_polls >= self.max_empty_polls:
-                            self.current_poll_interval = min(
-                                self.current_poll_interval * 1.5, self.max_poll_interval
-                            )
-                            logger.debug(
-                                f"Increased polling interval to "
-                                f"{self.current_poll_interval:.1f}s"
-                            )
-
-                # Update last seen to show user is active (with debouncing)
+        Event types:
+        - 'put': Initial data or data replaced at path
+        - 'patch': Partial update to data
+        - 'keep-alive': Connection heartbeat
+        - 'cancel': Stream cancelled
+        - 'auth_revoked': Auth token revoked
+        """
+        try:
+            if event_type == "keep-alive":
+                # Update last seen on keep-alive to show user is active
                 self.update_last_seen()
+                return
 
-                # Wait before next check with dynamic interval
-                time.sleep(self.current_poll_interval)
+            if event_type in ("cancel", "auth_revoked"):
+                logger.warning(f"SSE stream event: {event_type}")
+                return
 
+            if event_type not in ("put", "patch"):
+                logger.debug(f"Unknown SSE event type: {event_type}")
+                return
+
+            # Extract messages data
+            # SSE put/patch data format: {"path": "/...", "data": {...}}
+            if not data:
+                self._update_cache([])
+                self._emit_messages([])
+                return
+
+            # Handle the data structure
+            path = data.get("path", "/")
+            payload = data.get("data")
+
+            # Process messages based on event type and path
+            if path == "/" and event_type == "put":
+                # Full data replacement - payload is all messages
+                messages = self._extract_user_messages(payload)
+                self._update_cache(messages)
+                self._emit_messages(messages)
+            elif event_type == "patch" or path != "/":
+                # Partial update - re-fetch full messages to ensure consistency
+                # This is still efficient because it only happens on actual changes
+                result = self.get_unread_messages(use_cache=False)
+                if result.get("success"):
+                    self._emit_messages(result.get("messages", []))
+
+            # Update last seen timestamp (debounced)
+            self.update_last_seen()
+
+        except Exception as e:
+            logger.error(f"Error processing SSE event: {e}")
+
+    def _on_stream_error(self, error: str):
+        """Handle SSE stream errors"""
+        logger.error(f"SSE stream error: {error}")
+        # The StreamListener handles reconnection automatically
+
+    def _extract_user_messages(self, all_messages: Optional[Dict]) -> List[Dict]:
+        """Extract unread messages for the current user from all messages"""
+        if not all_messages or not isinstance(all_messages, dict):
+            return []
+
+        user_messages = []
+        for message_id, message_data in all_messages.items():
+            if not isinstance(message_data, dict):
+                continue
+
+            if message_data.get("toUserId") == self.user_id and not message_data.get(
+                "read", False
+            ):
+                message_data["id"] = message_id
+                user_messages.append(message_data)
+
+        # Sort by timestamp (oldest first for display)
+        user_messages.sort(key=lambda x: x.get("timestamp", ""))
+        return user_messages
+
+    def _emit_messages(self, messages: List[Dict]):
+        """Emit messages via signal and callback"""
+        result = {"success": True, "messages": messages}
+
+        # Emit Qt signal for thread-safe UI updates
+        self.messages_received.emit(result)
+
+        # Call legacy callback if set
+        if self._message_callback:
+            try:
+                self._message_callback(result)
             except Exception as e:
-                logger.error(f"Error in message listening loop: {str(e)}")
-                # Use base interval for retry
-                time.sleep(self.base_poll_interval)
+                logger.error(f"Error in message callback: {e}")
 
     def is_user_active(self, last_seen: str) -> bool:
         """
@@ -330,15 +387,6 @@ class ChatService(QObject):
             logger.error(f"Error parsing last seen timestamp: {str(e)}")
             return False
 
-    def _is_cache_valid(self) -> bool:
-        """Check if cached data is still valid"""
-        if not self.cache_timestamp or not self.cached_messages:
-            return False
-
-        now = datetime.now()
-        cache_age = (now - self.cache_timestamp).total_seconds()
-        return cache_age < self.cache_duration_seconds
-
     def _update_cache(self, messages: List[Dict]):
         """Update the message cache with new data"""
         self.cached_messages = messages
@@ -352,6 +400,7 @@ class ChatService(QObject):
         logger.debug("Message cache invalidated")
 
     def cleanup(self):
-        """Cleanup resources"""
+        """Cleanup resources - stops SSE listener"""
         self.stop_listening()
+        self.invalidate_cache()
         logger.info("Chat service cleaned up")
