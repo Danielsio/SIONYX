@@ -2,8 +2,10 @@
 Firebase Client - Realtime Database + Authentication
 """
 
+import json
+import threading
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Optional
 
 import requests
 
@@ -289,6 +291,49 @@ class FirebaseClient:
             )
             return {"success": False, "error": error_msg}
 
+    # ==================== REAL-TIME STREAMING (SSE) ====================
+
+    def db_listen(
+        self,
+        path: str,
+        callback: Callable[[str, Any], None],
+        error_callback: Optional[Callable[[str], None]] = None,
+    ) -> "StreamListener":
+        """
+        Listen to real-time changes on a database path using Server-Sent Events (SSE).
+
+        This is MUCH more efficient than polling:
+        - Single persistent connection instead of repeated HTTP requests
+        - Instant push notifications when data changes
+        - Minimal bandwidth usage (only sends changes)
+
+        Args:
+            path: Database path to listen to (e.g., 'messages')
+            callback: Function called with (event_type, data) when data changes
+                     event_type: 'put', 'patch', 'keep-alive', 'cancel', 'auth_revoked'
+            error_callback: Optional function called with error message on connection issues
+
+        Returns:
+            StreamListener object with stop() method to end the subscription
+
+        Usage:
+            def on_message(event, data):
+                if event == 'put':
+                    print(f"Data changed: {data}")
+
+            listener = firebase.db_listen('messages', on_message)
+            # ... later ...
+            listener.stop()
+        """
+        listener = StreamListener(
+            firebase_client=self,
+            path=path,
+            callback=callback,
+            error_callback=error_callback,
+        )
+        listener.start()
+        return listener
+
     # ==================== HELPER METHODS ====================
 
     @staticmethod
@@ -327,3 +372,179 @@ class FirebaseClient:
 
         # For non-Firebase errors, try to translate them too
         return translate_error(str(exception))
+
+
+class StreamListener:
+    """
+    Server-Sent Events (SSE) listener for Firebase Realtime Database.
+
+    Firebase REST API supports streaming via SSE:
+    - Uses 'Accept: text/event-stream' header
+    - Single persistent HTTP connection
+    - Receives push notifications for data changes
+    - Events: 'put' (data set), 'patch' (data updated), 'keep-alive', 'cancel', 'auth_revoked'
+    """
+
+    def __init__(
+        self,
+        firebase_client: FirebaseClient,
+        path: str,
+        callback: Callable[[str, Any], None],
+        error_callback: Optional[Callable[[str], None]] = None,
+    ):
+        self.firebase = firebase_client
+        self.path = path
+        self.callback = callback
+        self.error_callback = error_callback
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+        self._response: Optional[requests.Response] = None
+        self._reconnect_delay = 1  # Start with 1 second
+        self._max_reconnect_delay = 60  # Max 60 seconds between reconnects
+
+    def start(self):
+        """Start the SSE listener in a background thread"""
+        if self._running:
+            logger.warning("Stream listener already running")
+            return
+
+        self._running = True
+        self._thread = threading.Thread(target=self._listen_loop, daemon=True)
+        self._thread.start()
+        logger.info(f"SSE listener started for path: {self.path}")
+
+    def stop(self):
+        """Stop the SSE listener"""
+        self._running = False
+
+        # Close the response to unblock the iterator
+        if self._response:
+            try:
+                self._response.close()
+            except Exception:
+                pass
+
+        if self._thread and self._thread.is_alive():
+            self._thread.join(timeout=2)
+
+        logger.info(f"SSE listener stopped for path: {self.path}")
+
+    def _listen_loop(self):
+        """Main loop that maintains SSE connection with auto-reconnect"""
+        while self._running:
+            try:
+                self._connect_and_stream()
+            except Exception as e:
+                if not self._running:
+                    break
+
+                error_msg = str(e)
+                logger.error(f"SSE connection error: {error_msg}")
+
+                if self.error_callback:
+                    try:
+                        self.error_callback(error_msg)
+                    except Exception:
+                        pass
+
+                # Exponential backoff for reconnection
+                if self._running:
+                    logger.info(
+                        f"Reconnecting in {self._reconnect_delay}s...",
+                        path=self.path,
+                    )
+                    # Use small sleep intervals to check _running flag
+                    for _ in range(int(self._reconnect_delay * 10)):
+                        if not self._running:
+                            break
+                        threading.Event().wait(0.1)
+
+                    self._reconnect_delay = min(
+                        self._reconnect_delay * 2, self._max_reconnect_delay
+                    )
+
+    def _connect_and_stream(self):
+        """Establish SSE connection and process events"""
+        # Ensure valid token before connecting
+        if not self.firebase.ensure_valid_token():
+            raise ConnectionError("Not authenticated")
+
+        org_path = self.firebase._get_org_path(self.path)
+        url = f"{self.firebase.database_url}/{org_path}.json"
+
+        headers = {
+            "Accept": "text/event-stream",
+            "Cache-Control": "no-cache",
+        }
+
+        params = {"auth": self.firebase.id_token}
+
+        logger.debug(f"Connecting SSE stream to: {org_path}")
+
+        # Use stream=True for SSE
+        self._response = requests.get(
+            url,
+            params=params,
+            headers=headers,
+            stream=True,
+            timeout=(10, None),  # 10s connect timeout, no read timeout
+        )
+        self._response.raise_for_status()
+
+        # Reset reconnect delay on successful connection
+        self._reconnect_delay = 1
+
+        logger.info(f"SSE stream connected: {org_path}")
+
+        # Process SSE events
+        event_type = None
+        data_lines = []
+
+        for line in self._response.iter_lines(decode_unicode=True):
+            if not self._running:
+                break
+
+            if line is None:
+                continue
+
+            line = line.strip()
+
+            if line.startswith("event:"):
+                event_type = line[6:].strip()
+            elif line.startswith("data:"):
+                data_lines.append(line[5:].strip())
+            elif line == "" and event_type:
+                # Empty line signals end of event
+                self._process_event(event_type, "".join(data_lines))
+                event_type = None
+                data_lines = []
+
+    def _process_event(self, event_type: str, data_str: str):
+        """Process a single SSE event"""
+        try:
+            if event_type == "keep-alive":
+                # Firebase sends keep-alive to maintain connection
+                logger.debug("SSE keep-alive received")
+                return
+
+            if event_type == "cancel":
+                logger.warning("SSE stream cancelled by server")
+                self.callback(event_type, None)
+                return
+
+            if event_type == "auth_revoked":
+                logger.warning("SSE auth revoked - need to re-authenticate")
+                self.callback(event_type, None)
+                return
+
+            # Parse JSON data for put/patch events
+            if data_str:
+                data = json.loads(data_str)
+                self.callback(event_type, data)
+            else:
+                self.callback(event_type, None)
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse SSE data: {e}, raw: {data_str[:100]}")
+        except Exception as e:
+            logger.error(f"Error processing SSE event: {e}")

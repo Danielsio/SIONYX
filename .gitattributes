@@ -59,5 +59,3 @@ Makefile text eol=lf
 *.dll binary
 *.so binary
 *.dylib binary
-
-
