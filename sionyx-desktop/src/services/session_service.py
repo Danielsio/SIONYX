@@ -87,6 +87,7 @@ class SessionService(QObject):
 
         # OPTIMIZATION: No separate session table!
         # Store everything on user record to save 50% more writes
+        # Note: updatedAt serves double duty - last sync time AND activity indicator
         now = datetime.now().isoformat()
 
         result = self.firebase.db_update(
@@ -94,7 +95,6 @@ class SessionService(QObject):
             {
                 "isSessionActive": True,
                 "sessionStartTime": now,
-                "lastActivity": now,
                 "updatedAt": now,
             },
         )
@@ -220,7 +220,6 @@ class SessionService(QObject):
             f"users/{self.user_id}",
             {
                 "remainingTime": self.remaining_time,
-                "lastActivity": now,
                 "updatedAt": now,
             },
         )
@@ -265,7 +264,6 @@ class SessionService(QObject):
                 "remainingTime": max(0, self.remaining_time),
                 "isSessionActive": False,
                 "sessionStartTime": None,
-                "lastActivity": now,
                 "updatedAt": now,
             },
         )

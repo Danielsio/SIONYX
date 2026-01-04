@@ -1,6 +1,6 @@
 """
 Smart Message Modal Component
-Professional UX-focused message display with one-by-one reading
+Beautiful, modern message display with elegant animations
 """
 
 from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt, pyqtSignal
@@ -12,9 +12,10 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QScrollArea,
     QSizePolicy,
-    QSpacerItem,
     QVBoxLayout,
+    QWidget,
 )
 
 from utils.logger import get_logger
@@ -25,13 +26,13 @@ logger = get_logger(__name__)
 
 class MessageModal(QDialog):
     """
-    Smart modal for displaying messages one by one
-    Professional UX with user control and flexibility
+    Beautiful modal for displaying admin messages
+    Modern design with smooth animations and excellent UX
     """
 
     # Signals
-    message_read = pyqtSignal(str)  # Emitted when a message is marked as read
-    all_messages_read = pyqtSignal()  # Emitted when all messages are read
+    message_read = pyqtSignal(str)
+    all_messages_read = pyqtSignal()
 
     def __init__(self, messages, chat_service, parent=None):
         super().__init__(parent)
@@ -44,7 +45,7 @@ class MessageModal(QDialog):
         self.setup_animations()
 
     def setup_ui(self):
-        """Setup the modal UI with enhanced professional styling"""
+        """Setup beautiful modal UI"""
         self.setWindowFlags(
             Qt.WindowType.Dialog
             | Qt.WindowType.FramelessWindowHint
@@ -52,21 +53,19 @@ class MessageModal(QDialog):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setModal(True)
-
-        # Set RTL for Hebrew support
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
-        # Enhanced main container with better proportions
+        # Main container - spacious for content
         self.container = QFrame()
         self.container.setObjectName("messageModalContainer")
-        self.container.setFixedSize(700, 550)  # Much larger for better content display
+        self.container.setFixedSize(580, 480)
 
-        # Enhanced professional shadow with better depth
+        # Soft shadow for depth
         shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(40)
+        shadow.setBlurRadius(60)
         shadow.setXOffset(0)
-        shadow.setYOffset(15)
-        shadow.setColor(QColor(0, 0, 0, 100))
+        shadow.setYOffset(20)
+        shadow.setColor(QColor(0, 0, 0, 80))
         self.container.setGraphicsEffect(shadow)
 
         # Main layout
@@ -79,196 +78,207 @@ class MessageModal(QDialog):
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
 
-        # Header
+        # Build sections
         self.setup_header(container_layout)
-
-        # Content area
         self.setup_content(container_layout)
-
-        # Footer with controls
         self.setup_footer(container_layout)
-
-        # Apply styling
         self.apply_styles()
 
         # Show first message
         if self.messages:
             self.show_current_message()
         else:
-            # If no messages, show a placeholder
             self.message_label.setText("אין הודעות להצגה")
             self.timestamp_label.setText("")
             self.progress_label.setText("0 מתוך 0")
 
     def setup_header(self, layout):
-        """Setup the enhanced modal header"""
-        header_frame = QFrame()
-        header_frame.setObjectName("messageHeader")
-        header_frame.setFixedHeight(110)  # Increased height for better proportions
+        """Setup compact elegant header"""
+        header = QFrame()
+        header.setObjectName("messageHeader")
+        header.setFixedHeight(64)
 
-        header_layout = QHBoxLayout(header_frame)
-        header_layout.setContentsMargins(40, 30, 40, 30)  # More generous margins
-        header_layout.setSpacing(25)
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(28, 0, 28, 0)
+        header_layout.setSpacing(12)
 
-        # Enhanced message icon
-        icon_label = QLabel("💬")
-        icon_label.setFont(QFont("Segoe UI", 28))
-        icon_label.setStyleSheet(
-            """
-            color: white;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 25px;
-            padding: 12px;
-        """
-        )
-        icon_label.setFixedSize(50, 50)
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Title with icon
+        title = QLabel("✉️  הודעות מהמנהל")
+        title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        title.setStyleSheet("color: white; background: transparent;")
 
-        # Enhanced title
-        self.title_label = QLabel("הודעות מהמנהל")
-        self.title_label.setFont(QFont("Segoe UI", 22, QFont.Weight.Bold))
-        self.title_label.setStyleSheet(
-            """
-            color: white;
-            background: transparent;
-            font-weight: 800;
-        """
-        )
-
-        # Enhanced progress indicator with better styling
+        # Progress badge
         self.progress_label = QLabel("")
-        self.progress_label.setFont(QFont("Segoe UI", 14, QFont.Weight.Medium))
+        self.progress_label.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
         self.progress_label.setStyleSheet(
             """
-            color: rgba(255, 255, 255, 0.9);
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 15px;
-            padding: 8px 16px;
-            font-weight: 600;
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 5px 12px;
         """
         )
 
-        header_layout.addWidget(icon_label)
-        header_layout.addWidget(self.title_label)
+        header_layout.addWidget(title)
         header_layout.addStretch()
         header_layout.addWidget(self.progress_label)
-        layout.addWidget(header_frame)
+        layout.addWidget(header)
 
     def setup_content(self, layout):
-        """Setup the enhanced message content area"""
+        """Setup clean, spacious content area with proper scrolling"""
         self.content_frame = QFrame()
         self.content_frame.setObjectName("messageContent")
 
         content_layout = QVBoxLayout(self.content_frame)
-        content_layout.setContentsMargins(60, 50, 60, 50)  # Much more generous margins
-        content_layout.setSpacing(35)
+        content_layout.setContentsMargins(32, 24, 32, 16)
+        content_layout.setSpacing(12)
 
-        # Enhanced message content with better typography
+        # Scrollable message area - THIS IS THE KEY
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setStyleSheet(
+            """
+            QScrollArea { 
+                background: #F8FAFC; 
+                border: 1px solid #E2E8F0;
+                border-radius: 12px;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: #F8FAFC;
+            }
+            QScrollBar:vertical {
+                background: #F1F5F9;
+                width: 10px;
+                margin: 4px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: #94A3B8;
+                border-radius: 5px;
+                min-height: 30px;
+            }
+            QScrollBar::handle:vertical:hover { background: #64748B; }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
+        """
+        )
+
+        # Message container - needs proper size policy
+        msg_widget = QWidget()
+        msg_widget.setObjectName("msgWidget")
+        msg_layout = QVBoxLayout(msg_widget)
+        msg_layout.setContentsMargins(20, 16, 20, 16)
+        msg_layout.setSpacing(0)
+
+        # Message text - CRITICAL: use QLabel with proper settings
         self.message_label = QLabel()
         self.message_label.setObjectName("messageText")
-        self.message_label.setFont(QFont("Segoe UI", 20, QFont.Weight.Medium))
+        self.message_label.setFont(QFont("Segoe UI", 15))
         self.message_label.setWordWrap(True)
-        self.message_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.message_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
+        self.message_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        # IMPORTANT: Let label grow vertically as needed
         self.message_label.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding
         )
+        self.message_label.setMinimumHeight(50)
         self.message_label.setStyleSheet(
             """
-            QLabel#messageText {
+            QLabel {
                 color: #1E293B;
                 background: transparent;
-                border: none;
-                line-height: 1.8;
-                font-weight: 500;
-                padding: 25px;
+                padding: 0;
             }
         """
         )
 
-        # Enhanced timestamp with better styling
+        msg_layout.addWidget(self.message_label)
+        msg_layout.addStretch()
+        
+        self.scroll_area.setWidget(msg_widget)
+
+        # Timestamp - subtle pill at bottom
+        timestamp_row = QHBoxLayout()
+        timestamp_row.setContentsMargins(0, 0, 0, 0)
+        
         self.timestamp_label = QLabel()
-        self.timestamp_label.setObjectName("messageTimestamp")
-        self.timestamp_label.setFont(QFont("Segoe UI", 14, QFont.Weight.Medium))
-        self.timestamp_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.timestamp_label.setFont(QFont("Segoe UI", 11))
         self.timestamp_label.setStyleSheet(
             """
-            QLabel#messageTimestamp {
-                color: #64748B;
-                background: #F1F5F9;
-                border: 2px solid #E2E8F0;
-                border-radius: 18px;
-                padding: 15px 25px;
-                font-weight: 600;
-            }
+            color: #64748B;
+            background: #F1F5F9;
+            border-radius: 8px;
+            padding: 6px 14px;
         """
         )
+        timestamp_row.addWidget(self.timestamp_label)
+        timestamp_row.addStretch()
 
-        content_layout.addWidget(self.message_label)
-        content_layout.addWidget(self.timestamp_label)
-        content_layout.addStretch()
-
-        layout.addWidget(self.content_frame)
+        content_layout.addWidget(self.scroll_area, 1)
+        content_layout.addLayout(timestamp_row)
+        layout.addWidget(self.content_frame, 1)
 
     def setup_footer(self, layout):
-        """Setup the enhanced footer with modern action buttons"""
-        footer_frame = QFrame()
-        footer_frame.setObjectName("messageFooter")
-        footer_frame.setFixedHeight(120)  # Increased height for better proportions
+        """Setup compact footer with clean buttons"""
+        footer = QFrame()
+        footer.setObjectName("messageFooter")
+        footer.setFixedHeight(72)
 
-        footer_layout = QHBoxLayout(footer_frame)
-        footer_layout.setContentsMargins(50, 30, 50, 30)  # More generous margins
-        footer_layout.setSpacing(30)
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(28, 14, 28, 14)
+        footer_layout.setSpacing(10)
 
-        # Enhanced Read All button with modern styling
-        self.read_all_button = QPushButton("📖 קרא הכל")
+        # Read All button (success) - on the right for RTL
+        self.read_all_button = QPushButton("✓ קרא הכל")
         self.read_all_button.setObjectName("readAllButton")
-        self.read_all_button.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
-        self.read_all_button.setFixedSize(180, 60)  # Larger button with more space
+        self.read_all_button.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        self.read_all_button.setFixedHeight(44)
+        self.read_all_button.setMinimumWidth(110)
         self.read_all_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.read_all_button.clicked.connect(self.read_all_messages)
 
-        # Spacer
-        spacer = QSpacerItem(
-            50, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
-        )
-
-        # Enhanced Read Next button
-        self.read_next_button = QPushButton("➡️ קרא הבא")
+        # Read Next / Finish button (primary)
+        self.read_next_button = QPushButton("הבא →")
         self.read_next_button.setObjectName("readNextButton")
-        self.read_next_button.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
-        self.read_next_button.setFixedSize(180, 60)  # Larger button with more space
+        self.read_next_button.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
+        self.read_next_button.setFixedHeight(44)
+        self.read_next_button.setMinimumWidth(100)
         self.read_next_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.read_next_button.clicked.connect(self.read_next_message)
 
-        # Enhanced Close button
-        self.close_button = QPushButton("❌ סגור")
+        # Close button (secondary) - on the left for RTL
+        self.close_button = QPushButton("סגור")
         self.close_button.setObjectName("closeButton")
-        self.close_button.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
-        self.close_button.setFixedSize(150, 60)  # Larger button with more space
+        self.close_button.setFont(QFont("Segoe UI", 12, QFont.Weight.DemiBold))
+        self.close_button.setFixedHeight(44)
+        self.close_button.setMinimumWidth(90)
         self.close_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.close_button.clicked.connect(self.close_modal)
 
         footer_layout.addWidget(self.read_all_button)
-        footer_layout.addItem(spacer)
         footer_layout.addWidget(self.read_next_button)
+        footer_layout.addStretch()
         footer_layout.addWidget(self.close_button)
-
-        layout.addWidget(footer_frame)
+        layout.addWidget(footer)
 
     def apply_styles(self):
-        """Apply professional styling"""
+        """Apply clean, modern styling"""
         self.container.setStyleSheet(
             """
             QFrame#messageModalContainer {
                 background: #FFFFFF;
-                border-radius: 28px;
-                border: 2px solid #E2E8F0;
+                border-radius: 20px;
+                border: 1px solid #E2E8F0;
             }
 
             QFrame#messageHeader {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #3B82F6, stop:1 #2563EB);
-                border-radius: 28px 28px 0 0;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #3B82F6, stop:1 #1D4ED8);
+                border-radius: 20px 20px 0 0;
+                border-bottom: none;
             }
 
             QFrame#messageContent {
@@ -277,99 +287,61 @@ class MessageModal(QDialog):
             }
 
             QFrame#messageFooter {
-                background: #F8FAFC;
-                border-top: 2px solid #E2E8F0;
-                border-radius: 0 0 28px 28px;
-            }
-
-            QLabel#messageText {
-                color: #1E293B;
-                background: transparent;
-                border: none;
-                line-height: 1.6;
-            }
-
-            QLabel#messageTimestamp {
-                color: #64748B;
-                background: transparent;
-                border: none;
+                background: #F9FAFB;
+                border-top: 1px solid #E5E7EB;
+                border-radius: 0 0 20px 20px;
             }
 
             QPushButton#readAllButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #10B981, stop:1 #059669);
+                background: #10B981;
                 color: white;
                 border: none;
-                border-radius: 20px;
-                font-weight: 800;
-                font-size: 15px;
-                padding: 12px 24px;
+                border-radius: 8px;
+                padding: 0 20px;
             }
             QPushButton#readAllButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #059669, stop:1 #047857);
+                background: #059669;
             }
             QPushButton#readAllButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #047857, stop:1 #065F46);
+                background: #047857;
             }
 
             QPushButton#readNextButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #3B82F6, stop:1 #2563EB);
+                background: #3B82F6;
                 color: white;
                 border: none;
-                border-radius: 20px;
-                font-weight: 800;
-                font-size: 15px;
-                padding: 12px 24px;
+                border-radius: 8px;
+                padding: 0 20px;
             }
             QPushButton#readNextButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #2563EB, stop:1 #1E40AF);
+                background: #2563EB;
             }
             QPushButton#readNextButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #1E40AF, stop:1 #1E3A8A);
+                background: #1D4ED8;
             }
 
             QPushButton#closeButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #6B7280, stop:1 #4B5563);
-                color: white;
-                border: none;
-                border-radius: 20px;
-                font-weight: 800;
-                font-size: 15px;
-                padding: 12px 24px;
+                background: #F3F4F6;
+                color: #374151;
+                border: 1px solid #D1D5DB;
+                border-radius: 8px;
+                padding: 0 16px;
             }
             QPushButton#closeButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #4B5563, stop:1 #374151);
+                background: #E5E7EB;
+                border-color: #9CA3AF;
             }
             QPushButton#closeButton:pressed {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #374151, stop:1 #1F2937);
+                background: #D1D5DB;
             }
         """
         )
 
     def setup_animations(self):
-        """Setup enhanced smooth animations"""
-        # Enhanced fade in animation
+        """Setup smooth fade animation"""
         self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
-        self.fade_animation.setDuration(400)
+        self.fade_animation.setDuration(250)
         self.fade_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-
-        # Content slide animation with better easing
-        self.slide_animation = QPropertyAnimation(self.content_frame, b"geometry")
-        self.slide_animation.setDuration(300)
-        self.slide_animation.setEasingCurve(QEasingCurve.Type.OutBack)
-
-        # Scale animation for modal entrance
-        self.scale_animation = QPropertyAnimation(self.container, b"geometry")
-        self.scale_animation.setDuration(350)
-        self.scale_animation.setEasingCurve(QEasingCurve.Type.OutBack)
 
     def show_current_message(self):
         """Display the current message"""
@@ -380,7 +352,7 @@ class MessageModal(QDialog):
         message = self.messages[self.current_index]
 
         # Update content
-        self.message_label.setText(message.get("message", "No message"))
+        self.message_label.setText(message.get("message", ""))
 
         # Format timestamp
         timestamp = message.get("timestamp", "")
@@ -389,11 +361,11 @@ class MessageModal(QDialog):
                 from datetime import datetime
 
                 dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
-                time_str = dt.strftime("%d/%m/%Y %H:%M")
+                time_str = dt.strftime("%d/%m/%Y  •  %H:%M")
             except Exception:
                 time_str = timestamp
         else:
-            time_str = "Unknown time"
+            time_str = ""
 
         self.timestamp_label.setText(time_str)
 
@@ -402,26 +374,12 @@ class MessageModal(QDialog):
         current = self.current_index + 1
         self.progress_label.setText(f"{current} מתוך {total}")
 
-        # Update button states
-        self.read_next_button.setText(
-            "קרא הבא" if self.current_index < len(self.messages) - 1 else "סיום"
-        )
+        # Update button text based on position
+        is_last = self.current_index >= len(self.messages) - 1
+        self.read_next_button.setText("סיום ✓" if is_last else "הבא →")
 
-        # Animate content change
-        self.animate_content_change()
-
-    def animate_content_change(self):
-        """Animate the content change with slide effect"""
-        # Simple fade effect for now
-        self.content_frame.setStyleSheet(
-            self.content_frame.styleSheet()
-            + """
-            QFrame#messageContent {
-                background: #FFFFFF;
-                border: none;
-            }
-        """
-        )
+        # Hide "Read All" if only one message or on last message
+        self.read_all_button.setVisible(total > 1 and not is_last)
 
     def read_next_message(self):
         """Mark current message as read and show next"""
