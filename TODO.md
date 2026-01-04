@@ -22,6 +22,15 @@
 
 ## 🚀 Features (Planned)
 
+- [ ] **Kiosk Security Lockdown** 🔒 - Prevent users from escaping kiosk mode
+  - **Branch**: `feature/kiosk-security-lockdown`
+  - **WIP Doc**: `sionyx-desktop/docs/WIP-kiosk-security-lockdown.md`
+  - Multi-layer defense: Windows user accounts + Group Policy + app restrictions
+  - Keyboard hooks to block Alt+Tab, Win key, Ctrl+Shift+Esc
+  - Process monitor to kill cmd, regedit, powershell, taskmgr
+  - PowerShell setup script for kiosk PC configuration
+  - Group Policy documentation for system admins
+
 - [ ] **Kiosk Mode / Auto-Run** - App runs automatically on system startup
   - Add to Windows startup registry on install
   - Only admin can exit the application
@@ -85,5 +94,5 @@
 - [x] **Handle empty Firebase collections** - No crash on missing data
 
 ---
-*Last updated: 2025-01-02*
+*Last updated: 2026-01-04*
 
