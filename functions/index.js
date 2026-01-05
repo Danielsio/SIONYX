@@ -591,7 +591,7 @@ exports.registerOrganization = onCall(async (request) => {
       email: adminEmail ? adminEmail.trim() : "",
       remainingTime: 0, // Admins don't need time balance for admin dashboard
       printBalance: 0.0,
-      isActive: false, // Active session is managed by sionyx-desktop only
+      isSessionActive: false, // Active session is managed by sionyx-desktop only
       isAdmin: true, // This user is the organization admin
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
