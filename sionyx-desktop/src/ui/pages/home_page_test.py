@@ -8,10 +8,10 @@ Testing Strategy:
 - Test state changes (time remaining, button states)
 """
 
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from PyQt6.QtWidgets import QLabel, QPushButton, QFrame
+from PyQt6.QtWidgets import QFrame, QLabel, QPushButton
 
 from ui.pages.home_page import HomePage
 
@@ -68,7 +68,9 @@ class TestHomePage:
         chat_service = Mock()
         chat_service.is_listening = False
         chat_service.start_listening = Mock()
-        chat_service.get_unread_messages = Mock(return_value={"success": True, "messages": []})
+        chat_service.get_unread_messages = Mock(
+            return_value={"success": True, "messages": []}
+        )
         chat_service.cleanup = Mock()
         chat_service.messages_received = Mock()
         chat_service.messages_received.connect = Mock()
@@ -102,10 +104,9 @@ class TestHomePage:
         mock_chat = Mock()
         mock_chat.is_listening = False
         mock_chat.start_listening = Mock()
-        mock_chat.get_unread_messages = Mock(return_value={
-            "success": True,
-            "messages": MOCK_MESSAGES.copy()
-        })
+        mock_chat.get_unread_messages = Mock(
+            return_value={"success": True, "messages": MOCK_MESSAGES.copy()}
+        )
         mock_chat.cleanup = Mock()
         mock_chat.messages_received = Mock()
         mock_chat.messages_received.connect = Mock()
@@ -340,20 +341,16 @@ class TestHomePage:
 
     def test_handle_new_messages_success(self, home_page):
         """Test handling new messages shows notification"""
-        home_page.handle_new_messages({
-            "success": True,
-            "messages": MOCK_MESSAGES.copy()
-        })
+        home_page.handle_new_messages(
+            {"success": True, "messages": MOCK_MESSAGES.copy()}
+        )
 
         assert len(home_page.pending_messages) == 2
         assert not home_page.message_card.isHidden()
 
     def test_handle_new_messages_empty(self, home_page):
         """Test handling empty messages list"""
-        home_page.handle_new_messages({
-            "success": True,
-            "messages": []
-        })
+        home_page.handle_new_messages({"success": True, "messages": []})
 
         assert len(home_page.pending_messages) == 0
 
@@ -445,7 +442,7 @@ class TestHomePage:
         parent_mock = Mock()
         parent_mock.parent.return_value.parent.return_value.start_user_session = Mock()
 
-        with patch.object(home_page_no_time, 'parent', return_value=parent_mock):
+        with patch.object(home_page_no_time, "parent", return_value=parent_mock):
             # Should return early - no time
             home_page_no_time.handle_start_session()
 
@@ -528,10 +525,9 @@ class TestHomePage:
         """Test load_messages fetches and stores messages"""
         mock_chat = Mock()
         mock_chat.is_listening = False
-        mock_chat.get_unread_messages = Mock(return_value={
-            "success": True,
-            "messages": [{"id": "m1"}]
-        })
+        mock_chat.get_unread_messages = Mock(
+            return_value={"success": True, "messages": [{"id": "m1"}]}
+        )
         mock_chat.messages_received = Mock()
         mock_chat.messages_received.connect = Mock()
 
@@ -542,4 +538,3 @@ class TestHomePage:
 
             assert len(page.pending_messages) == 1
             page.countdown_timer.stop()
-

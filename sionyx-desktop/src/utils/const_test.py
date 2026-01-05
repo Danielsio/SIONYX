@@ -5,7 +5,7 @@ Tests application branding and security constants.
 
 import pytest
 
-from utils.const import APP_NAME, ADMIN_EXIT_PASSWORD
+from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
 
 
 class TestConstants:
@@ -34,10 +34,3 @@ class TestConstants:
     def test_admin_password_has_value(self):
         """Test ADMIN_EXIT_PASSWORD has a value set"""
         assert ADMIN_EXIT_PASSWORD is not None
-
-
-
-
-
-
-

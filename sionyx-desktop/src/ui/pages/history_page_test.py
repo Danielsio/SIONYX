@@ -9,10 +9,10 @@ Testing Strategy:
 """
 
 from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from PyQt6.QtWidgets import QLabel, QPushButton, QFrame, QLineEdit, QComboBox
+from PyQt6.QtWidgets import QComboBox, QFrame, QLabel, QLineEdit, QPushButton
 
 from ui.pages.history_page import HistoryPage, PurchaseCard
 
@@ -307,7 +307,10 @@ class TestHistoryPage:
 
         # Should only show the premium package
         assert len(history_page_with_data.filtered_purchases) == 1
-        assert history_page_with_data.filtered_purchases[0]["packageName"] == "חבילת פרימיום"
+        assert (
+            history_page_with_data.filtered_purchases[0]["packageName"]
+            == "חבילת פרימיום"
+        )
 
     def test_search_empty_shows_all(self, history_page_with_data):
         """Test empty search shows all purchases"""
@@ -506,7 +509,9 @@ class TestHistoryPage:
             1
             for i in range(history_page_with_data.list_layout.count())
             if history_page_with_data.list_layout.itemAt(i).widget()
-            and isinstance(history_page_with_data.list_layout.itemAt(i).widget(), PurchaseCard)
+            and isinstance(
+                history_page_with_data.list_layout.itemAt(i).widget(), PurchaseCard
+            )
         )
         assert card_count_before == 3
 
@@ -517,7 +522,9 @@ class TestHistoryPage:
             1
             for i in range(history_page_with_data.list_layout.count())
             if history_page_with_data.list_layout.itemAt(i).widget()
-            and isinstance(history_page_with_data.list_layout.itemAt(i).widget(), PurchaseCard)
+            and isinstance(
+                history_page_with_data.list_layout.itemAt(i).widget(), PurchaseCard
+            )
         )
         assert card_count_after == 0
 
@@ -590,7 +597,9 @@ class TestEdgeCases:
     @pytest.fixture
     def history_page(self, mock_auth_service, mock_purchase_service, qapp):
         """Create basic history page"""
-        with patch("ui.pages.history_page.PurchaseService", return_value=mock_purchase_service):
+        with patch(
+            "ui.pages.history_page.PurchaseService", return_value=mock_purchase_service
+        ):
             page = HistoryPage(mock_auth_service)
             yield page
 
@@ -610,7 +619,9 @@ class TestEdgeCases:
         auth_service = Mock()
         auth_service.get_current_user.return_value = None
 
-        with patch("ui.pages.history_page.PurchaseService", return_value=mock_purchase_service):
+        with patch(
+            "ui.pages.history_page.PurchaseService", return_value=mock_purchase_service
+        ):
             page = HistoryPage(auth_service)
             page.current_user = None
 
@@ -621,20 +632,27 @@ class TestEdgeCases:
         """Test load_data handles missing user ID"""
         mock_auth_service.get_current_user.return_value = {"name": "test"}  # No uid
 
-        with patch("ui.pages.history_page.PurchaseService", return_value=mock_purchase_service):
+        with patch(
+            "ui.pages.history_page.PurchaseService", return_value=mock_purchase_service
+        ):
             page = HistoryPage(mock_auth_service)
             page.current_user = {"name": "test"}  # No uid
 
             # Should not crash
             page._load_data()
 
-    def test_load_data_service_exception(self, mock_auth_service, mock_purchase_service, qapp):
+    def test_load_data_service_exception(
+        self, mock_auth_service, mock_purchase_service, qapp
+    ):
         """Test load_data handles service exceptions"""
-        mock_purchase_service.get_user_purchase_history.side_effect = Exception("Network error")
+        mock_purchase_service.get_user_purchase_history.side_effect = Exception(
+            "Network error"
+        )
 
-        with patch("ui.pages.history_page.PurchaseService", return_value=mock_purchase_service):
+        with patch(
+            "ui.pages.history_page.PurchaseService", return_value=mock_purchase_service
+        ):
             page = HistoryPage(mock_auth_service)
 
             # Should not crash and should display error
             page._load_data(use_cache=False)
-

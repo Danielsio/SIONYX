@@ -16,7 +16,6 @@ from PyQt6.QtWidgets import (
 )
 
 from services.chat_service import ChatService
-from utils.logger import get_logger
 from ui.components.base_components import (
     ActionButton,
     FrostCard,
@@ -32,6 +31,7 @@ from ui.constants.ui_constants import (
     Typography,
     UIStrings,
 )
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)
@@ -251,7 +251,9 @@ class HomePage(QWidget):
         # Count
         self.message_count_label = QLabel("0 הודעות")
         self.message_count_label.setFont(
-            QFont(Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD)
+            QFont(
+                Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD
+            )
         )
         self.message_count_label.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
         layout.addWidget(self.message_count_label)

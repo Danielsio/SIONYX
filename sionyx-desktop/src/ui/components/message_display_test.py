@@ -3,10 +3,11 @@ Tests for message_display.py - Message Display Component
 Tests MessageCard and MessageDisplay components.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from PyQt6.QtWidgets import QWidget, QFrame
+
+import pytest
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QFrame, QWidget
 
 from ui.components.message_display import MessageCard, MessageDisplay
 
@@ -21,7 +22,7 @@ def sample_message():
         "id": "msg123",
         "message": "Hello from admin!",
         "timestamp": "2024-01-15T10:00:00",
-        "isRead": False
+        "isRead": False,
     }
 
 
@@ -32,7 +33,7 @@ def read_message():
         "id": "msg456",
         "message": "Already read message",
         "timestamp": "2024-01-15T09:00:00",
-        "isRead": True
+        "isRead": True,
     }
 
 
@@ -122,7 +123,12 @@ class TestMessageCard:
 
     def test_message_with_invalid_timestamp(self, qapp):
         """Test handling invalid timestamp"""
-        message = {"id": "msg1", "message": "Bad timestamp", "timestamp": "invalid", "isRead": False}
+        message = {
+            "id": "msg1",
+            "message": "Bad timestamp",
+            "timestamp": "invalid",
+            "isRead": False,
+        }
         with patch("ui.components.message_display.get_logger"):
             card = MessageCard(message)
             # Should not raise
@@ -215,14 +221,18 @@ class TestSetChatService:
 class TestUpdateMessages:
     """Tests for update_messages method"""
 
-    def test_update_messages_stores_messages(self, qapp, mock_auth_service, sample_message):
+    def test_update_messages_stores_messages(
+        self, qapp, mock_auth_service, sample_message
+    ):
         """Test update_messages stores messages"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
             display.update_messages([sample_message])
             assert len(display.messages) == 1
 
-    def test_update_messages_calls_refresh(self, qapp, mock_auth_service, sample_message):
+    def test_update_messages_calls_refresh(
+        self, qapp, mock_auth_service, sample_message
+    ):
         """Test update_messages calls refresh_display"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
@@ -245,7 +255,9 @@ class TestRefreshDisplay:
             display.refresh_display()
             assert not display.no_messages_label.isHidden()
 
-    def test_with_messages_hides_no_messages_label(self, qapp, mock_auth_service, sample_message):
+    def test_with_messages_hides_no_messages_label(
+        self, qapp, mock_auth_service, sample_message
+    ):
         """Test messages hide no messages label"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
@@ -293,15 +305,14 @@ class TestMessageCardEvents:
         """Test enterEvent enhances shadow"""
         with patch("ui.components.message_display.get_logger"):
             card = MessageCard(sample_message)
-            
+
             # Simulate enter event
-            from PyQt6.QtCore import QEvent
+            from PyQt6.QtCore import QEvent, QPointF
             from PyQt6.QtGui import QEnterEvent
-            from PyQt6.QtCore import QPointF
-            
+
             event = QEnterEvent(QPointF(0, 0), QPointF(0, 0), QPointF(0, 0))
             card.enterEvent(event)
-            
+
             # Shadow effect should be enhanced
             assert card.graphicsEffect() is not None
 
@@ -309,13 +320,13 @@ class TestMessageCardEvents:
         """Test leaveEvent handles leave event"""
         with patch("ui.components.message_display.get_logger"):
             card = MessageCard(sample_message)
-            
+
             # Simulate leave event
             from PyQt6.QtCore import QEvent
-            
+
             leave_event = QEvent(QEvent.Type.Leave)
             card.leaveEvent(leave_event)
-            
+
             # Shadow should still exist (effect is restored or stays)
             # Just verify no crash occurs
 
@@ -323,23 +334,23 @@ class TestMessageCardEvents:
         """Test mousePressEvent emits card_clicked signal"""
         with patch("ui.components.message_display.get_logger"):
             card = MessageCard(sample_message)
-            
+
             signal_received = []
             card.card_clicked.connect(lambda data: signal_received.append(data))
-            
+
             # Simulate left click
-            from PyQt6.QtGui import QMouseEvent
             from PyQt6.QtCore import QEvent, QPointF
-            
+            from PyQt6.QtGui import QMouseEvent
+
             event = QMouseEvent(
                 QEvent.Type.MouseButtonPress,
                 QPointF(0, 0),
                 Qt.MouseButton.LeftButton,
                 Qt.MouseButton.LeftButton,
-                Qt.KeyboardModifier.NoModifier
+                Qt.KeyboardModifier.NoModifier,
             )
             card.mousePressEvent(event)
-            
+
             assert len(signal_received) == 1
             assert signal_received[0] == sample_message
 
@@ -347,23 +358,23 @@ class TestMessageCardEvents:
         """Test right click doesn't emit card_clicked signal"""
         with patch("ui.components.message_display.get_logger"):
             card = MessageCard(sample_message)
-            
+
             signal_received = []
             card.card_clicked.connect(lambda data: signal_received.append(data))
-            
+
             # Simulate right click
-            from PyQt6.QtGui import QMouseEvent
             from PyQt6.QtCore import QEvent, QPointF
-            
+            from PyQt6.QtGui import QMouseEvent
+
             event = QMouseEvent(
                 QEvent.Type.MouseButtonPress,
                 QPointF(0, 0),
                 Qt.MouseButton.RightButton,
                 Qt.MouseButton.RightButton,
-                Qt.KeyboardModifier.NoModifier
+                Qt.KeyboardModifier.NoModifier,
             )
             card.mousePressEvent(event)
-            
+
             assert len(signal_received) == 0
 
 
@@ -373,25 +384,30 @@ class TestMessageCardEvents:
 class TestOnCardClicked:
     """Tests for on_card_clicked method"""
 
-    def test_on_card_clicked_without_chat_service(self, qapp, mock_auth_service, sample_message):
+    def test_on_card_clicked_without_chat_service(
+        self, qapp, mock_auth_service, sample_message
+    ):
         """Test on_card_clicked without chat service"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
             # Should not raise
             display.on_card_clicked(sample_message)
 
-    def test_on_card_clicked_with_chat_service(self, qapp, mock_auth_service, mock_chat_service, sample_message):
+    def test_on_card_clicked_with_chat_service(
+        self, qapp, mock_auth_service, mock_chat_service, sample_message
+    ):
         """Test on_card_clicked with chat service"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
             display.set_chat_service(mock_chat_service)
-            
+
             # Patch the MessageModal import inside the method
             from unittest.mock import MagicMock
+
             mock_modal_class = MagicMock()
             mock_modal_instance = MagicMock()
             mock_modal_class.return_value = mock_modal_instance
-            
+
             with patch.object(display, "on_card_clicked") as mock_method:
                 # Just test the method exists and can be called
                 mock_method(sample_message)
@@ -404,41 +420,50 @@ class TestOnCardClicked:
 class TestHandleMessageRead:
     """Tests for handle_message_read method"""
 
-    def test_handle_message_read_success(self, qapp, mock_auth_service, mock_chat_service, sample_message):
+    def test_handle_message_read_success(
+        self, qapp, mock_auth_service, mock_chat_service, sample_message
+    ):
         """Test successful message read handling"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
             display.set_chat_service(mock_chat_service)
             display.messages = [sample_message]
-            
+
             mock_chat_service.mark_message_as_read.return_value = {"success": True}
-            
+
             display.handle_message_read("msg123")
-            
+
             mock_chat_service.mark_message_as_read.assert_called_once_with("msg123")
             # Message should be removed from list
             assert len(display.messages) == 0
 
-    def test_handle_message_read_failure(self, qapp, mock_auth_service, mock_chat_service, sample_message):
+    def test_handle_message_read_failure(
+        self, qapp, mock_auth_service, mock_chat_service, sample_message
+    ):
         """Test failed message read handling"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
             display.set_chat_service(mock_chat_service)
             display.messages = [sample_message]
-            
-            mock_chat_service.mark_message_as_read.return_value = {"success": False, "error": "Failed"}
-            
+
+            mock_chat_service.mark_message_as_read.return_value = {
+                "success": False,
+                "error": "Failed",
+            }
+
             display.handle_message_read("msg123")
-            
+
             # Message should still be in list
             assert len(display.messages) == 1
 
-    def test_handle_message_read_without_chat_service(self, qapp, mock_auth_service, sample_message):
+    def test_handle_message_read_without_chat_service(
+        self, qapp, mock_auth_service, sample_message
+    ):
         """Test handle_message_read without chat service"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
             display.messages = [sample_message]
-            
+
             # Should not raise
             display.handle_message_read("msg123")
 
@@ -449,15 +474,17 @@ class TestHandleMessageRead:
 class TestShowMessageNotification:
     """Tests for show_message_notification method"""
 
-    def test_show_message_notification_callable(self, qapp, mock_auth_service, sample_message):
+    def test_show_message_notification_callable(
+        self, qapp, mock_auth_service, sample_message
+    ):
         """Test show_message_notification is callable"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
-            
+
             # Method should exist and be callable
             assert hasattr(display, "show_message_notification")
             assert callable(display.show_message_notification)
-            
+
             # Should not raise when called
             display.show_message_notification(sample_message)
 
@@ -468,39 +495,41 @@ class TestShowMessageNotification:
 class TestRefreshDisplayEdgeCases:
     """Additional tests for refresh_display edge cases"""
 
-    def test_refresh_removes_old_cards(self, qapp, mock_auth_service, sample_message, read_message):
+    def test_refresh_removes_old_cards(
+        self, qapp, mock_auth_service, sample_message, read_message
+    ):
         """Test refresh_display removes old cards"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
-            
+
             # First, add some messages
             display.messages = [sample_message, read_message]
             display.refresh_display()
-            
+
             # Now update with fewer messages
             display.messages = [sample_message]
             display.refresh_display()
-            
+
             # Should have only one message card (plus no_messages_label and stretch)
 
-    def test_refresh_count_shows_unread_count(self, qapp, mock_auth_service, sample_message, read_message):
+    def test_refresh_count_shows_unread_count(
+        self, qapp, mock_auth_service, sample_message, read_message
+    ):
         """Test refresh shows unread count when there are unread messages"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
             display.messages = [sample_message, read_message]  # 1 unread
             display.refresh_display()
-            
+
             assert display.count_label.text() == "1"  # Only unread count
 
-    def test_refresh_count_shows_total_when_all_read(self, qapp, mock_auth_service, read_message):
+    def test_refresh_count_shows_total_when_all_read(
+        self, qapp, mock_auth_service, read_message
+    ):
         """Test refresh shows total count when all messages are read"""
         with patch("ui.components.message_display.get_logger"):
             display = MessageDisplay(mock_auth_service)
             display.messages = [read_message]  # 0 unread
             display.refresh_display()
-            
+
             assert display.count_label.text() == "1"  # Total count
-
-
-
-

@@ -3,10 +3,11 @@ Tests for floating_timer.py - Floating Timer Overlay
 Tests always-on-top timer displayed during sessions.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from PyQt6.QtWidgets import QWidget, QLabel, QPushButton
+
+import pytest
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QLabel, QPushButton, QWidget
 
 
 # =============================================================================
@@ -16,7 +17,7 @@ from PyQt6.QtCore import Qt
 def floating_timer(qapp):
     """Create FloatingTimer instance"""
     from ui.floating_timer import FloatingTimer
-    
+
     timer = FloatingTimer()
     yield timer
     timer.close()
@@ -135,55 +136,55 @@ class TestUpdateTime:
     def test_formats_time_correctly(self, floating_timer):
         """Test formats time correctly with hours, minutes, seconds"""
         floating_timer.update_time(3661)  # 1 hour, 1 minute, 1 second
-        
+
         assert floating_timer.time_remaining_value.text() == "01:01:01"
 
     def test_formats_zero_time(self, floating_timer):
         """Test formats zero time"""
         floating_timer.update_time(0)
-        
+
         assert floating_timer.time_remaining_value.text() == "00:00:00"
 
     def test_formats_seconds_only(self, floating_timer):
         """Test formats seconds only"""
         floating_timer.update_time(45)
-        
+
         assert floating_timer.time_remaining_value.text() == "00:00:45"
 
     def test_formats_minutes_only(self, floating_timer):
         """Test formats minutes only"""
         floating_timer.update_time(300)  # 5 minutes
-        
+
         assert floating_timer.time_remaining_value.text() == "00:05:00"
 
     def test_formats_hours_only(self, floating_timer):
         """Test formats hours"""
         floating_timer.update_time(7200)  # 2 hours
-        
+
         assert floating_timer.time_remaining_value.text() == "02:00:00"
 
     def test_triggers_warning_at_5_minutes(self, floating_timer):
         """Test triggers warning mode at 5 minutes (300 seconds)"""
         floating_timer.update_time(300)
-        
+
         assert floating_timer.is_warning is True
 
     def test_triggers_critical_at_1_minute(self, floating_timer):
         """Test triggers critical mode at 1 minute (60 seconds)"""
         floating_timer.update_time(60)
-        
+
         assert floating_timer.is_critical is True
 
     def test_triggers_critical_below_1_minute(self, floating_timer):
         """Test triggers critical mode below 1 minute"""
         floating_timer.update_time(30)
-        
+
         assert floating_timer.is_critical is True
 
     def test_no_warning_above_5_minutes(self, floating_timer):
         """Test no warning above 5 minutes"""
         floating_timer.update_time(600)  # 10 minutes
-        
+
         assert floating_timer.is_warning is False
         assert floating_timer.is_critical is False
 
@@ -197,13 +198,13 @@ class TestUpdateUsageTime:
     def test_formats_usage_time_correctly(self, floating_timer):
         """Test formats usage time correctly"""
         floating_timer.update_usage_time(3723)  # 1:02:03
-        
+
         assert floating_timer.usage_time_value.text() == "01:02:03"
 
     def test_formats_zero_usage_time(self, floating_timer):
         """Test formats zero usage time"""
         floating_timer.update_usage_time(0)
-        
+
         assert floating_timer.usage_time_value.text() == "00:00:00"
 
 
@@ -216,20 +217,20 @@ class TestUpdatePrintBalance:
     def test_formats_balance_with_currency(self, floating_timer):
         """Test formats balance with currency symbol"""
         floating_timer.update_print_balance(50.0)
-        
+
         assert "50.00" in floating_timer.print_balance_value.text()
         assert "₪" in floating_timer.print_balance_value.text()
 
     def test_formats_zero_balance(self, floating_timer):
         """Test formats zero balance"""
         floating_timer.update_print_balance(0.0)
-        
+
         assert "0.00" in floating_timer.print_balance_value.text()
 
     def test_formats_decimal_balance(self, floating_timer):
         """Test formats decimal balance"""
         floating_timer.update_print_balance(12.50)
-        
+
         assert "12.50" in floating_timer.print_balance_value.text()
 
 
@@ -242,26 +243,26 @@ class TestWarningCriticalModes:
     def test_set_warning_mode_sets_flag(self, floating_timer):
         """Test set_warning_mode sets is_warning flag"""
         floating_timer.set_warning_mode()
-        
+
         assert floating_timer.is_warning is True
 
     def test_set_critical_mode_sets_flag(self, floating_timer):
         """Test set_critical_mode sets is_critical flag"""
         floating_timer.set_critical_mode()
-        
+
         assert floating_timer.is_critical is True
 
     def test_warning_mode_calls_apply_warning_styles(self, floating_timer):
         """Test warning mode applies warning styles"""
         floating_timer.set_warning_mode()
-        
+
         # Should apply warning styles (orange theme)
         assert floating_timer.is_warning is True
 
     def test_critical_mode_calls_apply_critical_styles(self, floating_timer):
         """Test critical mode applies critical styles"""
         floating_timer.set_critical_mode()
-        
+
         # Should apply critical styles (red theme)
         assert floating_timer.is_critical is True
 
@@ -275,7 +276,7 @@ class TestSetOfflineMode:
     def test_offline_mode_shows_warning_text(self, floating_timer):
         """Test offline mode shows warning text"""
         floating_timer.set_offline_mode(True)
-        
+
         assert "Offline" in floating_timer.time_remaining_value.text()
         assert "⚠" in floating_timer.time_remaining_value.text()
 
@@ -283,9 +284,9 @@ class TestSetOfflineMode:
         """Test online mode resets warning/critical flags"""
         floating_timer.is_warning = True
         floating_timer.is_critical = True
-        
+
         floating_timer.set_offline_mode(False)
-        
+
         assert floating_timer.is_warning is False
         assert floating_timer.is_critical is False
 
@@ -300,18 +301,18 @@ class TestButtonSignals:
         """Test exit button click emits return_clicked signal"""
         signal_received = []
         floating_timer.return_clicked.connect(lambda: signal_received.append(True))
-        
+
         floating_timer.exit_button.click()
-        
+
         assert len(signal_received) == 1
 
     def test_account_button_emits_return_clicked(self, floating_timer):
         """Test account button click emits return_clicked signal"""
         signal_received = []
         floating_timer.return_clicked.connect(lambda: signal_received.append(True))
-        
+
         floating_timer.account_button.click()
-        
+
         assert len(signal_received) == 1
 
 
@@ -351,25 +352,25 @@ class TestTimeFormattingEdgeCases:
     def test_formats_large_hours(self, floating_timer):
         """Test formats large hour values"""
         floating_timer.update_time(36000)  # 10 hours
-        
+
         assert floating_timer.time_remaining_value.text() == "10:00:00"
 
     def test_formats_max_values(self, floating_timer):
         """Test formats all max values (59)"""
         floating_timer.update_time(3599)  # 59:59
-        
+
         assert floating_timer.time_remaining_value.text() == "00:59:59"
 
     def test_formats_boundary_minute(self, floating_timer):
         """Test formats at minute boundary"""
         floating_timer.update_time(60)  # Exactly 1 minute
-        
+
         assert floating_timer.time_remaining_value.text() == "00:01:00"
 
     def test_formats_boundary_hour(self, floating_timer):
         """Test formats at hour boundary"""
         floating_timer.update_time(3600)  # Exactly 1 hour
-        
+
         assert floating_timer.time_remaining_value.text() == "01:00:00"
 
 
@@ -426,10 +427,3 @@ class TestMouseTracking:
     def test_container_mouse_tracking_enabled(self, floating_timer):
         """Test container mouse tracking is enabled"""
         assert floating_timer.container.hasMouseTracking()
-
-
-
-
-
-
-

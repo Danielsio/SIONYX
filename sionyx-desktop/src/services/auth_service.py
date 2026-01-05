@@ -95,7 +95,7 @@ class AuthService:
         if user_data.get("isLoggedIn") is True:
             current_computer_id = self.computer_service.get_computer_id()
             logged_in_computer = user_data.get("currentComputerId")
-            
+
             # Allow re-login on the same computer, but reject login on different computer
             if logged_in_computer and logged_in_computer != current_computer_id:
                 logger.warning(
@@ -343,7 +343,9 @@ class AuthService:
                     },
                 )
 
-                logger.info("✅ Session and computer association cleaned up (no time deducted)")
+                logger.info(
+                    "✅ Session and computer association cleaned up (no time deducted)"
+                )
 
             else:
                 logger.debug(

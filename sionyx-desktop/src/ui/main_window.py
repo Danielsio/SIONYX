@@ -18,8 +18,6 @@ from PyQt6.QtWidgets import (
 )
 
 from services.session_service import SessionService
-from utils.const import APP_NAME
-from utils.logger import get_logger
 from ui.base_window import BaseKioskWindow
 from ui.components.base_components import ActionButton
 from ui.constants.ui_constants import (
@@ -39,6 +37,8 @@ from ui.pages.history_page import HistoryPage
 from ui.pages.home_page import HomePage
 from ui.pages.packages_page import PackagesPage
 from ui.styles.main_window import MAIN_WINDOW_QSS
+from utils.const import APP_NAME
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)
@@ -404,6 +404,12 @@ class MainWindow(BaseKioskWindow):
                 if hasattr(self, "session_service") and self.session_service:
                     self.session_service.end_session("user")
 
+                # Stop force logout listener to prevent blocking
+                if self.force_logout_listener:
+                    self.force_logout_listener.stop()
+                    self.force_logout_listener.wait(1000)  # Wait up to 1 second
+                    self.force_logout_listener = None
+
                 # Clear data from all pages before logout
                 if hasattr(self.home_page, "cleanup"):
                     self.home_page.cleanup()
@@ -435,6 +441,10 @@ class MainWindow(BaseKioskWindow):
 
             except Exception as e:
                 logger.error(f"Error during logout: {e}")
+                # Stop force logout listener even on error
+                if self.force_logout_listener:
+                    self.force_logout_listener.stop()
+                    self.force_logout_listener = None
                 # Still try to logout even if cleanup fails
                 self.auth_service.logout()
                 # Hide main window and show auth window instead of closing
@@ -604,9 +614,7 @@ class MainWindow(BaseKioskWindow):
         # Update current user data
         self.current_user["printBalance"] = remaining
 
-    def on_print_blocked(
-        self, doc_name: str, pages: int, cost: float, budget: float
-    ):
+    def on_print_blocked(self, doc_name: str, pages: int, cost: float, budget: float):
         """Handle print job blocked due to insufficient budget"""
         logger.warning(f"Print blocked: '{doc_name}' - need {cost}₪, have {budget}₪")
         self.show_notification(
@@ -699,10 +707,11 @@ class MainWindow(BaseKioskWindow):
 
     def closeEvent(self, event):
         """Handle window close event"""
-        # Stop force logout listener
+        # Stop force logout listener (may already be stopped by handle_logout)
         if self.force_logout_listener:
             self.force_logout_listener.stop()
-            self.force_logout_listener.wait(3000)  # Wait up to 3 seconds
+            self.force_logout_listener.wait(1000)  # Wait up to 1 second
+            self.force_logout_listener = None
 
         # End session if active
         if self.session_service.is_session_active():

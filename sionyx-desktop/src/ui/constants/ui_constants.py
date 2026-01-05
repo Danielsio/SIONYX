@@ -78,13 +78,13 @@ class Colors:
     BG_CARD = "#FFFFFF"
     BG_SIDEBAR = "#0F172A"
     BG_SIDEBAR_HOVER = "#1E293B"
-    
+
     # Additional Background Colors (for dialogs)
     BG_PRIMARY = "#FFFFFF"
     BG_SECONDARY = "#F1F5F9"  # GRAY_100
     BG_HOVER = "#E2E8F0"  # GRAY_200
     BG_DISABLED = "#CBD5E1"  # GRAY_300
-    
+
     # Additional Text Colors (for dialogs)
     TEXT_DISABLED = "#94A3B8"  # GRAY_400
 

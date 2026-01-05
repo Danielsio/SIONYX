@@ -59,18 +59,19 @@ def mock_firebase_client(mock_firebase_config):
 def mock_requests():
     """Mock requests library for HTTP calls - patches requests in firebase_client"""
     from unittest.mock import patch
+
     import requests as real_requests
-    
+
     mock = Mock()
     mock.get.return_value.status_code = 200
     mock.post.return_value.status_code = 200
     mock.put.return_value.status_code = 200
     mock.patch.return_value.status_code = 200
     mock.delete.return_value.status_code = 200
-    
+
     # Preserve the real exceptions module so except clauses work
     mock.exceptions = real_requests.exceptions
-    
+
     # Actually patch requests in the firebase_client module
     with patch("services.firebase_client.requests", mock):
         yield mock
@@ -128,6 +129,7 @@ def sample_package_data():
 def qtbot(qapp):
     """QtBot instance for PyQt6 testing"""
     from pytestqt.qtbot import QtBot
+
     return QtBot(qapp)
 
 

@@ -8,10 +8,10 @@ Testing Strategy:
 - Test signals are emitted correctly
 """
 
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from PyQt6.QtWidgets import QLabel, QPushButton, QFrame
+from PyQt6.QtWidgets import QFrame, QLabel, QPushButton
 
 from ui.pages.packages_page import PackagesPage
 
@@ -94,6 +94,7 @@ class TestPackagesPage:
     @pytest.fixture
     def packages_page(self, mock_auth_service, mock_package_service, qapp):
         """Create PackagesPage with mocked dependencies"""
+
         def mock_calculate_final_price(package):
             original = package.get("price", 0)
             discount = package.get("discountPercent", 0)
@@ -109,7 +110,8 @@ class TestPackagesPage:
         with patch(
             "ui.pages.packages_page.PackageService", return_value=mock_package_service
         ), patch(
-            "ui.pages.packages_page.PackageService.calculate_final_price", side_effect=mock_calculate_final_price
+            "ui.pages.packages_page.PackageService.calculate_final_price",
+            side_effect=mock_calculate_final_price,
         ):
             # Create page - note: load_packages is called in __init__ via QTimer
             page = PackagesPage(mock_auth_service)
@@ -213,9 +215,7 @@ class TestPackagesPage:
                 for label in labels:
                     text = label.text()
                     # Final prices after discount: ₪15.0, ₪36.0, ₪68.0
-                    if "₪" in text and any(
-                        str(p) in text for p in [15, 36, 68]
-                    ):
+                    if "₪" in text and any(str(p) in text for p in [15, 36, 68]):
                         found_prices.append(text)
 
         assert len(found_prices) == 3
@@ -438,7 +438,7 @@ class TestPackagesPage:
         labels = card.findChildren(QLabel)
         time_found = False
         prints_found = False
-        
+
         for label in labels:
             text = label.text()
             if "⏱️" in text or "שעות" in text:
@@ -474,8 +474,12 @@ class TestPackagesPage:
                 "savings": round(savings, 2),
             }
 
-        with patch("ui.pages.packages_page.PackageService", return_value=mock_service), \
-             patch("ui.pages.packages_page.PackageService.calculate_final_price", side_effect=mock_calculate_final_price):
+        with patch(
+            "ui.pages.packages_page.PackageService", return_value=mock_service
+        ), patch(
+            "ui.pages.packages_page.PackageService.calculate_final_price",
+            side_effect=mock_calculate_final_price,
+        ):
             page = PackagesPage(mock_auth_service)
             page._fetch_packages()  # First fetch - empty
 
@@ -484,7 +488,3 @@ class TestPackagesPage:
             page._fetch_packages()  # Second fetch - with data
 
             assert len(page.packages) == 3
-
-
-
-

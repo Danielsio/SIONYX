@@ -3,10 +3,11 @@ Tests for message_modal.py - Smart Message Modal Component
 Tests message display, navigation, reading, and signals.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from PyQt6.QtWidgets import QDialog
+
+import pytest
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QDialog
 
 from ui.components.message_modal import MessageModal
 
@@ -49,10 +50,7 @@ def message_modal(qapp, sample_messages, mock_chat_service):
     """Create MessageModal instance"""
     with patch("ui.components.message_modal.get_logger") as mock_logger:
         mock_logger.return_value = Mock()
-        modal = MessageModal(
-            messages=sample_messages,
-            chat_service=mock_chat_service
-        )
+        modal = MessageModal(messages=sample_messages, chat_service=mock_chat_service)
         return modal
 
 
@@ -62,32 +60,42 @@ def message_modal(qapp, sample_messages, mock_chat_service):
 class TestMessageModalInit:
     """Tests for MessageModal initialization"""
 
-    def test_initialization_stores_messages(self, qapp, sample_messages, mock_chat_service):
+    def test_initialization_stores_messages(
+        self, qapp, sample_messages, mock_chat_service
+    ):
         """Test modal stores messages"""
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
             assert len(modal.messages) == 3
 
-    def test_initialization_copies_messages(self, qapp, sample_messages, mock_chat_service):
+    def test_initialization_copies_messages(
+        self, qapp, sample_messages, mock_chat_service
+    ):
         """Test modal copies messages (doesn't modify original)"""
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
             modal.messages.append({"id": "new"})
             assert len(sample_messages) == 3
 
-    def test_initialization_stores_chat_service(self, qapp, sample_messages, mock_chat_service):
+    def test_initialization_stores_chat_service(
+        self, qapp, sample_messages, mock_chat_service
+    ):
         """Test modal stores chat service"""
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
             assert modal.chat_service == mock_chat_service
 
-    def test_initialization_starts_at_first_message(self, qapp, sample_messages, mock_chat_service):
+    def test_initialization_starts_at_first_message(
+        self, qapp, sample_messages, mock_chat_service
+    ):
         """Test modal starts at index 0"""
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
             assert modal.current_index == 0
 
-    def test_initialization_read_count_zero(self, qapp, sample_messages, mock_chat_service):
+    def test_initialization_read_count_zero(
+        self, qapp, sample_messages, mock_chat_service
+    ):
         """Test read count starts at 0"""
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
@@ -209,7 +217,9 @@ class TestReadNextMessage:
     def test_emits_message_read_signal(self, message_modal):
         """Test message_read signal is emitted"""
         signal_received = []
-        message_modal.message_read.connect(lambda msg_id: signal_received.append(msg_id))
+        message_modal.message_read.connect(
+            lambda msg_id: signal_received.append(msg_id)
+        )
         message_modal.read_next_message()
         assert len(signal_received) == 1
         assert signal_received[0] == "msg1"
@@ -223,7 +233,7 @@ class TestReadNextMessage:
         """Test handling of mark failure"""
         mock_chat_service.mark_message_as_read.return_value = {
             "success": False,
-            "error": "Failed"
+            "error": "Failed",
         }
         # Should not raise
         message_modal.read_next_message()
@@ -363,7 +373,9 @@ class TestEdgeCases:
 
             assert len(close_called) == 1
 
-    def test_show_current_message_index_out_of_bounds(self, qapp, mock_chat_service, sample_messages):
+    def test_show_current_message_index_out_of_bounds(
+        self, qapp, mock_chat_service, sample_messages
+    ):
         """Test show_current_message when index exceeds messages"""
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
@@ -386,7 +398,9 @@ class TestEdgeCases:
 
             assert len(close_called) == 1
 
-    def test_read_next_message_index_out_of_bounds(self, qapp, mock_chat_service, sample_messages):
+    def test_read_next_message_index_out_of_bounds(
+        self, qapp, mock_chat_service, sample_messages
+    ):
         """Test read_next_message when index exceeds messages"""
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
@@ -407,58 +421,68 @@ class TestKeyPressEvent:
 
     def test_enter_key_reads_next(self, qapp, mock_chat_service, sample_messages):
         """Test Enter key triggers read_next_message"""
+        from PyQt6.QtCore import QEvent, Qt
         from PyQt6.QtGui import QKeyEvent
-        from PyQt6.QtCore import Qt, QEvent
 
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
             read_called = []
             modal.read_next_message = lambda: read_called.append(True)
 
-            event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier)
+            event = QKeyEvent(
+                QEvent.Type.KeyPress, Qt.Key.Key_Return, Qt.KeyboardModifier.NoModifier
+            )
             modal.keyPressEvent(event)
 
             assert len(read_called) == 1
 
-    def test_enter_key_alternate_reads_next(self, qapp, mock_chat_service, sample_messages):
+    def test_enter_key_alternate_reads_next(
+        self, qapp, mock_chat_service, sample_messages
+    ):
         """Test numpad Enter key triggers read_next_message"""
+        from PyQt6.QtCore import QEvent, Qt
         from PyQt6.QtGui import QKeyEvent
-        from PyQt6.QtCore import Qt, QEvent
 
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
             read_called = []
             modal.read_next_message = lambda: read_called.append(True)
 
-            event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Enter, Qt.KeyboardModifier.NoModifier)
+            event = QKeyEvent(
+                QEvent.Type.KeyPress, Qt.Key.Key_Enter, Qt.KeyboardModifier.NoModifier
+            )
             modal.keyPressEvent(event)
 
             assert len(read_called) == 1
 
     def test_escape_key_closes_modal(self, qapp, mock_chat_service, sample_messages):
         """Test Escape key triggers close_modal"""
+        from PyQt6.QtCore import QEvent, Qt
         from PyQt6.QtGui import QKeyEvent
-        from PyQt6.QtCore import Qt, QEvent
 
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
             close_called = []
             modal.close_modal = lambda: close_called.append(True)
 
-            event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+            event = QKeyEvent(
+                QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier
+            )
             modal.keyPressEvent(event)
 
             assert len(close_called) == 1
 
     def test_other_key_passes_to_parent(self, qapp, mock_chat_service, sample_messages):
         """Test other keys are passed to parent handler"""
+        from PyQt6.QtCore import QEvent, Qt
         from PyQt6.QtGui import QKeyEvent
-        from PyQt6.QtCore import Qt, QEvent
 
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
 
-            event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_A, Qt.KeyboardModifier.NoModifier)
+            event = QKeyEvent(
+                QEvent.Type.KeyPress, Qt.Key.Key_A, Qt.KeyboardModifier.NoModifier
+            )
             # Should not raise
             modal.keyPressEvent(event)
 
@@ -469,7 +493,9 @@ class TestKeyPressEvent:
 class TestShowAnimated:
     """Tests for show_animated method"""
 
-    def test_show_animated_sets_opacity_to_zero(self, qapp, mock_chat_service, sample_messages):
+    def test_show_animated_sets_opacity_to_zero(
+        self, qapp, mock_chat_service, sample_messages
+    ):
         """Test show_animated initially sets opacity to 0"""
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
@@ -482,7 +508,9 @@ class TestShowAnimated:
             # Verify animation setup
             modal.fade_animation.start.assert_called_once()
 
-    def test_show_animated_centers_on_screen(self, qapp, mock_chat_service, sample_messages):
+    def test_show_animated_centers_on_screen(
+        self, qapp, mock_chat_service, sample_messages
+    ):
         """Test show_animated centers the modal"""
         with patch("ui.components.message_modal.get_logger"):
             modal = MessageModal(sample_messages, mock_chat_service)
@@ -499,4 +527,3 @@ class TestShowAnimated:
             x, y = move_called[0]
             assert x >= 0
             assert y >= 0
-

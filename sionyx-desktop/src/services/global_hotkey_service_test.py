@@ -2,8 +2,9 @@
 Tests for global_hotkey_service.py - Global Hotkey Service
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from PyQt6.QtCore import QObject
 
 
@@ -17,36 +18,36 @@ class TestGlobalHotkeyServiceInit:
         """Test initialization sets is_running to False"""
         with patch("services.global_hotkey_service.keyboard"):
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
-            
+
             assert service.is_running is False
 
     def test_init_sets_hotkey_thread_none(self, qapp):
         """Test initialization sets hotkey_thread to None"""
         with patch("services.global_hotkey_service.keyboard"):
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
-            
+
             assert service.hotkey_thread is None
 
     def test_has_admin_exit_signal(self, qapp):
         """Test service has admin_exit_requested signal"""
         with patch("services.global_hotkey_service.keyboard"):
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
-            
+
             assert hasattr(service, "admin_exit_requested")
 
     def test_inherits_from_qobject(self, qapp):
         """Test service inherits from QObject"""
         with patch("services.global_hotkey_service.keyboard"):
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
-            
+
             assert isinstance(service, QObject)
 
 
@@ -60,12 +61,12 @@ class TestGlobalHotkeyServiceStart:
         """Test start sets is_running to True"""
         with patch("services.global_hotkey_service.keyboard"):
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
             service.start()
-            
+
             assert service.is_running is True
-            
+
             # Cleanup
             service.is_running = False
 
@@ -73,12 +74,12 @@ class TestGlobalHotkeyServiceStart:
         """Test start creates hotkey thread"""
         with patch("services.global_hotkey_service.keyboard"):
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
             service.start()
-            
+
             assert service.hotkey_thread is not None
-            
+
             # Cleanup
             service.is_running = False
 
@@ -86,13 +87,13 @@ class TestGlobalHotkeyServiceStart:
         """Test start returns early if already running"""
         with patch("services.global_hotkey_service.keyboard"):
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
             service.is_running = True
             original_thread = service.hotkey_thread
-            
+
             service.start()
-            
+
             # Thread should not change
             assert service.hotkey_thread == original_thread
 
@@ -107,36 +108,36 @@ class TestGlobalHotkeyServiceStop:
         """Test stop sets is_running to False"""
         with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
             service.is_running = True
-            
+
             service.stop()
-            
+
             assert service.is_running is False
 
     def test_stop_calls_unhook_all(self, qapp):
         """Test stop calls keyboard.unhook_all"""
         with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
             service.is_running = True
-            
+
             service.stop()
-            
+
             mock_keyboard.unhook_all.assert_called_once()
 
     def test_stop_when_not_running_returns_early(self, qapp):
         """Test stop returns early if not running"""
         with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
             service.is_running = False
-            
+
             service.stop()
-            
+
             # unhook_all should not be called
             mock_keyboard.unhook_all.assert_not_called()
 
@@ -144,15 +145,15 @@ class TestGlobalHotkeyServiceStop:
         """Test stop handles exception from unhook_all"""
         with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
             mock_keyboard.unhook_all.side_effect = Exception("Unhook error")
-            
+
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
             service.is_running = True
-            
+
             # Should not raise
             service.stop()
-            
+
             assert service.is_running is False
 
 
@@ -166,14 +167,14 @@ class TestOnAdminExitHotkey:
         """Test hotkey handler emits admin_exit_requested signal"""
         with patch("services.global_hotkey_service.keyboard"):
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
-            
+
             signal_received = []
             service.admin_exit_requested.connect(lambda: signal_received.append(True))
-            
+
             service._on_admin_exit_hotkey()
-            
+
             assert len(signal_received) == 1
 
 
@@ -188,15 +189,15 @@ class TestListenForHotkeys:
         with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
             # Make wait() exit immediately
             mock_keyboard.wait.side_effect = Exception("Exit loop")
-            
+
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
             service.is_running = True
-            
+
             # Call listener directly (will exit on exception)
             service._listen_for_hotkeys()
-            
+
             # Check hotkey was registered
             mock_keyboard.add_hotkey.assert_called_once()
             call_args = mock_keyboard.add_hotkey.call_args
@@ -206,18 +207,11 @@ class TestListenForHotkeys:
         """Test listener handles exceptions gracefully"""
         with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
             mock_keyboard.add_hotkey.side_effect = Exception("Hotkey error")
-            
+
             from services.global_hotkey_service import GlobalHotkeyService
-            
+
             service = GlobalHotkeyService()
             service.is_running = True
-            
+
             # Should not raise
             service._listen_for_hotkeys()
-
-
-
-
-
-
-

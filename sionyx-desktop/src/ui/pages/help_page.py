@@ -14,7 +14,6 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from utils.logger import get_logger
 from ui.components.base_components import PageHeader, apply_shadow
 from ui.constants.ui_constants import (
     BorderRadius,
@@ -24,6 +23,7 @@ from ui.constants.ui_constants import (
     Typography,
     UIStrings,
 )
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)

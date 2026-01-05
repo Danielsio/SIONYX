@@ -5,7 +5,7 @@ Tests for FirebaseClient and StreamListener (SSE)
 import threading
 import time
 from datetime import datetime, timedelta
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import requests
@@ -19,7 +19,10 @@ class TestFirebaseClient:
     @pytest.fixture
     def firebase_client(self, mock_firebase_config):
         """Create FirebaseClient instance with mocked config"""
-        with patch("services.firebase_client.get_firebase_config", return_value=mock_firebase_config):
+        with patch(
+            "services.firebase_client.get_firebase_config",
+            return_value=mock_firebase_config,
+        ):
             return FirebaseClient()
 
     def test_initialization(self, firebase_client, mock_firebase_config):
@@ -32,16 +35,27 @@ class TestFirebaseClient:
 
     def test_get_org_path(self, firebase_client):
         """Test organization path generation for multi-tenancy"""
-        assert firebase_client._get_org_path("users/123") == "organizations/test-org/users/123"
-        assert firebase_client._get_org_path("/users/123/") == "organizations/test-org/users/123"
+        assert (
+            firebase_client._get_org_path("users/123")
+            == "organizations/test-org/users/123"
+        )
+        assert (
+            firebase_client._get_org_path("/users/123/")
+            == "organizations/test-org/users/123"
+        )
         assert firebase_client._get_org_path("") == "organizations/test-org/"
 
-    @pytest.mark.parametrize("email,password,expected_success", [
-        ("test@sionyx.app", "password123", True),
-        ("invalid-email", "password123", False),
-        ("test@sionyx.app", "", False),
-    ])
-    def test_sign_up(self, firebase_client, email, password, expected_success, mock_requests):
+    @pytest.mark.parametrize(
+        "email,password,expected_success",
+        [
+            ("test@sionyx.app", "password123", True),
+            ("invalid-email", "password123", False),
+            ("test@sionyx.app", "", False),
+        ],
+    )
+    def test_sign_up(
+        self, firebase_client, email, password, expected_success, mock_requests
+    ):
         """Test user sign up functionality"""
         if expected_success:
             mock_response = Mock()
@@ -54,7 +68,9 @@ class TestFirebaseClient:
             mock_response.raise_for_status.return_value = None
             mock_requests.post.return_value = mock_response
         else:
-            mock_requests.post.side_effect = requests.exceptions.RequestException("Invalid request")
+            mock_requests.post.side_effect = requests.exceptions.RequestException(
+                "Invalid request"
+            )
 
         result = firebase_client.sign_up(email, password)
 
@@ -187,7 +203,10 @@ class TestFirebaseClient:
         mock_response.json.return_value = {"error": {"message": "EMAIL_EXISTS"}}
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Email already exists"):
+        with patch(
+            "services.firebase_client.translate_error",
+            return_value="Email already exists",
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Email already exists"
 
@@ -195,10 +214,15 @@ class TestFirebaseClient:
         """Test error parsing for invalid credentials error"""
         mock_exception = Mock()
         mock_response = Mock()
-        mock_response.json.return_value = {"error": {"message": "INVALID_LOGIN_CREDENTIALS"}}
+        mock_response.json.return_value = {
+            "error": {"message": "INVALID_LOGIN_CREDENTIALS"}
+        }
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Invalid credentials"):
+        with patch(
+            "services.firebase_client.translate_error",
+            return_value="Invalid credentials",
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Invalid credentials"
 
@@ -218,8 +242,12 @@ class TestFirebaseClient:
         assert firebase_client.user_id == "test-user-id"
         assert firebase_client.token_expiry is not None
 
-    @pytest.mark.parametrize("operation", ["db_get", "db_set", "db_update", "db_delete"])
-    def test_database_operations_with_network_error(self, firebase_client, operation, mock_requests):
+    @pytest.mark.parametrize(
+        "operation", ["db_get", "db_set", "db_update", "db_delete"]
+    )
+    def test_database_operations_with_network_error(
+        self, firebase_client, operation, mock_requests
+    ):
         """Test database operations with network errors"""
         firebase_client.id_token = "test-token"
         firebase_client.refresh_token = "test-refresh"
@@ -245,7 +273,9 @@ class TestFirebaseClient:
 
     def test_sign_in_request_exception(self, firebase_client, mock_requests):
         """Test sign_in handles request exceptions"""
-        mock_requests.post.side_effect = requests.exceptions.RequestException("Connection failed")
+        mock_requests.post.side_effect = requests.exceptions.RequestException(
+            "Connection failed"
+        )
 
         result = firebase_client.sign_in("test@example.com", "password")
 
@@ -261,7 +291,9 @@ class TestFirebaseClient:
         assert result["success"] is False
         assert "error" in result
 
-    def test_ensure_valid_token_near_expiry_refreshes(self, firebase_client, mock_requests):
+    def test_ensure_valid_token_near_expiry_refreshes(
+        self, firebase_client, mock_requests
+    ):
         """Test ensure_valid_token refreshes when near expiry"""
         firebase_client.id_token = "test-token"
         firebase_client.refresh_token = "test-refresh"
@@ -329,7 +361,10 @@ class TestFirebaseClient:
         mock_response.json.return_value = {"error": {"message": "INVALID_PASSWORD"}}
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Invalid credentials"):
+        with patch(
+            "services.firebase_client.translate_error",
+            return_value="Invalid credentials",
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Invalid credentials"
 
@@ -340,7 +375,9 @@ class TestFirebaseClient:
         mock_response.json.return_value = {"error": {"message": "WEAK_PASSWORD"}}
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Password too weak"):
+        with patch(
+            "services.firebase_client.translate_error", return_value="Password too weak"
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Password too weak"
 
@@ -351,7 +388,9 @@ class TestFirebaseClient:
         mock_response.json.return_value = {"error": {"message": "TOO_MANY_ATTEMPTS"}}
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Too many attempts"):
+        with patch(
+            "services.firebase_client.translate_error", return_value="Too many attempts"
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Too many attempts"
 
@@ -362,7 +401,9 @@ class TestFirebaseClient:
         mock_response.json.return_value = {"error": {"message": "USER_DISABLED"}}
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Account disabled"):
+        with patch(
+            "services.firebase_client.translate_error", return_value="Account disabled"
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Account disabled"
 
@@ -373,7 +414,9 @@ class TestFirebaseClient:
         mock_response.json.return_value = {"error": {"message": "INVALID_EMAIL"}}
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Invalid input"):
+        with patch(
+            "services.firebase_client.translate_error", return_value="Invalid input"
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Invalid input"
 
@@ -384,7 +427,9 @@ class TestFirebaseClient:
         mock_response.json.return_value = {"error": {"message": "MISSING_PASSWORD"}}
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Required field"):
+        with patch(
+            "services.firebase_client.translate_error", return_value="Required field"
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Required field"
 
@@ -392,10 +437,14 @@ class TestFirebaseClient:
         """Test error parsing for OPERATION_NOT_ALLOWED error"""
         mock_exception = Mock()
         mock_response = Mock()
-        mock_response.json.return_value = {"error": {"message": "OPERATION_NOT_ALLOWED"}}
+        mock_response.json.return_value = {
+            "error": {"message": "OPERATION_NOT_ALLOWED"}
+        }
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Access denied"):
+        with patch(
+            "services.firebase_client.translate_error", return_value="Access denied"
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Access denied"
 
@@ -406,7 +455,10 @@ class TestFirebaseClient:
         mock_response.json.return_value = {"error": {"message": "EMAIL_NOT_FOUND"}}
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Invalid credentials"):
+        with patch(
+            "services.firebase_client.translate_error",
+            return_value="Invalid credentials",
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Invalid credentials"
 
@@ -417,7 +469,10 @@ class TestFirebaseClient:
         mock_response.json.return_value = {"error": {"message": "SOME_UNKNOWN_ERROR"}}
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="SOME_UNKNOWN_ERROR"):
+        with patch(
+            "services.firebase_client.translate_error",
+            return_value="SOME_UNKNOWN_ERROR",
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "SOME_UNKNOWN_ERROR"
 
@@ -428,7 +483,9 @@ class TestFirebaseClient:
         mock_response.json.side_effect = Exception("JSON parse error")
         mock_exception.response = mock_response
 
-        with patch("services.firebase_client.translate_error", return_value="Error message"):
+        with patch(
+            "services.firebase_client.translate_error", return_value="Error message"
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Error message"
 
@@ -436,7 +493,9 @@ class TestFirebaseClient:
         """Test error parsing when exception has no response"""
         mock_exception = Exception("Generic error")
 
-        with patch("services.firebase_client.translate_error", return_value="Generic error"):
+        with patch(
+            "services.firebase_client.translate_error", return_value="Generic error"
+        ):
             result = firebase_client._parse_error(mock_exception)
             assert result == "Generic error"
 
@@ -445,7 +504,7 @@ class TestFirebaseClient:
         callback = Mock()
         error_callback = Mock()
 
-        with patch.object(StreamListener, 'start'):
+        with patch.object(StreamListener, "start"):
             listener = firebase_client.db_listen("messages", callback, error_callback)
 
             assert listener is not None
@@ -465,7 +524,10 @@ class TestStreamListener:
     @pytest.fixture
     def mock_firebase_client(self, mock_firebase_config):
         """Create a mock firebase client"""
-        with patch("services.firebase_client.get_firebase_config", return_value=mock_firebase_config):
+        with patch(
+            "services.firebase_client.get_firebase_config",
+            return_value=mock_firebase_config,
+        ):
             client = FirebaseClient()
             client.id_token = "test-token"
             client.refresh_token = "test-refresh"
@@ -494,7 +556,7 @@ class TestStreamListener:
 
     def test_start_sets_running_flag(self, stream_listener):
         """Test start() sets running flag and creates thread"""
-        with patch.object(stream_listener, '_listen_loop'):
+        with patch.object(stream_listener, "_listen_loop"):
             stream_listener.start()
 
             assert stream_listener._running is True
@@ -556,6 +618,7 @@ class TestStreamListener:
     def test_process_event_put(self, stream_listener):
         """Test processing put event with data"""
         import json
+
         data = {"path": "/", "data": {"msg1": {"content": "hello"}}}
         data_str = json.dumps(data)
 
@@ -566,6 +629,7 @@ class TestStreamListener:
     def test_process_event_patch(self, stream_listener):
         """Test processing patch event with data"""
         import json
+
         data = {"path": "/msg1", "data": {"read": True}}
         data_str = json.dumps(data)
 
@@ -587,7 +651,9 @@ class TestStreamListener:
 
         stream_listener.callback.assert_called_once_with("put", None)
 
-    def test_connect_and_stream_not_authenticated(self, stream_listener, mock_firebase_client):
+    def test_connect_and_stream_not_authenticated(
+        self, stream_listener, mock_firebase_client
+    ):
         """Test connection fails when not authenticated"""
         mock_firebase_client.id_token = None
         mock_firebase_client.refresh_token = None
@@ -631,6 +697,7 @@ class TestStreamListener:
     def test_listener_with_no_error_callback(self, mock_firebase_client):
         """Test listener works without error callback"""
         import json
+
         callback = Mock()
         listener = StreamListener(
             firebase_client=mock_firebase_client,
@@ -700,7 +767,10 @@ class TestStreamListenerIntegration:
     @pytest.fixture
     def mock_firebase_client(self, mock_firebase_config):
         """Create a mock firebase client"""
-        with patch("services.firebase_client.get_firebase_config", return_value=mock_firebase_config):
+        with patch(
+            "services.firebase_client.get_firebase_config",
+            return_value=mock_firebase_config,
+        ):
             client = FirebaseClient()
             client.id_token = "test-token"
             client.refresh_token = "test-refresh"
@@ -756,5 +826,3 @@ class TestStreamListenerIntegration:
         # Should have tried to connect at least once
         assert call_count[0] >= 1
         error_callback.assert_called()
-
-

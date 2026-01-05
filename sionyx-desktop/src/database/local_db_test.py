@@ -4,7 +4,7 @@ Tests for LocalDatabase
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -44,14 +44,14 @@ class TestLocalDatabase:
     def test_store_and_retrieve_credentials(self, local_db):
         """Test storing and retrieving refresh token"""
         refresh_token = "test-refresh-token-12345"
-        
+
         local_db.store_credentials(
             uid="test-user-id",
             phone="1234567890",
             refresh_token=refresh_token,
-            user_data={"name": "Test User"}
+            user_data={"name": "Test User"},
         )
-        
+
         retrieved_token = local_db.get_stored_token()
         assert retrieved_token == refresh_token
 
@@ -67,15 +67,15 @@ class TestLocalDatabase:
             uid="test-user-id",
             phone="1234567890",
             refresh_token="test-token",
-            user_data={}
+            user_data={},
         )
-        
+
         # Verify it's stored
         assert local_db.get_stored_token() == "test-token"
-        
+
         # Clear tokens
         local_db.clear_tokens()
-        
+
         # Verify it's cleared
         assert local_db.get_stored_token() is None
 
@@ -83,16 +83,16 @@ class TestLocalDatabase:
         """Test that storing new credentials overwrites existing ones"""
         local_db.store_credentials("uid1", "phone1", "token1", {})
         local_db.store_credentials("uid2", "phone2", "token2", {})
-        
+
         assert local_db.get_stored_token() == "token2"
 
     def test_encryption_decryption(self, local_db):
         """Test that tokens are properly encrypted and decrypted"""
         original_token = "very-secret-refresh-token"
-        
+
         # Store the token
         local_db.store_credentials("uid", "phone", original_token, {})
-        
+
         # Retrieve and verify
         retrieved = local_db.get_stored_token()
         assert retrieved == original_token
@@ -100,17 +100,17 @@ class TestLocalDatabase:
     def test_get_stored_token_with_invalid_encrypted_data(self, local_db):
         """Test handling of corrupted encrypted data"""
         import sqlite3
-        
+
         # Manually insert invalid encrypted data
         conn = sqlite3.connect(local_db.db_path)
         cursor = conn.cursor()
         cursor.execute(
             "INSERT OR REPLACE INTO auth (id, encrypted_token) VALUES (1, ?)",
-            ("invalid-not-encrypted-data",)
+            ("invalid-not-encrypted-data",),
         )
         conn.commit()
         conn.close()
-        
+
         # Should return None when decryption fails
         result = local_db.get_stored_token()
         assert result is None
@@ -118,25 +118,25 @@ class TestLocalDatabase:
     def test_database_persistence(self, temp_db_path):
         """Test that database persists across instances"""
         refresh_token = "persistent-token"
-        
+
         with patch.object(Path, "home", return_value=temp_db_path):
             # Create first instance and store token
             db1 = LocalDatabase()
             db1.store_credentials("uid", "phone", refresh_token, {})
-            
+
             # Create second instance and retrieve token
             db2 = LocalDatabase()
             retrieved = db2.get_stored_token()
-            
+
             assert retrieved == refresh_token
 
     def test_init_db_creates_table(self, temp_db_path):
         """Test that _init_db creates the auth table"""
         import sqlite3
-        
+
         with patch.object(Path, "home", return_value=temp_db_path):
             db = LocalDatabase()
-            
+
             # Check table exists
             conn = sqlite3.connect(db.db_path)
             cursor = conn.cursor()
@@ -145,13 +145,6 @@ class TestLocalDatabase:
             )
             result = cursor.fetchone()
             conn.close()
-            
+
             assert result is not None
             assert result[0] == "auth"
-
-
-
-
-
-
-

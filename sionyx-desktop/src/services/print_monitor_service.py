@@ -24,6 +24,7 @@ from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 from services.firebase_client import FirebaseClient
 from utils.logger import get_logger
 
+
 # win32print is only available on Windows
 try:
     import win32print
@@ -450,9 +451,7 @@ class PrintMonitorService(QObject):
 
             if not printers:
                 logger.warning("No printers found! Print monitoring may not work.")
-                logger.info(
-                    "Tip: Make sure pywin32 is installed: pip install pywin32"
-                )
+                logger.info("Tip: Make sure pywin32 is installed: pip install pywin32")
                 return
 
             logger.info(f"Found {len(printers)} printer(s): {printers}")
@@ -479,6 +478,7 @@ class PrintMonitorService(QObject):
 
             # Log occasionally to confirm polling is running (every ~30 seconds)
             import time
+
             if not hasattr(self, "_last_poll_log"):
                 self._last_poll_log = 0
             now = time.time()
@@ -550,6 +550,31 @@ class PrintMonitorService(QObject):
             logger.debug(f"Could not get copies from devmode: {e}")
             return 1
 
+    def _is_color_job_from_devmode(self, devmode) -> bool:
+        """
+        Detect if print job is color from DEVMODE structure.
+
+        DEVMODE.Color values:
+        - DMCOLOR_MONOCHROME (1) = grayscale/black & white
+        - DMCOLOR_COLOR (2) = color
+
+        Returns True if color, False if B&W or unknown.
+        """
+        DMCOLOR_COLOR = 2
+
+        if devmode is None:
+            logger.debug("No DEVMODE available, assuming B&W")
+            return False
+        try:
+            # PyDEVMODEW has a Color attribute
+            color_setting = getattr(devmode, "Color", None)
+            is_color = color_setting == DMCOLOR_COLOR
+            logger.debug(f"DEVMODE.Color = {color_setting}, is_color = {is_color}")
+            return is_color
+        except Exception as e:
+            logger.debug(f"Could not get color from devmode: {e}")
+            return False
+
     def _handle_new_job(self, printer_name: str, job_data: dict):
         """Process a newly detected print job."""
         import time
@@ -570,7 +595,9 @@ class PrintMonitorService(QObject):
         total_pages = job_data.get("TotalPages", 0)
         status = job_data.get("Status", 0)
 
-        logger.info(f"Initial: TotalPages={total_pages}, Status={status}, Size={job_data.get('Size', 0)}")
+        logger.info(
+            f"Initial: TotalPages={total_pages}, Status={status}, Size={job_data.get('Size', 0)}"
+        )
 
         # If still spooling or page count is low, wait for spooling to complete
         if status & JOB_STATUS_SPOOLING or total_pages <= 1:
@@ -590,9 +617,10 @@ class PrintMonitorService(QObject):
                 current_status = job_info.get("Status", 0)
                 current_size = job_info.get("Size", 0)
 
-                # Also update copies if available
+                # Also update copies and devmode if available
                 if job_info.get("pDevMode"):
-                    copies = self._get_copies_from_devmode(job_info.get("pDevMode"))
+                    devmode = job_info.get("pDevMode")
+                    copies = self._get_copies_from_devmode(devmode)
 
                 logger.debug(
                     f"Attempt {attempt + 1}: pages={current_pages}, "
@@ -636,10 +664,10 @@ class PrintMonitorService(QObject):
             logger.error(f"Could not pause job {job_id}, allowing it to proceed")
             return
 
-        # Step 2: Calculate cost (assume B&W for MVP - color detection is complex)
-        # TODO: Add color detection in future version
-        is_color = False
+        # Step 2: Detect if color and calculate cost
+        is_color = self._is_color_job_from_devmode(devmode)
         cost = self._calculate_cost(total_pages, is_color)
+        logger.info(f"Print type: {'COLOR' if is_color else 'B&W'}, cost: {cost}₪")
 
         # Step 3: Check budget
         budget = self._get_user_budget()

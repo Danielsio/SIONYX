@@ -136,8 +136,12 @@ class MessageModal(QDialog):
         # Scrollable message area - THIS IS THE KEY
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll_area.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+        self.scroll_area.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
         self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
         self.scroll_area.setStyleSheet(
             """
@@ -178,8 +182,12 @@ class MessageModal(QDialog):
         self.message_label.setObjectName("messageText")
         self.message_label.setFont(QFont("Segoe UI", 15))
         self.message_label.setWordWrap(True)
-        self.message_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop)
-        self.message_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.message_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignTop
+        )
+        self.message_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
         # IMPORTANT: Let label grow vertically as needed
         self.message_label.setSizePolicy(
             QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding
@@ -197,13 +205,13 @@ class MessageModal(QDialog):
 
         msg_layout.addWidget(self.message_label)
         msg_layout.addStretch()
-        
+
         self.scroll_area.setWidget(msg_widget)
 
         # Timestamp - subtle pill at bottom
         timestamp_row = QHBoxLayout()
         timestamp_row.setContentsMargins(0, 0, 0, 0)
-        
+
         self.timestamp_label = QLabel()
         self.timestamp_label.setFont(QFont("Segoe UI", 11))
         self.timestamp_label.setStyleSheet(

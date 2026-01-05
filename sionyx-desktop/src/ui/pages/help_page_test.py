@@ -3,12 +3,13 @@ Tests for help_page.py - Help Page UI Components
 Tests FAQCard, ContactCard, and HelpPage initialization.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from PyQt6.QtWidgets import QWidget, QFrame, QScrollArea
-from PyQt6.QtCore import Qt
 
-from ui.pages.help_page import FAQCard, ContactCard, HelpPage
+import pytest
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QFrame, QScrollArea, QWidget
+
+from ui.pages.help_page import ContactCard, FAQCard, HelpPage
 
 
 # =============================================================================
@@ -19,7 +20,9 @@ class TestFAQCard:
 
     def test_faq_card_initialization(self, qapp):
         """Test FAQCard stores question and answer"""
-        card = FAQCard(icon="❓", question="How does it work?", answer="It works great!")
+        card = FAQCard(
+            icon="❓", question="How does it work?", answer="It works great!"
+        )
         assert card.question == "How does it work?"
         assert card.answer == "It works great!"
 
@@ -36,9 +39,7 @@ class TestFAQCard:
     def test_faq_card_with_hebrew_content(self, qapp):
         """Test FAQCard with Hebrew text"""
         card = FAQCard(
-            icon="⏱️",
-            question="איך אני רוכש זמן?",
-            answer="לחץ על 'חבילות' בתפריט הצד"
+            icon="⏱️", question="איך אני רוכש זמן?", answer="לחץ על 'חבילות' בתפריט הצד"
         )
         assert card.question == "איך אני רוכש זמן?"
         assert card.answer == "לחץ על 'חבילות' בתפריט הצד"
@@ -111,7 +112,7 @@ class TestHelpPage:
         auth = Mock()
         auth.get_current_user.return_value = {
             "uid": "user123",
-            "email": "test@example.com"
+            "email": "test@example.com",
         }
         return auth
 
@@ -184,15 +185,8 @@ class TestHelpPage:
         """Test HelpPage handles None user"""
         auth = Mock()
         auth.get_current_user.return_value = None
-        
+
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
             page = HelpPage(auth_service=auth)
             assert page.current_user is None
-
-
-
-
-
-
-

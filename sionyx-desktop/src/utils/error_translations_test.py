@@ -50,7 +50,7 @@ class TestErrorTranslations:
         # Check for Hebrew characters in translations
         for translation in ERROR_TRANSLATIONS.values():
             # Hebrew characters are in range 0x0590-0x05FF
-            has_hebrew = any('\u0590' <= char <= '\u05FF' for char in translation)
+            has_hebrew = any("\u0590" <= char <= "\u05ff" for char in translation)
             assert has_hebrew, f"Translation not in Hebrew: {translation}"
 
 
@@ -145,10 +145,3 @@ class TestTranslateError:
         """Test password validation error"""
         result = translate_error("password must be at least 6 characters")
         assert result == "הסיסמה חייבת להכיל לפחות 6 תווים"
-
-
-
-
-
-
-

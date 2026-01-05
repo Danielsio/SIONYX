@@ -10,7 +10,7 @@
 #   make test     → test client
 #   make web-lint → lint web admin
 
-.PHONY: help dev run test test-cov test-fast test-fail lint lint-fix build build-patch build-minor build-major build-dry build-local version clean \
+.PHONY: help dev run test test-cov test-fast test-fail lint lint-fix format format-check build build-patch build-minor build-major build-dry build-local version clean \
         web-dev web-build web-preview web-lint web-test web-test-run web-test-cov web-test-ui web-deploy web-deploy-hosting web-deploy-functions web-deploy-database
 
 # Default target
@@ -29,8 +29,10 @@ help:
 	@echo "  test-cov        - Run tests with coverage"
 	@echo "  test-fast       - Run fast tests (utils + services)"
 	@echo "  test-fail       - Run tests, stop on first failure"
+	@echo "  format          - Fix line endings + trailing newlines + black + isort"
+	@echo "  format-check    - Check formatting without changing files"
 	@echo "  lint            - Check code style"
-	@echo "  lint-fix        - Fix code style"
+	@echo "  lint-fix        - Fix code style (use 'format' for full formatting)"
 	@echo "  build           - Build installer (patch version, runs tests with coverage)"
 	@echo "  build-minor     - Build installer (minor version, runs tests with coverage)"
 	@echo "  build-major     - Build installer (major version, runs tests with coverage)"
@@ -117,6 +119,26 @@ lint-fix:
 	@cd sionyx-desktop && isort src/
 	@cd sionyx-desktop && flake8 src/ --config=.flake8 || (echo "flake8 check failed - fix manually." && exit 1)
 	@echo "Client code style fixed!"
+
+# Format all files (line endings + trailing newlines + black + isort)
+format:
+	@echo "Formatting client code..."
+	@echo "Step 1/3: Fixing line endings and trailing newlines..."
+	@cd sionyx-desktop && python format.py src/
+	@echo "Step 2/3: Running black..."
+	@cd sionyx-desktop && black src/
+	@echo "Step 3/3: Running isort..."
+	@cd sionyx-desktop && isort src/
+	@echo ""
+	@echo "All formatting complete!"
+
+# Check formatting without changing files
+format-check:
+	@echo "Checking client code formatting..."
+	@cd sionyx-desktop && python format.py --check src/
+	@cd sionyx-desktop && black --check src/
+	@cd sionyx-desktop && isort --check-only src/
+	@echo "All formatting checks passed!"
 
 # Show version
 version:

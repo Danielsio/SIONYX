@@ -3,10 +3,11 @@ Tests for organization_metadata_service.py
 Tests organization metadata fetching, decoding, and pricing management.
 """
 
-import pytest
 import base64
 import json
 from unittest.mock import Mock, patch
+
+import pytest
 
 from services.organization_metadata_service import OrganizationMetadataService
 
@@ -50,7 +51,7 @@ def sample_metadata(encoded_mosad_id, encoded_api_valid):
         "nedarim_mosad_id": encoded_mosad_id,
         "nedarim_api_valid": encoded_api_valid,
         "created_at": "2024-01-01T00:00:00",
-        "status": "active"
+        "status": "active",
     }
 
 
@@ -77,7 +78,7 @@ class TestDecodeData:
         """Test decoding valid base64 encoded string"""
         original = "test_value"
         encoded = base64.b64encode(json.dumps(original).encode()).decode()
-        
+
         result = metadata_service.decode_data(encoded)
         assert result == original
 
@@ -85,7 +86,7 @@ class TestDecodeData:
         """Test decoding base64 encoded dictionary"""
         original = {"key": "value", "number": 42}
         encoded = base64.b64encode(json.dumps(original).encode()).decode()
-        
+
         result = metadata_service.decode_data(encoded)
         assert result == original
 
@@ -93,7 +94,7 @@ class TestDecodeData:
         """Test decoding base64 encoded list"""
         original = [1, 2, 3, "four"]
         encoded = base64.b64encode(json.dumps(original).encode()).decode()
-        
+
         result = metadata_service.decode_data(encoded)
         assert result == original
 
@@ -120,46 +121,42 @@ class TestDecodeData:
 class TestGetOrganizationMetadata:
     """Tests for get_organization_metadata method"""
 
-    def test_get_metadata_success(self, metadata_service, mock_firebase, sample_metadata):
+    def test_get_metadata_success(
+        self, metadata_service, mock_firebase, sample_metadata
+    ):
         """Test successful metadata retrieval"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_metadata
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_metadata}
 
         result = metadata_service.get_organization_metadata("org123")
 
         assert result["success"] is True
         assert "metadata" in result
 
-    def test_get_metadata_returns_name(self, metadata_service, mock_firebase, sample_metadata):
+    def test_get_metadata_returns_name(
+        self, metadata_service, mock_firebase, sample_metadata
+    ):
         """Test metadata includes organization name"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_metadata
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_metadata}
 
         result = metadata_service.get_organization_metadata("org123")
 
         assert result["metadata"]["name"] == "Test Organization"
 
-    def test_get_metadata_returns_status(self, metadata_service, mock_firebase, sample_metadata):
+    def test_get_metadata_returns_status(
+        self, metadata_service, mock_firebase, sample_metadata
+    ):
         """Test metadata includes status"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_metadata
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_metadata}
 
         result = metadata_service.get_organization_metadata("org123")
 
         assert result["metadata"]["status"] == "active"
 
-    def test_get_metadata_decodes_credentials(self, metadata_service, mock_firebase, sample_metadata):
+    def test_get_metadata_decodes_credentials(
+        self, metadata_service, mock_firebase, sample_metadata
+    ):
         """Test metadata decodes NEDARIM credentials"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_metadata
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_metadata}
 
         result = metadata_service.get_organization_metadata("org123")
 
@@ -168,10 +165,7 @@ class TestGetOrganizationMetadata:
 
     def test_get_metadata_firebase_failure(self, metadata_service, mock_firebase):
         """Test handling of Firebase failure"""
-        mock_firebase.db_get.return_value = {
-            "success": False,
-            "error": "Network error"
-        }
+        mock_firebase.db_get.return_value = {"success": False, "error": "Network error"}
 
         result = metadata_service.get_organization_metadata("org123")
 
@@ -180,10 +174,7 @@ class TestGetOrganizationMetadata:
 
     def test_get_metadata_no_data(self, metadata_service, mock_firebase):
         """Test handling of empty data"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": None
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": None}
 
         result = metadata_service.get_organization_metadata("org123")
 
@@ -194,7 +185,7 @@ class TestGetOrganizationMetadata:
         """Test handling of missing NEDARIM credentials"""
         mock_firebase.db_get.return_value = {
             "success": True,
-            "data": {"name": "Test Org"}  # No credentials
+            "data": {"name": "Test Org"},  # No credentials
         }
 
         result = metadata_service.get_organization_metadata("org123")
@@ -218,35 +209,32 @@ class TestGetOrganizationMetadata:
 class TestGetNedarimCredentials:
     """Tests for get_nedarim_credentials method"""
 
-    def test_get_credentials_success(self, metadata_service, mock_firebase, sample_metadata):
+    def test_get_credentials_success(
+        self, metadata_service, mock_firebase, sample_metadata
+    ):
         """Test successful credentials retrieval"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_metadata
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_metadata}
 
         result = metadata_service.get_nedarim_credentials("org123")
 
         assert result["success"] is True
         assert "credentials" in result
 
-    def test_get_credentials_returns_mosad_id(self, metadata_service, mock_firebase, sample_metadata):
+    def test_get_credentials_returns_mosad_id(
+        self, metadata_service, mock_firebase, sample_metadata
+    ):
         """Test credentials include mosad_id"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_metadata
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_metadata}
 
         result = metadata_service.get_nedarim_credentials("org123")
 
         assert result["credentials"]["mosad_id"] == "mosad123"
 
-    def test_get_credentials_returns_api_valid(self, metadata_service, mock_firebase, sample_metadata):
+    def test_get_credentials_returns_api_valid(
+        self, metadata_service, mock_firebase, sample_metadata
+    ):
         """Test credentials include api_valid"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_metadata
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_metadata}
 
         result = metadata_service.get_nedarim_credentials("org123")
 
@@ -256,7 +244,7 @@ class TestGetNedarimCredentials:
         """Test error propagation from get_organization_metadata"""
         mock_firebase.db_get.return_value = {
             "success": False,
-            "error": "Database error"
+            "error": "Database error",
         }
 
         result = metadata_service.get_nedarim_credentials("org123")
@@ -274,10 +262,7 @@ class TestGetPrintPricing:
         """Test successful pricing retrieval"""
         mock_firebase.db_get.return_value = {
             "success": True,
-            "data": {
-                "blackAndWhitePrice": 0.5,
-                "colorPrice": 2.0
-            }
+            "data": {"blackAndWhitePrice": 0.5, "colorPrice": 2.0},
         }
 
         result = metadata_service.get_print_pricing("org123")
@@ -289,10 +274,7 @@ class TestGetPrintPricing:
         """Test pricing values are returned correctly"""
         mock_firebase.db_get.return_value = {
             "success": True,
-            "data": {
-                "blackAndWhitePrice": 0.5,
-                "colorPrice": 2.0
-            }
+            "data": {"blackAndWhitePrice": 0.5, "colorPrice": 2.0},
         }
 
         result = metadata_service.get_print_pricing("org123")
@@ -304,7 +286,7 @@ class TestGetPrintPricing:
         """Test default pricing values when not set"""
         mock_firebase.db_get.return_value = {
             "success": True,
-            "data": {"name": "Test Org"}  # Has data but no pricing fields
+            "data": {"name": "Test Org"},  # Has data but no pricing fields
         }
 
         result = metadata_service.get_print_pricing("org123")
@@ -317,7 +299,7 @@ class TestGetPrintPricing:
         """Test handling of Firebase failure"""
         mock_firebase.db_get.return_value = {
             "success": False,
-            "error": "Connection failed"
+            "error": "Connection failed",
         }
 
         result = metadata_service.get_print_pricing("org123")
@@ -326,10 +308,7 @@ class TestGetPrintPricing:
 
     def test_get_pricing_no_data(self, metadata_service, mock_firebase):
         """Test handling of missing metadata"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": None
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": None}
 
         result = metadata_service.get_print_pricing("org123")
 
@@ -375,7 +354,7 @@ class TestSetPrintPricing:
         """Test handling of Firebase failure"""
         mock_firebase.db_update.return_value = {
             "success": False,
-            "error": "Update failed"
+            "error": "Update failed",
         }
 
         result = metadata_service.set_print_pricing("org123", 1.0, 3.0)
@@ -408,4 +387,3 @@ class TestSetPrintPricing:
         call_args = mock_firebase.db_update.call_args
         assert call_args[0][1]["blackAndWhitePrice"] == 10.0
         assert call_args[0][1]["colorPrice"] == 50.0
-
