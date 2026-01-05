@@ -21,8 +21,6 @@ from PyQt6.QtWidgets import (
 )
 
 from services.purchase_service import PurchaseService
-from utils.logger import get_logger
-from utils.purchase_constants import get_status_label
 from ui.components.base_components import (
     EmptyState,
     LoadingSpinner,
@@ -38,6 +36,8 @@ from ui.constants.ui_constants import (
     Typography,
     UIStrings,
 )
+from utils.logger import get_logger
+from utils.purchase_constants import get_status_label
 
 
 logger = get_logger(__name__)

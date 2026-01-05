@@ -15,7 +15,7 @@ import json
 import sys
 import time
 from datetime import datetime
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from PyQt6.QtCore import QTimer
@@ -34,6 +34,7 @@ sys.modules["PyQt6.QtWebChannel"] = MagicMock()
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_auth_service(mock_firebase_client):
@@ -98,6 +99,7 @@ def create_payment_dialog_mock(sample_package, mock_parent_widget):
 # FirebaseStreamListener Tests
 # =============================================================================
 
+
 class TestFirebaseStreamListener:
     """Tests for Firebase streaming listener thread"""
 
@@ -138,7 +140,9 @@ class TestFirebaseStreamListener:
         mock_response.iter_content = Mock(return_value=iter(purchase_data))
 
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
         with patch("ui.payment_dialog.requests.get", return_value=mock_response):
             stream_listener.run()
@@ -156,7 +160,9 @@ class TestFirebaseStreamListener:
         mock_response.iter_content = Mock(return_value=iter(purchase_data))
 
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
         with patch("ui.payment_dialog.requests.get", return_value=mock_response):
             stream_listener.run()
@@ -174,7 +180,9 @@ class TestFirebaseStreamListener:
         mock_response.iter_content = Mock(return_value=iter(chunks))
 
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
         with patch("ui.payment_dialog.requests.get", return_value=mock_response):
             stream_listener.run()
@@ -189,7 +197,9 @@ class TestFirebaseStreamListener:
         mock_response.status_code = 401
 
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
         with patch("ui.payment_dialog.requests.get", return_value=mock_response):
             stream_listener.run()  # Should not raise
@@ -206,7 +216,9 @@ class TestFirebaseStreamListener:
         mock_response.iter_content = Mock(return_value=iter(chunks))
 
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
         with patch("ui.payment_dialog.requests.get", return_value=mock_response):
             stream_listener.run()
@@ -219,9 +231,13 @@ class TestFirebaseStreamListener:
         import requests
 
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
-        with patch("ui.payment_dialog.requests.get", side_effect=requests.exceptions.Timeout):
+        with patch(
+            "ui.payment_dialog.requests.get", side_effect=requests.exceptions.Timeout
+        ):
             stream_listener.run()  # Should not raise
 
         assert len(signal_received) == 0
@@ -237,7 +253,9 @@ class TestFirebaseStreamListener:
         mock_response.iter_content = Mock(return_value=iter(chunks))
 
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
         with patch("ui.payment_dialog.requests.get", return_value=mock_response):
             stream_listener.run()
@@ -249,6 +267,7 @@ class TestFirebaseStreamListener:
 # =============================================================================
 # PaymentDialog Tests - Logic Focus
 # =============================================================================
+
 
 class TestPaymentDialogInitialization:
     """Tests for PaymentDialog initialization and setup"""
@@ -263,7 +282,9 @@ class TestPaymentDialogInitialization:
         # We need to patch QDialog.__init__ to not reject Mock parent
         with patch.object(QDialog, "__init__", return_value=None):
             with patch.object(PaymentDialog, "init_ui"):
-                with pytest.raises(ValueError, match="Parent must expose 'auth_service'"):
+                with pytest.raises(
+                    ValueError, match="Parent must expose 'auth_service'"
+                ):
                     PaymentDialog(sample_package, parent_without_auth)
 
     def test_derives_user_from_parent(self, qapp, sample_package, mock_parent_widget):
@@ -272,7 +293,9 @@ class TestPaymentDialogInitialization:
         assert dialog.user["uid"] == "test-user-123"
         dialog.close()
 
-    def test_falls_back_to_auth_service_for_user(self, qapp, sample_package, mock_auth_service):
+    def test_falls_back_to_auth_service_for_user(
+        self, qapp, sample_package, mock_auth_service
+    ):
         """Test fallback to auth_service.get_current_user() when parent has no current_user"""
         # Create parent without current_user
         parent = Mock()
@@ -319,7 +342,9 @@ class TestPaymentDialogPurchaseListener:
         with patch("ui.payment_dialog.FirebaseStreamListener") as mock_listener_cls:
             mock_listener_cls.side_effect = Exception("Stream failed")
 
-            with patch.object(payment_dialog, "start_exponential_backoff_polling") as mock_polling:
+            with patch.object(
+                payment_dialog, "start_exponential_backoff_polling"
+            ) as mock_polling:
                 payment_dialog.setup_purchase_listener()
 
                 mock_polling.assert_called_once()
@@ -356,7 +381,9 @@ class TestPaymentDialogPolling:
         # Cleanup
         dialog.status_timer.stop()
 
-    def test_check_purchase_status_stops_on_completed(self, payment_dialog_with_polling, mock_auth_service):
+    def test_check_purchase_status_stops_on_completed(
+        self, payment_dialog_with_polling, mock_auth_service
+    ):
         """Test polling stops when purchase is completed"""
         dialog = payment_dialog_with_polling
         dialog.start_exponential_backoff_polling()
@@ -372,7 +399,9 @@ class TestPaymentDialogPolling:
                 mock_complete.assert_called_once()
                 assert dialog.status_timer.isActive() is False
 
-    def test_check_purchase_status_continues_on_pending(self, payment_dialog_with_polling, mock_auth_service):
+    def test_check_purchase_status_continues_on_pending(
+        self, payment_dialog_with_polling, mock_auth_service
+    ):
         """Test polling continues when purchase is pending"""
         dialog = payment_dialog_with_polling
         dialog.start_exponential_backoff_polling()
@@ -391,7 +420,9 @@ class TestPaymentDialogPolling:
         # Cleanup
         dialog.status_timer.stop()
 
-    def test_check_purchase_status_timeout_after_max_checks(self, payment_dialog_with_polling, mock_auth_service):
+    def test_check_purchase_status_timeout_after_max_checks(
+        self, payment_dialog_with_polling, mock_auth_service
+    ):
         """Test polling stops after maximum checks"""
         dialog = payment_dialog_with_polling
         dialog.start_exponential_backoff_polling()
@@ -469,7 +500,9 @@ class TestPaymentDialogCredentials:
         # Should not raise on failure
         dialog.on_page_loaded(False)
 
-    def test_shows_credentials_error_on_missing_credentials(self, payment_dialog_for_credentials):
+    def test_shows_credentials_error_on_missing_credentials(
+        self, payment_dialog_for_credentials
+    ):
         """Test error display when credentials are missing"""
         dialog = payment_dialog_for_credentials
 
@@ -509,6 +542,7 @@ class TestPaymentDialogCleanup:
         dialog = payment_dialog_with_resources
 
         from PyQt6.QtGui import QCloseEvent
+
         # Create a real QCloseEvent
         event = QCloseEvent()
 
@@ -521,6 +555,7 @@ class TestPaymentDialogCleanup:
         dialog = payment_dialog_with_resources
 
         from PyQt6.QtGui import QCloseEvent
+
         # Create a real QCloseEvent
         event = QCloseEvent()
 
@@ -534,6 +569,7 @@ class TestPaymentDialogCleanup:
         dialog = payment_dialog_with_resources
 
         from PyQt6.QtGui import QCloseEvent
+
         # Create a real QCloseEvent
         event = QCloseEvent()
 
@@ -558,6 +594,7 @@ class TestPaymentDialogCleanup:
 # =============================================================================
 # Integration Tests - Race Condition Prevention
 # =============================================================================
+
 
 class TestPaymentDialogRaceConditions:
     """Tests for race condition scenarios"""
@@ -594,7 +631,9 @@ class TestPaymentDialogRaceConditions:
         def mock_show_success():
             call_count.append(1)
 
-        with patch.object(dialog, "show_success_via_javascript", side_effect=mock_show_success):
+        with patch.object(
+            dialog, "show_success_via_javascript", side_effect=mock_show_success
+        ):
             # Simulate both stream and polling detecting completion
             dialog.on_purchase_completed(purchase_data)
             dialog.on_purchase_completed(purchase_data)
@@ -607,6 +646,7 @@ class TestPaymentDialogRaceConditions:
 # =============================================================================
 # Edge Case Tests
 # =============================================================================
+
 
 class TestPaymentDialogEdgeCases:
     """Tests for edge cases and boundary conditions"""
@@ -661,7 +701,9 @@ class TestFirebaseStreamListenerEdgeCases:
         mock_response.iter_content = Mock(return_value=iter(chunks))
 
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
         with patch("ui.payment_dialog.requests.get", return_value=mock_response):
             stream_listener.run()
@@ -679,7 +721,9 @@ class TestFirebaseStreamListenerEdgeCases:
         mock_response.iter_content = Mock(return_value=iter(chunks))
 
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
         with patch("ui.payment_dialog.requests.get", return_value=mock_response):
             stream_listener.run()
@@ -696,7 +740,9 @@ class TestFirebaseStreamListenerEdgeCases:
         mock_response.iter_content = Mock(return_value=iter(chunks))
 
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
         with patch("ui.payment_dialog.requests.get", return_value=mock_response):
             stream_listener.run()
@@ -707,9 +753,13 @@ class TestFirebaseStreamListenerEdgeCases:
     def test_handles_generic_exception(self, stream_listener, qtbot):
         """Test handling of generic exception during stream"""
         signal_received = []
-        stream_listener.status_changed.connect(lambda data: signal_received.append(data))
+        stream_listener.status_changed.connect(
+            lambda data: signal_received.append(data)
+        )
 
-        with patch("ui.payment_dialog.requests.get", side_effect=Exception("Network error")):
+        with patch(
+            "ui.payment_dialog.requests.get", side_effect=Exception("Network error")
+        ):
             stream_listener.run()  # Should not raise
 
         assert len(signal_received) == 0
@@ -799,7 +849,9 @@ class TestPaymentDialogPollingEdgeCases:
             dialog.status_timer.stop()
         dialog.close()
 
-    def test_check_purchase_status_handles_http_error(self, payment_dialog, mock_auth_service):
+    def test_check_purchase_status_handles_http_error(
+        self, payment_dialog, mock_auth_service
+    ):
         """Test check_purchase_status handles HTTP errors"""
         payment_dialog.start_exponential_backoff_polling()
 
@@ -814,11 +866,15 @@ class TestPaymentDialogPollingEdgeCases:
 
         payment_dialog.status_timer.stop()
 
-    def test_check_purchase_status_handles_exception(self, payment_dialog, mock_auth_service):
+    def test_check_purchase_status_handles_exception(
+        self, payment_dialog, mock_auth_service
+    ):
         """Test check_purchase_status handles exceptions"""
         payment_dialog.start_exponential_backoff_polling()
 
-        with patch("ui.payment_dialog.requests.get", side_effect=Exception("Network error")):
+        with patch(
+            "ui.payment_dialog.requests.get", side_effect=Exception("Network error")
+        ):
             payment_dialog.check_purchase_status()
 
         # Should continue polling
@@ -826,7 +882,9 @@ class TestPaymentDialogPollingEdgeCases:
 
         payment_dialog.status_timer.stop()
 
-    def test_check_purchase_status_stops_listener_on_complete(self, payment_dialog, mock_auth_service):
+    def test_check_purchase_status_stops_listener_on_complete(
+        self, payment_dialog, mock_auth_service
+    ):
         """Test check_purchase_status stops listener thread on completion"""
         payment_dialog.start_exponential_backoff_polling()
         payment_dialog.listener_thread = Mock()
@@ -842,7 +900,9 @@ class TestPaymentDialogPollingEdgeCases:
 
         payment_dialog.listener_thread.stop.assert_called_once()
 
-    def test_check_purchase_status_handles_none_purchase(self, payment_dialog, mock_auth_service):
+    def test_check_purchase_status_handles_none_purchase(
+        self, payment_dialog, mock_auth_service
+    ):
         """Test check_purchase_status handles None purchase data"""
         payment_dialog.start_exponential_backoff_polling()
 

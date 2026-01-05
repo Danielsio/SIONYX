@@ -3,9 +3,10 @@ Tests for chat_service.py - Client-side message handling
 Tests message fetching, marking as read, caching, and SSE listening functionality.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
 from datetime import datetime, timedelta
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 from services.chat_service import ChatService
 
@@ -26,9 +27,7 @@ def chat_service(mock_firebase, qapp):
     with patch("services.chat_service.get_logger") as mock_logger:
         mock_logger.return_value = Mock()
         service = ChatService(
-            firebase_client=mock_firebase,
-            user_id="user123",
-            org_id="org456"
+            firebase_client=mock_firebase, user_id="user123", org_id="org456"
         )
         return service
 
@@ -42,29 +41,29 @@ def sample_messages():
             "fromAdmin": "admin1",
             "content": "Hello user!",
             "timestamp": "2024-01-15T10:00:00",
-            "read": False
+            "read": False,
         },
         "msg2": {
             "toUserId": "user123",
             "fromAdmin": "admin2",
             "content": "Second message",
             "timestamp": "2024-01-15T11:00:00",
-            "read": False
+            "read": False,
         },
         "msg3": {
             "toUserId": "other_user",
             "fromAdmin": "admin1",
             "content": "Not for this user",
             "timestamp": "2024-01-15T12:00:00",
-            "read": False
+            "read": False,
         },
         "msg4": {
             "toUserId": "user123",
             "fromAdmin": "admin1",
             "content": "Already read",
             "timestamp": "2024-01-15T09:00:00",
-            "read": True
-        }
+            "read": True,
+        },
     }
 
 
@@ -112,12 +111,11 @@ class TestChatServiceInit:
 class TestGetUnreadMessages:
     """Tests for get_unread_messages method"""
 
-    def test_get_unread_messages_success(self, chat_service, mock_firebase, sample_messages):
+    def test_get_unread_messages_success(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test successful retrieval of unread messages"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
 
         result = chat_service.get_unread_messages(use_cache=False)
 
@@ -125,36 +123,33 @@ class TestGetUnreadMessages:
         # Should only include user123's unread messages (msg1, msg2)
         assert len(result["messages"]) == 2
 
-    def test_get_unread_messages_filters_by_user(self, chat_service, mock_firebase, sample_messages):
+    def test_get_unread_messages_filters_by_user(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test messages are filtered by user ID"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
 
         result = chat_service.get_unread_messages(use_cache=False)
 
         for message in result["messages"]:
             assert message["toUserId"] == "user123"
 
-    def test_get_unread_messages_excludes_read(self, chat_service, mock_firebase, sample_messages):
+    def test_get_unread_messages_excludes_read(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test read messages are excluded"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
 
         result = chat_service.get_unread_messages(use_cache=False)
 
         for message in result["messages"]:
             assert message.get("read", False) is False
 
-    def test_get_unread_messages_sorted_by_timestamp(self, chat_service, mock_firebase, sample_messages):
+    def test_get_unread_messages_sorted_by_timestamp(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test messages are sorted by timestamp"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
 
         result = chat_service.get_unread_messages(use_cache=False)
 
@@ -162,12 +157,11 @@ class TestGetUnreadMessages:
         timestamps = [m["timestamp"] for m in result["messages"]]
         assert timestamps == sorted(timestamps)
 
-    def test_get_unread_messages_includes_id(self, chat_service, mock_firebase, sample_messages):
+    def test_get_unread_messages_includes_id(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test each message has ID added"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
 
         result = chat_service.get_unread_messages(use_cache=False)
 
@@ -176,10 +170,7 @@ class TestGetUnreadMessages:
 
     def test_get_unread_messages_empty_data(self, chat_service, mock_firebase):
         """Test with no messages"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": None
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": None}
 
         result = chat_service.get_unread_messages(use_cache=False)
 
@@ -188,10 +179,7 @@ class TestGetUnreadMessages:
 
     def test_get_unread_messages_failure(self, chat_service, mock_firebase):
         """Test handling of fetch failure"""
-        mock_firebase.db_get.return_value = {
-            "success": False,
-            "error": "Network error"
-        }
+        mock_firebase.db_get.return_value = {"success": False, "error": "Network error"}
 
         result = chat_service.get_unread_messages(use_cache=False)
 
@@ -199,13 +187,12 @@ class TestGetUnreadMessages:
         assert result["error"] == "Network error"
         assert result["messages"] == []
 
-    def test_get_unread_messages_uses_cache(self, chat_service, mock_firebase, sample_messages):
+    def test_get_unread_messages_uses_cache(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test cache is used when valid"""
         # Prime the cache
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
         chat_service.get_unread_messages(use_cache=False)
         mock_firebase.db_get.reset_mock()
 
@@ -215,20 +202,16 @@ class TestGetUnreadMessages:
         mock_firebase.db_get.assert_not_called()
         assert result["success"] is True
 
-    def test_get_unread_messages_bypasses_cache(self, chat_service, mock_firebase, sample_messages):
+    def test_get_unread_messages_bypasses_cache(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test cache can be bypassed"""
         # Prime the cache
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
         chat_service.get_unread_messages(use_cache=False)
         mock_firebase.db_get.reset_mock()
 
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": {}
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": {}}
 
         # Should bypass cache
         result = chat_service.get_unread_messages(use_cache=False)
@@ -274,7 +257,7 @@ class TestMarkMessageAsRead:
         """Test handling of mark failure"""
         mock_firebase.db_set.return_value = {
             "success": False,
-            "error": "Permission denied"
+            "error": "Permission denied",
         }
 
         result = chat_service.mark_message_as_read("msg123")
@@ -289,24 +272,22 @@ class TestMarkMessageAsRead:
 class TestMarkAllMessagesAsRead:
     """Tests for mark_all_messages_as_read method"""
 
-    def test_mark_all_as_read_success(self, chat_service, mock_firebase, sample_messages):
+    def test_mark_all_as_read_success(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test marking all messages as read"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
         mock_firebase.db_set.return_value = {"success": True}
 
         result = chat_service.mark_all_messages_as_read()
 
         assert result["success"] is True
 
-    def test_mark_all_as_read_marks_each_message(self, chat_service, mock_firebase, sample_messages):
+    def test_mark_all_as_read_marks_each_message(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test each unread message is marked"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
         mock_firebase.db_set.return_value = {"success": True}
 
         chat_service.mark_all_messages_as_read()
@@ -316,10 +297,7 @@ class TestMarkAllMessagesAsRead:
 
     def test_mark_all_as_read_no_messages(self, chat_service, mock_firebase):
         """Test with no unread messages"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": None
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": None}
 
         result = chat_service.mark_all_messages_as_read()
 
@@ -329,7 +307,7 @@ class TestMarkAllMessagesAsRead:
         """Test handling of get failure"""
         mock_firebase.db_get.return_value = {
             "success": False,
-            "error": "Database error"
+            "error": "Database error",
         }
 
         result = chat_service.mark_all_messages_as_read()
@@ -376,7 +354,9 @@ class TestUpdateLastSeen:
         # Only one actual Firebase call
         assert mock_firebase.db_set.call_count == 1
 
-    def test_update_last_seen_force_bypasses_debounce(self, chat_service, mock_firebase):
+    def test_update_last_seen_force_bypasses_debounce(
+        self, chat_service, mock_firebase
+    ):
         """Test force=True bypasses debouncing"""
         mock_firebase.db_set.return_value = {"success": True}
 
@@ -388,10 +368,7 @@ class TestUpdateLastSeen:
 
     def test_update_last_seen_failure(self, chat_service, mock_firebase):
         """Test handling of update failure"""
-        mock_firebase.db_set.return_value = {
-            "success": False,
-            "error": "Network error"
-        }
+        mock_firebase.db_set.return_value = {"success": False, "error": "Network error"}
 
         result = chat_service.update_last_seen(force=True)
 
@@ -414,7 +391,7 @@ class TestListening:
 
         assert result is True
         assert chat_service.is_listening is True
-        
+
         # Cleanup
         chat_service.stop_listening()
 
@@ -427,7 +404,7 @@ class TestListening:
         result = chat_service.start_listening()
 
         assert result is False
-        
+
         # Cleanup
         chat_service.stop_listening()
 
@@ -445,7 +422,7 @@ class TestListening:
             callback=chat_service._on_stream_event,
             error_callback=chat_service._on_stream_error,
         )
-        
+
         # Cleanup
         chat_service.stop_listening()
 
@@ -483,7 +460,9 @@ class TestIsUserActive:
     def test_is_user_active_just_under_5_minutes(self, chat_service):
         """Test edge case just under 5 minutes"""
         # Use 4:59 to avoid timing precision issues
-        four_min_59_sec = (datetime.now() - timedelta(minutes=4, seconds=59)).isoformat()
+        four_min_59_sec = (
+            datetime.now() - timedelta(minutes=4, seconds=59)
+        ).isoformat()
         assert chat_service.is_user_active(four_min_59_sec) is True
 
     def test_is_user_active_empty_string(self, chat_service):
@@ -623,45 +602,46 @@ class TestEdgeCases:
         """Test mark_message_as_read when setting timestamp fails but read flag succeeds"""
         # First call sets read flag (succeeds), second call sets readAt (fails)
         call_count = [0]
+
         def db_set_side_effect(path, value=None):
             call_count[0] += 1
             if call_count[0] == 1:
                 return {"success": True}  # read flag
             return {"success": False, "error": "Timestamp update failed"}  # readAt
-        
+
         mock_firebase.db_set.side_effect = db_set_side_effect
-        
+
         result = chat_service.mark_message_as_read("msg-123")
-        
+
         # Should still return success because read flag was set
         assert result["success"] is True
 
     def test_is_user_active_with_recent_timestamp(self, chat_service):
         """Test is_user_active returns True for recent activity"""
         recent_time = datetime.now().isoformat()
-        
+
         result = chat_service.is_user_active(recent_time)
-        
+
         assert result is True
 
     def test_is_user_active_with_old_timestamp(self, chat_service):
         """Test is_user_active returns False for old activity"""
         old_time = (datetime.now() - timedelta(minutes=10)).isoformat()
-        
+
         result = chat_service.is_user_active(old_time)
-        
+
         assert result is False
 
     def test_is_user_active_with_empty_timestamp(self, chat_service):
         """Test is_user_active returns False for empty timestamp"""
         result = chat_service.is_user_active("")
-        
+
         assert result is False
 
     def test_is_user_active_with_none_timestamp(self, chat_service):
         """Test is_user_active returns False for None timestamp"""
         result = chat_service.is_user_active(None)
-        
+
         assert result is False
 
 
@@ -678,17 +658,17 @@ class TestSSEEventHandling:
                 "toUserId": "user123",
                 "content": "Hello",
                 "timestamp": "2024-01-15T10:00:00",
-                "read": False
+                "read": False,
             }
         }
         data = {"path": "/", "data": messages_data}
-        
+
         # Connect a signal receiver
         received = []
         chat_service.messages_received.connect(lambda r: received.append(r))
-        
+
         chat_service._on_stream_event("put", data)
-        
+
         assert len(received) == 1
         assert received[0]["success"] is True
         assert len(received[0]["messages"]) == 1
@@ -697,18 +677,18 @@ class TestSSEEventHandling:
         """Test handling of 'put' event with no data"""
         received = []
         chat_service.messages_received.connect(lambda r: received.append(r))
-        
+
         chat_service._on_stream_event("put", None)
-        
+
         assert len(received) == 1
         assert received[0]["messages"] == []
 
     def test_on_stream_event_keep_alive(self, chat_service, mock_firebase):
         """Test keep-alive event triggers last seen update"""
         mock_firebase.db_set.return_value = {"success": True}
-        
+
         chat_service._on_stream_event("keep-alive", None)
-        
+
         # Should have called update_last_seen
         mock_firebase.db_set.assert_called()
 
@@ -717,10 +697,12 @@ class TestSSEEventHandling:
         # Should not raise
         chat_service._on_stream_error("Connection lost")
 
-    def test_extract_user_messages_filters_correctly(self, chat_service, sample_messages):
+    def test_extract_user_messages_filters_correctly(
+        self, chat_service, sample_messages
+    ):
         """Test _extract_user_messages filters for current user's unread messages"""
         result = chat_service._extract_user_messages(sample_messages)
-        
+
         # Should only have msg1 and msg2 (user123's unread messages)
         assert len(result) == 2
         for msg in result:
@@ -741,9 +723,9 @@ class TestSSEEventHandling:
         """Test _emit_messages calls legacy callback"""
         callback = Mock()
         chat_service._message_callback = callback
-        
+
         chat_service._emit_messages([{"id": "msg1"}])
-        
+
         callback.assert_called_once()
         assert callback.call_args[0][0]["success"] is True
 
@@ -778,12 +760,11 @@ class TestSSEEventHandling:
         # No messages should be emitted for unknown events
         assert len(received) == 0
 
-    def test_on_stream_event_patch_event(self, chat_service, mock_firebase, sample_messages):
+    def test_on_stream_event_patch_event(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test patch event triggers full refresh"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
         mock_firebase.db_set.return_value = {"success": True}
 
         received = []
@@ -796,19 +777,20 @@ class TestSSEEventHandling:
         mock_firebase.db_get.assert_called()
         assert len(received) == 1
 
-    def test_on_stream_event_put_non_root_path(self, chat_service, mock_firebase, sample_messages):
+    def test_on_stream_event_put_non_root_path(
+        self, chat_service, mock_firebase, sample_messages
+    ):
         """Test put event with non-root path triggers refresh"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": sample_messages
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": sample_messages}
         mock_firebase.db_set.return_value = {"success": True}
 
         received = []
         chat_service.messages_received.connect(lambda result: received.append(result))
 
         # Put on specific path (not "/") also triggers refresh
-        chat_service._on_stream_event("put", {"path": "/msg1", "data": {"content": "updated"}})
+        chat_service._on_stream_event(
+            "put", {"path": "/msg1", "data": {"content": "updated"}}
+        )
 
         # Should have fetched full messages
         mock_firebase.db_get.assert_called()
@@ -816,9 +798,13 @@ class TestSSEEventHandling:
     def test_on_stream_event_exception_handling(self, chat_service):
         """Test exception in event processing is caught"""
         # Force an exception by passing bad data type
-        with patch.object(chat_service, '_update_cache', side_effect=Exception("Cache error")):
+        with patch.object(
+            chat_service, "_update_cache", side_effect=Exception("Cache error")
+        ):
             # Should not raise
-            chat_service._on_stream_event("put", {"path": "/", "data": {"msg1": {"toUserId": "user123"}}})
+            chat_service._on_stream_event(
+                "put", {"path": "/", "data": {"msg1": {"toUserId": "user123"}}}
+            )
 
     def test_emit_messages_callback_exception(self, chat_service):
         """Test exception in callback doesn't crash emit"""
@@ -861,4 +847,3 @@ class TestSSEEventHandling:
         mock_firebase.db_get.assert_called()
         # No successful emit on failed fetch
         assert len(received) == 0
-

@@ -3,10 +3,11 @@ Tests for base_window.py - Base Kiosk Window
 Tests shared functionality for fullscreen kiosk windows.
 """
 
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from PyQt6.QtWidgets import QWidget, QVBoxLayout
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QVBoxLayout, QWidget
 
 
 # =============================================================================
@@ -14,11 +15,11 @@ from PyQt6.QtCore import Qt
 # =============================================================================
 class MockBaseKioskWindow(QWidget):
     """Mock BaseKioskWindow that doesn't go fullscreen"""
-    
+
     def __init__(self):
         super().__init__()
         # Don't call setup_kiosk_window to avoid fullscreen
-        
+
     def create_main_layout(self):
         """Create standard main layout with no margins"""
         main_layout = QVBoxLayout()
@@ -39,8 +40,8 @@ class MockBaseKioskWindow(QWidget):
 
     def shake_widget(self, widget):
         """Shake animation for validation errors"""
-        from PyQt6.QtCore import QPropertyAnimation, QEasingCurve
-        
+        from PyQt6.QtCore import QEasingCurve, QPropertyAnimation
+
         animation = QPropertyAnimation(widget, b"geometry")
         animation.setDuration(400)
         geometry = widget.geometry()
@@ -66,11 +67,15 @@ class MockBaseKioskWindow(QWidget):
         """Show modern information message"""
         pass
 
-    def show_question(self, title, message, detailed_text="", yes_text="Yes", no_text="No"):
+    def show_question(
+        self, title, message, detailed_text="", yes_text="Yes", no_text="No"
+    ):
         """Show modern question dialog"""
         return True
 
-    def show_confirm(self, title, message, confirm_text="Yes", cancel_text="No", danger=False):
+    def show_confirm(
+        self, title, message, confirm_text="Yes", cancel_text="No", danger=False
+    ):
         """Show modern confirmation dialog"""
         return True
 
@@ -120,7 +125,7 @@ class TestCreateMainLayout:
         """Test layout has zero margins"""
         layout = base_window.create_main_layout()
         margins = layout.contentsMargins()
-        
+
         assert margins.left() == 0
         assert margins.top() == 0
         assert margins.right() == 0
@@ -140,23 +145,27 @@ class TestKeyPressEvent:
 
     def test_escape_key_is_ignored(self, base_window):
         """Test Escape key is ignored"""
-        from PyQt6.QtGui import QKeyEvent
         from PyQt6.QtCore import QEvent
-        
-        event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
-        
+        from PyQt6.QtGui import QKeyEvent
+
+        event = QKeyEvent(
+            QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier
+        )
+
         base_window.keyPressEvent(event)
-        
+
         # Event should be ignored (isAccepted should be False after ignore())
         assert not event.isAccepted()
 
     def test_other_keys_are_passed_through(self, base_window):
         """Test other keys are passed through normally"""
-        from PyQt6.QtGui import QKeyEvent
         from PyQt6.QtCore import QEvent
-        
-        event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_A, Qt.KeyboardModifier.NoModifier)
-        
+        from PyQt6.QtGui import QKeyEvent
+
+        event = QKeyEvent(
+            QEvent.Type.KeyPress, Qt.Key.Key_A, Qt.KeyboardModifier.NoModifier
+        )
+
         # Should not raise
         base_window.keyPressEvent(event)
 
@@ -170,11 +179,11 @@ class TestCloseEvent:
     def test_close_event_is_ignored(self, base_window):
         """Test close event is ignored"""
         from PyQt6.QtGui import QCloseEvent
-        
+
         event = QCloseEvent()
-        
+
         base_window.closeEvent(event)
-        
+
         # Event should be ignored
         assert not event.isAccepted()
 
@@ -189,18 +198,18 @@ class TestShakeWidget:
         """Test shake_widget creates animation"""
         child_widget = QWidget(base_window)
         child_widget.setGeometry(0, 0, 100, 50)
-        
+
         animation = base_window.shake_widget(child_widget)
-        
+
         assert animation is not None
 
     def test_shake_widget_animation_duration(self, base_window):
         """Test shake animation has correct duration"""
         child_widget = QWidget(base_window)
         child_widget.setGeometry(0, 0, 100, 50)
-        
+
         animation = base_window.shake_widget(child_widget)
-        
+
         assert animation.duration() == 400
 
 
@@ -308,8 +317,9 @@ class TestRealBaseKioskWindow:
 
     def test_setup_kiosk_window_sets_flags(self, qapp):
         """Test setup_kiosk_window sets correct window flags"""
-        from ui.base_window import BaseKioskWindow
         from PyQt6.QtWidgets import QApplication
+
+        from ui.base_window import BaseKioskWindow
 
         # Create window without calling __init__
         window = BaseKioskWindow.__new__(BaseKioskWindow)
@@ -336,18 +346,20 @@ class TestRealBaseKioskWindow:
     def test_create_main_layout_returns_layout(self, real_base_window):
         """Test create_main_layout on real window"""
         layout = real_base_window.create_main_layout()
-        
+
         assert isinstance(layout, QVBoxLayout)
         assert layout.contentsMargins().left() == 0
 
     def test_keyPressEvent_ignores_escape(self, real_base_window):
         """Test keyPressEvent ignores Escape on real window"""
-        from PyQt6.QtGui import QKeyEvent
         from PyQt6.QtCore import QEvent
+        from PyQt6.QtGui import QKeyEvent
 
-        event = QKeyEvent(QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier)
+        event = QKeyEvent(
+            QEvent.Type.KeyPress, Qt.Key.Key_Escape, Qt.KeyboardModifier.NoModifier
+        )
         real_base_window.keyPressEvent(event)
-        
+
         assert not event.isAccepted()
 
     def test_closeEvent_ignores_on_real_window(self, real_base_window):
@@ -356,7 +368,7 @@ class TestRealBaseKioskWindow:
 
         event = QCloseEvent()
         real_base_window.closeEvent(event)
-        
+
         assert not event.isAccepted()
 
     def test_show_error_calls_message_box(self, real_base_window):
@@ -388,7 +400,7 @@ class TestRealBaseKioskWindow:
         with patch("ui.base_window.ModernMessageBox") as mock_msgbox:
             mock_msgbox.question.return_value = True
             result = real_base_window.show_question("Question", "Are you sure?")
-            
+
             mock_msgbox.question.assert_called_once()
             assert result is True
 
@@ -397,7 +409,7 @@ class TestRealBaseKioskWindow:
         with patch("ui.base_window.ModernConfirmDialog") as mock_confirm:
             mock_confirm.confirm.return_value = True
             result = real_base_window.show_confirm("Confirm", "Are you sure?")
-            
+
             mock_confirm.confirm.assert_called_once()
             assert result is True
 
@@ -405,27 +417,23 @@ class TestRealBaseKioskWindow:
         """Test show_notification calls ModernNotification"""
         with patch("ui.base_window.ModernNotification") as mock_notif:
             result = real_base_window.show_notification("Message")
-            
+
             mock_notif.show_toast.assert_called_once()
 
     def test_apply_base_stylesheet_returns_qss(self, real_base_window):
         """Test apply_base_stylesheet returns BASE_QSS"""
         from ui.styles.base import BASE_QSS
-        
+
         result = real_base_window.apply_base_stylesheet()
-        
+
         assert result == BASE_QSS
 
     def test_shake_widget_creates_animation(self, real_base_window):
         """Test shake_widget creates animation on real window"""
         child_widget = QWidget(real_base_window)
         child_widget.setGeometry(0, 0, 100, 50)
-        
+
         # Call shake_widget - need to keep reference to prevent GC
         real_base_window._shake_anim = real_base_window.shake_widget(child_widget)
-        
+
         # Just verify it doesn't crash - animation object is created
-
-
-
-

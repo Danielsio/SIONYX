@@ -5,7 +5,7 @@ Tests for firebase_config.py - Firebase Configuration
 import os
 import sys
 from pathlib import Path
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -53,7 +53,9 @@ class TestFirebaseConfigInit:
         with patch.object(sys, "frozen", True, create=True):
             with patch.object(sys, "executable", "/path/to/app.exe"):
                 with patch("utils.firebase_config.load_dotenv"):
-                    with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                    with patch.object(
+                        os, "getenv", side_effect=lambda k: env_values.get(k)
+                    ):
                         config = FirebaseConfig()
 
                         assert config.api_key == "frozen-api-key"
@@ -153,7 +155,9 @@ class TestFirebaseConfigInit:
             }
 
             with patch("utils.firebase_config.load_dotenv"):
-                with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
+                with patch.object(
+                    os, "getenv", side_effect=lambda k: env_values.get(k)
+                ):
                     config = FirebaseConfig()
                     assert config.org_id == org_id
 
@@ -179,7 +183,10 @@ class TestAuthUrl:
             with patch.object(os, "getenv", side_effect=lambda k: env_values.get(k)):
                 config = FirebaseConfig()
 
-                assert config.auth_url == "https://identitytoolkit.googleapis.com/v1/accounts"
+                assert (
+                    config.auth_url
+                    == "https://identitytoolkit.googleapis.com/v1/accounts"
+                )
 
 
 # =============================================================================

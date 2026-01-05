@@ -3,25 +3,32 @@ Tests for base_components.py - FROST Design System UI Components
 Tests component initialization, structure, and behavior without testing specific styles.
 """
 
-import pytest
 from unittest.mock import Mock, patch
-from PyQt6.QtWidgets import QWidget, QFrame, QPushButton, QLabel, QGraphicsDropShadowEffect
+
+import pytest
 from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QFrame,
+    QGraphicsDropShadowEffect,
+    QLabel,
+    QPushButton,
+    QWidget,
+)
 
 from ui.components.base_components import (
-    apply_shadow,
-    FrostCard,
-    StatCard,
     ActionButton,
-    PageHeader,
-    LoadingSpinner,
-    EmptyState,
-    StatusBadge,
-    Divider,
-    IconButton,
-    get_shadow_effect,
     BaseCard,
+    Divider,
+    EmptyState,
+    FrostCard,
     HeaderSection,
+    IconButton,
+    LoadingSpinner,
+    PageHeader,
+    StatCard,
+    StatusBadge,
+    apply_shadow,
+    get_shadow_effect,
 )
 
 
@@ -35,7 +42,7 @@ class TestApplyShadow:
         """Test shadow is applied with default 'md' level"""
         widget = QWidget()
         apply_shadow(widget)
-        
+
         effect = widget.graphicsEffect()
         assert effect is not None
         assert isinstance(effect, QGraphicsDropShadowEffect)
@@ -44,7 +51,7 @@ class TestApplyShadow:
         """Test shadow with 'sm' level"""
         widget = QWidget()
         apply_shadow(widget, "sm")
-        
+
         effect = widget.graphicsEffect()
         assert effect is not None
         assert effect.blurRadius() == 12
@@ -53,7 +60,7 @@ class TestApplyShadow:
         """Test shadow with 'md' level"""
         widget = QWidget()
         apply_shadow(widget, "md")
-        
+
         effect = widget.graphicsEffect()
         assert effect is not None
         assert effect.blurRadius() == 20
@@ -62,7 +69,7 @@ class TestApplyShadow:
         """Test shadow with 'lg' level"""
         widget = QWidget()
         apply_shadow(widget, "lg")
-        
+
         effect = widget.graphicsEffect()
         assert effect is not None
         assert effect.blurRadius() == 28
@@ -71,7 +78,7 @@ class TestApplyShadow:
         """Test shadow with 'xl' level"""
         widget = QWidget()
         apply_shadow(widget, "xl")
-        
+
         effect = widget.graphicsEffect()
         assert effect is not None
         assert effect.blurRadius() == 40
@@ -80,7 +87,7 @@ class TestApplyShadow:
         """Test shadow with 'primary' level for accent styling"""
         widget = QWidget()
         apply_shadow(widget, "primary")
-        
+
         effect = widget.graphicsEffect()
         assert effect is not None
         assert effect.blurRadius() == 24
@@ -89,7 +96,7 @@ class TestApplyShadow:
         """Test unknown shadow level defaults to 'md'"""
         widget = QWidget()
         apply_shadow(widget, "unknown_level")
-        
+
         effect = widget.graphicsEffect()
         assert effect is not None
         assert effect.blurRadius() == 20  # md level
@@ -98,7 +105,7 @@ class TestApplyShadow:
         """Test shadow x offset is always 0"""
         widget = QWidget()
         apply_shadow(widget, "lg")
-        
+
         effect = widget.graphicsEffect()
         assert effect.xOffset() == 0
 
@@ -194,7 +201,11 @@ class TestActionButton:
     def test_action_button_default_size(self, qapp):
         """Test ActionButton defaults to 'md' size"""
         button = ActionButton(text="Test")
-        assert button.size_attr == "md" if hasattr(button, 'size_attr') else button.size == "md"
+        assert (
+            button.size_attr == "md"
+            if hasattr(button, "size_attr")
+            else button.size == "md"
+        )
 
     def test_action_button_secondary_variant(self, qapp):
         """Test ActionButton with secondary variant"""
@@ -484,4 +495,3 @@ class TestLegacyCompatibility:
         assert result["blur_radius"] == 20
         assert result["y_offset"] == 8
         assert result["color"] == "rgba(0,0,0,0.5)"
-

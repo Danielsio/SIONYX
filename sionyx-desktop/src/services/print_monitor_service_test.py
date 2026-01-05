@@ -222,6 +222,38 @@ class TestPricing:
 
         assert cost == 1.0
 
+    def test_is_color_job_from_devmode_color(self, print_monitor):
+        """Test color detection returns True for color jobs"""
+        mock_devmode = Mock()
+        mock_devmode.Color = 2  # DMCOLOR_COLOR
+
+        is_color = print_monitor._is_color_job_from_devmode(mock_devmode)
+
+        assert is_color is True
+
+    def test_is_color_job_from_devmode_bw(self, print_monitor):
+        """Test color detection returns False for B&W jobs"""
+        mock_devmode = Mock()
+        mock_devmode.Color = 1  # DMCOLOR_MONOCHROME
+
+        is_color = print_monitor._is_color_job_from_devmode(mock_devmode)
+
+        assert is_color is False
+
+    def test_is_color_job_from_devmode_none(self, print_monitor):
+        """Test color detection returns False when devmode is None"""
+        is_color = print_monitor._is_color_job_from_devmode(None)
+
+        assert is_color is False
+
+    def test_is_color_job_from_devmode_missing_attribute(self, print_monitor):
+        """Test color detection returns False when Color attribute is missing"""
+        mock_devmode = Mock(spec=[])  # No attributes
+
+        is_color = print_monitor._is_color_job_from_devmode(mock_devmode)
+
+        assert is_color is False
+
 
 # =============================================================================
 # Budget Tests
@@ -243,7 +275,9 @@ class TestBudget:
         assert budget == 50.0
         mock_firebase.db_get.assert_called_with("users/test-user-123")
 
-    def test_get_user_budget_returns_zero_on_failure(self, print_monitor, mock_firebase):
+    def test_get_user_budget_returns_zero_on_failure(
+        self, print_monitor, mock_firebase
+    ):
         """Test getting budget returns 0 on failure"""
         mock_firebase.db_get.return_value = {"success": False}
 
@@ -625,9 +659,7 @@ class TestJobHandling:
 
         # Track signals
         allowed_signals = []
-        print_monitor.job_allowed.connect(
-            lambda *args: allowed_signals.append(args)
-        )
+        print_monitor.job_allowed.connect(lambda *args: allowed_signals.append(args))
 
         with patch.object(print_monitor, "_pause_job", return_value=True):
             with patch.object(print_monitor, "_resume_job", return_value=True):
@@ -652,12 +684,12 @@ class TestJobHandling:
 
         # Track signals
         blocked_signals = []
-        print_monitor.job_blocked.connect(
-            lambda *args: blocked_signals.append(args)
-        )
+        print_monitor.job_blocked.connect(lambda *args: blocked_signals.append(args))
 
         with patch.object(print_monitor, "_pause_job", return_value=True):
-            with patch.object(print_monitor, "_cancel_job", return_value=True) as mock_cancel:
+            with patch.object(
+                print_monitor, "_cancel_job", return_value=True
+            ) as mock_cancel:
                 print_monitor._handle_new_job("Printer1", job_data)
 
         mock_cancel.assert_called_once_with("Printer1", 1)
@@ -680,9 +712,7 @@ class TestJobHandling:
         job_data = {"JobId": 1, "pDocument": "Test", "TotalPages": 0}
 
         allowed_signals = []
-        print_monitor.job_allowed.connect(
-            lambda *args: allowed_signals.append(args)
-        )
+        print_monitor.job_allowed.connect(lambda *args: allowed_signals.append(args))
 
         with patch.object(print_monitor, "_pause_job", return_value=True):
             with patch.object(print_monitor, "_resume_job", return_value=True):
@@ -716,7 +746,9 @@ class TestJobHandling:
         print_monitor.error_occurred.connect(lambda msg: error_signals.append(msg))
 
         with patch.object(print_monitor, "_pause_job", return_value=True):
-            with patch.object(print_monitor, "_cancel_job", return_value=True) as mock_cancel:
+            with patch.object(
+                print_monitor, "_cancel_job", return_value=True
+            ) as mock_cancel:
                 print_monitor._handle_new_job("Printer1", job_data)
 
         mock_cancel.assert_called_once()
@@ -836,4 +868,3 @@ class TestEdgeCases:
         call_args = mock_process.call_args
         assert call_args[0][0] == "HP Color, LaserJet Pro"
         assert call_args[0][1]["JobId"] == 42
-

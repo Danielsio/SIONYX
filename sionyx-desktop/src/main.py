@@ -22,6 +22,8 @@ from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
 
 from services.auth_service import AuthService
 from services.global_hotkey_service import GlobalHotkeyService
+from ui.auth_window import AuthWindow
+from ui.main_window import MainWindow
 from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
 from utils.firebase_config import get_firebase_config
 from utils.logger import (
@@ -30,8 +32,6 @@ from utils.logger import (
     get_logger,
     set_context,
 )
-from ui.auth_window import AuthWindow
-from ui.main_window import MainWindow
 
 
 # CRITICAL: Import and configure WebEngine BEFORE QApplication

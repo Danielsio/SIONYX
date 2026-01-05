@@ -19,7 +19,6 @@ from PyQt6.QtWidgets import (
 )
 
 from services.package_service import PackageService
-from utils.logger import get_logger
 from ui.components.base_components import (
     ActionButton,
     EmptyState,
@@ -36,6 +35,7 @@ from ui.constants.ui_constants import (
     Typography,
     UIStrings,
 )
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)
@@ -292,13 +292,17 @@ class PackagesPage(QWidget):
             original_price_lbl = QLabel(f"₪{original_price}")
             original_price_lbl.setFont(
                 QFont(
-                    Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_MEDIUM
+                    Typography.FONT_FAMILY,
+                    Typography.SIZE_BASE,
+                    Typography.WEIGHT_MEDIUM,
                 )
             )
-            original_price_lbl.setStyleSheet(f"""
+            original_price_lbl.setStyleSheet(
+                f"""
                 color: {Colors.GRAY_500};
                 text-decoration: line-through;
-            """)
+            """
+            )
             original_price_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             price_layout.addWidget(original_price_lbl)
 
@@ -306,7 +310,9 @@ class PackagesPage(QWidget):
             final_price_lbl = QLabel(f"₪{final_price}")
             final_price_lbl.setFont(
                 QFont(
-                    Typography.FONT_FAMILY, Typography.SIZE_2XL, Typography.WEIGHT_EXTRABOLD
+                    Typography.FONT_FAMILY,
+                    Typography.SIZE_2XL,
+                    Typography.WEIGHT_EXTRABOLD,
                 )
             )
             final_price_lbl.setStyleSheet(f"color: {Colors.SUCCESS};")
@@ -320,12 +326,14 @@ class PackagesPage(QWidget):
                     Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_BOLD
                 )
             )
-            discount_badge.setStyleSheet(f"""
+            discount_badge.setStyleSheet(
+                f"""
                 color: {Colors.WHITE};
                 background-color: {Colors.SUCCESS};
                 padding: {Spacing.XS}px {Spacing.SM}px;
                 border-radius: {BorderRadius.SM}px;
-            """)
+            """
+            )
             discount_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
             price_layout.addWidget(discount_badge)
         else:
@@ -333,7 +341,9 @@ class PackagesPage(QWidget):
             price_lbl = QLabel(f"₪{final_price}")
             price_lbl.setFont(
                 QFont(
-                    Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_EXTRABOLD
+                    Typography.FONT_FAMILY,
+                    Typography.SIZE_3XL,
+                    Typography.WEIGHT_EXTRABOLD,
                 )
             )
             price_lbl.setStyleSheet(f"color: {Colors.PRIMARY};")

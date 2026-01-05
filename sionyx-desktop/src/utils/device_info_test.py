@@ -6,9 +6,9 @@ import socket
 from unittest.mock import patch
 
 from utils.device_info import (
+    get_computer_info,
     get_computer_name,
     get_device_id,
-    get_computer_info,
 )
 
 
@@ -53,7 +53,9 @@ class TestGetDeviceId:
 
     def test_with_mac_address(self):
         """Test device ID generation with MAC address"""
-        with patch("utils.device_info._get_mac_address", return_value="00:11:22:33:44:55"):
+        with patch(
+            "utils.device_info._get_mac_address", return_value="00:11:22:33:44:55"
+        ):
             result = get_device_id()
             assert result == "001122334455"
 
@@ -62,14 +64,18 @@ class TestGetDeviceId:
         with patch("utils.device_info._get_mac_address", return_value=None):
             with patch("utils.device_info.get_computer_name", return_value="TEST-PC"):
                 with patch("utils.device_info.platform.system", return_value="Windows"):
-                    with patch("utils.device_info.platform.machine", return_value="AMD64"):
+                    with patch(
+                        "utils.device_info.platform.machine", return_value="AMD64"
+                    ):
                         result = get_device_id()
                         assert len(result) == 16
                         assert all(c in "0123456789abcdef" for c in result)
 
     def test_consistency(self):
         """Test that device ID is consistent across calls"""
-        with patch("utils.device_info._get_mac_address", return_value="00:11:22:33:44:55"):
+        with patch(
+            "utils.device_info._get_mac_address", return_value="00:11:22:33:44:55"
+        ):
             result1 = get_device_id()
             result2 = get_device_id()
             assert result1 == result2
@@ -88,9 +94,15 @@ class TestGetDeviceId:
 
     def test_fallback_on_exception(self):
         """Test device ID generation with complete failure"""
-        with patch("utils.device_info._get_mac_address", side_effect=Exception("Error")):
-            with patch("utils.device_info.get_computer_name", side_effect=Exception("Error")):
-                with patch("utils.device_info.platform.system", side_effect=Exception("Error")):
+        with patch(
+            "utils.device_info._get_mac_address", side_effect=Exception("Error")
+        ):
+            with patch(
+                "utils.device_info.get_computer_name", side_effect=Exception("Error")
+            ):
+                with patch(
+                    "utils.device_info.platform.system", side_effect=Exception("Error")
+                ):
                     result = get_device_id()
                     assert len(result) == 16
                     assert isinstance(result, str)
@@ -130,7 +142,9 @@ class TestGetComputerInfo:
 
     def test_failure_returns_fallback(self):
         """Test computer_info returns fallback on failure"""
-        with patch("utils.device_info.get_computer_name", side_effect=Exception("Error")):
+        with patch(
+            "utils.device_info.get_computer_name", side_effect=Exception("Error")
+        ):
             result = get_computer_info()
             assert result["computerName"] == "Unknown-PC"
             assert "deviceId" in result

@@ -11,16 +11,17 @@ TDD Strategy:
 """
 
 from datetime import datetime, timedelta
-from unittest.mock import Mock, MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, Mock, PropertyMock, patch
 
 import pytest
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QStackedWidget, QVBoxLayout
+from PyQt6.QtWidgets import QStackedWidget, QVBoxLayout, QWidget
 
 
 # =============================================================================
 # Fixtures
 # =============================================================================
+
 
 @pytest.fixture
 def mock_auth_service(mock_firebase_client):
@@ -142,36 +143,57 @@ def create_main_window_mock(mock_auth_service, mock_config, mock_session_service
 # Initialization Tests
 # =============================================================================
 
+
 class TestMainWindowInitialization:
     """Tests for MainWindow initialization"""
 
-    def test_stores_auth_service(self, qapp, mock_auth_service, mock_config, mock_session_service):
+    def test_stores_auth_service(
+        self, qapp, mock_auth_service, mock_config, mock_session_service
+    ):
         """Test window stores auth service"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         assert window.auth_service == mock_auth_service
         window.close()
 
-    def test_stores_current_user(self, qapp, mock_auth_service, mock_config, mock_session_service):
+    def test_stores_current_user(
+        self, qapp, mock_auth_service, mock_config, mock_session_service
+    ):
         """Test window stores current user"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         assert window.current_user["uid"] == "test-user-123"
         window.close()
 
-    def test_creates_session_service(self, qapp, mock_auth_service, mock_config, mock_session_service):
+    def test_creates_session_service(
+        self, qapp, mock_auth_service, mock_config, mock_session_service
+    ):
         """Test window creates session service"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         assert window.session_service is not None
         window.close()
 
-    def test_initializes_page_data_ages(self, qapp, mock_auth_service, mock_config, mock_session_service):
+    def test_initializes_page_data_ages(
+        self, qapp, mock_auth_service, mock_config, mock_session_service
+    ):
         """Test data ages initialized as empty dict"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         assert window.page_data_ages == {}
         window.close()
 
-    def test_page_names_mapping(self, qapp, mock_auth_service, mock_config, mock_session_service):
+    def test_page_names_mapping(
+        self, qapp, mock_auth_service, mock_config, mock_session_service
+    ):
         """Test page names are mapped correctly"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         assert window.page_names[0] == "HOME"
         assert window.page_names[1] == "PACKAGES"
         assert window.page_names[2] == "HISTORY"
@@ -183,13 +205,16 @@ class TestMainWindowInitialization:
 # Navigation Tests
 # =============================================================================
 
+
 class TestNavigation:
     """Tests for page navigation"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
@@ -220,13 +245,16 @@ class TestNavigation:
 # Data Refresh Caching Tests
 # =============================================================================
 
+
 class TestDataRefreshCaching:
     """Tests for smart data refresh caching logic"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
@@ -302,13 +330,16 @@ class TestDataRefreshCaching:
 # Refresh Page Tests
 # =============================================================================
 
+
 class TestRefreshPages:
     """Tests for page refresh functionality"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
 
         # Setup mock page with refresh method
         mock_page = Mock()
@@ -351,13 +382,16 @@ class TestRefreshPages:
 # Session Management Tests
 # =============================================================================
 
+
 class TestSessionManagement:
     """Tests for session lifecycle"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
@@ -386,7 +420,7 @@ class TestSessionManagement:
         """Test start_user_session handles failure"""
         main_window.session_service.start_session.return_value = {
             "success": False,
-            "error": "No time remaining"
+            "error": "No time remaining",
         }
 
         with patch("ui.main_window.QMessageBox") as mock_msgbox:
@@ -420,13 +454,16 @@ class TestSessionManagement:
 # Signal Handler Tests
 # =============================================================================
 
+
 class TestSignalHandlers:
     """Tests for signal handlers"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
@@ -509,13 +546,16 @@ class TestSignalHandlers:
 # Force Logout Tests
 # =============================================================================
 
+
 class TestForceLogout:
     """Tests for force logout handling"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
@@ -577,13 +617,16 @@ class TestForceLogout:
 # Logout Tests
 # =============================================================================
 
+
 class TestLogout:
     """Tests for logout functionality"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
@@ -637,13 +680,16 @@ class TestLogout:
 # Cleanup Tests
 # =============================================================================
 
+
 class TestCleanup:
     """Tests for resource cleanup"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance with resources"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
 
         # Setup mock resources
         window.force_logout_listener = Mock()
@@ -654,18 +700,24 @@ class TestCleanup:
     def test_close_event_stops_force_logout_listener(self, main_window):
         """Test closeEvent stops force logout listener"""
         from PyQt6.QtGui import QCloseEvent
+
         event = QCloseEvent()
+
+        # Capture the mock before closeEvent sets it to None
+        listener_mock = main_window.force_logout_listener
 
         main_window.closeEvent(event)
 
-        main_window.force_logout_listener.stop.assert_called_once()
-        main_window.force_logout_listener.wait.assert_called_once_with(3000)
+        listener_mock.stop.assert_called_once()
+        listener_mock.wait.assert_called_once_with(1000)
+        assert main_window.force_logout_listener is None
 
     def test_close_event_ends_active_session(self, main_window):
         """Test closeEvent ends active session"""
         main_window.session_service.is_session_active.return_value = True
 
         from PyQt6.QtGui import QCloseEvent
+
         event = QCloseEvent()
 
         main_window.closeEvent(event)
@@ -675,6 +727,7 @@ class TestCleanup:
     def test_close_event_closes_floating_timer(self, main_window):
         """Test closeEvent closes floating timer"""
         from PyQt6.QtGui import QCloseEvent
+
         event = QCloseEvent()
 
         main_window.closeEvent(event)
@@ -684,6 +737,7 @@ class TestCleanup:
     def test_close_event_accepts_event(self, main_window):
         """Test closeEvent accepts the event"""
         from PyQt6.QtGui import QCloseEvent
+
         event = QCloseEvent()
 
         main_window.closeEvent(event)
@@ -695,13 +749,16 @@ class TestCleanup:
 # Show Main Window After Login Tests
 # =============================================================================
 
+
 class TestShowMainWindowAfterLogin:
     """Tests for re-login flow after logout"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         window.auth_window = Mock()
         yield window
         window.close()
@@ -742,13 +799,16 @@ class TestShowMainWindowAfterLogin:
 # Refresh All Pages Tests
 # =============================================================================
 
+
 class TestRefreshAllPages:
     """Tests for refresh_all_pages method"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
@@ -756,7 +816,7 @@ class TestRefreshAllPages:
         """Test refresh_all_pages skips when UI not initialized"""
         # Remove content_stack to simulate uninitialized UI
         delattr(main_window, "content_stack")
-        
+
         # Should not raise
         main_window.refresh_all_pages()
 
@@ -764,32 +824,32 @@ class TestRefreshAllPages:
         """Test refresh_all_pages skips when user data unchanged"""
         # Set last_user_data to current data
         main_window.last_user_data = main_window._get_current_user_data()
-        
+
         # Mock page refresh methods
         mock_page = Mock()
         mock_page.refresh_user_data = Mock()
         mock_page.__class__.__name__ = "TestPage"
         main_window.content_stack.widget.return_value = mock_page
-        
+
         main_window.refresh_all_pages(force=False)
-        
+
         # Page refresh should not be called when data is unchanged
         # (unless forced)
 
     def test_refresh_all_pages_iterates_all_pages(self, main_window):
         """Test refresh_all_pages iterates through all pages"""
         main_window.content_stack.count.return_value = 2
-        
+
         mock_page1 = Mock()
         mock_page1.refresh_user_data = Mock()
         mock_page1.__class__.__name__ = "Page1"
-        
+
         mock_page2 = Mock()
         mock_page2.refresh_user_data = Mock()
         mock_page2.__class__.__name__ = "Page2"
-        
+
         main_window.content_stack.widget.side_effect = [mock_page1, mock_page2]
-        
+
         main_window.refresh_all_pages(force=True)
 
 
@@ -797,13 +857,16 @@ class TestRefreshAllPages:
 # Additional Session Management Tests
 # =============================================================================
 
+
 class TestSessionManagementAdditional:
     """Additional session management tests"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
@@ -812,20 +875,20 @@ class TestSessionManagementAdditional:
         main_window.floating_timer = Mock()
         main_window.session_service.end_session.return_value = {
             "success": True,
-            "remaining_time": 1800
+            "remaining_time": 1800,
         }
-        
+
         main_window.return_from_session()
-        
+
         # Home page should be updated
         assert main_window.home_page.current_user["remainingTime"] == 1800
 
     def test_return_from_session_shows_normal(self, main_window):
         """Test return_from_session restores window"""
         main_window.floating_timer = Mock()
-        
+
         main_window.return_from_session()
-        
+
         main_window.showNormal.assert_called_once()
         main_window.activateWindow.assert_called_once()
 
@@ -834,18 +897,18 @@ class TestSessionManagementAdditional:
         mock_timer = Mock()
         main_window.floating_timer = mock_timer
         main_window.current_user["printBalance"] = 25.0
-        
+
         main_window.on_time_updated(1800)
-        
+
         mock_timer.update_print_balance.assert_called_with(25.0)
 
     def test_on_session_ended_restores_window(self, main_window):
         """Test on_session_ended restores main window"""
         main_window.floating_timer = Mock()
         main_window.show_question.return_value = False
-        
+
         main_window.on_session_ended("expired")
-        
+
         main_window.showNormal.assert_called_once()
         main_window.activateWindow.assert_called_once()
 
@@ -853,10 +916,10 @@ class TestSessionManagementAdditional:
         """Test on_session_ended when user declines purchase"""
         main_window.floating_timer = Mock()
         main_window.show_question.return_value = False
-        
+
         with patch.object(main_window, "show_page") as mock_show:
             main_window.on_session_ended("expired")
-            
+
             mock_show.assert_not_called()
 
 
@@ -864,34 +927,38 @@ class TestSessionManagementAdditional:
 # Additional Signal Handler Tests
 # =============================================================================
 
+
 class TestSignalHandlersAdditional:
     """Additional signal handler tests"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
     def test_on_sync_failed_without_timer(self, main_window):
         """Test on_sync_failed does nothing without timer"""
         main_window.floating_timer = None
-        
+
         # Should not raise
         main_window.on_sync_failed("Connection lost")
 
     def test_on_sync_restored_without_timer(self, main_window):
         """Test on_sync_restored does nothing without timer"""
         main_window.floating_timer = None
-        
+
         # Should not raise
         main_window.on_sync_restored()
 
 
 # =============================================================================
-# Force Logout Additional Tests  
+# Force Logout Additional Tests
 # =============================================================================
+
 
 class TestForceLogoutAdditional:
     """Additional force logout tests"""
@@ -899,44 +966,48 @@ class TestForceLogoutAdditional:
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
     def test_reset_force_logout_flag_success(self, main_window):
         """Test reset_force_logout_flag logs success"""
         main_window.auth_service.firebase.db_update.return_value = {"success": True}
-        
+
         # Should not raise
         main_window.reset_force_logout_flag()
-        
+
         main_window.auth_service.firebase.db_update.assert_called_once()
 
     def test_reset_force_logout_flag_failure(self, main_window):
         """Test reset_force_logout_flag handles failure"""
         main_window.auth_service.firebase.db_update.return_value = {
             "success": False,
-            "error": "Update failed"
+            "error": "Update failed",
         }
-        
+
         # Should not raise
         main_window.reset_force_logout_flag()
 
     def test_reset_force_logout_flag_exception(self, main_window):
         """Test reset_force_logout_flag handles exception"""
-        main_window.auth_service.firebase.db_update.side_effect = Exception("Network error")
-        
+        main_window.auth_service.firebase.db_update.side_effect = Exception(
+            "Network error"
+        )
+
         # Should not raise
         main_window.reset_force_logout_flag()
 
     def test_on_force_logout_without_active_session(self, main_window):
         """Test on_force_logout when no active session"""
         main_window.session_service.is_session_active.return_value = False
-        
+
         with patch.object(main_window, "reset_force_logout_flag"):
             with patch("ui.auth_window.AuthWindow"):
                 main_window.on_force_logout()
-        
+
         # end_session should not be called
         main_window.session_service.end_session.assert_not_called()
 
@@ -945,23 +1016,27 @@ class TestForceLogoutAdditional:
 # Cleanup Additional Tests
 # =============================================================================
 
+
 class TestCleanupAdditional:
     """Additional cleanup tests"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
 
     def test_close_event_without_force_logout_listener(self, main_window):
         """Test closeEvent when no force logout listener"""
         main_window.force_logout_listener = None
         main_window.floating_timer = None
-        
+
         from PyQt6.QtGui import QCloseEvent
+
         event = QCloseEvent()
-        
+
         # Should not raise
         main_window.closeEvent(event)
 
@@ -969,10 +1044,11 @@ class TestCleanupAdditional:
         """Test closeEvent when no floating timer"""
         main_window.force_logout_listener = Mock()
         main_window.floating_timer = None
-        
+
         from PyQt6.QtGui import QCloseEvent
+
         event = QCloseEvent()
-        
+
         # Should not raise
         main_window.closeEvent(event)
 
@@ -983,6 +1059,7 @@ class TestCleanupAdditional:
         main_window.session_service.is_session_active.return_value = False
 
         from PyQt6.QtGui import QCloseEvent
+
         event = QCloseEvent()
 
         main_window.closeEvent(event)
@@ -995,20 +1072,25 @@ class TestCleanupAdditional:
 # Exception Handling Tests
 # =============================================================================
 
+
 class TestExceptionHandling:
     """Tests for exception handling in main window methods"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
     def test_handle_logout_exception_in_session_end(self, main_window):
         """Test handle_logout with exception during session end"""
         main_window.show_confirm.return_value = True
-        main_window.session_service.end_session.side_effect = Exception("Session end failed")
+        main_window.session_service.end_session.side_effect = Exception(
+            "Session end failed"
+        )
 
         with patch.object(main_window, "hide"):
             with patch("ui.auth_window.AuthWindow"):
@@ -1045,7 +1127,9 @@ class TestExceptionHandling:
         """Test show_main_window_after_login with exception during refresh"""
         main_window.auth_window = Mock()
 
-        with patch.object(main_window, "refresh_all_pages", side_effect=Exception("Refresh failed")):
+        with patch.object(
+            main_window, "refresh_all_pages", side_effect=Exception("Refresh failed")
+        ):
             # Should raise the exception since it's not caught in the method
             with pytest.raises(Exception, match="Refresh failed"):
                 main_window.show_main_window_after_login()
@@ -1067,19 +1151,24 @@ class TestExceptionHandling:
 # Force Logout Exception Tests
 # =============================================================================
 
+
 class TestForceLogoutExceptionHandling:
     """Tests for force logout exception handling"""
 
     @pytest.fixture
     def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
         """Create MainWindow instance"""
-        window = create_main_window_mock(mock_auth_service, mock_config, mock_session_service, qapp)
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
         yield window
         window.close()
 
     def test_reset_force_logout_flag_exception(self, main_window):
         """Test reset_force_logout_flag with database exception"""
-        main_window.auth_service.firebase.db_update.side_effect = Exception("Network error")
+        main_window.auth_service.firebase.db_update.side_effect = Exception(
+            "Network error"
+        )
 
         # Should not raise
         main_window.reset_force_logout_flag()
@@ -1087,10 +1176,11 @@ class TestForceLogoutExceptionHandling:
     def test_on_force_logout_exception_during_session_end(self, main_window):
         """Test on_force_logout with exception during session end"""
         main_window.session_service.is_session_active.return_value = True
-        main_window.session_service.end_session.side_effect = Exception("Session end failed")
+        main_window.session_service.end_session.side_effect = Exception(
+            "Session end failed"
+        )
 
         # Should raise the exception since it's not caught
         with pytest.raises(Exception, match="Session end failed"):
             with patch("ui.auth_window.AuthWindow"):
                 main_window.on_force_logout()
-

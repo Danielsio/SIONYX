@@ -23,9 +23,9 @@ from PyQt6.QtWidgets import (
 from services.organization_metadata_service import OrganizationMetadataService
 from services.payment_bridge import PaymentBridge
 from services.purchase_service import PurchaseService
+from ui.web.local_server import LocalFileServer
 from utils.logger import get_logger
 from utils.purchase_constants import is_final_status
-from ui.web.local_server import LocalFileServer
 
 
 logger = get_logger(__name__)

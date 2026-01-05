@@ -9,9 +9,9 @@ from PyQt6.QtCore import QEasingCurve, QPropertyAnimation, Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication, QVBoxLayout, QWidget
 
-from utils.logger import get_logger
 from ui.modern_dialogs import ModernConfirmDialog, ModernMessageBox, ModernNotification
 from ui.styles.base import BASE_QSS
+from utils.logger import get_logger
 
 
 logger = get_logger(__name__)

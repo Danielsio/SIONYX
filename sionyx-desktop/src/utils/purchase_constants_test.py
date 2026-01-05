@@ -7,12 +7,12 @@ import pytest
 
 from utils.purchase_constants import (
     PURCHASE_STATUS,
-    PURCHASE_STATUS_LABELS,
     PURCHASE_STATUS_COLORS,
-    get_status_label,
+    PURCHASE_STATUS_LABELS,
     get_status_color,
-    is_final_status,
     get_status_from_nedarim,
+    get_status_label,
+    is_final_status,
 )
 
 
@@ -67,7 +67,7 @@ class TestPurchaseStatusLabels:
     def test_labels_are_hebrew(self):
         """Test labels are in Hebrew"""
         for label in PURCHASE_STATUS_LABELS.values():
-            has_hebrew = any('\u0590' <= char <= '\u05FF' for char in label)
+            has_hebrew = any("\u0590" <= char <= "\u05ff" for char in label)
             assert has_hebrew, f"Label not in Hebrew: {label}"
 
 
@@ -199,10 +199,3 @@ class TestGetStatusFromNedarim:
         """Test empty string returns completed"""
         result = get_status_from_nedarim("")
         assert result == "completed"
-
-
-
-
-
-
-

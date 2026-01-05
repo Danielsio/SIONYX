@@ -3,9 +3,10 @@ Tests for base_service.py - Base Service Classes
 Tests common functionality, error handling, and response formatting.
 """
 
-import pytest
-from unittest.mock import Mock, patch
 from datetime import datetime
+from unittest.mock import Mock, patch
+
+import pytest
 
 from services.base_service import BaseService, DatabaseService
 
@@ -15,17 +16,17 @@ from services.base_service import BaseService, DatabaseService
 # =============================================================================
 class ConcreteBaseService(BaseService):
     """Concrete implementation for testing BaseService"""
-    
+
     def get_service_name(self) -> str:
         return "TestService"
 
 
 class ConcreteDatabaseService(DatabaseService):
     """Concrete implementation for testing DatabaseService"""
-    
+
     def get_collection_name(self) -> str:
         return "test_collection"
-    
+
     def get_service_name(self) -> str:
         return "TestDatabaseService"
 
@@ -437,10 +438,7 @@ class TestDatabaseServiceCRUD:
 
     def test_get_document_success(self, db_service, mock_firebase):
         """Test successful document retrieval"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": {"name": "Test"}
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": {"name": "Test"}}
         result = db_service.get_document("doc123")
         assert result["success"] is True
 
@@ -455,10 +453,7 @@ class TestDatabaseServiceCRUD:
         """Test successful retrieval of all documents"""
         mock_firebase.db_get.return_value = {
             "success": True,
-            "data": {
-                "doc1": {"name": "First"},
-                "doc2": {"name": "Second"}
-            }
+            "data": {"doc1": {"name": "First"}, "doc2": {"name": "Second"}},
         }
         result = db_service.get_all_documents()
         assert result["success"] is True
@@ -468,19 +463,14 @@ class TestDatabaseServiceCRUD:
         """Test IDs are added to documents"""
         mock_firebase.db_get.return_value = {
             "success": True,
-            "data": {
-                "doc1": {"name": "First"}
-            }
+            "data": {"doc1": {"name": "First"}},
         }
         result = db_service.get_all_documents()
         assert result["data"][0]["id"] == "doc1"
 
     def test_create_document_success(self, db_service, mock_firebase):
         """Test successful document creation"""
-        mock_firebase.db_push.return_value = {
-            "success": True,
-            "name": "new_doc_id"
-        }
+        mock_firebase.db_push.return_value = {"success": True, "name": "new_doc_id"}
         result = db_service.create_document({"name": "New Doc"})
         assert result["success"] is True
 
@@ -509,8 +499,8 @@ class TestDatabaseServiceCRUD:
             "data": {
                 "doc1": {"status": "active"},
                 "doc2": {"status": "inactive"},
-                "doc3": {"status": "active"}
-            }
+                "doc3": {"status": "active"},
+            },
         }
         result = db_service.query_documents("status", "active")
         assert result["success"] is True
@@ -541,7 +531,7 @@ class TestDatabaseServiceErrorHandling:
         """Test get_document handles Firebase errors"""
         mock_firebase.db_get.return_value = {
             "success": False,
-            "error": "Database error"
+            "error": "Database error",
         }
         result = db_service.get_document("doc123")
         assert result["success"] is False
@@ -558,7 +548,7 @@ class TestDatabaseServiceErrorHandling:
         """Test get_all_documents handles Firebase errors"""
         mock_firebase.db_get.return_value = {
             "success": False,
-            "error": "Database error"
+            "error": "Database error",
         }
         result = db_service.get_all_documents()
         assert result["success"] is False
@@ -581,7 +571,7 @@ class TestDatabaseServiceErrorHandling:
         """Test create_document handles Firebase errors"""
         mock_firebase.db_push.return_value = {
             "success": False,
-            "error": "Creation failed"
+            "error": "Creation failed",
         }
         result = db_service.create_document({"name": "Test"})
         assert result["success"] is False
@@ -602,10 +592,7 @@ class TestDatabaseServiceErrorHandling:
 
     def test_create_document_with_id_firebase_error(self, db_service, mock_firebase):
         """Test create_document with ID handles Firebase errors"""
-        mock_firebase.db_set.return_value = {
-            "success": False,
-            "error": "Set failed"
-        }
+        mock_firebase.db_set.return_value = {"success": False, "error": "Set failed"}
         result = db_service.create_document({"name": "Test"}, doc_id="custom_id")
         assert result["success"] is False
 
@@ -613,7 +600,7 @@ class TestDatabaseServiceErrorHandling:
         """Test update_document handles Firebase errors"""
         mock_firebase.db_update.return_value = {
             "success": False,
-            "error": "Update failed"
+            "error": "Update failed",
         }
         result = db_service.update_document("doc123", {"name": "Updated"})
         assert result["success"] is False
@@ -636,7 +623,7 @@ class TestDatabaseServiceErrorHandling:
         """Test delete_document handles Firebase errors"""
         mock_firebase.db_delete.return_value = {
             "success": False,
-            "error": "Delete failed"
+            "error": "Delete failed",
         }
         result = db_service.delete_document("doc123")
         assert result["success"] is False
@@ -657,10 +644,7 @@ class TestDatabaseServiceErrorHandling:
 
     def test_query_documents_firebase_error(self, db_service, mock_firebase):
         """Test query_documents handles Firebase errors"""
-        mock_firebase.db_get.return_value = {
-            "success": False,
-            "error": "Query failed"
-        }
+        mock_firebase.db_get.return_value = {"success": False, "error": "Query failed"}
         result = db_service.query_documents("status", "active")
         assert result["success"] is False
 
@@ -701,10 +685,7 @@ class TestDatabaseServiceAdditional:
 
     def test_get_all_documents_empty_data(self, db_service, mock_firebase):
         """Test get_all_documents with empty data"""
-        mock_firebase.db_get.return_value = {
-            "success": True,
-            "data": {}
-        }
+        mock_firebase.db_get.return_value = {"success": True, "data": {}}
         result = db_service.get_all_documents()
         assert result["success"] is True
         assert result["data"] == []
@@ -713,7 +694,7 @@ class TestDatabaseServiceAdditional:
         """Test get_all_documents with null data (empty collection)"""
         mock_firebase.db_get.return_value = {
             "success": True,
-            "data": None  # Firebase returns None for empty collections
+            "data": None,  # Firebase returns None for empty collections
         }
         result = db_service.get_all_documents()
         # Should handle None gracefully and return empty list
@@ -724,10 +705,7 @@ class TestDatabaseServiceAdditional:
         """Test query_documents with no matches"""
         mock_firebase.db_get.return_value = {
             "success": True,
-            "data": {
-                "doc1": {"status": "inactive"},
-                "doc2": {"status": "inactive"}
-            }
+            "data": {"doc1": {"status": "inactive"}, "doc2": {"status": "inactive"}},
         }
         result = db_service.query_documents("status", "active")
         assert result["success"] is True
@@ -749,15 +727,16 @@ class TestDatabaseServiceGetServiceName:
 
     def test_get_service_name_returns_class_and_collection(self, mock_firebase):
         """Test get_service_name returns class name with collection"""
+
         # Create a subclass that does NOT override get_service_name
         class TestDBService(DatabaseService):
             def get_collection_name(self) -> str:
                 return "my_collection"
-        
+
         with patch("services.base_service.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
             service = TestDBService(firebase_client=mock_firebase)
-        
+
         result = service.get_service_name()
         assert "TestDBService" in result
         assert "my_collection" in result
@@ -767,13 +746,12 @@ class TestDatabaseServiceGetServiceName:
         with patch("services.base_service.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
             db_service = ConcreteDatabaseService(firebase_client=mock_firebase)
-        
+
         # Make db_get return success but then make get_all_documents fail
         mock_firebase.db_get.return_value = {
             "success": True,
-            "data": "not a dict"  # This will fail when iterating
+            "data": "not a dict",  # This will fail when iterating
         }
         result = db_service.query_documents("status", "active")
         # Should handle the exception
         assert "success" in result
-

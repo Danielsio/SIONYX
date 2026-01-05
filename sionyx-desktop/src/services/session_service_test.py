@@ -36,7 +36,9 @@ class TestSessionService:
             "data": {"computerName": "Test PC"},
         }
 
-        with patch.object(session_service, "_get_current_computer_id", return_value="test-computer-id"):
+        with patch.object(
+            session_service, "_get_current_computer_id", return_value="test-computer-id"
+        ):
             result = session_service.start_session(3600)
 
         assert result["success"] is True
@@ -62,15 +64,22 @@ class TestSessionService:
         assert result["success"] is False
         assert result["error"] == "No time remaining"
 
-    def test_start_session_firebase_failure(self, session_service, mock_firebase_client, qtbot):
+    def test_start_session_firebase_failure(
+        self, session_service, mock_firebase_client, qtbot
+    ):
         """Test session start with Firebase failure"""
-        mock_firebase_client.db_update.return_value = {"success": False, "error": "Database error"}
+        mock_firebase_client.db_update.return_value = {
+            "success": False,
+            "error": "Database error",
+        }
         session_service.computer_service.get_computer_info.return_value = {
             "success": True,
             "data": {"computerName": "Test PC"},
         }
 
-        with patch.object(session_service, "_get_current_computer_id", return_value="test-computer-id"):
+        with patch.object(
+            session_service, "_get_current_computer_id", return_value="test-computer-id"
+        ):
             result = session_service.start_session(3600)
 
         assert result["success"] is False
@@ -154,13 +163,17 @@ class TestSessionService:
         session_ended_signals = []
         session_service.session_ended.connect(lambda x: session_ended_signals.append(x))
 
-        with patch.object(session_service, "end_session", return_value={"success": True}) as mock_end:
+        with patch.object(
+            session_service, "end_session", return_value={"success": True}
+        ) as mock_end:
             session_service._on_countdown_tick()
 
         assert session_service.remaining_time == 0
         mock_end.assert_called_once_with("expired")
 
-    def test_sync_to_firebase_success(self, session_service, mock_firebase_client, qtbot):
+    def test_sync_to_firebase_success(
+        self, session_service, mock_firebase_client, qtbot
+    ):
         """Test successful Firebase sync"""
         session_service.is_active = True
         session_service.remaining_time = 1800
@@ -168,19 +181,26 @@ class TestSessionService:
         mock_firebase_client.db_update.return_value = {"success": True}
 
         sync_restored_signals = []
-        session_service.sync_restored.connect(lambda: sync_restored_signals.append(True))
+        session_service.sync_restored.connect(
+            lambda: sync_restored_signals.append(True)
+        )
 
         session_service._sync_to_firebase()
 
         assert session_service.consecutive_sync_failures == 0
         assert len(sync_restored_signals) == 1
 
-    def test_sync_to_firebase_failure(self, session_service, mock_firebase_client, qtbot):
+    def test_sync_to_firebase_failure(
+        self, session_service, mock_firebase_client, qtbot
+    ):
         """Test Firebase sync failure - signal emits after 3 consecutive failures"""
         session_service.is_active = True
         session_service.remaining_time = 1800
         session_service.consecutive_sync_failures = 2  # Already had 2 failures
-        mock_firebase_client.db_update.return_value = {"success": False, "error": "Network error"}
+        mock_firebase_client.db_update.return_value = {
+            "success": False,
+            "error": "Network error",
+        }
 
         sync_failed_signals = []
         session_service.sync_failed.connect(lambda x: sync_failed_signals.append(x))
@@ -192,7 +212,9 @@ class TestSessionService:
         assert session_service.is_online is False
         assert len(sync_failed_signals) == 1
 
-    def test_sync_to_firebase_not_active(self, session_service, mock_firebase_client, qtbot):
+    def test_sync_to_firebase_not_active(
+        self, session_service, mock_firebase_client, qtbot
+    ):
         """Test Firebase sync when session is not active"""
         session_service.is_active = False
         session_service._sync_to_firebase()
@@ -217,7 +239,7 @@ class TestSessionService:
         """Test getting current computer ID from Firebase"""
         mock_firebase_client.db_get.return_value = {
             "success": True,
-            "data": {"currentComputerId": "test-computer-123"}
+            "data": {"currentComputerId": "test-computer-123"},
         }
 
         result = session_service._get_current_computer_id()
@@ -225,27 +247,31 @@ class TestSessionService:
         assert result == "test-computer-123"
         mock_firebase_client.db_get.assert_called_once_with("users/test-user-id")
 
-    def test_get_current_computer_id_not_found(self, session_service, mock_firebase_client):
+    def test_get_current_computer_id_not_found(
+        self, session_service, mock_firebase_client
+    ):
         """Test getting current computer ID when not set"""
-        mock_firebase_client.db_get.return_value = {
-            "success": True,
-            "data": {}
-        }
+        mock_firebase_client.db_get.return_value = {"success": True, "data": {}}
 
         result = session_service._get_current_computer_id()
 
         assert result == "unknown"
 
-    @pytest.mark.parametrize("remaining_time,expected_warning", [
-        # remaining_time is set BEFORE tick, tick decrements first then checks
-        # So 301 -> 300 triggers 5min, 300 -> 299 does not
-        (301, "5min"),
-        (300, None),  # Becomes 299 after tick, no warning
-        (61, "1min"),
-        (60, None),   # Becomes 59 after tick, no warning
-        (30, None),
-    ])
-    def test_warning_triggers(self, session_service, qtbot, remaining_time, expected_warning):
+    @pytest.mark.parametrize(
+        "remaining_time,expected_warning",
+        [
+            # remaining_time is set BEFORE tick, tick decrements first then checks
+            # So 301 -> 300 triggers 5min, 300 -> 299 does not
+            (301, "5min"),
+            (300, None),  # Becomes 299 after tick, no warning
+            (61, "1min"),
+            (60, None),  # Becomes 59 after tick, no warning
+            (30, None),
+        ],
+    )
+    def test_warning_triggers(
+        self, session_service, qtbot, remaining_time, expected_warning
+    ):
         """Test warning triggers at correct times"""
         session_service.is_active = True
         session_service.remaining_time = remaining_time
@@ -274,6 +300,7 @@ class TestSessionService:
 # Additional SessionService Tests
 # =============================================================================
 
+
 class TestSessionServiceAdditional:
     """Additional test cases for SessionService"""
 
@@ -293,9 +320,11 @@ class TestSessionServiceAdditional:
 
         assert session_service.remaining_time == 100  # Unchanged
 
-    def test_end_session_does_not_disassociate_user(self, session_service, mock_firebase_client, qtbot):
+    def test_end_session_does_not_disassociate_user(
+        self, session_service, mock_firebase_client, qtbot
+    ):
         """Test end_session does NOT disassociate user from computer.
-        
+
         The user is still logged in, just not in an active session.
         Disassociation only happens on actual logout (via auth_service.logout).
         """
@@ -309,9 +338,11 @@ class TestSessionServiceAdditional:
         # Should NOT call disassociate - user is still logged in
         session_service.computer_service.disassociate_user_from_computer.assert_not_called()
 
-    def test_end_session_expired_does_not_disassociate_user(self, session_service, mock_firebase_client, qtbot):
+    def test_end_session_expired_does_not_disassociate_user(
+        self, session_service, mock_firebase_client, qtbot
+    ):
         """Test end_session for 'expired' reason does NOT disassociate user.
-        
+
         Even when session expires, user remains logged in and associated with computer.
         """
         session_service.is_active = True
@@ -324,15 +355,22 @@ class TestSessionServiceAdditional:
         # Should NOT call disassociate - user is still logged in
         session_service.computer_service.disassociate_user_from_computer.assert_not_called()
 
-    def test_get_current_computer_id_db_failure(self, session_service, mock_firebase_client):
+    def test_get_current_computer_id_db_failure(
+        self, session_service, mock_firebase_client
+    ):
         """Test _get_current_computer_id handles database failure"""
-        mock_firebase_client.db_get.return_value = {"success": False, "error": "DB error"}
+        mock_firebase_client.db_get.return_value = {
+            "success": False,
+            "error": "DB error",
+        }
 
         result = session_service._get_current_computer_id()
 
         assert result == "unknown"
 
-    def test_get_current_computer_id_exception(self, session_service, mock_firebase_client):
+    def test_get_current_computer_id_exception(
+        self, session_service, mock_firebase_client
+    ):
         """Test _get_current_computer_id handles exceptions"""
         mock_firebase_client.db_get.side_effect = Exception("Network error")
 
