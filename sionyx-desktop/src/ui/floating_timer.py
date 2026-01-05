@@ -55,10 +55,10 @@ class FloatingTimer(QWidget):
         y = 0  # Stick to the ceiling (top of screen)
         self.move(x, y)
 
-        # Debug positioning
-        logger.info(f"Screen size: {screen.width()}x{screen.height()}")
-        logger.info(f"Timer positioned at: {x}, {y}")
-        logger.info("Timer size: 280x140")
+        # Debug positioning (only shown at DEBUG level)
+        logger.debug(f"Screen size: {screen.width()}x{screen.height()}")
+        logger.debug(f"Timer positioned at: {x}, {y}")
+        logger.debug("Timer size: 280x140")
 
         # Main container
         self.container = QWidget()
