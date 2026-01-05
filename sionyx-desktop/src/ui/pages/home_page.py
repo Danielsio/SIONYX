@@ -342,6 +342,16 @@ class HomePage(QWidget):
 
         return card
 
+    def _is_session_active(self) -> bool:
+        """Check if a session is currently active"""
+        try:
+            main_window = self.parent().parent().parent()
+            if hasattr(main_window, "session_service"):
+                return main_window.session_service.is_session_active()
+        except Exception:
+            pass
+        return False
+
     def update_countdown(self):
         """Update time display"""
         remaining = self.current_user.get("remainingTime", 0)
@@ -373,8 +383,24 @@ class HomePage(QWidget):
             """
             )
 
-        # Update button state
-        if remaining <= 0:
+        # Check if session is active
+        session_active = self._is_session_active()
+
+        # Update button state based on session and remaining time
+        if session_active:
+            # Session is active - show "Return to session" button
+            self.start_btn.setEnabled(True)
+            self.start_btn.setText("🔙  חזור להפעלה")
+            self.instruction.setText("יש לך הפעלה פעילה. לחץ לחזור לטיימר.")
+            self.instruction.setStyleSheet(
+                f"""
+                color: {Colors.PRIMARY_DARK};
+                background: {Colors.PRIMARY_LIGHT};
+                padding: {Spacing.MD}px {Spacing.LG}px;
+                border-radius: {BorderRadius.MD}px;
+            """
+            )
+        elif remaining <= 0:
             self.start_btn.setEnabled(False)
             self.start_btn.setText("⏸  אין זמן זמין")
             self.instruction.setText("אין לך זמן נותר. רכוש חבילה כדי להמשיך.")
@@ -434,11 +460,20 @@ class HomePage(QWidget):
             self.welcome_label.setText("👋 שלום!")
 
     def handle_start_session(self):
-        """Start session"""
+        """Start session or return to active session"""
+        main_window = self.parent().parent().parent()
+
+        # If session is already active, just minimize back to the floating timer
+        if self._is_session_active():
+            logger.info("Session already active, returning to floating timer")
+            main_window.showMinimized()
+            return
+
+        # Otherwise, start a new session
         remaining = self.current_user.get("remainingTime", 0)
         if remaining <= 0:
             return
-        self.parent().parent().parent().start_user_session(remaining)
+        main_window.start_user_session(remaining)
 
     def start_message_listening(self):
         """Start listening for messages"""
