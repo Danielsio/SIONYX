@@ -492,6 +492,38 @@ class TestHomePage:
         assert not home_page.countdown_timer.isActive()
         mock_chat_service.cleanup.assert_called_once()
 
+    def test_cleanup_when_no_chat_service(self, home_page):
+        """Test cleanup handles missing chat_service gracefully"""
+        home_page.chat_service = None
+        home_page.countdown_timer.start(1000)
+
+        # Should not raise
+        home_page.cleanup()
+
+        assert not home_page.countdown_timer.isActive()
+
+    def test_cleanup_closes_message_modal(self, home_page, mock_chat_service):
+        """Test cleanup closes message_modal if it exists"""
+        home_page.chat_service = mock_chat_service
+
+        # Create a mock message modal
+        mock_modal = Mock()
+        home_page.message_modal = mock_modal
+
+        home_page.cleanup()
+
+        mock_modal.close.assert_called_once()
+
+    def test_cleanup_when_no_message_modal(self, home_page, mock_chat_service):
+        """Test cleanup handles missing message_modal gracefully"""
+        home_page.chat_service = mock_chat_service
+        home_page.message_modal = None
+
+        # Should not raise
+        home_page.cleanup()
+
+        mock_chat_service.cleanup.assert_called_once()
+
     def test_show_message_modal_no_pending_messages(self, home_page):
         """Test show_message_modal does nothing when no pending messages"""
         home_page.pending_messages = []

@@ -53,9 +53,12 @@ def print_header(text):
 
 def print_success(text):
     try:
-        print(f"{Colors.GREEN}✅ {text}{Colors.ENDC}")
+        # Remove emojis from text for safe printing
+        safe_text = text.encode('ascii', 'ignore').decode('ascii')
+        print(f"{Colors.GREEN}✅ {safe_text}{Colors.ENDC}")
     except UnicodeEncodeError:
-        print(f"[SUCCESS] {text}")
+        safe_text = text.encode('ascii', 'ignore').decode('ascii')
+        print(f"[SUCCESS] {safe_text}")
 
 
 def print_error(text):
@@ -290,7 +293,7 @@ def check_coverage_regression(
         return False
     elif current_coverage > previous_coverage:
         improvement = current_coverage - previous_coverage
-        print_success(f"Coverage IMPROVED by {improvement:.2f}%! 🎉")
+        print_success(f"Coverage IMPROVED by {improvement:.2f}%!")
     else:
         print_success("Coverage unchanged")
     
