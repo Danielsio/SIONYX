@@ -90,10 +90,15 @@ class TestForceLogoutListenerRun:
         with patch("ui.force_logout_listener.requests.get") as mock_get:
             mock_response = Mock()
             mock_response.status_code = 200
-            mock_response.iter_content.return_value = iter([])
-            mock_get.return_value = mock_response
+            mock_response.iter_lines.return_value = iter([])  # Empty stream
 
-            force_logout_listener.running = False  # Exit immediately
+            # Stop the listener after the request is made
+            def stop_after_call(*args, **kwargs):
+                force_logout_listener.running = False
+                return mock_response
+
+            mock_get.side_effect = stop_after_call
+
             force_logout_listener.run()
 
             call_args = mock_get.call_args
@@ -111,6 +116,13 @@ class TestForceLogoutListenerRun:
             mock_response.status_code = 401
             mock_get.return_value = mock_response
 
+            # Stop the listener after first request
+            def stop_after_call(*args, **kwargs):
+                force_logout_listener.running = False
+                return mock_response
+
+            mock_get.side_effect = stop_after_call
+
             # Should not raise
             force_logout_listener.run()
 
@@ -119,8 +131,13 @@ class TestForceLogoutListenerRun:
         with patch("ui.force_logout_listener.requests.get") as mock_get:
             mock_response = Mock()
             mock_response.status_code = 200
-            # Simulate Firebase stream sending "true"
-            mock_response.iter_content.return_value = iter(list("true\n"))
+            # Simulate Firebase SSE stream format: event + data + empty line
+            sse_data = [
+                "event: put",
+                'data: {"path": "/", "data": true}',
+                "",  # Empty line signals end of event
+            ]
+            mock_response.iter_lines.return_value = iter(sse_data)
             mock_get.return_value = mock_response
 
             signal_received = []
@@ -137,17 +154,26 @@ class TestForceLogoutListenerRun:
         with patch("ui.force_logout_listener.requests.get") as mock_get:
             mock_response = Mock()
             mock_response.status_code = 200
-            # Simulate Firebase stream sending "false"
-            mock_response.iter_content.return_value = iter(list("false\n"))
-            mock_get.return_value = mock_response
+            # Simulate Firebase SSE stream with false value
+            sse_data = [
+                "event: put",
+                'data: {"path": "/", "data": false}',
+                "",  # Empty line signals end of event
+            ]
+            mock_response.iter_lines.return_value = iter(sse_data)
+
+            # Stop the listener after processing
+            def stop_after_call(*args, **kwargs):
+                force_logout_listener.running = False
+                return mock_response
+
+            mock_get.side_effect = stop_after_call
 
             signal_received = []
             force_logout_listener.force_logout_detected.connect(
                 lambda: signal_received.append(True)
             )
 
-            # Stop after first iteration
-            force_logout_listener.running = False
             force_logout_listener.run()
 
             # Signal should NOT be emitted for false
@@ -158,15 +184,26 @@ class TestForceLogoutListenerRun:
         with patch("ui.force_logout_listener.requests.get") as mock_get:
             mock_response = Mock()
             mock_response.status_code = 200
-            mock_response.iter_content.return_value = iter(list("null\n"))
-            mock_get.return_value = mock_response
+            # Simulate Firebase SSE stream with null value
+            sse_data = [
+                "event: put",
+                'data: {"path": "/", "data": null}',
+                "",  # Empty line signals end of event
+            ]
+            mock_response.iter_lines.return_value = iter(sse_data)
+
+            # Stop the listener after processing
+            def stop_after_call(*args, **kwargs):
+                force_logout_listener.running = False
+                return mock_response
+
+            mock_get.side_effect = stop_after_call
 
             signal_received = []
             force_logout_listener.force_logout_detected.connect(
                 lambda: signal_received.append(True)
             )
 
-            force_logout_listener.running = False
             force_logout_listener.run()
 
             assert len(signal_received) == 0
@@ -174,9 +211,14 @@ class TestForceLogoutListenerRun:
     def test_run_handles_timeout_exception(self, force_logout_listener):
         """Test run handles timeout exception"""
         with patch("ui.force_logout_listener.requests.get") as mock_get:
-            import requests
+            import requests as req_module
 
-            mock_get.side_effect = requests.exceptions.Timeout("Connection timed out")
+            # Raise exception then stop the listener
+            def raise_and_stop(*args, **kwargs):
+                force_logout_listener.running = False
+                raise req_module.exceptions.Timeout("Connection timed out")
+
+            mock_get.side_effect = raise_and_stop
 
             # Should not raise
             force_logout_listener.run()
@@ -184,7 +226,12 @@ class TestForceLogoutListenerRun:
     def test_run_handles_general_exception(self, force_logout_listener):
         """Test run handles general exception"""
         with patch("ui.force_logout_listener.requests.get") as mock_get:
-            mock_get.side_effect = Exception("Network error")
+            # Raise exception then stop the listener
+            def raise_and_stop(*args, **kwargs):
+                force_logout_listener.running = False
+                raise Exception("Network error")
+
+            mock_get.side_effect = raise_and_stop
 
             # Should not raise
             force_logout_listener.run()
@@ -194,11 +241,21 @@ class TestForceLogoutListenerRun:
         with patch("ui.force_logout_listener.requests.get") as mock_get:
             mock_response = Mock()
             mock_response.status_code = 200
-            # Invalid JSON
-            mock_response.iter_content.return_value = iter(list("not valid json\n"))
-            mock_get.return_value = mock_response
+            # Invalid JSON in SSE data field
+            sse_data = [
+                "event: put",
+                "data: not valid json",
+                "",  # Empty line signals end of event
+            ]
+            mock_response.iter_lines.return_value = iter(sse_data)
 
-            force_logout_listener.running = False
+            # Stop the listener after processing
+            def stop_after_call(*args, **kwargs):
+                force_logout_listener.running = False
+                return mock_response
+
+            mock_get.side_effect = stop_after_call
+
             # Should not raise
             force_logout_listener.run()
 
@@ -208,14 +265,19 @@ class TestForceLogoutListenerRun:
             mock_response = Mock()
             mock_response.status_code = 200
 
-            # Create infinite iterator but stop via running flag
-            def content_generator():
-                for c in "false\n":
+            # Create iterator that checks running flag
+            def lines_generator():
+                sse_data = [
+                    "event: put",
+                    'data: {"path": "/", "data": false}',
+                    "",
+                ]
+                for line in sse_data:
                     if not force_logout_listener.running:
                         return
-                    yield c
+                    yield line
 
-            mock_response.iter_content.return_value = content_generator()
+            mock_response.iter_lines.return_value = lines_generator()
             mock_get.return_value = mock_response
 
             force_logout_listener.running = False

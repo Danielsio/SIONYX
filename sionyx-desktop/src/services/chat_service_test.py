@@ -29,7 +29,9 @@ def chat_service(mock_firebase, qapp):
         service = ChatService(
             firebase_client=mock_firebase, user_id="user123", org_id="org456"
         )
-        return service
+        yield service
+        # Cleanup: ensure SSE listener is stopped
+        service.stop_listening()
 
 
 @pytest.fixture
