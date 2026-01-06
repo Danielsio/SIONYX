@@ -32,6 +32,21 @@ def mock_firebase_config():
     return config
 
 
+@pytest.fixture(autouse=True)
+def reset_firebase_singleton():
+    """
+    Reset FirebaseClient singleton before each test.
+
+    This ensures each test starts with a fresh instance.
+    autouse=True means this runs automatically for every test.
+    """
+    # Reset before test
+    FirebaseClient.reset_instance()
+    yield
+    # Reset after test (cleanup)
+    FirebaseClient.reset_instance()
+
+
 @pytest.fixture
 def mock_firebase_client(mock_firebase_config):
     """Mock Firebase client with common methods"""
