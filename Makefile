@@ -10,7 +10,7 @@
 #   make test     → test client
 #   make web-lint → lint web admin
 
-.PHONY: help dev run test test-cov test-fast test-fail lint lint-fix format format-check build build-patch build-minor build-major build-dry build-local version clean \
+.PHONY: help dev dev-debug run run-debug test test-cov test-fast test-fail lint lint-fix format format-check build build-patch build-minor build-major build-dry build-local version clean \
         web-dev web-build web-preview web-lint web-test web-test-run web-test-cov web-test-ui web-deploy web-deploy-hosting web-deploy-functions web-deploy-database
 
 # Default target
@@ -25,6 +25,7 @@ help:
 	@echo ""
 	@echo "Client App Commands:"
 	@echo "  dev             - Run client app"
+	@echo "  dev-debug       - Run client app with DEBUG logging"
 	@echo "  test            - Run tests (co-located in src/)"
 	@echo "  test-cov        - Run tests with coverage"
 	@echo "  test-fast       - Run fast tests (utils + services)"
@@ -71,6 +72,13 @@ dev:
 	cd sionyx-desktop && python src/main.py
 
 run: dev
+
+# Run client app with debug logging
+dev-debug:
+	@echo "Starting client app (DEBUG mode)..."
+	cd sionyx-desktop && python src/main.py --verbose
+
+run-debug: dev-debug
 
 # Run tests (co-located in src/)
 test:

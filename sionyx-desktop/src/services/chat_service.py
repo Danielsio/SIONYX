@@ -255,14 +255,21 @@ class ChatService(QObject):
 
     def stop_listening(self):
         """Stop listening for messages"""
+        logger.debug("ChatService.stop_listening() called")
         if not self.is_listening:
+            logger.debug("ChatService: not listening, nothing to stop")
             return
 
         self.is_listening = False
+        logger.debug("ChatService: is_listening set to False")
 
         if self._stream_listener:
+            logger.debug("ChatService: stopping stream listener...")
             self._stream_listener.stop()
             self._stream_listener = None
+            logger.debug("ChatService: stream listener stopped")
+        else:
+            logger.debug("ChatService: no stream listener to stop")
 
         logger.info("Stopped SSE listener for messages", action="stop_listening")
 
@@ -401,6 +408,9 @@ class ChatService(QObject):
 
     def cleanup(self):
         """Cleanup resources - stops SSE listener"""
+        logger.debug("ChatService.cleanup() called")
         self.stop_listening()
+        logger.debug("ChatService: stop_listening completed")
         self.invalidate_cache()
+        logger.debug("ChatService: cache invalidated")
         logger.info("Chat service cleaned up")

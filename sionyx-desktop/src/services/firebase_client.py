@@ -415,17 +415,24 @@ class StreamListener:
 
     def stop(self):
         """Stop the SSE listener"""
+        logger.debug(f"StreamListener.stop() called for path: {self.path}")
         self._running = False
 
-        # Close the response to unblock the iterator
-        if self._response:
-            try:
-                self._response.close()
-            except Exception:
-                pass
+        # DON'T close the response from another thread - it causes crashes!
+        # The thread will exit naturally when:
+        # 1. It checks self._running after receiving data
+        # 2. The read timeout occurs and it checks self._running
+        # 3. The connection is closed by the server
 
+        # Wait briefly for the thread to notice the flag change
         if self._thread and self._thread.is_alive():
-            self._thread.join(timeout=2)
+            logger.debug(f"Waiting for SSE thread to finish (path: {self.path})...")
+            self._thread.join(timeout=0.5)
+            if self._thread.is_alive():
+                logger.debug(
+                    f"SSE thread still running, will exit on next timeout "
+                    f"(path: {self.path})"
+                )
 
         logger.info(f"SSE listener stopped for path: {self.path}")
 
@@ -434,6 +441,10 @@ class StreamListener:
         while self._running:
             try:
                 self._connect_and_stream()
+            except requests.exceptions.ReadTimeout:
+                # This is expected - we use timeout to allow checking _running flag
+                logger.debug(f"SSE read timeout for path: {self.path} (checking flag)")
+                continue
             except Exception as e:
                 if not self._running:
                     break
@@ -482,12 +493,13 @@ class StreamListener:
         logger.debug(f"Connecting SSE stream to: {org_path}")
 
         # Use stream=True for SSE
+        # Add read timeout so thread can check _running flag periodically
         self._response = requests.get(
             url,
             params=params,
             headers=headers,
             stream=True,
-            timeout=(10, None),  # 10s connect timeout, no read timeout
+            timeout=(10, 60),  # 10s connect timeout, 60s read timeout
         )
         self._response.raise_for_status()
 

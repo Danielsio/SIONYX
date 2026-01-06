@@ -595,8 +595,8 @@ class TestStreamListener:
 
         assert stream_listener._running is False
 
-    def test_stop_closes_response(self, stream_listener):
-        """Test stop() closes the HTTP response"""
+    def test_stop_sets_running_false_with_response(self, stream_listener):
+        """Test stop() sets running flag to False (response is NOT closed from another thread)"""
         stream_listener._running = True
         stream_listener._response = Mock()
         stream_listener._thread = Mock()
@@ -604,7 +604,10 @@ class TestStreamListener:
 
         stream_listener.stop()
 
-        stream_listener._response.close.assert_called_once()
+        # We no longer close response from another thread - it causes crashes
+        # The thread will exit naturally on next timeout
+        assert stream_listener._running is False
+        stream_listener._response.close.assert_not_called()
 
     def test_process_event_keep_alive(self, stream_listener):
         """Test processing keep-alive event"""
@@ -723,28 +726,41 @@ class TestStreamListener:
         listener._process_event("put", data_str)
         callback.assert_called_once()
 
-    def test_stop_with_response_exception(self, stream_listener):
-        """Test stop() handles exception when closing response"""
+    def test_stop_does_not_close_response(self, stream_listener):
+        """Test stop() does NOT close response (to avoid cross-thread crashes)"""
         stream_listener._running = True
         stream_listener._response = Mock()
-        stream_listener._response.close.side_effect = Exception("Close error")
         stream_listener._thread = Mock()
         stream_listener._thread.is_alive.return_value = False
 
-        # Should not raise
         stream_listener.stop()
 
         assert stream_listener._running is False
+        # Response should NOT be closed from stop() - causes crashes
+        stream_listener._response.close.assert_not_called()
+
+    def test_stop_logs_when_thread_still_running(self, stream_listener):
+        """Test stop() logs when thread doesn't finish in time"""
+        stream_listener._running = True
+        stream_listener._thread = Mock()
+        stream_listener._thread.is_alive.return_value = True  # Thread still running
+
+        with patch("services.firebase_client.logger") as mock_logger:
+            stream_listener.stop()
+
+            # Should log that thread is still running
+            assert mock_logger.debug.called
 
     def test_stop_waits_for_thread(self, stream_listener):
-        """Test stop() waits for thread to finish"""
+        """Test stop() waits briefly for thread to finish"""
         stream_listener._running = True
         stream_listener._thread = Mock()
         stream_listener._thread.is_alive.return_value = True
 
         stream_listener.stop()
 
-        stream_listener._thread.join.assert_called_once_with(timeout=2)
+        # Now waits 0.5s instead of 2s to avoid blocking logout
+        stream_listener._thread.join.assert_called_once_with(timeout=0.5)
 
     def test_process_event_null_string_data(self, stream_listener):
         """Test processing event with 'null' as data string"""
@@ -852,3 +868,30 @@ class TestStreamListenerIntegration:
         # Should have tried to connect at least once
         assert call_count[0] >= 1
         error_callback.assert_called()
+
+    def test_listen_loop_handles_read_timeout(self, mock_firebase_client):
+        """Test listen loop handles ReadTimeout and continues"""
+        callback = Mock()
+        listener = StreamListener(
+            firebase_client=mock_firebase_client,
+            path="messages",
+            callback=callback,
+            error_callback=None,
+        )
+
+        call_count = [0]
+
+        def mock_connect():
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise requests.exceptions.ReadTimeout("Read timed out")
+            # Stop after timeout
+            listener._running = False
+
+        listener._connect_and_stream = mock_connect
+        listener._running = True
+
+        listener._listen_loop()
+
+        # Should have been called twice (once for timeout, once to stop)
+        assert call_count[0] >= 1

@@ -33,6 +33,10 @@ class ForceLogoutListener(QThread):
         while self.running:
             try:
                 self._connect_and_stream()
+            except requests.exceptions.ReadTimeout:
+                # This is expected - we use timeout to allow checking self.running
+                logger.debug("Force logout stream read timeout (checking running flag)")
+                continue
             except requests.exceptions.ConnectionError as e:
                 if self.running:
                     logger.warning(
@@ -65,13 +69,15 @@ class ForceLogoutListener(QThread):
         # CRITICAL: Must use Accept: text/event-stream for SSE
         headers = {"Accept": "text/event-stream"}
 
-        # Open SSE streaming connection (no timeout for long-lived connection)
+        # Open SSE streaming connection with read timeout
+        # Using a timeout allows the thread to check self.running periodically
+        # Firebase sends keep-alive every 30s, so 60s timeout is safe
         self._response = requests.get(
             stream_url,
             params=params,
             headers=headers,
             stream=True,
-            timeout=None,  # No timeout - Firebase sends keep-alive
+            timeout=(10, 60),  # 10s connect timeout, 60s read timeout
         )
 
         if self._response.status_code != 200:
@@ -138,13 +144,16 @@ class ForceLogoutListener(QThread):
 
     def stop(self):
         """Stop the listener"""
-        self.running = False
+        logger.debug("ForceLogoutListener.stop() called")
 
-        # Close the response to unblock iter_lines
-        if self._response:
-            try:
-                self._response.close()
-            except Exception:
-                pass
+        # Set running flag - the thread will exit on next timeout or data received
+        self.running = False
+        logger.debug("ForceLogoutListener: running flag set to False")
+
+        # DON'T close the response from another thread - it causes crashes!
+        # The thread will exit naturally when:
+        # 1. It checks self.running after receiving data
+        # 2. The read timeout (60s) occurs and it checks self.running
+        # 3. The connection is closed by the server
 
         logger.info("Force logout listener stop requested")
