@@ -16,9 +16,10 @@
   - Better styling, animations, positioning
   - Different styles for success/warning/error
 
-- [ ] **Session Return Flow** - Improve handling when returning to app during session
-  - Smoother transition from floating timer back to main window
-  - Better state management
+- [x] **Session Return Flow** - Improve handling when returning to app during session
+  - ✅ `return_from_session()` handles smooth transition from floating timer
+  - ✅ Session state properly managed via SessionService
+  - ✅ Home page data refreshed on return
 
 ## 🚀 Features (Planned)
 
@@ -41,9 +42,16 @@
   - Detect browser tabs with YouTube, Netflix via window titles
   - Configurable: warn vs block mode
 
-- [ ] **Color Print Detection** - Detect if print job is color vs B&W
-  - Currently assumes all prints are B&W
-  - Would allow different pricing for color
+- [x] **Color Print Detection** - Detect if print job is color vs B&W
+  - ✅ Uses DEVMODE.Color to detect color vs B&W
+  - ✅ Different pricing for color prints (via org metadata)
+
+## 🏗️ Code Architecture
+
+- [ ] **Design Patterns** - Apply consistent design patterns across the codebase
+  - Identify areas that would benefit from patterns (Factory, Strategy, Observer, etc.)
+  - Refactor services for better separation of concerns
+  - Document patterns used for team consistency
 
 ## ⚡ Performance
 
