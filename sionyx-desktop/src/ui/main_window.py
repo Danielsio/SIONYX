@@ -391,45 +391,83 @@ class MainWindow(BaseKioskWindow):
         """Logout"""
         logger.warning("Logout requested")
 
+        logger.debug("Showing logout confirmation dialog")
         confirmed = self.show_confirm(
             "אשר התנתקות",
             "האם אתה בטוח שברצונך להתנתק?",
             confirm_text="כן, התנתק",
             cancel_text="ביטול",
         )
+        logger.debug(f"Logout confirmation result: {confirmed}")
 
         if confirmed:
             try:
                 # Stop session service first to prevent crashes
+                logger.debug("Stopping session service...")
                 if hasattr(self, "session_service") and self.session_service:
                     self.session_service.end_session("user")
+                    logger.debug("Session service ended")
+                else:
+                    logger.debug("No session service to stop")
 
                 # Stop force logout listener to prevent blocking
+                logger.debug("Stopping force logout listener...")
                 if self.force_logout_listener:
-                    self.force_logout_listener.stop()
-                    self.force_logout_listener.wait(1000)  # Wait up to 1 second
-                    self.force_logout_listener = None
+                    try:
+                        logger.debug("Calling force_logout_listener.stop()...")
+                        self.force_logout_listener.stop()
+                        logger.debug("stop() returned, now waiting (max 500ms)...")
+                        # Don't wait too long - the thread will exit on next timeout
+                        finished = self.force_logout_listener.wait(500)
+                        if finished:
+                            logger.debug("Force logout listener thread finished")
+                        else:
+                            logger.debug(
+                                "Force logout listener still running "
+                                "(will exit on next timeout)"
+                            )
+                        self.force_logout_listener = None
+                        logger.debug("Force logout listener reference cleared")
+                    except Exception as e:
+                        logger.error(f"Error stopping force logout listener: {e}")
+                        logger.exception("Full traceback:")
+                        self.force_logout_listener = None
+                else:
+                    logger.debug("No force logout listener to stop")
 
                 # Clear data from all pages before logout
+                logger.debug("Cleaning up home page...")
                 if hasattr(self.home_page, "cleanup"):
                     self.home_page.cleanup()
+                    logger.debug("Home page cleaned up")
 
+                logger.debug("Clearing history page user data...")
                 if hasattr(self.history_page, "clear_user_data"):
                     self.history_page.clear_user_data()
+                    logger.debug("History page cleared")
 
+                logger.debug("Clearing packages page user data...")
                 if hasattr(self.packages_page, "clear_user_data"):
                     self.packages_page.clear_user_data()
+                    logger.debug("Packages page cleared")
 
                 # Close floating timer if exists
+                logger.debug("Closing floating timer...")
                 if hasattr(self, "floating_timer") and self.floating_timer:
                     self.floating_timer.close()
+                    logger.debug("Floating timer closed")
+                else:
+                    logger.debug("No floating timer to close")
 
+                logger.debug("Calling auth_service.logout()...")
                 self.auth_service.logout()
                 logger.info("User logged out")
 
                 # Hide main window and show auth window instead of closing
+                logger.debug("Hiding main window...")
                 self.hide()
 
+                logger.debug("Creating new AuthWindow...")
                 from ui.auth_window import AuthWindow
 
                 self.auth_window = AuthWindow(self.auth_service)
@@ -437,10 +475,13 @@ class MainWindow(BaseKioskWindow):
                 self.auth_window.login_success.connect(
                     self.show_main_window_after_login
                 )
+                logger.debug("Showing auth window...")
                 self.auth_window.show()
+                logger.debug("Logout complete - auth window shown")
 
             except Exception as e:
                 logger.error(f"Error during logout: {e}")
+                logger.exception("Full logout error traceback:")
                 # Stop force logout listener even on error
                 if self.force_logout_listener:
                     self.force_logout_listener.stop()
@@ -457,6 +498,8 @@ class MainWindow(BaseKioskWindow):
                     self.show_main_window_after_login
                 )
                 self.auth_window.show()
+        else:
+            logger.debug("Logout cancelled by user")
 
     def show_main_window_after_login(self):
         """Show main window after successful login from logout flow"""

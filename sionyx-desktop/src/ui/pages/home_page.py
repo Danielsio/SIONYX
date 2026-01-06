@@ -541,8 +541,27 @@ class HomePage(QWidget):
 
     def cleanup(self):
         """Cleanup"""
+        from utils.logger import get_logger
+
+        logger = get_logger(__name__)
+        logger.debug("HomePage.cleanup() called")
+
+        logger.debug("HomePage: stopping countdown timer...")
         self.countdown_timer.stop()
+        logger.debug("HomePage: countdown timer stopped")
+
         if self.chat_service:
+            logger.debug("HomePage: cleaning up chat service...")
             self.chat_service.cleanup()
+            logger.debug("HomePage: chat service cleaned up")
+        else:
+            logger.debug("HomePage: no chat service to cleanup")
+
         if self.message_modal:
+            logger.debug("HomePage: closing message modal...")
             self.message_modal.close()
+            logger.debug("HomePage: message modal closed")
+        else:
+            logger.debug("HomePage: no message modal to close")
+
+        logger.debug("HomePage.cleanup() completed")

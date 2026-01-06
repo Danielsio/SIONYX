@@ -81,6 +81,16 @@ class SionyxApp:
             self.app.setApplicationName(APP_NAME)
             self.app.setOrganizationName(APP_NAME)
 
+            # Set application icon (for taskbar on Windows)
+            from PyQt6.QtGui import QIcon
+
+            from ui.base_window import get_app_icon_path
+
+            icon_path = get_app_icon_path()
+            if icon_path:
+                self.app.setWindowIcon(QIcon(icon_path))
+                logger.debug(f"Application icon set from: {icon_path}")
+
             # Check if .env file exists, if not show error
             # Look in repo root (parent of sionyx-desktop) or current directory
             repo_root = Path(__file__).parent.parent.parent

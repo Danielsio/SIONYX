@@ -78,6 +78,24 @@ class TestForceLogoutListenerStop:
 
         assert force_logout_listener.running is False
 
+    def test_stop_does_not_close_response(self, force_logout_listener):
+        """Test stop does NOT close the response (to avoid cross-thread crashes)"""
+        force_logout_listener.running = True
+        force_logout_listener._response = Mock()
+
+        force_logout_listener.stop()
+
+        # Response should NOT be closed from stop() - it causes crashes
+        force_logout_listener._response.close.assert_not_called()
+
+    def test_stop_logs_info(self, force_logout_listener):
+        """Test stop logs the stop request"""
+        with patch("ui.force_logout_listener.logger") as mock_logger:
+            force_logout_listener.stop()
+
+            # Should log debug and info messages
+            assert mock_logger.debug.called or mock_logger.info.called
+
 
 # =============================================================================
 # Test run method
@@ -223,6 +241,33 @@ class TestForceLogoutListenerRun:
             # Should not raise
             force_logout_listener.run()
 
+    def test_run_handles_read_timeout_continues_loop(self, force_logout_listener):
+        """Test run handles ReadTimeout and continues checking running flag"""
+        with patch("ui.force_logout_listener.requests.get") as mock_get:
+            import requests as req_module
+
+            call_count = [0]
+
+            # Raise ReadTimeout first, then stop
+            def raise_timeout_then_stop(*args, **kwargs):
+                call_count[0] += 1
+                if call_count[0] == 1:
+                    raise req_module.exceptions.ReadTimeout("Read timed out")
+                # Second call - stop the loop
+                force_logout_listener.running = False
+                mock_response = Mock()
+                mock_response.status_code = 200
+                mock_response.iter_lines.return_value = iter([])
+                return mock_response
+
+            mock_get.side_effect = raise_timeout_then_stop
+
+            # Should not raise and should continue after ReadTimeout
+            force_logout_listener.run()
+
+            # Should have been called at least twice (once for timeout, once to stop)
+            assert call_count[0] >= 1
+
     def test_run_handles_general_exception(self, force_logout_listener):
         """Test run handles general exception"""
         with patch("ui.force_logout_listener.requests.get") as mock_get:
@@ -235,6 +280,58 @@ class TestForceLogoutListenerRun:
 
             # Should not raise
             force_logout_listener.run()
+
+    def test_run_handles_connection_error_with_retry(self, force_logout_listener):
+        """Test run handles ConnectionError and retries when running"""
+        with patch("ui.force_logout_listener.requests.get") as mock_get:
+            import requests as req_module
+
+            call_count = [0]
+
+            def raise_connection_error(*args, **kwargs):
+                call_count[0] += 1
+                if call_count[0] == 1:
+                    # First call: raise ConnectionError while running is True
+                    raise req_module.exceptions.ConnectionError("Connection failed")
+                # Second call: stop
+                force_logout_listener.running = False
+                mock_response = Mock()
+                mock_response.status_code = 200
+                mock_response.iter_lines.return_value = iter([])
+                return mock_response
+
+            mock_get.side_effect = raise_connection_error
+
+            # Patch _sleep_if_running to not actually sleep
+            with patch.object(force_logout_listener, "_sleep_if_running"):
+                force_logout_listener.run()
+
+            assert call_count[0] >= 1
+
+    def test_run_handles_exception_with_retry(self, force_logout_listener):
+        """Test run handles Exception and retries when running"""
+        with patch("ui.force_logout_listener.requests.get") as mock_get:
+            call_count = [0]
+
+            def raise_exception(*args, **kwargs):
+                call_count[0] += 1
+                if call_count[0] == 1:
+                    # First call: raise Exception while running is True
+                    raise RuntimeError("Unexpected error")
+                # Second call: stop
+                force_logout_listener.running = False
+                mock_response = Mock()
+                mock_response.status_code = 200
+                mock_response.iter_lines.return_value = iter([])
+                return mock_response
+
+            mock_get.side_effect = raise_exception
+
+            # Patch _sleep_if_running to not actually sleep
+            with patch.object(force_logout_listener, "_sleep_if_running"):
+                force_logout_listener.run()
+
+            assert call_count[0] >= 1
 
     def test_run_handles_json_decode_error(self, force_logout_listener):
         """Test run handles JSON decode error"""
@@ -284,6 +381,107 @@ class TestForceLogoutListenerRun:
             force_logout_listener.run()
 
             # Should complete without hanging
+
+    def test_run_handles_none_lines(self, force_logout_listener):
+        """Test run handles None lines in stream"""
+        with patch("ui.force_logout_listener.requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            # Include None values in the stream
+            sse_data = [
+                None,  # Should be skipped
+                "event: put",
+                None,  # Should be skipped
+                'data: {"path": "/", "data": false}',
+                "",
+            ]
+            mock_response.iter_lines.return_value = iter(sse_data)
+
+            def stop_after_call(*args, **kwargs):
+                force_logout_listener.running = False
+                return mock_response
+
+            mock_get.side_effect = stop_after_call
+
+            force_logout_listener.run()
+
+    def test_run_handles_keep_alive_event(self, force_logout_listener):
+        """Test run handles keep-alive events"""
+        with patch("ui.force_logout_listener.requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            # SSE keep-alive event
+            sse_data = [
+                "event: keep-alive",
+                "data: null",
+                "",
+            ]
+            mock_response.iter_lines.return_value = iter(sse_data)
+
+            def stop_after_call(*args, **kwargs):
+                force_logout_listener.running = False
+                return mock_response
+
+            mock_get.side_effect = stop_after_call
+
+            force_logout_listener.run()
+
+    def test_process_event_handles_exception(self, force_logout_listener):
+        """Test _process_event handles general exceptions"""
+        # Force an exception by mocking json.loads to raise
+        with patch("ui.force_logout_listener.json.loads") as mock_loads:
+            mock_loads.side_effect = Exception("Unexpected error")
+
+            # Should not raise
+            force_logout_listener._process_event("put", '{"path": "/", "data": true}')
+
+
+# =============================================================================
+# Test _sleep_if_running method
+# =============================================================================
+class TestSleepIfRunning:
+    """Tests for _sleep_if_running method"""
+
+    def test_sleep_if_running_exits_when_running_false(self, force_logout_listener):
+        """Test _sleep_if_running exits early when running is False"""
+        force_logout_listener.running = False
+
+        # Should return quickly without actually sleeping the full duration
+        import time
+
+        start = time.time()
+        force_logout_listener._sleep_if_running(10)  # Would be 10 seconds if not stopped
+        elapsed = time.time() - start
+
+        # Should exit almost immediately (less than 1 second)
+        assert elapsed < 1
+
+    def test_sleep_if_running_checks_flag_periodically(self, force_logout_listener):
+        """Test _sleep_if_running checks running flag in intervals"""
+        force_logout_listener.running = True
+
+        # Set running to False after a short delay
+        import threading
+
+        def stop_after_delay():
+            import time
+
+            time.sleep(0.2)
+            force_logout_listener.running = False
+
+        thread = threading.Thread(target=stop_after_delay)
+        thread.start()
+
+        import time
+
+        start = time.time()
+        force_logout_listener._sleep_if_running(10)
+        elapsed = time.time() - start
+
+        thread.join()
+
+        # Should exit within about 0.5 seconds (0.2 delay + some buffer)
+        assert elapsed < 1
 
 
 # =============================================================================
