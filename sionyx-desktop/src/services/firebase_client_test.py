@@ -536,15 +536,25 @@ class TestStreamListener:
 
     @pytest.fixture
     def stream_listener(self, mock_firebase_client):
-        """Create a StreamListener for testing"""
+        """Create a StreamListener for testing with proper cleanup"""
         callback = Mock()
         error_callback = Mock()
-        return StreamListener(
+        listener = StreamListener(
             firebase_client=mock_firebase_client,
             path="messages",
             callback=callback,
             error_callback=error_callback,
         )
+        yield listener
+        # Cleanup: ensure the listener is stopped after each test
+        listener._running = False
+        if listener._response:
+            try:
+                listener._response.close()
+            except Exception:
+                pass
+        if listener._thread and listener._thread.is_alive():
+            listener._thread.join(timeout=1)
 
     def test_initialization(self, stream_listener, mock_firebase_client):
         """Test StreamListener initialization"""
@@ -562,8 +572,8 @@ class TestStreamListener:
             assert stream_listener._running is True
             assert stream_listener._thread is not None
 
-            # Cleanup
-            stream_listener._running = False
+            # Cleanup - properly stop the listener
+            stream_listener.stop()
 
     def test_start_when_already_running(self, stream_listener):
         """Test start() does nothing if already running"""
@@ -775,7 +785,23 @@ class TestStreamListenerIntegration:
             client.id_token = "test-token"
             client.refresh_token = "test-refresh"
             client.token_expiry = datetime.now() + timedelta(hours=1)
-            return client
+            yield client
+
+    @pytest.fixture
+    def stream_listener_integration(self, mock_firebase_client):
+        """Create a StreamListener for integration testing with cleanup"""
+        callback = Mock()
+        listener = StreamListener(
+            firebase_client=mock_firebase_client,
+            path="messages",
+            callback=callback,
+            error_callback=None,
+        )
+        yield listener
+        # Cleanup
+        listener._running = False
+        if listener._thread and listener._thread.is_alive():
+            listener._thread.join(timeout=1)
 
     def test_listen_loop_exits_when_stopped(self, mock_firebase_client):
         """Test listen loop exits when _running is set to False"""
