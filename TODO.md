@@ -49,9 +49,45 @@
 ## 🏗️ Code Architecture
 
 - [ ] **Design Patterns** - Apply consistent design patterns across the codebase
-  - Identify areas that would benefit from patterns (Factory, Strategy, Observer, etc.)
-  - Refactor services for better separation of concerns
-  - Document patterns used for team consistency
+
+  ### 1. ✅ Singleton Pattern - FirebaseClient (DONE)
+  - ✅ `FirebaseClient` now uses Singleton pattern
+  - ✅ `__new__` controls instance creation, returns same object
+  - ✅ Thread-safe with `_lock` for concurrent access
+  - ✅ `get_instance()` method for explicit singleton access
+  - ✅ `reset_instance()` for testing
+  - File: `services/firebase_client.py`
+
+  ### 2. Factory Pattern - Service Creation
+  - Services are created manually in `main.py`, `AuthService`, `MainWindow`
+  - Create `ServiceFactory` to centralize service instantiation
+  - Benefits: dependency injection, easier testing, single source of truth
+
+  ### 3. Strategy Pattern - Print Pricing
+  - Currently `_calculate_cost()` has hardcoded B&W vs Color logic
+  - Could support: student discounts, bulk pricing, time-based rates
+  - File: `services/print_monitor_service.py`
+
+  ### 4. State Pattern - Session States
+  - `SessionService` uses boolean flags (`is_active`, `warned_5min`, etc.)
+  - States: Inactive → Active → Warning → Critical → Expired
+  - Cleaner transitions, each state handles its own behavior
+
+  ### 5. Command Pattern - User Actions
+  - Actions like start_session, end_session, logout could be Command objects
+  - Benefits: undo/redo capability, action history, command queuing
+  - Useful for offline-first features
+
+  ### 6. Decorator Pattern - Cross-Cutting Concerns
+  - `require_authentication()` is called manually in every method
+  - Create decorators: `@authenticated`, `@log_operation`, `@handle_errors`
+  - Reduces boilerplate, ensures consistency
+
+  ### 7. Event Bus - Centralized Events
+  - Currently signals are scattered across services
+  - Create `EventBus` singleton for app-wide events
+  - Events: USER_LOGGED_IN, SESSION_STARTED, PRINT_COMPLETED, etc.
+  - Better decoupling between components
 
 ## ⚡ Performance
 

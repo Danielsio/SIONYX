@@ -1,5 +1,27 @@
 """
 Firebase Client - Realtime Database + Authentication
+
+DESIGN PATTERN: Singleton
+========================
+This class uses the Singleton pattern to ensure only ONE instance exists.
+
+WHY SINGLETON HERE?
+- FirebaseClient holds authentication state (id_token, user_id, etc.)
+- Multiple instances would have different auth states = bugs!
+- All services need to share the SAME authenticated connection
+
+HOW IT WORKS:
+1. _instance: Class variable that stores the single instance
+2. _lock: Thread lock to prevent race conditions
+3. __new__: Called BEFORE __init__, controls object creation
+4. If _instance exists, return it; otherwise create new one
+
+USAGE:
+    # All of these return the SAME instance:
+    client1 = FirebaseClient()
+    client2 = FirebaseClient()
+    client3 = FirebaseClient.get_instance()
+    assert client1 is client2 is client3  # True!
 """
 
 import json
@@ -18,9 +40,63 @@ logger = get_logger(__name__)
 
 
 class FirebaseClient:
-    """Firebase REST API client for Realtime Database"""
+    """
+    Firebase REST API client for Realtime Database.
+
+    This is a SINGLETON - only one instance will ever exist.
+    Use FirebaseClient() or FirebaseClient.get_instance() to get it.
+    """
+
+    # ==================== SINGLETON PATTERN ====================
+    #
+    # These are CLASS variables (shared by all instances)
+    # _instance: Holds the ONE instance of this class
+    # _lock: Prevents two threads from creating instances simultaneously
+    # _initialized: Prevents __init__ from running multiple times
+    #
+    _instance: Optional["FirebaseClient"] = None
+    _lock: threading.Lock = threading.Lock()
+    _initialized: bool = False
+
+    def __new__(cls) -> "FirebaseClient":
+        """
+        Control instance creation - this is called BEFORE __init__.
+
+        __new__ is responsible for CREATING the object.
+        __init__ is responsible for INITIALIZING the object.
+
+        By overriding __new__, we can return an existing instance
+        instead of creating a new one.
+        """
+        # Fast path: instance already exists, just return it
+        # (no lock needed for reading)
+        if cls._instance is not None:
+            return cls._instance
+
+        # Slow path: need to create instance
+        # Use lock to prevent race condition where two threads
+        # both see _instance as None and both try to create
+        with cls._lock:
+            # Double-check inside lock (another thread might have created it)
+            if cls._instance is None:
+                # Actually create the instance using parent's __new__
+                cls._instance = super().__new__(cls)
+                logger.debug("FirebaseClient singleton instance created")
+
+        return cls._instance
 
     def __init__(self):
+        """
+        Initialize the Firebase client.
+
+        NOTE: __init__ is called every time FirebaseClient() is used,
+        even when returning existing instance. We use _initialized flag
+        to ensure we only set up the client ONCE.
+        """
+        # Skip if already initialized (singleton protection)
+        if FirebaseClient._initialized:
+            return
+
         config = get_firebase_config()
         self.api_key = config.api_key
         self.database_url = config.database_url
@@ -35,11 +111,40 @@ class FirebaseClient:
         self.token_expiry = None
         self.user_id = None
 
+        # Mark as initialized BEFORE logging (in case logging uses Firebase)
+        FirebaseClient._initialized = True
+
         logger.info(
-            "Firebase client initialized",
+            "Firebase client initialized (singleton)",
             org_id=self.org_id,
             component="firebase_client",
         )
+
+    @classmethod
+    def get_instance(cls) -> "FirebaseClient":
+        """
+        Alternative way to get the singleton instance.
+
+        This is more explicit than FirebaseClient() and makes
+        the singleton pattern obvious to readers.
+
+        Returns:
+            The single FirebaseClient instance
+        """
+        return cls()
+
+    @classmethod
+    def reset_instance(cls) -> None:
+        """
+        Reset the singleton instance - FOR TESTING ONLY.
+
+        This allows tests to start fresh with a new instance.
+        Never use this in production code!
+        """
+        with cls._lock:
+            cls._instance = None
+            cls._initialized = False
+            logger.debug("FirebaseClient singleton reset (testing)")
 
     # ==================== AUTHENTICATION ====================
 
