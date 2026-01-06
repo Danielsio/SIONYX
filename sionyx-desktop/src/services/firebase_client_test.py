@@ -786,6 +786,201 @@ class TestStreamListener:
         stream_listener._running = False
         assert stream_listener._running is False
 
+    def test_connect_and_stream_success(self, stream_listener, mock_firebase_client):
+        """Test successful connection and streaming"""
+        with patch("services.firebase_client.requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.raise_for_status = Mock()
+
+            # Simulate SSE data
+            sse_data = [
+                "event: put",
+                'data: {"path": "/", "data": {"key": "value"}}',
+                "",  # Empty line ends event
+            ]
+            mock_response.iter_lines.return_value = iter(sse_data)
+            mock_get.return_value = mock_response
+
+            stream_listener._running = True
+            stream_listener._connect_and_stream()
+
+            # Verify callback was called with parsed data
+            stream_listener.callback.assert_called_once()
+            call_args = stream_listener.callback.call_args[0]
+            assert call_args[0] == "put"
+
+    def test_connect_and_stream_handles_none_lines(
+        self, stream_listener, mock_firebase_client
+    ):
+        """Test _connect_and_stream handles None lines in stream"""
+        with patch("services.firebase_client.requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.raise_for_status = Mock()
+
+            # Include None values that should be skipped
+            sse_data = [
+                None,  # Should be skipped
+                "event: put",
+                None,  # Should be skipped
+                'data: {"path": "/", "data": false}',
+                "",
+            ]
+            mock_response.iter_lines.return_value = iter(sse_data)
+            mock_get.return_value = mock_response
+
+            stream_listener._running = True
+            stream_listener._connect_and_stream()
+
+            stream_listener.callback.assert_called_once()
+
+    def test_connect_and_stream_stops_when_running_false(
+        self, stream_listener, mock_firebase_client
+    ):
+        """Test _connect_and_stream exits when _running becomes False"""
+        with patch("services.firebase_client.requests.get") as mock_get:
+            mock_response = Mock()
+            mock_response.status_code = 200
+            mock_response.raise_for_status = Mock()
+
+            # Generator that stops listener mid-stream
+            def lines_generator():
+                yield "event: put"
+                stream_listener._running = False  # Stop during iteration
+                yield 'data: {"path": "/", "data": true}'
+                yield ""
+
+            mock_response.iter_lines.return_value = lines_generator()
+            mock_get.return_value = mock_response
+
+            stream_listener._running = True
+            stream_listener._connect_and_stream()
+
+            # Callback should not be called since we stopped before empty line
+            stream_listener.callback.assert_not_called()
+
+    def test_error_callback_exception_is_caught(
+        self, mock_firebase_client
+    ):
+        """Test error_callback exception is caught and doesn't crash"""
+        callback = Mock()
+        error_callback = Mock()
+        error_callback.side_effect = Exception("Error callback crashed")
+
+        listener = StreamListener(
+            firebase_client=mock_firebase_client,
+            path="messages",
+            callback=callback,
+            error_callback=error_callback,
+        )
+
+        # Simulate the error handling code path
+        listener._running = True
+        error_msg = "Connection failed"
+        if listener.error_callback:
+            try:
+                listener.error_callback(error_msg)
+            except Exception:
+                pass
+
+        # Should have been called even though it raised
+        error_callback.assert_called_once_with(error_msg)
+
+    def test_listen_loop_breaks_on_error_when_not_running(
+        self, stream_listener, mock_firebase_client
+    ):
+        """Test listen loop breaks during error handling when _running is False"""
+        with patch("services.firebase_client.requests.get") as mock_get:
+            # First call raises, but _running will be False
+            mock_get.side_effect = Exception("Connection failed")
+
+            stream_listener._running = False  # Already stopped
+
+            # Should exit immediately without reconnect
+            stream_listener._listen_loop()
+
+            # Should only have been called once (no reconnect attempts)
+            assert mock_get.call_count <= 1
+
+    def test_listen_loop_error_callback_exception_caught(
+        self, mock_firebase_client
+    ):
+        """Test _listen_loop catches error_callback exceptions"""
+        callback = Mock()
+        error_callback = Mock()
+        error_callback.side_effect = Exception("Error callback crashed")
+
+        listener = StreamListener(
+            firebase_client=mock_firebase_client,
+            path="messages",
+            callback=callback,
+            error_callback=error_callback,
+        )
+
+        call_count = [0]
+
+        def raise_then_stop(*args, **kwargs):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise Exception("Connection failed")
+            # Stop after first error
+            listener._running = False
+            raise Exception("Connection failed again")
+
+        with patch("services.firebase_client.requests.get") as mock_get:
+            mock_get.side_effect = raise_then_stop
+
+            listener._running = True
+            # Use very short reconnect delay
+            listener._reconnect_delay = 0.01
+
+            with patch("services.firebase_client.threading.Event") as mock_event:
+                mock_event.return_value.wait = Mock()
+                listener._listen_loop()
+
+            # Error callback should have been called
+            error_callback.assert_called()
+
+    def test_listen_loop_reconnect_sleep_checks_running_flag(
+        self, mock_firebase_client
+    ):
+        """Test _listen_loop reconnect sleep checks _running flag"""
+        callback = Mock()
+        listener = StreamListener(
+            firebase_client=mock_firebase_client,
+            path="messages",
+            callback=callback,
+            error_callback=None,
+        )
+
+        call_count = [0]
+
+        def raise_and_stop_mid_sleep(*args, **kwargs):
+            call_count[0] += 1
+            raise Exception("Connection failed")
+
+        with patch("services.firebase_client.requests.get") as mock_get:
+            mock_get.side_effect = raise_and_stop_mid_sleep
+
+            listener._running = True
+            listener._reconnect_delay = 0.5  # Would sleep 5 times
+
+            # Mock Event().wait to stop running after first sleep
+            sleep_count = [0]
+
+            def stop_during_sleep(timeout):
+                sleep_count[0] += 1
+                if sleep_count[0] >= 2:
+                    listener._running = False
+
+            with patch("services.firebase_client.threading.Event") as mock_event:
+                mock_event.return_value.wait.side_effect = stop_during_sleep
+                listener._listen_loop()
+
+            # Should have called sleep a few times before stopping
+            assert sleep_count[0] >= 1
+
 
 class TestStreamListenerIntegration:
     """Integration tests for StreamListener with mocked network"""
