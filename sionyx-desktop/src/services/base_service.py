@@ -4,12 +4,23 @@ Base Service Class - Common functionality for all services.
 This module provides a base class that eliminates code duplication
 across all service classes and provides consistent error handling,
 logging, and response formatting.
+
+DESIGN PATTERNS USED:
+- Template Method: Base class defines structure, subclasses fill in details
+- Decorator Pattern: @authenticated, @log_operation, @handle_firebase_errors
+  (see services/decorators.py for decorator implementations)
 """
 
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from services.decorators import (
+    authenticated,
+    handle_firebase_errors,
+    log_operation,
+    service_method,
+)
 from services.firebase_client import FirebaseClient
 from utils.logger import get_logger
 
@@ -158,151 +169,97 @@ class DatabaseService(BaseService):
     def get_collection_name(self) -> str:
         """Return the collection name for this service"""
 
+    @service_method("get document")
     def get_document(self, doc_id: str) -> Dict[str, Any]:
         """Get a single document by ID"""
-        self.log_operation("get_document", f"ID: {doc_id}")
+        # All boilerplate handled by @service_method:
+        # - Logging ✓
+        # - Auth check ✓
+        # - Error handling ✓
+        result = self.firebase.db_get(f"{self.collection_name}/{doc_id}")
 
-        auth_error = self.require_authentication()
-        if auth_error:
-            return auth_error
+        if result.get("success"):
+            return self.create_success_response(result.get("data"))
+        else:
+            return self.create_error_response(result.get("error", "Unknown error"))
 
-        try:
-            result = self.firebase.db_get(f"{self.collection_name}/{doc_id}")
-
-            if result.get("success"):
-                return self.create_success_response(result.get("data"))
-            else:
-                return self.create_error_response(result.get("error", "Unknown error"))
-
-        except Exception as e:
-            return self.handle_firebase_error(e, f"get document {doc_id}")
-
+    @service_method("get all documents")
     def get_all_documents(self) -> Dict[str, Any]:
         """Get all documents in collection"""
-        self.log_operation("get_all_documents", f"Collection: {self.collection_name}")
+        result = self.firebase.db_get(self.collection_name)
 
-        auth_error = self.require_authentication()
-        if auth_error:
-            return auth_error
+        if result.get("success"):
+            data = result.get("data") or {}  # Handle None case
+            # Convert Firebase dict to list with IDs
+            documents = []
+            for doc_id, doc_data in data.items():
+                doc_data["id"] = doc_id
+                documents.append(doc_data)
 
-        try:
-            result = self.firebase.db_get(self.collection_name)
+            return self.create_success_response(documents)
+        else:
+            return self.create_error_response(result.get("error", "Unknown error"))
 
-            if result.get("success"):
-                data = result.get("data") or {}  # Handle None case
-                # Convert Firebase dict to list with IDs
-                documents = []
-                for doc_id, doc_data in data.items():
-                    doc_data["id"] = doc_id
-                    documents.append(doc_data)
-
-                return self.create_success_response(documents)
-            else:
-                return self.create_error_response(result.get("error", "Unknown error"))
-
-        except Exception as e:
-            return self.handle_firebase_error(
-                e, f"get all documents from {self.collection_name}"
-            )
-
+    @service_method("create document")
     def create_document(
         self, data: Dict[str, Any], doc_id: str = None
     ) -> Dict[str, Any]:
         """Create a new document"""
-        self.log_operation("create_document", f"Collection: {self.collection_name}")
+        # Add timestamp
+        data["createdAt"] = self.format_timestamp()
+        data["updatedAt"] = self.format_timestamp()
 
-        auth_error = self.require_authentication()
-        if auth_error:
-            return auth_error
+        if doc_id:
+            path = f"{self.collection_name}/{doc_id}"
+            result = self.firebase.db_set(path, data)
+        else:
+            path = f"{self.collection_name}"
+            result = self.firebase.db_push(path, data)
 
-        try:
-            # Add timestamp
-            data["createdAt"] = self.format_timestamp()
-            data["updatedAt"] = self.format_timestamp()
+        if result.get("success"):
+            created_id = result.get("name") if not doc_id else doc_id
+            return self.create_success_response({"id": created_id, "data": data})
+        else:
+            return self.create_error_response(result.get("error", "Unknown error"))
 
-            if doc_id:
-                path = f"{self.collection_name}/{doc_id}"
-                result = self.firebase.db_set(path, data)
-            else:
-                path = f"{self.collection_name}"
-                result = self.firebase.db_push(path, data)
-
-            if result.get("success"):
-                created_id = result.get("name") if not doc_id else doc_id
-                return self.create_success_response({"id": created_id, "data": data})
-            else:
-                return self.create_error_response(result.get("error", "Unknown error"))
-
-        except Exception as e:
-            return self.handle_firebase_error(
-                e, f"create document in {self.collection_name}"
-            )
-
+    @service_method("update document")
     def update_document(self, doc_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
         """Update an existing document"""
-        self.log_operation("update_document", f"ID: {doc_id}")
+        # Add update timestamp
+        updates["updatedAt"] = self.format_timestamp()
 
-        auth_error = self.require_authentication()
-        if auth_error:
-            return auth_error
+        result = self.firebase.db_update(
+            f"{self.collection_name}/{doc_id}", updates
+        )
 
-        try:
-            # Add update timestamp
-            updates["updatedAt"] = self.format_timestamp()
+        if result.get("success"):
+            return self.create_success_response({"id": doc_id, "updates": updates})
+        else:
+            return self.create_error_response(result.get("error", "Unknown error"))
 
-            result = self.firebase.db_update(
-                f"{self.collection_name}/{doc_id}", updates
-            )
-
-            if result.get("success"):
-                return self.create_success_response({"id": doc_id, "updates": updates})
-            else:
-                return self.create_error_response(result.get("error", "Unknown error"))
-
-        except Exception as e:
-            return self.handle_firebase_error(e, f"update document {doc_id}")
-
+    @service_method("delete document")
     def delete_document(self, doc_id: str) -> Dict[str, Any]:
         """Delete a document"""
-        self.log_operation("delete_document", f"ID: {doc_id}")
+        result = self.firebase.db_delete(f"{self.collection_name}/{doc_id}")
 
-        auth_error = self.require_authentication()
-        if auth_error:
-            return auth_error
+        if result.get("success"):
+            return self.create_success_response({"id": doc_id})
+        else:
+            return self.create_error_response(result.get("error", "Unknown error"))
 
-        try:
-            result = self.firebase.db_delete(f"{self.collection_name}/{doc_id}")
-
-            if result.get("success"):
-                return self.create_success_response({"id": doc_id})
-            else:
-                return self.create_error_response(result.get("error", "Unknown error"))
-
-        except Exception as e:
-            return self.handle_firebase_error(e, f"delete document {doc_id}")
-
+    @service_method("query documents")
     def query_documents(self, field: str, value: Any) -> Dict[str, Any]:
         """Query documents by field value"""
-        self.log_operation("query_documents", f"Field: {field}, Value: {value}")
+        # Get all documents and filter
+        result = self.get_all_documents()
 
-        auth_error = self.require_authentication()
-        if auth_error:
-            return auth_error
+        if not result.get("success"):
+            return result
 
-        try:
-            # Get all documents and filter
-            result = self.get_all_documents()
+        documents = result.get("data", [])
+        filtered = [doc for doc in documents if doc.get(field) == value]
 
-            if not result.get("success"):
-                return result
-
-            documents = result.get("data", [])
-            filtered = [doc for doc in documents if doc.get(field) == value]
-
-            return self.create_success_response(filtered)
-
-        except Exception as e:
-            return self.handle_firebase_error(e, f"query documents by {field}")
+        return self.create_success_response(filtered)
 
     def get_service_name(self) -> str:
         """Return service name for logging"""

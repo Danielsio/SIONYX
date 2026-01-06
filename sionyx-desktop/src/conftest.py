@@ -33,18 +33,26 @@ def mock_firebase_config():
 
 
 @pytest.fixture(autouse=True)
-def reset_firebase_singleton():
+def reset_firebase_singleton(qapp):
     """
     Reset FirebaseClient singleton before each test.
 
     This ensures each test starts with a fresh instance.
     autouse=True means this runs automatically for every test.
+
+    Also processes pending Qt events to prevent timer leaks between tests.
     """
+    # Process any pending Qt events from previous tests
+    qapp.processEvents()
+
     # Reset before test
     FirebaseClient.reset_instance()
     yield
     # Reset after test (cleanup)
     FirebaseClient.reset_instance()
+
+    # Process any pending Qt events to flush timers
+    qapp.processEvents()
 
 
 @pytest.fixture
