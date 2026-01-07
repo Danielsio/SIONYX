@@ -860,9 +860,7 @@ class TestStreamListener:
             # Callback should not be called since we stopped before empty line
             stream_listener.callback.assert_not_called()
 
-    def test_error_callback_exception_is_caught(
-        self, mock_firebase_client
-    ):
+    def test_error_callback_exception_is_caught(self, mock_firebase_client):
         """Test error_callback exception is caught and doesn't crash"""
         callback = Mock()
         error_callback = Mock()
@@ -903,9 +901,7 @@ class TestStreamListener:
             # Should only have been called once (no reconnect attempts)
             assert mock_get.call_count <= 1
 
-    def test_listen_loop_error_callback_exception_caught(
-        self, mock_firebase_client
-    ):
+    def test_listen_loop_error_callback_exception_caught(self, mock_firebase_client):
         """Test _listen_loop catches error_callback exceptions"""
         callback = Mock()
         error_callback = Mock()

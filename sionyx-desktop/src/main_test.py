@@ -2,8 +2,9 @@
 Tests for main application module
 """
 
+from unittest.mock import MagicMock, PropertyMock, patch
+
 import pytest
-from unittest.mock import MagicMock, patch, PropertyMock
 
 
 class TestSionyxApp:
@@ -19,7 +20,9 @@ class TestSionyxApp:
         mock_qapp = patches["qapp"].start()
         mock_app = MagicMock()
         mock_qapp.return_value = mock_app
-        mock_qapp.primaryScreen.return_value.geometry.return_value.center.return_value = MagicMock()
+        mock_qapp.primaryScreen.return_value.geometry.return_value.center.return_value = (
+            MagicMock()
+        )
 
         # Mock AuthService
         patches["auth_service"] = patch("main.AuthService")
@@ -60,7 +63,9 @@ class TestSionyxApp:
         patches["path_exists"].start()
 
         # Mock get_app_icon_path (imported inside __init__)
-        patches["icon_path"] = patch("ui.base_window.get_app_icon_path", return_value="icon.ico")
+        patches["icon_path"] = patch(
+            "ui.base_window.get_app_icon_path", return_value="icon.ico"
+        )
         patches["icon_path"].start()
 
         # Mock QIcon (imported inside __init__)
@@ -92,7 +97,7 @@ class TestSionyxApp:
 
     def test_init_starts_hotkey_service(self, mock_dependencies):
         """Should initialize and start global hotkey service."""
-        from main import SionyxApp, GlobalHotkeyService
+        from main import GlobalHotkeyService, SionyxApp
 
         sionyx = SionyxApp()
 
@@ -101,7 +106,11 @@ class TestSionyxApp:
 
     def test_init_starts_kiosk_services_when_enabled(self, mock_dependencies):
         """Should start keyboard and process restriction when kiosk mode enabled."""
-        from main import SionyxApp, KeyboardRestrictionService, ProcessRestrictionService
+        from main import (
+            KeyboardRestrictionService,
+            ProcessRestrictionService,
+            SionyxApp,
+        )
 
         sionyx = SionyxApp(kiosk_mode=True)
 
@@ -110,7 +119,11 @@ class TestSionyxApp:
 
     def test_init_does_not_start_kiosk_services_when_disabled(self, mock_dependencies):
         """Should not start kiosk services when kiosk mode disabled."""
-        from main import SionyxApp, KeyboardRestrictionService, ProcessRestrictionService
+        from main import (
+            KeyboardRestrictionService,
+            ProcessRestrictionService,
+            SionyxApp,
+        )
 
         sionyx = SionyxApp(kiosk_mode=False)
 
@@ -119,7 +132,7 @@ class TestSionyxApp:
 
     def test_init_shows_auth_window_when_not_logged_in(self, mock_dependencies):
         """Should show auth window when user not logged in."""
-        from main import SionyxApp, AuthWindow
+        from main import AuthWindow, SionyxApp
 
         SionyxApp()
 
@@ -127,7 +140,7 @@ class TestSionyxApp:
 
     def test_init_shows_main_window_when_logged_in(self, mock_dependencies):
         """Should show main window when user already logged in."""
-        from main import SionyxApp, AuthService, MainWindow
+        from main import AuthService, MainWindow, SionyxApp
 
         AuthService.return_value.is_logged_in.return_value = True
 
@@ -143,6 +156,7 @@ class TestSionyxAppMethods:
     def sionyx_app(self, mock_dependencies):
         """Create a SionyxApp instance with mocked dependencies."""
         from main import SionyxApp
+
         return SionyxApp()
 
     @pytest.fixture
@@ -154,7 +168,9 @@ class TestSionyxAppMethods:
         mock_qapp = patches["qapp"].start()
         mock_app = MagicMock()
         mock_qapp.return_value = mock_app
-        mock_qapp.primaryScreen.return_value.geometry.return_value.center.return_value = MagicMock()
+        mock_qapp.primaryScreen.return_value.geometry.return_value.center.return_value = (
+            MagicMock()
+        )
 
         patches["auth_service"] = patch("main.AuthService")
         mock_auth_service = patches["auth_service"].start()
@@ -186,7 +202,9 @@ class TestSionyxAppMethods:
         patches["path_exists"] = patch("main.Path.exists", return_value=True)
         patches["path_exists"].start()
 
-        patches["icon_path"] = patch("ui.base_window.get_app_icon_path", return_value="icon.ico")
+        patches["icon_path"] = patch(
+            "ui.base_window.get_app_icon_path", return_value="icon.ico"
+        )
         patches["icon_path"].start()
 
         patches["qicon"] = patch("PyQt6.QtGui.QIcon")
@@ -285,7 +303,9 @@ class TestStartKioskServices:
         mock_qapp = patches["qapp"].start()
         mock_app = MagicMock()
         mock_qapp.return_value = mock_app
-        mock_qapp.primaryScreen.return_value.geometry.return_value.center.return_value = MagicMock()
+        mock_qapp.primaryScreen.return_value.geometry.return_value.center.return_value = (
+            MagicMock()
+        )
 
         patches["auth_service"] = patch("main.AuthService")
         mock_auth_service = patches["auth_service"].start()
@@ -317,7 +337,9 @@ class TestStartKioskServices:
         patches["path_exists"] = patch("main.Path.exists", return_value=True)
         patches["path_exists"].start()
 
-        patches["icon_path"] = patch("ui.base_window.get_app_icon_path", return_value="icon.ico")
+        patches["icon_path"] = patch(
+            "ui.base_window.get_app_icon_path", return_value="icon.ico"
+        )
         patches["icon_path"].start()
 
         patches["qicon"] = patch("PyQt6.QtGui.QIcon")
@@ -330,7 +352,7 @@ class TestStartKioskServices:
 
     def test_start_kiosk_services_handles_exception(self, mock_dependencies):
         """Should handle exceptions when starting kiosk services."""
-        from main import SionyxApp, KeyboardRestrictionService
+        from main import KeyboardRestrictionService, SionyxApp
 
         KeyboardRestrictionService.side_effect = RuntimeError("Failed")
 
@@ -339,4 +361,3 @@ class TestStartKioskServices:
 
         # Service should be None since it failed
         assert app.keyboard_restriction_service is None
-

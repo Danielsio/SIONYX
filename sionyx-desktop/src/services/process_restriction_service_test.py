@@ -2,8 +2,9 @@
 Unit tests for ProcessRestrictionService.
 """
 
+from unittest.mock import MagicMock, PropertyMock, patch
+
 import pytest
-from unittest.mock import MagicMock, patch, PropertyMock
 
 from services.process_restriction_service import ProcessRestrictionService
 
@@ -82,33 +83,33 @@ class TestProcessRestrictionServiceControl:
     def test_start_when_enabled(self):
         """Start should start the timer when enabled."""
         service = ProcessRestrictionService(enabled=True)
-        
-        with patch.object(service.check_timer, 'start') as mock_start:
-            with patch.object(service, '_check_processes'):
+
+        with patch.object(service.check_timer, "start") as mock_start:
+            with patch.object(service, "_check_processes"):
                 service.start()
                 mock_start.assert_called_once_with(service.check_interval_ms)
 
     def test_start_when_disabled(self):
         """Start should not start timer when disabled."""
         service = ProcessRestrictionService(enabled=False)
-        
-        with patch.object(service.check_timer, 'start') as mock_start:
+
+        with patch.object(service.check_timer, "start") as mock_start:
             service.start()
             mock_start.assert_not_called()
 
     def test_stop(self):
         """Stop should stop the timer."""
         service = ProcessRestrictionService()
-        
-        with patch.object(service.check_timer, 'stop') as mock_stop:
+
+        with patch.object(service.check_timer, "stop") as mock_stop:
             service.stop()
             mock_stop.assert_called_once()
 
     def test_set_enabled_true(self):
         """set_enabled(True) should start the service."""
         service = ProcessRestrictionService(enabled=False)
-        
-        with patch.object(service, 'start') as mock_start:
+
+        with patch.object(service, "start") as mock_start:
             service.set_enabled(True)
             assert service.enabled is True
             mock_start.assert_called_once()
@@ -116,8 +117,8 @@ class TestProcessRestrictionServiceControl:
     def test_set_enabled_false(self):
         """set_enabled(False) should stop the service."""
         service = ProcessRestrictionService(enabled=True)
-        
-        with patch.object(service, 'stop') as mock_stop:
+
+        with patch.object(service, "stop") as mock_stop:
             service.set_enabled(False)
             assert service.enabled is False
             mock_stop.assert_called_once()
@@ -129,22 +130,22 @@ class TestProcessRestrictionServiceIsActive:
     def test_is_active_when_timer_running(self):
         """is_active returns True when timer is running and enabled."""
         service = ProcessRestrictionService(enabled=True)
-        
-        with patch.object(service.check_timer, 'isActive', return_value=True):
+
+        with patch.object(service.check_timer, "isActive", return_value=True):
             assert service.is_active() is True
 
     def test_is_active_when_timer_stopped(self):
         """is_active returns False when timer is stopped."""
         service = ProcessRestrictionService(enabled=True)
-        
-        with patch.object(service.check_timer, 'isActive', return_value=False):
+
+        with patch.object(service.check_timer, "isActive", return_value=False):
             assert service.is_active() is False
 
     def test_is_active_when_disabled(self):
         """is_active returns False when disabled."""
         service = ProcessRestrictionService(enabled=False)
-        
-        with patch.object(service.check_timer, 'isActive', return_value=True):
+
+        with patch.object(service.check_timer, "isActive", return_value=True):
             assert service.is_active() is False
 
 
@@ -190,6 +191,7 @@ class TestProcessRestrictionServiceCheckProcesses:
     def test_check_processes_handles_no_such_process(self, mock_process_iter):
         """Should handle NoSuchProcess exception gracefully."""
         import psutil
+
         mock_proc = MagicMock()
         mock_proc.info.__getitem__.side_effect = psutil.NoSuchProcess(1234)
         mock_process_iter.return_value = [mock_proc]
@@ -218,6 +220,7 @@ class TestProcessRestrictionServiceCheckProcesses:
     def test_check_processes_handles_access_denied(self, mock_process_iter):
         """Should handle AccessDenied exception gracefully."""
         import psutil
+
         mock_proc = MagicMock()
         mock_proc.info.__getitem__.side_effect = psutil.AccessDenied(1234)
         mock_process_iter.return_value = [mock_proc]
@@ -242,6 +245,7 @@ class TestProcessRestrictionServiceTerminate:
     def test_terminate_process_timeout_forces_kill(self):
         """Should force kill if terminate times out."""
         import psutil
+
         mock_proc = MagicMock()
         mock_proc.pid = 1234
         mock_proc.wait.side_effect = psutil.TimeoutExpired(1)
@@ -255,6 +259,7 @@ class TestProcessRestrictionServiceTerminate:
     def test_terminate_process_already_gone(self):
         """Should handle process already gone."""
         import psutil
+
         mock_proc = MagicMock()
         mock_proc.pid = 1234
         mock_proc.terminate.side_effect = psutil.NoSuchProcess(1234)
@@ -266,6 +271,7 @@ class TestProcessRestrictionServiceTerminate:
     def test_terminate_process_access_denied(self):
         """Should handle access denied and emit error signal."""
         import psutil
+
         mock_proc = MagicMock()
         mock_proc.pid = 1234
         mock_proc.terminate.side_effect = psutil.AccessDenied(1234)
@@ -367,7 +373,7 @@ class TestProcessRestrictionServiceDefaultBlacklist:
     def test_contains_system_tools(self):
         """Default blacklist should contain dangerous system tools."""
         blacklist = ProcessRestrictionService.DEFAULT_BLACKLIST
-        
+
         assert "cmd.exe" in blacklist
         assert "powershell.exe" in blacklist
         assert "regedit.exe" in blacklist
@@ -377,14 +383,13 @@ class TestProcessRestrictionServiceDefaultBlacklist:
     def test_contains_script_hosts(self):
         """Default blacklist should contain script hosts."""
         blacklist = ProcessRestrictionService.DEFAULT_BLACKLIST
-        
+
         assert "wscript.exe" in blacklist
         assert "cscript.exe" in blacklist
 
     def test_contains_remote_access(self):
         """Default blacklist should contain remote access tools."""
         blacklist = ProcessRestrictionService.DEFAULT_BLACKLIST
-        
+
         assert "teamviewer.exe" in blacklist
         assert "anydesk.exe" in blacklist
-
