@@ -198,6 +198,145 @@ class TestProcessRestrictionServiceCheckProcesses:
         # Should not raise
         service._check_processes()
 
+    @patch("services.process_restriction_service.psutil.process_iter")
+    def test_check_processes_skips_recently_blocked(self, mock_process_iter):
+        """Should skip processes that were recently blocked."""
+        mock_proc = MagicMock()
+        mock_proc.info = {"name": "cmd.exe", "pid": 1234}
+        mock_proc.pid = 1234
+        mock_process_iter.return_value = [mock_proc]
+
+        service = ProcessRestrictionService(enabled=True)
+        # Mark this PID as recently blocked
+        service.recently_blocked.add(1234)
+        service._check_processes()
+
+        # Should not try to terminate again
+        mock_proc.terminate.assert_not_called()
+
+    @patch("services.process_restriction_service.psutil.process_iter")
+    def test_check_processes_handles_access_denied(self, mock_process_iter):
+        """Should handle AccessDenied exception gracefully."""
+        import psutil
+        mock_proc = MagicMock()
+        mock_proc.info.__getitem__.side_effect = psutil.AccessDenied(1234)
+        mock_process_iter.return_value = [mock_proc]
+
+        service = ProcessRestrictionService(enabled=True)
+        # Should not raise
+        service._check_processes()
+
+    @patch("services.process_restriction_service.psutil.process_iter")
+    def test_check_processes_handles_general_exception(self, mock_process_iter):
+        """Should handle general exception in check loop."""
+        mock_process_iter.side_effect = RuntimeError("Unexpected error")
+
+        service = ProcessRestrictionService(enabled=True)
+        # Should not raise
+        service._check_processes()
+
+
+class TestProcessRestrictionServiceTerminate:
+    """Tests for process termination logic."""
+
+    def test_terminate_process_timeout_forces_kill(self):
+        """Should force kill if terminate times out."""
+        import psutil
+        mock_proc = MagicMock()
+        mock_proc.pid = 1234
+        mock_proc.wait.side_effect = psutil.TimeoutExpired(1)
+
+        service = ProcessRestrictionService(enabled=True)
+        service._terminate_process(mock_proc, "test.exe")
+
+        mock_proc.terminate.assert_called_once()
+        mock_proc.kill.assert_called_once()
+
+    def test_terminate_process_already_gone(self):
+        """Should handle process already gone."""
+        import psutil
+        mock_proc = MagicMock()
+        mock_proc.pid = 1234
+        mock_proc.terminate.side_effect = psutil.NoSuchProcess(1234)
+
+        service = ProcessRestrictionService(enabled=True)
+        # Should not raise
+        service._terminate_process(mock_proc, "test.exe")
+
+    def test_terminate_process_access_denied(self):
+        """Should handle access denied and emit error signal."""
+        import psutil
+        mock_proc = MagicMock()
+        mock_proc.pid = 1234
+        mock_proc.terminate.side_effect = psutil.AccessDenied(1234)
+
+        service = ProcessRestrictionService(enabled=True)
+        error_handler = MagicMock()
+        service.error_occurred.connect(error_handler)
+
+        service._terminate_process(mock_proc, "test.exe")
+
+        # Should emit error signal
+        error_handler.assert_called_once()
+
+    def test_terminate_process_general_exception(self):
+        """Should handle general exception and emit error signal."""
+        mock_proc = MagicMock()
+        mock_proc.pid = 1234
+        mock_proc.terminate.side_effect = RuntimeError("Unexpected")
+
+        service = ProcessRestrictionService(enabled=True)
+        error_handler = MagicMock()
+        service.error_occurred.connect(error_handler)
+
+        service._terminate_process(mock_proc, "test.exe")
+
+        # Should emit error signal
+        error_handler.assert_called_once()
+
+    def test_terminate_process_emits_blocked_signal(self):
+        """Should emit process_blocked signal on success."""
+        mock_proc = MagicMock()
+        mock_proc.pid = 1234
+
+        service = ProcessRestrictionService(enabled=True)
+        blocked_handler = MagicMock()
+        service.process_blocked.connect(blocked_handler)
+
+        service._terminate_process(mock_proc, "cmd.exe")
+
+        blocked_handler.assert_called_once_with("cmd.exe")
+
+    def test_terminate_process_adds_to_recently_blocked(self):
+        """Should add PID to recently_blocked set."""
+        mock_proc = MagicMock()
+        mock_proc.pid = 5678
+
+        service = ProcessRestrictionService(enabled=True)
+        service._terminate_process(mock_proc, "test.exe")
+
+        assert 5678 in service.recently_blocked
+
+
+class TestProcessRestrictionServiceCleanup:
+    """Tests for cleanup logic."""
+
+    @patch("services.process_restriction_service.psutil.process_iter")
+    def test_cleanup_blocked_set_removes_dead_pids(self, mock_process_iter):
+        """Should remove PIDs that are no longer running."""
+        # Only PID 1000 is still running
+        mock_proc = MagicMock()
+        mock_proc.pid = 1000
+        mock_process_iter.return_value = [mock_proc]
+
+        service = ProcessRestrictionService(enabled=True)
+        service.recently_blocked = {1000, 2000, 3000}
+
+        service._cleanup_blocked_set()
+
+        # Only 1000 should remain
+        assert service.recently_blocked == {1000}
+
 
 class TestProcessRestrictionServiceSignals:
     """Tests for Qt signals."""
