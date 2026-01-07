@@ -18,11 +18,11 @@ Prevent users from escaping kiosk mode, accessing system tools, or running unaut
 
 ### Step 1: ✅ Create Keyboard Restriction Service
 - [x] `keyboard_restriction_service.py` - Block Alt+Tab, Win key, Alt+F4, etc.
-- [ ] Unit tests for keyboard service
+- [x] Unit tests (18 tests)
 
 ### Step 2: ✅ Create Process Restriction Service  
 - [x] `process_restriction_service.py` - Kill cmd, regedit, powershell, etc.
-- [ ] Unit tests for process service
+- [x] Unit tests (28 tests)
 
 ### Step 3: ✅ Integrate Services into main.py
 - [x] Import and initialize both services
