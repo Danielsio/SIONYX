@@ -48,56 +48,25 @@
 
 ## 🏗️ Code Architecture
 
-- [ ] **Design Patterns** - Apply consistent design patterns across the codebase
+- [x] **Design Patterns** - Applied design patterns where they provide real value
 
-  ### 1. ✅ Singleton Pattern (DONE)
+  ### ✅ Singleton Pattern (v1.1.2 & v1.1.3)
+  - `FirebaseClient` - Thread-safe singleton, `get_instance()`, `reset_instance()`
+  - `LocalDatabase` - Prevents multiple SQLite connections, consistent encryption
+  - Files: `services/firebase_client.py`, `database/local_db.py`
 
-  #### FirebaseClient
-  - ✅ `FirebaseClient` now uses Singleton pattern
-  - ✅ `__new__` controls instance creation, returns same object
-  - ✅ Thread-safe with `_lock` for concurrent access
-  - ✅ `get_instance()` method for explicit singleton access
-  - ✅ `reset_instance()` for testing
-  - File: `services/firebase_client.py`
+  ### ✅ Decorator Pattern (v1.1.2)
+  - Created `services/decorators.py` with reusable decorators
+  - `@authenticated`, `@log_operation`, `@handle_firebase_errors`, `@service_method`
+  - Refactored `DatabaseService` - 6 methods now use decorators
+  - 22 tests for decorator functionality
 
-  #### LocalDatabase
-  - ✅ `LocalDatabase` now uses Singleton pattern
-  - ✅ Prevents multiple SQLite connections to same file
-  - ✅ Ensures consistent encryption state
-  - ✅ Thread-safe with `_lock` for concurrent access
-  - ✅ `get_instance()` and `reset_instance()` methods
-  - ✅ 6 tests for singleton behavior
-  - File: `database/local_db.py`
-
-  ### 2. Factory Pattern - Service Creation
-  - Services are created manually in `main.py`, `AuthService`, `MainWindow`
-  - Create `ServiceFactory` to centralize service instantiation
-  - Benefits: dependency injection, easier testing, single source of truth
-
-  ### 3. State Pattern - Session States
-  - `SessionService` uses boolean flags (`is_active`, `warned_5min`, etc.)
-  - States: Inactive → Active → Warning → Critical → Expired
-  - Cleaner transitions, each state handles its own behavior
-
-  ### 4. Command Pattern - User Actions
-  - Actions like start_session, end_session, logout could be Command objects
-  - Benefits: undo/redo capability, action history, command queuing
-  - Useful for offline-first features
-
-  ### 5. ✅ Decorator Pattern - Cross-Cutting Concerns (DONE)
-  - ✅ Created `services/decorators.py` with reusable decorators
-  - ✅ `@authenticated` - checks auth before method runs
-  - ✅ `@log_operation` - auto-logs method entry with args
-  - ✅ `@handle_firebase_errors` - catches exceptions, returns error response
-  - ✅ `@service_method` - composite decorator combining all three
-  - ✅ Refactored `DatabaseService` - 6 methods now use decorators
-  - ✅ 22 tests for decorator functionality
-
-  ### 6. Event Bus - Centralized Events
-  - Currently signals are scattered across services
-  - Create `EventBus` singleton for app-wide events
-  - Events: USER_LOGGED_IN, SESSION_STARTED, PRINT_COMPLETED, etc.
-  - Better decoupling between components
+  ### ❌ Not Implemented (Evaluated, not needed)
+  - **Factory Pattern** - Services are simple, `FirebaseClient` singleton is enough
+  - **State Pattern** - Session code is clean (~100 lines), would add complexity
+  - **Strategy Pattern** - Print pricing comes from DB, no multiple strategies needed
+  - **Command Pattern** - No undo/redo requirements currently
+  - **Event Bus** - PyQt signals work well, no decoupling issues
 
 ## ⚡ Performance
 
@@ -151,5 +120,5 @@
 - [x] **Handle empty Firebase collections** - No crash on missing data
 
 ---
-*Last updated: 2026-01-04*
+*Last updated: 2026-01-07*
 
