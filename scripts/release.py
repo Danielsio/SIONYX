@@ -253,6 +253,13 @@ def main():
     
     print("✓ Build completed successfully")
     
+    # Commit any build artifacts (version.json updates like build number, coverage)
+    result = run_cmd(["git", "status", "--porcelain"], check=False)
+    if result.stdout.strip():
+        print("Committing build artifacts...")
+        run_cmd(["git", "add", "-A"])
+        run_cmd(["git", "commit", "-m", "chore: update build artifacts"])
+    
     # ─────────────────────────────────────────────────────────────────────
     # STEP 4: Merge to main + tag
     # ─────────────────────────────────────────────────────────────────────
@@ -261,7 +268,10 @@ def main():
     print_step(step_num, total_steps, "Merging to main")
     
     # Switch to main
-    run_cmd(["git", "checkout", "main"])
+    result = run_cmd(["git", "checkout", "main"], check=False)
+    if result.returncode != 0:
+        print(f"[ERROR] Failed to checkout main: {result.stderr}")
+        sys.exit(1)
     
     # Merge release branch
     result = run_cmd(
@@ -272,11 +282,11 @@ def main():
         print(f"[ERROR] Merge failed: {result.stderr}")
         sys.exit(1)
     
-    # Create tag
-    run_cmd(["git", "tag", f"v{new_version}"])
+    # Create tag (ignore if exists)
+    run_cmd(["git", "tag", f"v{new_version}"], check=False)
     
     # Delete release branch
-    run_cmd(["git", "branch", "-d", branch_name])
+    run_cmd(["git", "branch", "-d", branch_name], check=False)
     
     print(f"✓ Merged to main")
     print(f"✓ Created tag: v{new_version}")
