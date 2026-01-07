@@ -50,7 +50,9 @@
 
 - [ ] **Design Patterns** - Apply consistent design patterns across the codebase
 
-  ### 1. ✅ Singleton Pattern - FirebaseClient (DONE)
+  ### 1. ✅ Singleton Pattern (DONE)
+
+  #### FirebaseClient
   - ✅ `FirebaseClient` now uses Singleton pattern
   - ✅ `__new__` controls instance creation, returns same object
   - ✅ Thread-safe with `_lock` for concurrent access
@@ -58,27 +60,31 @@
   - ✅ `reset_instance()` for testing
   - File: `services/firebase_client.py`
 
+  #### LocalDatabase
+  - ✅ `LocalDatabase` now uses Singleton pattern
+  - ✅ Prevents multiple SQLite connections to same file
+  - ✅ Ensures consistent encryption state
+  - ✅ Thread-safe with `_lock` for concurrent access
+  - ✅ `get_instance()` and `reset_instance()` methods
+  - ✅ 6 tests for singleton behavior
+  - File: `database/local_db.py`
+
   ### 2. Factory Pattern - Service Creation
   - Services are created manually in `main.py`, `AuthService`, `MainWindow`
   - Create `ServiceFactory` to centralize service instantiation
   - Benefits: dependency injection, easier testing, single source of truth
 
-  ### 3. Strategy Pattern - Print Pricing
-  - Currently `_calculate_cost()` has hardcoded B&W vs Color logic
-  - Could support: student discounts, bulk pricing, time-based rates
-  - File: `services/print_monitor_service.py`
-
-  ### 4. State Pattern - Session States
+  ### 3. State Pattern - Session States
   - `SessionService` uses boolean flags (`is_active`, `warned_5min`, etc.)
   - States: Inactive → Active → Warning → Critical → Expired
   - Cleaner transitions, each state handles its own behavior
 
-  ### 5. Command Pattern - User Actions
+  ### 4. Command Pattern - User Actions
   - Actions like start_session, end_session, logout could be Command objects
   - Benefits: undo/redo capability, action history, command queuing
   - Useful for offline-first features
 
-  ### 6. ✅ Decorator Pattern - Cross-Cutting Concerns (DONE)
+  ### 5. ✅ Decorator Pattern - Cross-Cutting Concerns (DONE)
   - ✅ Created `services/decorators.py` with reusable decorators
   - ✅ `@authenticated` - checks auth before method runs
   - ✅ `@log_operation` - auto-logs method entry with args
@@ -87,7 +93,7 @@
   - ✅ Refactored `DatabaseService` - 6 methods now use decorators
   - ✅ 22 tests for decorator functionality
 
-  ### 7. Event Bus - Centralized Events
+  ### 6. Event Bus - Centralized Events
   - Currently signals are scattered across services
   - Create `EventBus` singleton for app-wide events
   - Events: USER_LOGGED_IN, SESSION_STARTED, PRINT_COMPLETED, etc.
