@@ -120,6 +120,15 @@ Section "Main Application" SecMain
     CreateDirectory "$SMPROGRAMS\${APP_NAME}"
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "" "$INSTDIR\${APP_ICON}" 0
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
+    
+    ; Kiosk mode: Add to Windows auto-start with --kiosk flag
+    ; This ensures the app starts automatically on login with security restrictions
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}" '"$INSTDIR\${APP_EXECUTABLE}" --kiosk'
+    
+    ; Also create shortcut in All Users startup folder (backup method)
+    SetShellVarContext all
+    CreateShortCut "$SMSTARTUP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
+    SetShellVarContext current
 SectionEnd
 
 ; Uninstaller section
@@ -137,6 +146,12 @@ Section "Uninstall"
     Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
     Delete "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk"
     RMDir "$SMPROGRAMS\${APP_NAME}"
+    
+    ; Remove auto-start entries (kiosk mode)
+    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}"
+    SetShellVarContext all
+    Delete "$SMSTARTUP\${APP_NAME}.lnk"
+    SetShellVarContext current
     
     ; Remove registry entries
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
