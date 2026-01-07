@@ -450,7 +450,9 @@ class TestSleepIfRunning:
         import time
 
         start = time.time()
-        force_logout_listener._sleep_if_running(10)  # Would be 10 seconds if not stopped
+        force_logout_listener._sleep_if_running(
+            10
+        )  # Would be 10 seconds if not stopped
         elapsed = time.time() - start
 
         # Should exit almost immediately (less than 1 second)

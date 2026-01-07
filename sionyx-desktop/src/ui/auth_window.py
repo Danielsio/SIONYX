@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 )
 
 from ui.base_window import BaseKioskWindow
+from ui.components.loading_overlay import LoadingOverlay
 from ui.styles.auth_window import AUTH_WINDOW_QSS
 from utils.const import APP_NAME
 
@@ -85,6 +86,9 @@ class AuthWindow(BaseKioskWindow):
 
         # Apply styles
         self.setStyleSheet(self.apply_base_stylesheet() + AUTH_WINDOW_QSS)
+
+        # Create loading overlay (attached to the main window, not container)
+        self.loading_overlay = LoadingOverlay(self)
 
         # Focus on sign-in email by default
         QTimer.singleShot(100, lambda: self.signin_email_input.setFocus())
@@ -477,14 +481,16 @@ class AuthWindow(BaseKioskWindow):
             self.shake_widget(self.signin_password_input)
             return
 
+        # Show loading overlay
+        self.loading_overlay.show_with_message("מתחבר...")
         self.signin_button.setEnabled(False)
-        self.signin_button.setText("מתחבר...")
         QApplication.processEvents()
 
         result = self.auth_service.login(phone, password)
 
+        # Hide loading overlay
+        self.loading_overlay.hide_overlay()
         self.signin_button.setEnabled(True)
-        self.signin_button.setText("התחבר")
 
         if result["success"]:
             self.show_success("התחברות הצליחה", "ברוך השב!")
@@ -544,8 +550,9 @@ class AuthWindow(BaseKioskWindow):
             self.shake_widget(self.signup_confirm_input)
             return
 
+        # Show loading overlay
+        self.loading_overlay.show_with_message("יוצר חשבון...")
         self.signup_button.setEnabled(False)
-        self.signup_button.setText("יוצר...")
         QApplication.processEvents()
 
         result = self.auth_service.register(
@@ -556,8 +563,9 @@ class AuthWindow(BaseKioskWindow):
             email=email,
         )
 
+        # Hide loading overlay
+        self.loading_overlay.hide_overlay()
         self.signup_button.setEnabled(True)
-        self.signup_button.setText("הירשם")
 
         if result["success"]:
             self.show_success("ההרשמה הצליחה", f"ברוך הבא ל-{APP_NAME}!")

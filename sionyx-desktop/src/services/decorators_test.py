@@ -13,11 +13,11 @@ from unittest.mock import Mock, patch
 import pytest
 
 from services.decorators import (
+    _format_arg,
     authenticated,
     handle_firebase_errors,
     log_operation,
     service_method,
-    _format_arg,
 )
 
 
@@ -378,4 +378,3 @@ class TestDecoratorIntegration:
         assert result["success"] is True
         assert result["data"]["name"] == "Test User"
         service.firebase.db_get.assert_called_once_with("users/user123")
-

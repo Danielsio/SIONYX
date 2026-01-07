@@ -406,7 +406,7 @@ class PrintMonitorService(QObject):
         except Exception as e:
             # Error 87 = "The parameter is incorrect" - job likely already completed
             # This is normal for fast jobs (virtual printers, small docs)
-            error_code = getattr(e, 'winerror', None) or (e.args[0] if e.args else None)
+            error_code = getattr(e, "winerror", None) or (e.args[0] if e.args else None)
             if error_code == 87:
                 logger.debug(f"Job {job_id} already completed (cannot pause)")
                 return False  # Can't pause, but not a critical error
@@ -428,7 +428,7 @@ class PrintMonitorService(QObject):
         except Exception as e:
             # Error 87 = "The parameter is incorrect" - job likely already completed
             # This is normal for fast jobs (virtual printers, small docs) - not an error
-            error_code = getattr(e, 'winerror', None) or (e.args[0] if e.args else None)
+            error_code = getattr(e, "winerror", None) or (e.args[0] if e.args else None)
             if error_code == 87:
                 logger.debug(f"Job {job_id} already completed (cannot resume)")
                 return True  # Job printed successfully, just completed fast
@@ -449,7 +449,7 @@ class PrintMonitorService(QObject):
                 win32print.ClosePrinter(handle)
         except Exception as e:
             # Error 87 = "The parameter is incorrect" - job likely already completed
-            error_code = getattr(e, 'winerror', None) or (e.args[0] if e.args else None)
+            error_code = getattr(e, "winerror", None) or (e.args[0] if e.args else None)
             if error_code == 87:
                 logger.debug(f"Job {job_id} already completed (cannot cancel)")
                 return True  # Job is gone, which is what we wanted

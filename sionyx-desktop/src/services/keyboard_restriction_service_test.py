@@ -5,19 +5,20 @@ Note: These tests mock the Windows API calls since we can't actually
 install keyboard hooks in a test environment.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from services.keyboard_restriction_service import (
-    KeyboardRestrictionService,
-    VK_TAB,
-    VK_LWIN,
-    VK_RWIN,
-    VK_F4,
-    VK_ESCAPE,
-    VK_MENU,
     VK_CONTROL,
+    VK_ESCAPE,
+    VK_F4,
+    VK_LWIN,
+    VK_MENU,
+    VK_RWIN,
     VK_SHIFT,
+    VK_TAB,
+    KeyboardRestrictionService,
 )
 
 
@@ -162,6 +163,7 @@ class TestKeyboardRestrictionServiceCallback:
 
         # Create mock keyboard data
         from ctypes import pointer
+
         from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
@@ -204,4 +206,3 @@ class TestKeyboardRestrictionServiceSignals:
 
         # Should not raise
         service.blocked_key_pressed.connect(handler)
-
