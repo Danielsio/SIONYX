@@ -23,19 +23,20 @@
 
 ## 🚀 Features (Planned)
 
-- [ ] **Kiosk Security Lockdown** 🔒 - Prevent users from escaping kiosk mode
-  - **Branch**: `feature/kiosk-security-lockdown`
-  - **WIP Doc**: `sionyx-desktop/docs/WIP-kiosk-security-lockdown.md`
-  - Multi-layer defense: Windows user accounts + Group Policy + app restrictions
-  - Keyboard hooks to block Alt+Tab, Win key, Ctrl+Shift+Esc
-  - Process monitor to kill cmd, regedit, powershell, taskmgr
-  - PowerShell setup script for kiosk PC configuration
-  - Group Policy documentation for system admins
+- [x] **Kiosk Security Lockdown** 🔒 - Prevent users from escaping kiosk mode (v1.2.0)
+  - ✅ `KeyboardRestrictionService` - Low-level hooks block Alt+Tab, Win key, Ctrl+Shift+Esc, Alt+F4
+  - ✅ `ProcessRestrictionService` - Monitors and kills cmd, regedit, powershell, taskmgr
+  - ✅ Integrated into main.py with `--kiosk` flag
+  - ✅ 100% test coverage on process service, 50% on keyboard service
+  - ⬜ Optional: Config file for custom process blacklist
+  - 📄 PowerShell setup script exists: `scripts/setup-kiosk-restrictions.ps1`
 
-- [ ] **Kiosk Mode / Auto-Run** - App runs automatically on system startup
-  - Add to Windows startup registry on install
-  - Only admin can exit the application
-  - Prevent regular users from closing/killing the app
+- [x] **Kiosk Mode / Auto-Run** - App runs automatically on system startup (v1.2.0)
+  - ✅ Installer adds to Windows registry: `HKLM\Software\Microsoft\Windows\CurrentVersion\Run`
+  - ✅ Installer creates shortcut in All Users Startup folder (backup)
+  - ✅ Launches with `--kiosk` flag by default
+  - ✅ Only admin can exit (Ctrl+Alt+Q + password)
+  - ✅ Uninstaller removes auto-start entries
 
 - [ ] **Media Blocker** - Block video players and streaming sites during sessions
   - Monitor processes (VLC, Netflix, etc.)
@@ -84,6 +85,18 @@
   - Functionality works fine, just display issue
 
 ## ✅ Recently Completed
+
+- [x] **Kiosk Security Lockdown** (v1.2.0) - Full kiosk mode implementation
+  - Keyboard hooks block system shortcuts (Alt+Tab, Win key, etc.)
+  - Process monitor kills unauthorized apps (cmd, regedit, powershell)
+  - Auto-start on Windows login via installer
+  - Admin exit with Ctrl+Alt+Q + password
+  - 89% test coverage maintained
+
+- [x] **Release Workflow** (v1.3.0) - Single-command releases
+  - `make release-minor` does full flow: branch → build → merge → tag → push
+  - `make merge-feature` with coverage regression check
+  - Prevents merging if test coverage drops
 
 - [x] **Single Session Enforcement** - Prevent user from logging in on multiple computers
   - If already logged in elsewhere, reject new login attempt with message "המשתמש כבר מחובר במחשב אחר"
