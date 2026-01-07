@@ -8,6 +8,9 @@ import { useAuthStore } from '../store/authStore';
 // Mock dependencies
 vi.mock('../services/pricingService');
 vi.mock('../store/authStore');
+vi.mock('../hooks/useOrgId', () => ({
+  useOrgId: () => 'my-org',
+}));
 
 const renderPricingPage = () => {
   useAuthStore.mockImplementation((selector) => {

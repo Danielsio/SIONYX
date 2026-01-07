@@ -20,6 +20,9 @@ vi.mock('../services/userService');
 vi.mock('../services/chatService');
 vi.mock('../store/authStore');
 vi.mock('../store/dataStore');
+vi.mock('../hooks/useOrgId', () => ({
+  useOrgId: () => 'my-org',
+}));
 
 // Mock dayjs
 vi.mock('dayjs', () => {
