@@ -228,9 +228,7 @@ class DatabaseService(BaseService):
         # Add update timestamp
         updates["updatedAt"] = self.format_timestamp()
 
-        result = self.firebase.db_update(
-            f"{self.collection_name}/{doc_id}", updates
-        )
+        result = self.firebase.db_update(f"{self.collection_name}/{doc_id}", updates)
 
         if result.get("success"):
             return self.create_success_response({"id": doc_id, "updates": updates})
