@@ -22,6 +22,7 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { getPrintPricing, updatePrintPricing } from '../services/pricingService';
+import { useOrgId } from '../hooks/useOrgId';
 
 const { Title, Text } = Typography;
 
@@ -36,6 +37,7 @@ const PricingPage = () => {
 
   const user = useAuthStore(state => state.user);
   const { message } = App.useApp();
+  const orgId = useOrgId();
 
   useEffect(() => {
     loadPricing();
@@ -43,9 +45,6 @@ const PricingPage = () => {
 
   const loadPricing = async () => {
     setLoading(true);
-
-    // Get orgId from authenticated user
-    const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     if (!orgId) {
       message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
@@ -74,14 +73,6 @@ const PricingPage = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-
-      // Get orgId
-      const orgId = user?.orgId || localStorage.getItem('adminOrgId');
-
-      console.log('Current user:', user);
-      console.log('OrgId from user:', user?.orgId);
-      console.log('OrgId from localStorage:', localStorage.getItem('adminOrgId'));
-      console.log('Final orgId:', orgId);
 
       if (!orgId) {
         message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');

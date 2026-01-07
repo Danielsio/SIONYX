@@ -11,6 +11,9 @@ import { useDataStore } from '../store/dataStore';
 vi.mock('../services/packageService');
 vi.mock('../store/authStore');
 vi.mock('../store/dataStore');
+vi.mock('../hooks/useOrgId', () => ({
+  useOrgId: () => 'my-org',
+}));
 
 // Mock dayjs
 vi.mock('dayjs', () => {

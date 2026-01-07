@@ -41,6 +41,7 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
+import { useOrgId } from '../hooks/useOrgId';
 import {
   getAllUsers,
   getUserPurchaseHistory,
@@ -79,6 +80,7 @@ const UsersPage = () => {
   const user = useAuthStore(state => state.user);
   const { users, setUsers } = useDataStore();
   const { message } = App.useApp();
+  const orgId = useOrgId();
 
   useEffect(() => {
     loadUsers();
@@ -86,9 +88,6 @@ const UsersPage = () => {
 
   const loadUsers = async () => {
     setLoading(true);
-
-    // Get orgId from authenticated user
-    const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     if (!orgId) {
       message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
@@ -116,9 +115,6 @@ const UsersPage = () => {
     setDrawerVisible(true);
     setLoadingPurchases(true);
     setLoadingMessages(true);
-
-    // Get orgId
-    const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     // Load user's purchase history
     const purchaseResult = await getUserPurchaseHistory(orgId, record.uid);
@@ -155,8 +151,6 @@ const UsersPage = () => {
     try {
       const values = await form.validateFields();
       setAdjusting(true);
-
-      const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
       // Calculate the difference between new values and current values
       const currentTimeMinutes = Math.floor((adjustingUser.remainingTime || 0) / 60);
@@ -204,7 +198,6 @@ const UsersPage = () => {
       okType: 'primary',
       cancelText: 'Cancel',
       onOk: async () => {
-        const orgId = user?.orgId || localStorage.getItem('adminOrgId');
         const result = await grantAdminPermission(orgId, record.uid);
 
         if (result.success) {
@@ -234,7 +227,6 @@ const UsersPage = () => {
       okType: 'danger',
       cancelText: 'Cancel',
       onOk: async () => {
-        const orgId = user?.orgId || localStorage.getItem('adminOrgId');
         const result = await revokeAdminPermission(orgId, record.uid);
 
         if (result.success) {
@@ -266,7 +258,6 @@ const UsersPage = () => {
       onOk: async () => {
         setKicking(true);
         try {
-          const orgId = user?.orgId || localStorage.getItem('adminOrgId');
           const result = await kickUser(orgId, record.uid);
 
           if (result.success) {
@@ -298,8 +289,6 @@ const UsersPage = () => {
     try {
       const { message: messageText } = values;
       setSending(true);
-
-      const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
       const result = await sendMessage(orgId, selectedUser.uid, messageText, user.uid);
 

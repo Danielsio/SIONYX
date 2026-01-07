@@ -10,6 +10,7 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
+import { useOrgId } from '../hooks/useOrgId';
 import { getOrganizationStats } from '../services/organizationService';
 import { getPrintPricing } from '../services/pricingService';
 import { formatMinutesHebrew } from '../utils/timeFormatter';
@@ -28,6 +29,7 @@ const OverviewPage = () => {
   const user = useAuthStore(state => state.user);
   const { stats, setStats } = useDataStore();
   const { message } = App.useApp();
+  const orgId = useOrgId();
 
   useEffect(() => {
     loadData();
@@ -35,9 +37,6 @@ const OverviewPage = () => {
 
   const loadData = async () => {
     setLoading(true);
-
-    // Get orgId from authenticated user
-    const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     if (!orgId) {
       console.error('Organization ID not found');

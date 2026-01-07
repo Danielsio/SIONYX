@@ -30,6 +30,7 @@ import {
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
+import { useOrgId } from '../hooks/useOrgId';
 import {
   getAllPackages,
   createPackage,
@@ -58,6 +59,7 @@ const PackagesPage = () => {
     updatePackage: updateStorePackage,
     removePackage,
   } = useDataStore();
+  const orgId = useOrgId();
 
   useEffect(() => {
     loadPackages();
@@ -65,7 +67,6 @@ const PackagesPage = () => {
 
   const loadPackages = async () => {
     setLoading(true);
-    const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
     if (!orgId) {
       message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
@@ -107,7 +108,6 @@ const PackagesPage = () => {
   };
 
   const handleDelete = async record => {
-    const orgId = user?.orgId || localStorage.getItem('adminOrgId');
     if (!orgId) {
       message.error('מזהה ארגון לא נמצא.');
       return;
@@ -125,7 +125,6 @@ const PackagesPage = () => {
   const handleModalOk = async () => {
     try {
       const values = await form.validateFields();
-      const orgId = user?.orgId || localStorage.getItem('adminOrgId');
 
       if (!orgId) {
         message.error('מזהה ארגון לא נמצא.');

@@ -14,6 +14,9 @@ vi.mock('../services/pricingService');
 vi.mock('../services/userService');
 vi.mock('../store/authStore');
 vi.mock('../store/dataStore');
+vi.mock('../hooks/useOrgId', () => ({
+  useOrgId: () => 'my-org',
+}));
 
 const renderOverviewPage = () => {
   const mockSetStats = vi.fn();

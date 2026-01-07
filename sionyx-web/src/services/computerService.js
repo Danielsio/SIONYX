@@ -5,6 +5,7 @@
 
 import { ref, get, set, update, remove, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../config/firebase';
+import { getOrgId } from '../hooks/useOrgId';
 
 /**
  * Get all computers in the organization
@@ -12,7 +13,7 @@ import { database } from '../config/firebase';
 export const getAllComputers = async () => {
   try {
     // Get organization ID from localStorage or user data
-    const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
+    const orgId = getOrgId();
     const computersRef = ref(database, `organizations/${orgId}/computers`);
     const snapshot = await get(computersRef);
 
@@ -56,7 +57,7 @@ export const getComputerUsageStats = async () => {
     const computers = computersResult.data;
 
     // Get all users
-    const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
+    const orgId = getOrgId();
     const usersRef = ref(database, `organizations/${orgId}/users`);
     const usersSnapshot = await get(usersRef);
     const users = usersSnapshot.exists() ? usersSnapshot.val() : {};
@@ -147,7 +148,7 @@ export const getComputerUsageStats = async () => {
  */
 export const getComputerById = async computerId => {
   try {
-    const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
+    const orgId = getOrgId();
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
     const snapshot = await get(computerRef);
 
@@ -179,7 +180,7 @@ export const getComputerById = async computerId => {
  */
 export const updateComputer = async (computerId, updates) => {
   try {
-    const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
+    const orgId = getOrgId();
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
 
     // Add updatedAt timestamp
@@ -207,7 +208,7 @@ export const updateComputer = async (computerId, updates) => {
  */
 export const deleteComputer = async computerId => {
   try {
-    const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
+    const orgId = getOrgId();
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
     await remove(computerRef);
 
@@ -239,7 +240,7 @@ export const getActiveComputerUsers = async () => {
     for (const computer of computers) {
       if (computer.currentUserId) {
         // Get user details
-        const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
+        const orgId = getOrgId();
         const userRef = ref(database, `organizations/${orgId}/users/${computer.currentUserId}`);
         const userSnapshot = await get(userRef);
 
@@ -283,7 +284,7 @@ export const getActiveComputerUsers = async () => {
 export const forceLogoutUser = async (userId, computerId) => {
   try {
     // Clear user's current computer and mark as logged out
-    const orgId = localStorage.getItem('adminOrgId') || 'moshesionov';
+    const orgId = getOrgId();
     const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
     await update(userRef, {
       currentComputerId: null,
