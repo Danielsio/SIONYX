@@ -22,6 +22,8 @@ from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
 
 from services.auth_service import AuthService
 from services.global_hotkey_service import GlobalHotkeyService
+from services.keyboard_restriction_service import KeyboardRestrictionService
+from services.process_restriction_service import ProcessRestrictionService
 from ui.auth_window import AuthWindow
 from ui.main_window import MainWindow
 from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
@@ -51,24 +53,28 @@ logger = get_logger(__name__)
 class SionyxApp:
     """Main application class"""
 
-    def __init__(self, verbose=False):
+    def __init__(self, verbose=False, kiosk_mode=False):
         # Generate request ID for this application session
         request_id = generate_request_id()
         set_context(request_id=request_id)
 
         # Store command line options
         self.verbose = verbose
+        self.kiosk_mode = kiosk_mode
 
         logger.info(
             "Initializing application",
             request_id=request_id,
             component="main_app",
             verbose=verbose,
+            kiosk_mode=kiosk_mode,
         )
 
         self.auth_window = None
         self.main_window = None
         self.global_hotkey_service = None
+        self.keyboard_restriction_service = None
+        self.process_restriction_service = None
 
         try:
             # Enable high DPI scaling BEFORE creating QApplication
@@ -122,6 +128,11 @@ class SionyxApp:
                 self.handle_admin_exit
             )
             self.global_hotkey_service.start()
+
+            # Initialize kiosk security services if in kiosk mode
+            if self.kiosk_mode:
+                logger.info("Kiosk mode enabled - starting security services")
+                self._start_kiosk_services()
 
             # Show appropriate window
             if self.auth_service.is_logged_in():
@@ -355,11 +366,45 @@ class SionyxApp:
             )
             error_msg.exec()
 
+    def _start_kiosk_services(self):
+        """Start kiosk security services (keyboard and process restrictions)."""
+        try:
+            # Keyboard restriction - blocks Alt+Tab, Win key, etc.
+            self.keyboard_restriction_service = KeyboardRestrictionService(enabled=True)
+            self.keyboard_restriction_service.blocked_key_pressed.connect(
+                self._on_blocked_key
+            )
+            self.keyboard_restriction_service.start()
+            logger.info("Keyboard restriction service started")
+
+            # Process restriction - kills cmd, regedit, etc.
+            self.process_restriction_service = ProcessRestrictionService(enabled=True)
+            self.process_restriction_service.process_blocked.connect(
+                self._on_blocked_process
+            )
+            self.process_restriction_service.start()
+            logger.info("Process restriction service started")
+
+        except Exception as e:
+            logger.error(f"Failed to start kiosk services: {e}")
+
+    def _on_blocked_key(self, combo_name: str):
+        """Handle blocked key combination."""
+        logger.warning(f"Blocked key combination: {combo_name}", action="key_blocked")
+
+    def _on_blocked_process(self, process_name: str):
+        """Handle blocked process."""
+        logger.warning(f"Blocked process: {process_name}", action="process_blocked")
+
     def cleanup(self):
         """Cleanup resources before exit"""
         try:
             if self.global_hotkey_service:
                 self.global_hotkey_service.stop()
+            if self.keyboard_restriction_service:
+                self.keyboard_restriction_service.stop()
+            if self.process_restriction_service:
+                self.process_restriction_service.stop()
         except Exception as e:
             logger.warning("Error during cleanup", error=str(e), action="cleanup")
 
@@ -381,10 +426,16 @@ if __name__ == "__main__":
         action="store_true",
         help="Enable verbose logging (DEBUG level)",
     )
+    parser.add_argument(
+        "--kiosk",
+        "-k",
+        action="store_true",
+        help="Enable kiosk mode (block system keys, kill unauthorized processes)",
+    )
     args = parser.parse_args()
 
     try:
-        app = SionyxApp(verbose=args.verbose)
+        app = SionyxApp(verbose=args.verbose, kiosk_mode=args.kiosk)
         exit_code = app.run()
         logger.info(
             "Application exited cleanly", exit_code=exit_code, action="app_exit"
