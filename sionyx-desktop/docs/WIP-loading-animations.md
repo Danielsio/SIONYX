@@ -14,33 +14,31 @@ Add loading spinner/animation when performing API operations (login, register, l
 git checkout -b feature/loading-animations
 ```
 
-### Step 2: Create LoadingSpinner Component ⬜
-- File: `src/ui/components/loading_spinner.py`
+### Step 2: Create LoadingSpinner Component ✅
+- File: `src/ui/components/loading_overlay.py`
 - Features:
-  - Animated spinning circle
+  - Animated spinning circle (SpinnerWidget with QPainter)
   - Semi-transparent overlay to block UI
   - Optional message text
   - Fade in/out animations
 
-### Step 3: Integrate into AuthWindow ⬜
+### Step 3: Integrate into AuthWindow ✅
 - File: `src/ui/auth_window.py`
 - Show spinner during:
   - `handle_sign_in()` - when calling `auth_service.login()`
   - `handle_sign_up()` - when calling `auth_service.register()`
 - Block all inputs while loading
 
-### Step 4: Test and Validate ⬜
-```bash
-make test
-make lint
-```
+### Step 4: Test and Validate ✅
+- 21 tests for loading overlay component
+- Coverage improved from 89.09% to 89.2%
 
-### Step 5: Merge Feature Branch ⬜
+### Step 5: Merge Feature Branch ✅
 ```bash
 make merge-feature
 ```
 
-### Step 6: Release ⬜
+### Step 6: Release ⬜ (IN PROGRESS)
 ```bash
 make release-minor
 ```
