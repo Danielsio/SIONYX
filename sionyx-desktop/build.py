@@ -563,6 +563,7 @@ Examples:
     parser.add_argument("--dry-run", action="store_true", help="Show what would happen")
     parser.add_argument("--keep-local", action="store_true", help="Keep local installer after upload")
     parser.add_argument("--skip-coverage-check", action="store_true", help="Skip coverage regression check")
+    parser.add_argument("--skip-version", action="store_true", help="Don't bump version (use current)")
     
     args = parser.parse_args()
     
@@ -573,25 +574,35 @@ Examples:
         
         current_version = version_data["version"]
         
-        # Determine increment type
-        if args.major:
-            increment_type = "major"
-        elif args.minor:
-            increment_type = "minor"
+        # Skip version bump if requested (used by release script)
+        if args.skip_version:
+            new_version_data = version_data.copy()
+            new_version_data["buildNumber"] = version_data.get("buildNumber", 0) + 1
+            new_version = current_version
+            increment_type = "none"
         else:
-            increment_type = "patch"
-        
-        # Calculate new version
-        new_version_data = increment_version(
-            version_data.copy(),
-            increment_type,
-            args.version
-        )
-        new_version = new_version_data["version"]
+            # Determine increment type
+            if args.major:
+                increment_type = "major"
+            elif args.minor:
+                increment_type = "minor"
+            else:
+                increment_type = "patch"
+            
+            # Calculate new version
+            new_version_data = increment_version(
+                version_data.copy(),
+                increment_type,
+                args.version
+            )
+            new_version = new_version_data["version"]
         
         print_header(f"SIONYX Build System")
         print(f"  Current version: v{current_version}")
-        print(f"  New version:     v{new_version} ({increment_type} increment)")
+        if args.skip_version:
+            print(f"  Building:        v{new_version} (no version bump)")
+        else:
+            print(f"  New version:     v{new_version} ({increment_type} increment)")
         print(f"  Build number:    #{new_version_data['buildNumber']}")
         print(f"  Output file:     {get_installer_filename(new_version)}")
         print()

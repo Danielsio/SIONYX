@@ -229,15 +229,13 @@ def main():
     
     print_step(3, total_steps, "Building installer")
     
-    # Run build with live output
-    exit_code = run_cmd_live(["python", "build.py"], )
-    
-    # Need to run from sionyx-desktop directory
+    # Run build from sionyx-desktop directory
+    # Use --skip-version to prevent build.py from bumping version again
     import os
     original_dir = os.getcwd()
     os.chdir("sionyx-desktop")
     
-    exit_code = run_cmd_live(["python", "build.py"])
+    exit_code = run_cmd_live(["python", "build.py", "--skip-version"])
     
     os.chdir(original_dir)
     
