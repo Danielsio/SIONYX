@@ -1,7 +1,7 @@
 # 🔒 WIP: Kiosk Security Lockdown
 
-> **Status**: In Development  
-> **Branch**: `feature/kiosk-security-lockdown`  
+> **Status**: Merged to Main ✅  
+> **Branch**: `feature/kiosk-security-lockdown` → `main`  
 > **Created**: 2026-01-04  
 > **Updated**: 2026-01-07
 
@@ -64,6 +64,14 @@ Prevent users from escaping kiosk mode, accessing system tools, or running unaut
 | Step 5 | ⬜ Optional | - |
 | Step 6 | ✅ Done | (PowerShell script already exists) |
 | Step 7 | ⬜ TODO | - |
+| Tests | ✅ Done | `Add more tests to increase coverage to 89%` |
+
+### Merged to Main
+- **Coverage improved**: 88.17% → 88.96% (+0.79%)
+- **New tests added**:
+  - `main_test.py`: 16 tests for SionyxApp
+  - `process_restriction_service_test.py`: 12 more tests (100% coverage)
+  - `keyboard_restriction_service_test.py`: 2 more tests
 
 ---
 
