@@ -26,16 +26,15 @@ help:
 	@echo "  SIONYX Makefile - Quick Reference"
 	@echo "  =================================="
 	@echo ""
-	@echo "  RELEASE WORKFLOW (start here for releases)"
-	@echo "  -------------------------------------------"
-	@echo "  make release-minor     Create release/x.y.0 branch (new features)"
-	@echo "  make release-patch     Create release/x.y.z branch (bug fixes)"
-	@echo "  make release-major     Create release/x.0.0 branch (breaking changes)"
-	@echo "  make merge-release     Merge release branch to main + tag"
+	@echo "  RELEASE (single command - does everything)"
+	@echo "  ------------------------------------------"
+	@echo "  make release-minor     Full release: branch → build → merge → tag → push"
+	@echo "  make release-patch     Same, for bug fixes (1.1.3 → 1.1.4)"
+	@echo "  make release-major     Same, for breaking changes (1.1.3 → 2.0.0)"
 	@echo ""
-	@echo "  BUILD (run after release-*)"
-	@echo "  ---------------------------"
-	@echo "  make build             Build installer (uses current version)"
+	@echo "  BUILD (if you need to build without releasing)"
+	@echo "  ----------------------------------------------"
+	@echo "  make build             Build installer"
 	@echo "  make build-local       Build without uploading"
 	@echo "  make version           Show current version"
 	@echo ""
@@ -66,11 +65,15 @@ help-full:
 	@echo "║                    SIONYX - Full Command List                  ║"
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "RELEASE WORKFLOW"
-	@echo "  release-patch      Create release branch (patch: 1.1.3 → 1.1.4)"
-	@echo "  release-minor      Create release branch (minor: 1.1.3 → 1.2.0)"
-	@echo "  release-major      Create release branch (major: 1.1.3 → 2.0.0)"
-	@echo "  merge-release      Merge release branch to main and create tag"
+	@echo "RELEASE (single command does: branch → build → merge → tag → push)"
+	@echo "  release-patch      Patch release (1.1.3 → 1.1.4) - bug fixes"
+	@echo "  release-minor      Minor release (1.1.3 → 1.2.0) - new features"
+	@echo "  release-major      Major release (1.1.3 → 2.0.0) - breaking changes"
+	@echo ""
+	@echo "  Options (pass via script):"
+	@echo "    --dry-run        Preview what would happen"
+	@echo "    --no-push        Don't push to remote"
+	@echo "    --branch-only    Only create branch (manual build/merge)"
 	@echo ""
 	@echo "BUILD COMMANDS"
 	@echo "  build              Build installer (default: patch bump)"
@@ -121,12 +124,16 @@ help-full:
 # ════════════════════════════════════════════════════════════════════════════
 #  RELEASE WORKFLOW
 #  
-#  Typical flow:
-#    1. make release-minor     # Create release/1.2.0 branch
-#    2. make build             # Build installer (runs tests)
-#    3. (test installer manually)
-#    4. make merge-release     # Merge to main + tag
-#    5. git push origin main --tags
+#  Single command does everything:
+#    make release-minor
+#  
+#  This will:
+#    1. Create release/1.2.0 branch
+#    2. Bump version in version.json
+#    3. Build installer (runs tests with coverage check)
+#    4. Merge back to main
+#    5. Create git tag v1.2.0
+#    6. Push to remote
 # ════════════════════════════════════════════════════════════════════════════
 
 release: release-patch
@@ -139,6 +146,10 @@ release-minor:
 
 release-major:
 	@python scripts/release.py --major
+
+# For manual workflow (if you want to test installer before merging)
+release-branch-only:
+	@python scripts/release.py --patch --branch-only
 
 merge-release:
 	@python scripts/merge_release.py
