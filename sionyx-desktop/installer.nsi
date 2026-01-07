@@ -17,8 +17,6 @@
 ; Variables
 Var OrgNameInput
 Var OrgNameText
-Var KioskModeCheckbox
-Var KioskModeEnabled
 
 ; General
 Name "${APP_NAME}"
@@ -123,16 +121,14 @@ Section "Main Application" SecMain
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "" "$INSTDIR\${APP_ICON}" 0
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
     
-    ; If kiosk mode enabled, add to Windows auto-start with --kiosk flag
-    StrCmp $KioskModeEnabled "1" 0 skip_autostart
-        ; Add to registry for auto-start with --kiosk flag
-        WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}" '"$INSTDIR\${APP_EXECUTABLE}" --kiosk'
-        
-        ; Also create shortcut in All Users startup folder (backup method)
-        SetShellVarContext all
-        CreateShortCut "$SMSTARTUP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
-        SetShellVarContext current
-    skip_autostart:
+    ; Kiosk mode: Add to Windows auto-start with --kiosk flag
+    ; This ensures the app starts automatically on login with security restrictions
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}" '"$INSTDIR\${APP_EXECUTABLE}" --kiosk'
+    
+    ; Also create shortcut in All Users startup folder (backup method)
+    SetShellVarContext all
+    CreateShortCut "$SMSTARTUP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
+    SetShellVarContext current
 SectionEnd
 
 ; Uninstaller section
@@ -166,7 +162,7 @@ Section "Uninstall"
 SectionEnd
 
 Function CustomPagePre
-    ; Create custom page for organization name and kiosk mode
+    ; Create custom page for organization name
     nsDialogs::Create 1018
     Pop $0
     
@@ -176,14 +172,7 @@ Function CustomPagePre
     ${NSD_CreateText} 0 25u 100% 12u ""
     Pop $OrgNameInput
     
-    ${NSD_CreateLabel} 0 45u 100% 30u "This will be used to identify your organization in the system.$\n$\nExample: Tech Lab, School 123, My Company"
-    Pop $0
-    
-    ; Kiosk mode checkbox
-    ${NSD_CreateCheckbox} 0 85u 100% 15u "Enable Kiosk Mode (auto-start, block system keys)"
-    Pop $KioskModeCheckbox
-    
-    ${NSD_CreateLabel} 0 105u 100% 30u "Kiosk Mode: App starts automatically on Windows login, blocks Alt+Tab/$\nWin key, and kills unauthorized processes (cmd, regedit, etc.)"
+    ${NSD_CreateLabel} 0 45u 100% 40u "This will be used to identify your organization in the system.$\n$\nExample: Tech Lab, School 123, My Company"
     Pop $0
     
     nsDialogs::Show
@@ -192,9 +181,6 @@ FunctionEnd
 Function CustomPageLeave
     ; Get the organization name from input
     ${NSD_GetText} $OrgNameInput $OrgNameText
-    
-    ; Get kiosk mode checkbox state
-    ${NSD_GetState} $KioskModeCheckbox $KioskModeEnabled
     
     ; Validate organization name
     StrLen $1 $OrgNameText
