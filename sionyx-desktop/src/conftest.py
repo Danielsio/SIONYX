@@ -8,6 +8,7 @@ import pytest
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QApplication
 
+from database.local_db import LocalDatabase
 from services.firebase_client import FirebaseClient
 from utils.firebase_config import FirebaseConfig
 
@@ -33,23 +34,31 @@ def mock_firebase_config():
 
 
 @pytest.fixture(autouse=True)
-def reset_firebase_singleton(qapp):
+def reset_singletons(qapp):
     """
-    Reset FirebaseClient singleton before each test.
+    Reset all singleton instances before each test.
 
-    This ensures each test starts with a fresh instance.
+    This ensures each test starts with fresh instances.
     autouse=True means this runs automatically for every test.
+
+    Singletons reset:
+    - FirebaseClient
+    - LocalDatabase
 
     Also processes pending Qt events to prevent timer leaks between tests.
     """
     # Process any pending Qt events from previous tests
     qapp.processEvents()
 
-    # Reset before test
+    # Reset singletons before test
     FirebaseClient.reset_instance()
+    LocalDatabase.reset_instance()
+
     yield
-    # Reset after test (cleanup)
+
+    # Reset singletons after test (cleanup)
     FirebaseClient.reset_instance()
+    LocalDatabase.reset_instance()
 
     # Process any pending Qt events to flush timers
     qapp.processEvents()

@@ -3,12 +3,110 @@ Tests for LocalDatabase
 """
 
 import tempfile
+import threading
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
 from database.local_db import LocalDatabase
+
+
+class TestSingletonPattern:
+    """Test cases for LocalDatabase Singleton pattern"""
+
+    @pytest.fixture(autouse=True)
+    def reset_singleton(self):
+        """Reset singleton before and after each test"""
+        LocalDatabase.reset_instance()
+        yield
+        LocalDatabase.reset_instance()
+
+    @pytest.fixture
+    def temp_db_path(self):
+        """Create a temporary directory for database"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
+
+    def test_same_instance_returned(self, temp_db_path):
+        """Multiple calls to LocalDatabase() return the SAME instance"""
+        with patch.object(Path, "home", return_value=temp_db_path):
+            db1 = LocalDatabase()
+            db2 = LocalDatabase()
+
+            assert db1 is db2
+            assert id(db1) == id(db2)
+
+    def test_get_instance_returns_same_object(self, temp_db_path):
+        """get_instance() returns the same object as LocalDatabase()"""
+        with patch.object(Path, "home", return_value=temp_db_path):
+            db1 = LocalDatabase()
+            db2 = LocalDatabase.get_instance()
+
+            assert db1 is db2
+
+    def test_get_instance_creates_if_needed(self, temp_db_path):
+        """get_instance() creates instance if none exists"""
+        with patch.object(Path, "home", return_value=temp_db_path):
+            db = LocalDatabase.get_instance()
+
+            assert db is not None
+            assert isinstance(db, LocalDatabase)
+
+    def test_reset_instance_allows_new_creation(self, temp_db_path):
+        """reset_instance() allows a new instance to be created"""
+        with patch.object(Path, "home", return_value=temp_db_path):
+            db1 = LocalDatabase()
+            first_id = id(db1)
+
+            LocalDatabase.reset_instance()
+
+            db2 = LocalDatabase()
+            second_id = id(db2)
+
+            assert first_id != second_id
+
+    def test_init_runs_only_once(self, temp_db_path):
+        """__init__ should only run once, not on every LocalDatabase() call"""
+        init_count = 0
+        original_init_db = LocalDatabase._init_db
+
+        def counting_init_db(self):
+            nonlocal init_count
+            init_count += 1
+            return original_init_db(self)
+
+        with patch.object(Path, "home", return_value=temp_db_path):
+            with patch.object(LocalDatabase, "_init_db", counting_init_db):
+                LocalDatabase()
+                LocalDatabase()
+                LocalDatabase()
+
+                # _init_db should only be called once
+                assert init_count == 1
+
+    def test_thread_safety(self, temp_db_path):
+        """Singleton should be thread-safe"""
+        instances = []
+        errors = []
+
+        def create_instance():
+            try:
+                with patch.object(Path, "home", return_value=temp_db_path):
+                    instance = LocalDatabase()
+                    instances.append(instance)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=create_instance) for _ in range(10)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(errors) == 0
+        # All instances should be the same object
+        assert len(set(id(i) for i in instances)) == 1
 
 
 class TestLocalDatabase:

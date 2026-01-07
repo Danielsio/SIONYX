@@ -2,11 +2,25 @@
 Local Token Storage
 Only stores encrypted refresh token for auto-login
 All other data is in Firebase Realtime Database
+
+Singleton Pattern:
+    LocalDatabase uses the Singleton pattern to ensure only one instance exists.
+    This prevents multiple SQLite connections to the same file and ensures
+    consistent encryption state.
+
+    Usage:
+        db1 = LocalDatabase()
+        db2 = LocalDatabase()
+        assert db1 is db2  # Same instance
+
+    For testing:
+        LocalDatabase.reset_instance()  # Creates fresh instance for next test
 """
 
 import base64
 import hashlib
 import sqlite3
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -19,9 +33,41 @@ logger = get_logger(__name__)
 
 
 class LocalDatabase:
-    """Minimal local storage for refresh token only"""
+    """
+    Minimal local storage for refresh token only.
+
+    Singleton Pattern: Only one instance exists throughout the application.
+    Use LocalDatabase() or LocalDatabase.get_instance() to get it.
+    """
+
+    _instance: Optional["LocalDatabase"] = None
+    _lock = threading.Lock()
+    _initialized = False  # Flag to ensure __init__ runs only once
+
+    def __new__(cls, *args, **kwargs):
+        """
+        Singleton implementation using __new__.
+        Returns the same instance for all calls to LocalDatabase().
+        Thread-safe using a lock.
+        """
+        if cls._instance is None:
+            with cls._lock:
+                # Double-check locking pattern
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+        return cls._instance
 
     def __init__(self):
+        """
+        Initialize the LocalDatabase.
+
+        NOTE: __init__ is called every time LocalDatabase() is used,
+        but we only want to initialize once. The _initialized flag
+        ensures setup code runs only on first instantiation.
+        """
+        if self._initialized:
+            return
+
         # Store in user's app data folder
         app_data = Path.home() / ".sionyx"
         app_data.mkdir(exist_ok=True)
@@ -31,6 +77,34 @@ class LocalDatabase:
         self.cipher = Fernet(self.key)
 
         self._init_db()
+
+        logger.info("LocalDatabase initialized (singleton)", component="local_db")
+        LocalDatabase._initialized = True
+
+    @classmethod
+    def get_instance(cls) -> "LocalDatabase":
+        """
+        Returns the singleton instance of LocalDatabase.
+
+        This is more explicit than LocalDatabase() and makes
+        the singleton pattern more visible in code.
+        """
+        if cls._instance is None:
+            cls()
+        return cls._instance
+
+    @classmethod
+    def reset_instance(cls):
+        """
+        Resets the singleton instance for testing purposes.
+
+        This allows tests to start with a fresh LocalDatabase instance.
+        Should NOT be used in production code.
+        """
+        with cls._lock:
+            cls._instance = None
+            cls._initialized = False
+            logger.debug("LocalDatabase singleton instance reset.")
 
     def _init_db(self):
         """Create database if doesn't exist"""
