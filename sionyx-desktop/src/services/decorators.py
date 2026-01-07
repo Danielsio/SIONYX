@@ -230,4 +230,3 @@ def service_method(operation_name: Optional[str] = None) -> Callable:
         return decorated
 
     return decorator
-
