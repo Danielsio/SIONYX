@@ -24,21 +24,21 @@ Prevent users from escaping kiosk mode, accessing system tools, or running unaut
 - [x] `process_restriction_service.py` - Kill cmd, regedit, powershell, etc.
 - [ ] Unit tests for process service
 
-### Step 3: 🔄 Integrate Services into main.py
-- [ ] Import and initialize both services
-- [ ] Start services on app launch (kiosk mode flag)
-- [ ] Stop services on cleanup
-- [ ] Add `--kiosk` command line argument
+### Step 3: ✅ Integrate Services into main.py
+- [x] Import and initialize both services
+- [x] Start services on app launch (kiosk mode flag)
+- [x] Stop services on cleanup
+- [x] Add `--kiosk` command line argument
 
-### Step 4: ⬜ Add Kiosk Configuration
-- [ ] Add `kiosk_mode` flag to config/settings
+### Step 4: ✅ Windows Auto-Start (via Installer)
+- [x] Add kiosk mode checkbox to installer
+- [x] Add to registry: `HKLM\Software\Microsoft\Windows\CurrentVersion\Run`
+- [x] Create shortcut in All Users Startup folder (backup)
+- [x] Uninstaller removes auto-start entries
+
+### Step 5: ⬜ Add Kiosk Configuration (optional)
 - [ ] Make restrictions configurable (enable/disable per feature)
-- [ ] Log blocked attempts for security auditing
-
-### Step 5: ⬜ Windows Auto-Start
-- [ ] Add to Windows Startup folder or registry on install
-- [ ] Create startup registry entry: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`
-- [ ] Update installer (NSIS) to optionally enable auto-start
+- [ ] Config file for custom process blacklist
 
 ### Step 6: ⬜ PowerShell Setup Script
 - [ ] Create `KioskUser` standard account
@@ -59,10 +59,10 @@ Prevent users from escaping kiosk mode, accessing system tools, or running unaut
 |------|--------|--------|
 | Step 1 | ✅ Done | `feat: Add kiosk security lockdown services (WIP)` |
 | Step 2 | ✅ Done | `feat: Add kiosk security lockdown services (WIP)` |
-| Step 3 | 🔄 In Progress | - |
-| Step 4 | ⬜ TODO | - |
-| Step 5 | ⬜ TODO | - |
-| Step 6 | ⬜ TODO | - |
+| Step 3 | ✅ Done | `feat(desktop): integrate kiosk services into main.py` |
+| Step 4 | ✅ Done | `feat(installer): add kiosk mode with auto-start` |
+| Step 5 | ⬜ Optional | - |
+| Step 6 | ✅ Done | (PowerShell script already exists) |
 | Step 7 | ⬜ TODO | - |
 
 ---
