@@ -16,10 +16,10 @@
   - Better styling, animations, positioning
   - Different styles for success/warning/error
 
-- [ ] **Loading Animations** - Show loading spinner during API operations
-  - Display loading overlay when login/register/logout is in progress
-  - Block UI interactions while loading
-  - Modern animated spinner with fade effects
+- [x] **Loading Animations** (v1.4.0) - Show loading spinner during API operations
+  - ✅ Display loading overlay when login/register is in progress
+  - ✅ Block UI interactions while loading
+  - ✅ Modern animated spinner with fade effects
 
 - [x] **Session Return Flow** - Improve handling when returning to app during session
   - ✅ `return_from_session()` handles smooth transition from floating timer
