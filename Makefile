@@ -11,7 +11,8 @@
 #   make web-lint → lint web admin
 
 .PHONY: help dev dev-debug run run-debug test test-cov test-fast test-fail lint lint-fix format format-check build build-patch build-minor build-major build-dry build-local version clean \
-        web-dev web-build web-preview web-lint web-test web-test-run web-test-cov web-test-ui web-deploy web-deploy-hosting web-deploy-functions web-deploy-database
+        web-dev web-build web-preview web-lint web-test web-test-run web-test-cov web-test-ui web-deploy web-deploy-hosting web-deploy-functions web-deploy-database \
+        merge-feature
 
 # Default target
 help:
@@ -60,6 +61,9 @@ help:
 	@echo "Both Apps:"
 	@echo "  lint-all        - Lint both apps"
 	@echo "  clean           - Clean build artifacts"
+	@echo ""
+	@echo "Git Workflow:"
+	@echo "  merge-feature   - Merge feature branch to main (with coverage check)"
 	@echo ""
 
 # ============================================================================
@@ -253,3 +257,15 @@ clean:
 	rm -rf sionyx-desktop/build sionyx-desktop/dist
 	rm -rf sionyx-web/dist sionyx-web/node_modules/.vite
 	@echo "Clean complete!"
+
+# ============================================================================
+# Git Workflow Commands
+# ============================================================================
+
+# Merge feature branch to main (with coverage check)
+# Usage: make merge-feature
+# - Runs tests with coverage on current branch
+# - Compares coverage with main branch baseline (from version.json)
+# - Only merges if coverage didn't drop
+merge-feature:
+	@python scripts/merge_feature.py

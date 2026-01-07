@@ -64,6 +64,17 @@ class TestKeyboardRestrictionServiceControl:
 
         assert service.hook_thread is None
 
+    @patch("services.keyboard_restriction_service.threading.Thread")
+    def test_start_when_already_started(self, mock_thread):
+        """Start should do nothing if hook already installed."""
+        service = KeyboardRestrictionService(enabled=True)
+        service.hook_handle = 12345  # Pretend already started
+
+        service.start()
+
+        # Should not create a new thread
+        mock_thread.assert_not_called()
+
     @patch("services.keyboard_restriction_service.user32")
     def test_stop_unhooks(self, mock_user32):
         """Stop should call UnhookWindowsHookEx."""
@@ -100,6 +111,17 @@ class TestKeyboardRestrictionServiceControl:
 
         assert service.enabled is False
         mock_user32.UnhookWindowsHookEx.assert_called_once()
+
+    @patch("services.keyboard_restriction_service.threading.Thread")
+    def test_set_enabled_true_does_not_start_if_already_running(self, mock_thread):
+        """Setting enabled=True should not restart if already running."""
+        service = KeyboardRestrictionService(enabled=False)
+        service.hook_handle = 12345  # Already has a handle
+
+        service.set_enabled(True)
+
+        # Should not create new thread
+        mock_thread.assert_not_called()
 
 
 class TestKeyboardRestrictionServiceIsActive:
