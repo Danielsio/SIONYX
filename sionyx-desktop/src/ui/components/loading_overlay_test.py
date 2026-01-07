@@ -160,3 +160,44 @@ class TestLoadingOverlay:
         """Test default loading message is Hebrew"""
         overlay.show_with_message()
         assert overlay._message_label.text() == "טוען..."
+
+    def test_overlay_resize_event_updates_geometry(self, overlay, parent_widget):
+        """Test resize event updates overlay geometry"""
+        from PyQt6.QtCore import QSize
+        from PyQt6.QtGui import QResizeEvent
+
+        parent_widget.show()
+        overlay.show_with_message("טוען...")
+        new_size = QSize(1000, 800)
+        event = QResizeEvent(new_size, parent_widget.size())
+        overlay.resizeEvent(event)
+        # Overlay should still match parent rect
+        assert overlay.geometry() == parent_widget.rect()
+
+
+class TestSpinnerPaint:
+    """Tests for SpinnerWidget paint functionality"""
+
+    @pytest.fixture
+    def spinner(self, qapp):
+        """Create SpinnerWidget instance"""
+        widget = SpinnerWidget(size=48)
+        yield widget
+        widget.stop()
+
+    def test_spinner_paint_event_executes(self, spinner, qapp):
+        """Test paintEvent can be called without errors"""
+        from PyQt6.QtGui import QPaintEvent
+
+        # Create a paint event for the spinner's rect
+        event = QPaintEvent(spinner.rect())
+        # This should execute without raising
+        spinner.paintEvent(event)
+
+    def test_spinner_paint_event_after_rotation(self, spinner, qapp):
+        """Test paintEvent works after angle changes"""
+        from PyQt6.QtGui import QPaintEvent
+
+        spinner._angle = 180
+        event = QPaintEvent(spinner.rect())
+        spinner.paintEvent(event)
