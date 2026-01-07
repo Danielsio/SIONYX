@@ -38,10 +38,11 @@ git checkout -b feature/loading-animations
 make merge-feature
 ```
 
-### Step 6: Release ⬜ (IN PROGRESS)
+### Step 6: Release ✅
 ```bash
 make release-minor
 ```
+Released as **v1.4.0** on 2026-01-08
 This will:
 1. Create release/1.4.0 branch
 2. Bump version to 1.4.0
