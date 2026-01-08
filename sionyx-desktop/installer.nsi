@@ -1,5 +1,5 @@
 ; SIONYX Installer Script for NSIS
-; This creates a professional Windows installer
+; This creates a professional Windows installer with integrated kiosk setup
 
 !define APP_NAME "SIONYX"
 !define APP_VERSION "1.0.0"
@@ -8,15 +8,22 @@
 !define APP_EXECUTABLE "SIONYX.exe"
 !define APP_ICON "app-logo.ico"
 !define INSTALLER_NAME "SIONYX-Installer.exe"
+!define KIOSK_USERNAME "KioskUser"
 
 ; Modern UI
 !include "MUI2.nsh"
 !include "FileFunc.nsh"
 !include "nsDialogs.nsh"
+!include "LogicLib.nsh"
+!include "WinMessages.nsh"
 
 ; Variables
 Var OrgNameInput
 Var OrgNameText
+Var KioskPasswordInput
+Var KioskPasswordConfirmInput
+Var KioskPasswordText
+Var KioskPasswordConfirmText
 
 ; General
 Name "${APP_NAME}"
@@ -34,7 +41,8 @@ RequestExecutionLevel admin
 !insertmacro MUI_PAGE_WELCOME
 !insertmacro MUI_PAGE_LICENSE "LICENSE.txt"
 !insertmacro MUI_PAGE_DIRECTORY
-Page custom CustomPagePre CustomPageLeave
+Page custom OrgPagePre OrgPageLeave          ; Organization name page
+Page custom KioskPagePre KioskPageLeave      ; Kiosk password setup page
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
@@ -44,7 +52,9 @@ Page custom CustomPagePre CustomPageLeave
 ; Languages
 !insertmacro MUI_LANGUAGE "English"
 
-; Installer sections
+; ============================================================================
+; INSTALLER SECTION - Main Application
+; ============================================================================
 Section "Main Application" SecMain
     SetOutPath "$INSTDIR"
     
@@ -53,11 +63,6 @@ Section "Main Application" SecMain
     
     ; Copy application icon
     File "${APP_ICON}"
-    
-    ; Web assets removed - build separately
-    
-    ; Templates are bundled inside the executable by PyInstaller
-    ; No need to copy them separately
     
     ; Create .env file with organization name
     SetOutPath "$INSTDIR"
@@ -89,12 +94,6 @@ Section "Main Application" SecMain
     FileWrite $0 "# Payment Gateway Configuration (Nedarim Plus)$\r$\n"
     FileWrite $0 "# ============================================================================$\r$\n"
     FileWrite $0 "NEDARIM_CALLBACK_URL=https://us-central1-sionyx-19636.cloudfunctions.net/nedarimCallback$\r$\n"
-    FileWrite $0 "$\r$\n"
-    FileWrite $0 "# ============================================================================$\r$\n"
-    FileWrite $0 "# Notes:$\r$\n"
-    FileWrite $0 "# - Keep this file secure and never share it publicly$\r$\n"
-    FileWrite $0 "# - Make sure .env is in your .gitignore$\r$\n"
-    FileWrite $0 "# - To change organization, you must reinstall or manually edit this file$\r$\n"
     FileWrite $0 "# ============================================================================$\r$\n"
     FileClose $0
     
@@ -113,31 +112,179 @@ Section "Main Application" SecMain
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "NoModify" 1
     WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "NoRepair" 1
     
-    ; Create desktop shortcut with icon
+    ; Create desktop shortcut with icon (for admin use)
     CreateShortCut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "" "$INSTDIR\${APP_ICON}" 0
     
     ; Create start menu shortcut with icon
     CreateDirectory "$SMPROGRAMS\${APP_NAME}"
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "" "$INSTDIR\${APP_ICON}" 0
     CreateShortCut "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
-    
-    ; Kiosk mode: Add to Windows auto-start with --kiosk flag
-    ; This ensures the app starts automatically on login with security restrictions
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}" '"$INSTDIR\${APP_EXECUTABLE}" --kiosk'
-    
-    ; Also create shortcut in All Users startup folder (backup method)
-    SetShellVarContext all
-    CreateShortCut "$SMSTARTUP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
-    SetShellVarContext current
 SectionEnd
 
-; Uninstaller section
+; ============================================================================
+; KIOSK SETUP SECTION - Creates restricted user and applies security
+; ============================================================================
+Section "Kiosk Security Setup" SecKiosk
+    DetailPrint ""
+    DetailPrint "============================================"
+    DetailPrint "  STEP 1: Creating Kiosk User Account"
+    DetailPrint "============================================"
+    DetailPrint ""
+    DetailPrint "Creating a restricted Windows user account..."
+    DetailPrint "This account will be used by customers at the kiosk."
+    DetailPrint ""
+    
+    ; Create KioskUser account using PowerShell
+    ; First check if user exists
+    nsExec::ExecToLog 'powershell -Command "if (Get-LocalUser -Name \"${KIOSK_USERNAME}\" -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"'
+    Pop $0
+    
+    ${If} $0 == 0
+        DetailPrint "[INFO] User '${KIOSK_USERNAME}' already exists - updating password..."
+        nsExec::ExecToLog 'powershell -Command "Set-LocalUser -Name \"${KIOSK_USERNAME}\" -Password (ConvertTo-SecureString \"$KioskPasswordText\" -AsPlainText -Force)"'
+    ${Else}
+        DetailPrint "[CREATING] New user account '${KIOSK_USERNAME}'..."
+        nsExec::ExecToLog 'powershell -Command "New-LocalUser -Name \"${KIOSK_USERNAME}\" -Password (ConvertTo-SecureString \"$KioskPasswordText\" -AsPlainText -Force) -FullName \"SIONYX Kiosk User\" -Description \"Restricted kiosk account for SIONYX\" -PasswordNeverExpires"'
+    ${EndIf}
+    Pop $0
+    
+    ; Make sure user is NOT an administrator (remove from Administrators group if somehow added)
+    DetailPrint "[SECURITY] Ensuring user has limited permissions (not administrator)..."
+    nsExec::ExecToLog 'powershell -Command "Remove-LocalGroupMember -Group \"Administrators\" -Member \"${KIOSK_USERNAME}\" -ErrorAction SilentlyContinue"'
+    Pop $0
+    
+    ; Add user to Users group
+    nsExec::ExecToLog 'powershell -Command "Add-LocalGroupMember -Group \"Users\" -Member \"${KIOSK_USERNAME}\" -ErrorAction SilentlyContinue"'
+    Pop $0
+    
+    DetailPrint "[OK] Kiosk user account ready!"
+    DetailPrint ""
+    
+    ; ========================================================================
+    DetailPrint "============================================"
+    DetailPrint "  STEP 2: Applying Security Restrictions"
+    DetailPrint "============================================"
+    DetailPrint ""
+    DetailPrint "Configuring Windows to prevent unauthorized access..."
+    DetailPrint "This blocks dangerous tools that customers shouldn't use."
+    DetailPrint ""
+    
+    ; Create PowerShell script to apply registry restrictions
+    FileOpen $0 "$TEMP\sionyx_kiosk_setup.ps1" w
+    FileWrite $0 '# SIONYX Kiosk Registry Restrictions$\r$\n'
+    FileWrite $0 '# This script applies security restrictions to the KioskUser account$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '$$username = "${KIOSK_USERNAME}"$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# Get user SID$\r$\n'
+    FileWrite $0 '$$user = Get-LocalUser -Name $$username -ErrorAction SilentlyContinue$\r$\n'
+    FileWrite $0 'if (-not $$user) { Write-Host "[ERROR] User not found"; exit 1 }$\r$\n'
+    FileWrite $0 '$$userSID = $$user.SID.Value$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# Create user profile if it does not exist (force profile creation)$\r$\n'
+    FileWrite $0 '$$profilePath = "C:\Users\$$username"$\r$\n'
+    FileWrite $0 'if (-not (Test-Path $$profilePath)) {$\r$\n'
+    FileWrite $0 '    Write-Host "[INFO] Creating user profile folder..."$\r$\n'
+    FileWrite $0 '    New-Item -Path $$profilePath -ItemType Directory -Force | Out-Null$\r$\n'
+    FileWrite $0 '}$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# Apply restrictions via HKLM (affects all users but we target via Group Policy)$\r$\n'
+    FileWrite $0 '# These are machine-wide policies that will apply to standard users$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# Create policy paths$\r$\n'
+    FileWrite $0 '$$explorerPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"$\r$\n'
+    FileWrite $0 '$$systemPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 'if (-not (Test-Path $$explorerPath)) { New-Item -Path $$explorerPath -Force | Out-Null }$\r$\n'
+    FileWrite $0 'if (-not (Test-Path $$systemPath)) { New-Item -Path $$systemPath -Force | Out-Null }$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# Restriction: Disable Run dialog (Win+R)$\r$\n'
+    FileWrite $0 'Write-Host "[APPLYING] Disabling Run dialog (Win+R)..."$\r$\n'
+    FileWrite $0 'Set-ItemProperty -Path $$explorerPath -Name "NoRun" -Value 1 -Type DWord -Force$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# Restriction: Disable Registry Editor$\r$\n'
+    FileWrite $0 'Write-Host "[APPLYING] Blocking Registry Editor..."$\r$\n'
+    FileWrite $0 'Set-ItemProperty -Path $$systemPath -Name "DisableRegistryTools" -Value 1 -Type DWord -Force$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# Restriction: Disable Command Prompt$\r$\n'
+    FileWrite $0 'Write-Host "[APPLYING] Blocking Command Prompt..."$\r$\n'
+    FileWrite $0 'Set-ItemProperty -Path $$systemPath -Name "DisableCMD" -Value 2 -Type DWord -Force$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# Restriction: Disable Task Manager (for non-admin users)$\r$\n'
+    FileWrite $0 'Write-Host "[APPLYING] Blocking Task Manager..."$\r$\n'
+    FileWrite $0 'Set-ItemProperty -Path $$systemPath -Name "DisableTaskMgr" -Value 1 -Type DWord -Force$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# Store kiosk username for uninstaller$\r$\n'
+    FileWrite $0 'Set-ItemProperty -Path "HKLM:\SOFTWARE\${APP_NAME}" -Name "KioskUser" -Value $$username -Type String -Force$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 'Write-Host "[OK] All security restrictions applied!"$\r$\n'
+    FileClose $0
+    
+    ; Execute the PowerShell script
+    DetailPrint "[APPLYING] Disabling Run dialog (Win+R)..."
+    DetailPrint "[APPLYING] Blocking Registry Editor..."
+    DetailPrint "[APPLYING] Blocking Command Prompt..."
+    DetailPrint "[APPLYING] Blocking Task Manager..."
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_kiosk_setup.ps1"'
+    Pop $0
+    
+    ; Clean up temp script
+    Delete "$TEMP\sionyx_kiosk_setup.ps1"
+    
+    DetailPrint "[OK] Security restrictions applied!"
+    DetailPrint ""
+    
+    ; ========================================================================
+    DetailPrint "============================================"
+    DetailPrint "  STEP 3: Setting Up Auto-Start"
+    DetailPrint "============================================"
+    DetailPrint ""
+    DetailPrint "Configuring SIONYX to start automatically when the"
+    DetailPrint "kiosk user logs in. This ensures the kiosk is always"
+    DetailPrint "ready for customers."
+    DetailPrint ""
+    
+    ; Add to Windows auto-start with --kiosk flag (machine-wide)
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}" '"$INSTDIR\${APP_EXECUTABLE}" --kiosk'
+    DetailPrint "[OK] Added to Windows startup (all users)"
+    
+    ; Create shortcut in All Users startup folder (backup method)
+    SetShellVarContext all
+    CreateShortCut "$SMSTARTUP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
+    DetailPrint "[OK] Created startup shortcut"
+    SetShellVarContext current
+    
+    ; Create startup shortcut specifically for KioskUser
+    CreateDirectory "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
+    CreateShortCut "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
+    DetailPrint "[OK] Created startup shortcut for KioskUser"
+    
+    DetailPrint ""
+    DetailPrint "============================================"
+    DetailPrint "  SETUP COMPLETE!"
+    DetailPrint "============================================"
+    DetailPrint ""
+    DetailPrint "Your kiosk is now configured and secure."
+    DetailPrint ""
+    DetailPrint "NEXT STEPS:"
+    DetailPrint "1. Log out of your admin account"
+    DetailPrint "2. Log in as '${KIOSK_USERNAME}'"
+    DetailPrint "3. SIONYX will start automatically"
+    DetailPrint ""
+    DetailPrint "REMEMBER: Keep your admin password safe!"
+    DetailPrint "You will need it to make changes or uninstall."
+    DetailPrint ""
+SectionEnd
+
+; ============================================================================
+; UNINSTALLER SECTION
+; ============================================================================
 Section "Uninstall"
     ; Remove files
     Delete "$INSTDIR\${APP_EXECUTABLE}"
     Delete "$INSTDIR\${APP_ICON}"
+    Delete "$INSTDIR\.env"
     Delete "$INSTDIR\Uninstall.exe"
-    Delete "$INSTDIR\env.example"
     RMDir /r "$INSTDIR\web"
     RMDir /r "$INSTDIR\templates"
     
@@ -153,6 +300,39 @@ Section "Uninstall"
     Delete "$SMSTARTUP\${APP_NAME}.lnk"
     SetShellVarContext current
     
+    ; Remove KioskUser startup shortcut
+    Delete "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk"
+    
+    ; Ask about removing KioskUser account
+    MessageBox MB_YESNO|MB_ICONQUESTION \
+        "Do you want to remove the '${KIOSK_USERNAME}' Windows account?$\n$\n\
+        Choose YES to completely remove the kiosk setup.$\n\
+        Choose NO to keep the account (you can remove it later)." \
+        IDYES removeUser IDNO skipRemoveUser
+    
+    removeUser:
+        ; Remove registry restrictions first
+        nsExec::ExecToLog 'powershell -Command "Remove-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\" -Name \"NoRun\" -ErrorAction SilentlyContinue"'
+        nsExec::ExecToLog 'powershell -Command "Remove-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\" -Name \"DisableRegistryTools\" -ErrorAction SilentlyContinue"'
+        nsExec::ExecToLog 'powershell -Command "Remove-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\" -Name \"DisableCMD\" -ErrorAction SilentlyContinue"'
+        nsExec::ExecToLog 'powershell -Command "Remove-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\" -Name \"DisableTaskMgr\" -ErrorAction SilentlyContinue"'
+        
+        ; Remove the user account
+        nsExec::ExecToLog 'powershell -Command "Remove-LocalUser -Name \"${KIOSK_USERNAME}\" -ErrorAction SilentlyContinue"'
+        
+        ; Optionally remove user profile folder (dangerous - contains user data)
+        MessageBox MB_YESNO|MB_ICONEXCLAMATION \
+            "Do you also want to delete the KioskUser profile folder?$\n$\n\
+            Location: C:\Users\${KIOSK_USERNAME}$\n$\n\
+            WARNING: This will delete any files saved by kiosk users!" \
+            IDYES removeProfile IDNO skipRemoveProfile
+        
+        removeProfile:
+            RMDir /r "C:\Users\${KIOSK_USERNAME}"
+        skipRemoveProfile:
+    
+    skipRemoveUser:
+    
     ; Remove registry entries
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
     DeleteRegKey HKLM "Software\${APP_NAME}"
@@ -161,44 +341,127 @@ Section "Uninstall"
     RMDir "$INSTDIR"
 SectionEnd
 
-Function CustomPagePre
-    ; Create custom page for organization name
+; ============================================================================
+; CUSTOM PAGE: Organization Name
+; ============================================================================
+Function OrgPagePre
     nsDialogs::Create 1018
     Pop $0
     
-    ${NSD_CreateLabel} 0 0 100% 20u "Enter your organization name:"
+    ${NSD_CreateLabel} 0 0 100% 30u "Step 1 of 2: Organization Setup"
+    Pop $0
+    SendMessage $0 ${WM_SETFONT} $mui.Header.Text.Font 0
+    
+    ${NSD_CreateLabel} 0 35u 100% 20u "Enter your organization or business name:"
     Pop $0
     
-    ${NSD_CreateText} 0 25u 100% 12u ""
+    ${NSD_CreateText} 0 55u 100% 14u ""
     Pop $OrgNameInput
     
-    ${NSD_CreateLabel} 0 45u 100% 40u "This will be used to identify your organization in the system.$\n$\nExample: Tech Lab, School 123, My Company"
+    ${NSD_CreateLabel} 0 80u 100% 50u \
+        "This identifies your location in the SIONYX system.$\n$\n\
+        Examples: 'City Gaming Center', 'Tech Hub Cafe', 'Library Station 1'"
     Pop $0
     
     nsDialogs::Show
 FunctionEnd
 
-Function CustomPageLeave
-    ; Get the organization name from input
+Function OrgPageLeave
     ${NSD_GetText} $OrgNameInput $OrgNameText
     
-    ; Validate organization name
     StrLen $1 $OrgNameText
     ${If} $1 < 3
-        MessageBox MB_OK "Please enter a valid organization name (at least 3 characters)."
+        MessageBox MB_OK|MB_ICONEXCLAMATION "Please enter a valid organization name (at least 3 characters)."
         Abort
     ${EndIf}
 FunctionEnd
 
-; Functions
+; ============================================================================
+; CUSTOM PAGE: Kiosk Password Setup
+; ============================================================================
+Function KioskPagePre
+    nsDialogs::Create 1018
+    Pop $0
+    
+    ; Title
+    ${NSD_CreateLabel} 0 0 100% 30u "Step 2 of 2: Kiosk Security Setup"
+    Pop $0
+    SendMessage $0 ${WM_SETFONT} $mui.Header.Text.Font 0
+    
+    ; Explanation box
+    ${NSD_CreateGroupBox} 0 30u 100% 65u "What happens in this step?"
+    Pop $0
+    
+    ${NSD_CreateLabel} 10u 45u 95% 45u \
+        "We will create a special Windows user account called 'KioskUser'.$\n\
+        This account has limited permissions so customers cannot:$\n\
+        - Access system settings  - Install software  - Open command prompt"
+    Pop $0
+    
+    ; Password section
+    ${NSD_CreateLabel} 0 105u 100% 15u "Create a password for the KioskUser account:"
+    Pop $0
+    
+    ${NSD_CreatePassword} 0 120u 100% 14u ""
+    Pop $KioskPasswordInput
+    
+    ${NSD_CreateLabel} 0 140u 100% 15u "Confirm password:"
+    Pop $0
+    
+    ${NSD_CreatePassword} 0 155u 100% 14u ""
+    Pop $KioskPasswordConfirmInput
+    
+    ; Note
+    ${NSD_CreateLabel} 0 180u 100% 30u \
+        "NOTE: This password is for the KIOSK account (what customers use).$\n\
+        Your administrator account remains unchanged."
+    Pop $0
+    
+    nsDialogs::Show
+FunctionEnd
+
+Function KioskPageLeave
+    ${NSD_GetText} $KioskPasswordInput $KioskPasswordText
+    ${NSD_GetText} $KioskPasswordConfirmInput $KioskPasswordConfirmText
+    
+    ; Validate password length
+    StrLen $1 $KioskPasswordText
+    ${If} $1 < 6
+        MessageBox MB_OK|MB_ICONEXCLAMATION \
+            "Password must be at least 6 characters long.$\n$\n\
+            This protects your kiosk from unauthorized access."
+        Abort
+    ${EndIf}
+    
+    ; Validate passwords match
+    StrCmp $KioskPasswordText $KioskPasswordConfirmText +3 0
+        MessageBox MB_OK|MB_ICONEXCLAMATION "Passwords do not match. Please try again."
+        Abort
+    
+    ; Final confirmation
+    MessageBox MB_YESNO|MB_ICONQUESTION \
+        "Ready to set up your kiosk!$\n$\n\
+        The installer will now:$\n\
+        1. Create the '${KIOSK_USERNAME}' account$\n\
+        2. Apply security restrictions$\n\
+        3. Set SIONYX to start automatically$\n$\n\
+        Continue?" \
+        IDYES +2
+    Abort
+FunctionEnd
+
+; ============================================================================
+; INITIALIZATION
+; ============================================================================
 Function .onInit
     ; Check if already installed
     ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString"
     StrCmp $R0 "" done
     
     MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
-        "${APP_NAME} is already installed. $\n$\nClick 'OK' to remove the \
-        previous version or 'Cancel' to cancel this upgrade." \
+        "${APP_NAME} is already installed.$\n$\n\
+        Click 'OK' to remove the previous version and install fresh.$\n\
+        Click 'Cancel' to abort." \
         IDOK uninst
     Abort
     

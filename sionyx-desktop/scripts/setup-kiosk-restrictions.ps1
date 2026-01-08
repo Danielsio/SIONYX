@@ -1,5 +1,13 @@
 # ============================================================================
 # SIONYX Kiosk Mode Setup Script
+# 
+# ⚠️  DEPRECATED: This script is no longer needed!
+# 
+# The SIONYX installer now handles all kiosk setup automatically.
+# Just run SIONYX-Installer.exe and follow the wizard.
+#
+# This script is kept for reference or manual troubleshooting only.
+# ============================================================================
 # Run this AS ADMINISTRATOR on each PC to set up user restrictions
 # ============================================================================
 
