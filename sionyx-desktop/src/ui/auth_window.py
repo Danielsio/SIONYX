@@ -5,10 +5,12 @@ Inspired by modern web design with smooth animations
 
 from PyQt6.QtCore import (
     QEasingCurve,
+    QObject,
     QParallelAnimationGroup,
     QPropertyAnimation,
     QRect,
     Qt,
+    QThread,
     QTimer,
     pyqtSignal,
 )
@@ -28,6 +30,26 @@ from ui.base_window import BaseKioskWindow
 from ui.components.loading_overlay import LoadingOverlay
 from ui.styles.auth_window import AUTH_WINDOW_QSS
 from utils.const import APP_NAME
+
+
+class AuthWorker(QObject):
+    """Worker for running auth operations in background thread"""
+
+    finished = pyqtSignal(dict)
+
+    def __init__(self, operation, *args, **kwargs):
+        super().__init__()
+        self.operation = operation
+        self.args = args
+        self.kwargs = kwargs
+
+    def run(self):
+        """Execute the auth operation and emit result"""
+        try:
+            result = self.operation(*self.args, **self.kwargs)
+            self.finished.emit(result)
+        except Exception as e:
+            self.finished.emit({"success": False, "error": str(e)})
 
 
 class AuthWindow(BaseKioskWindow):
@@ -481,14 +503,28 @@ class AuthWindow(BaseKioskWindow):
             self.shake_widget(self.signin_password_input)
             return
 
-        # Show loading overlay
+        # Show loading overlay and disable button
         self.loading_overlay.show_with_message("מתחבר...")
         self.signin_button.setEnabled(False)
-        QApplication.processEvents()
 
-        result = self.auth_service.login(phone, password)
+        # Create worker and thread for async operation
+        self._login_thread = QThread()
+        self._login_worker = AuthWorker(self.auth_service.login, phone, password)
+        self._login_worker.moveToThread(self._login_thread)
 
-        # Hide loading overlay
+        # Connect signals
+        self._login_thread.started.connect(self._login_worker.run)
+        self._login_worker.finished.connect(self._on_login_complete)
+        self._login_worker.finished.connect(self._login_thread.quit)
+        self._login_worker.finished.connect(self._login_worker.deleteLater)
+        self._login_thread.finished.connect(self._login_thread.deleteLater)
+
+        # Start the thread
+        self._login_thread.start()
+
+    def _on_login_complete(self, result):
+        """Handle login completion (called from main thread)"""
+        # Hide loading overlay and re-enable button
         self.loading_overlay.hide_overlay()
         self.signin_button.setEnabled(True)
 
@@ -550,20 +586,35 @@ class AuthWindow(BaseKioskWindow):
             self.shake_widget(self.signup_confirm_input)
             return
 
-        # Show loading overlay
+        # Show loading overlay and disable button
         self.loading_overlay.show_with_message("יוצר חשבון...")
         self.signup_button.setEnabled(False)
-        QApplication.processEvents()
 
-        result = self.auth_service.register(
+        # Create worker and thread for async operation
+        self._register_thread = QThread()
+        self._register_worker = AuthWorker(
+            self.auth_service.register,
             phone=phone,
             password=password,
             first_name=first_name,
             last_name=last_name,
             email=email,
         )
+        self._register_worker.moveToThread(self._register_thread)
 
-        # Hide loading overlay
+        # Connect signals
+        self._register_thread.started.connect(self._register_worker.run)
+        self._register_worker.finished.connect(self._on_register_complete)
+        self._register_worker.finished.connect(self._register_thread.quit)
+        self._register_worker.finished.connect(self._register_worker.deleteLater)
+        self._register_thread.finished.connect(self._register_thread.deleteLater)
+
+        # Start the thread
+        self._register_thread.start()
+
+    def _on_register_complete(self, result):
+        """Handle registration completion (called from main thread)"""
+        # Hide loading overlay and re-enable button
         self.loading_overlay.hide_overlay()
         self.signup_button.setEnabled(True)
 

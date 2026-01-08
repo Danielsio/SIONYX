@@ -3,7 +3,7 @@ Main Window - Modern Web-Style Navigation
 Refactored to use centralized constants and base components
 """
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
     QFrame,
@@ -20,6 +20,7 @@ from PyQt6.QtWidgets import (
 from services.session_service import SessionService
 from ui.base_window import BaseKioskWindow
 from ui.components.base_components import ActionButton
+from ui.components.loading_overlay import LoadingOverlay
 from ui.constants.ui_constants import (
     BorderRadius,
     Colors,
@@ -42,6 +43,25 @@ from utils.logger import get_logger
 
 
 logger = get_logger(__name__)
+
+
+class LogoutWorker(QObject):
+    """Worker for running logout in background thread"""
+
+    finished = pyqtSignal(bool)  # True on success, False on error
+
+    def __init__(self, auth_service):
+        super().__init__()
+        self.auth_service = auth_service
+
+    def run(self):
+        """Execute logout and emit result"""
+        try:
+            self.auth_service.logout()
+            self.finished.emit(True)
+        except Exception as e:
+            logger.error(f"Error in logout worker: {e}")
+            self.finished.emit(False)
 
 
 class MainWindow(BaseKioskWindow):
@@ -132,6 +152,9 @@ class MainWindow(BaseKioskWindow):
 
         self.apply_modern_styles()
         self.show_page(self.PAGES["HOME"])
+
+        # Create loading overlay for logout and other operations
+        self.loading_overlay = LoadingOverlay(self)
 
         # Refresh all pages after UI is initialized
         self.refresh_all_pages()
@@ -402,6 +425,9 @@ class MainWindow(BaseKioskWindow):
 
         if confirmed:
             try:
+                # Show loading overlay during logout
+                self.loading_overlay.show_with_message("מתנתק...")
+
                 # Stop session service first to prevent crashes
                 logger.debug("Stopping session service...")
                 if hasattr(self, "session_service") and self.session_service:
@@ -416,21 +442,11 @@ class MainWindow(BaseKioskWindow):
                     try:
                         logger.debug("Calling force_logout_listener.stop()...")
                         self.force_logout_listener.stop()
-                        logger.debug("stop() returned, now waiting (max 500ms)...")
-                        # Don't wait too long - the thread will exit on next timeout
-                        finished = self.force_logout_listener.wait(500)
-                        if finished:
-                            logger.debug("Force logout listener thread finished")
-                        else:
-                            logger.debug(
-                                "Force logout listener still running "
-                                "(will exit on next timeout)"
-                            )
+                        # Don't wait - let it finish on its own
                         self.force_logout_listener = None
                         logger.debug("Force logout listener reference cleared")
                     except Exception as e:
                         logger.error(f"Error stopping force logout listener: {e}")
-                        logger.exception("Full traceback:")
                         self.force_logout_listener = None
                 else:
                     logger.debug("No force logout listener to stop")
@@ -459,29 +475,27 @@ class MainWindow(BaseKioskWindow):
                 else:
                     logger.debug("No floating timer to close")
 
-                logger.debug("Calling auth_service.logout()...")
-                self.auth_service.logout()
-                logger.info("User logged out")
+                # Run logout in background thread to keep spinner animating
+                logger.debug("Starting logout worker thread...")
+                self._logout_thread = QThread()
+                self._logout_worker = LogoutWorker(self.auth_service)
+                self._logout_worker.moveToThread(self._logout_thread)
 
-                # Hide main window and show auth window instead of closing
-                logger.debug("Hiding main window...")
-                self.hide()
+                # Connect signals
+                self._logout_thread.started.connect(self._logout_worker.run)
+                self._logout_worker.finished.connect(self._on_logout_complete)
+                self._logout_worker.finished.connect(self._logout_thread.quit)
+                self._logout_worker.finished.connect(self._logout_worker.deleteLater)
+                self._logout_thread.finished.connect(self._logout_thread.deleteLater)
 
-                logger.debug("Creating new AuthWindow...")
-                from ui.auth_window import AuthWindow
-
-                self.auth_window = AuthWindow(self.auth_service)
-                # Connect login success to show main window again
-                self.auth_window.login_success.connect(
-                    self.show_main_window_after_login
-                )
-                logger.debug("Showing auth window...")
-                self.auth_window.show()
-                logger.debug("Logout complete - auth window shown")
+                # Start the thread
+                self._logout_thread.start()
 
             except Exception as e:
                 logger.error(f"Error during logout: {e}")
                 logger.exception("Full logout error traceback:")
+                # Hide loading overlay on error
+                self.loading_overlay.hide_overlay()
                 # Stop force logout listener even on error
                 if self.force_logout_listener:
                     self.force_logout_listener.stop()
@@ -500,6 +514,27 @@ class MainWindow(BaseKioskWindow):
                 self.auth_window.show()
         else:
             logger.debug("Logout cancelled by user")
+
+    def _on_logout_complete(self, success: bool):
+        """Handle logout completion (called from main thread)"""
+        logger.info(f"Logout complete, success: {success}")
+
+        # Hide loading overlay
+        self.loading_overlay.hide_overlay()
+
+        # Hide main window and show auth window
+        logger.debug("Hiding main window...")
+        self.hide()
+
+        logger.debug("Creating new AuthWindow...")
+        from ui.auth_window import AuthWindow
+
+        self.auth_window = AuthWindow(self.auth_service)
+        # Connect login success to show main window again
+        self.auth_window.login_success.connect(self.show_main_window_after_login)
+        logger.debug("Showing auth window...")
+        self.auth_window.show()
+        logger.debug("Logout complete - auth window shown")
 
     def show_main_window_after_login(self):
         """Show main window after successful login from logout flow"""

@@ -114,14 +114,20 @@ class LoadingOverlay(QWidget):
         if self.parent():
             self.setGeometry(self.parent().rect())
 
-        # Semi-transparent dark backdrop
+        # Set object name for proper stylesheet targeting
+        self.setObjectName("loadingOverlay")
+
+        # Semi-transparent dark backdrop - use #loadingOverlay or direct QWidget styling
         self.setStyleSheet(
             """
-            LoadingOverlay {
-                background: rgba(15, 23, 42, 0.6);
+            #loadingOverlay {
+                background: rgba(15, 23, 42, 0.7);
             }
         """
         )
+
+        # Ensure the widget is painted with transparency
+        self.setAutoFillBackground(True)
 
         # Main layout
         layout = QVBoxLayout(self)
@@ -167,8 +173,9 @@ class LoadingOverlay(QWidget):
         layout.addWidget(self._container)
 
         # Setup opacity effect for fade animations
+        # Start at 1.0 (fully visible) - we hide() the widget instead of using opacity
         self._opacity_effect = QGraphicsOpacityEffect(self)
-        self._opacity_effect.setOpacity(0.0)
+        self._opacity_effect.setOpacity(1.0)
         self.setGraphicsEffect(self._opacity_effect)
 
     def show_with_message(self, message: str = "טוען..."):
@@ -181,23 +188,31 @@ class LoadingOverlay(QWidget):
         self._message = message
         self._message_label.setText(message)
 
-        # Ensure we fill parent
+        # Ensure we fill parent completely
         if self.parent():
-            self.setGeometry(self.parent().rect())
+            parent_rect = self.parent().rect()
+            self.setGeometry(parent_rect)
+            self.setFixedSize(parent_rect.size())
 
-        # Raise to top
-        self.raise_()
-        self.show()
-
-        # Start spinner
+        # Start spinner before showing
         self._spinner.start()
 
-        # Fade in
-        self._fade_animation = QPropertyAnimation(self._opacity_effect, b"opacity")
-        self._fade_animation.setDuration(Animation.FAST)
-        self._fade_animation.setStartValue(0.0)
-        self._fade_animation.setEndValue(1.0)
-        self._fade_animation.start()
+        # Ensure opacity is full before showing (skip fade-in for reliability)
+        if self._opacity_effect:
+            self._opacity_effect.setOpacity(1.0)
+
+        # Show the widget
+        self.show()
+
+        # Raise to top of widget stack - critical for kiosk mode
+        self.raise_()
+        self.activateWindow()
+
+        # Force immediate repaint
+        self.update()
+        from PyQt6.QtWidgets import QApplication
+
+        QApplication.processEvents()
 
     def hide_overlay(self):
         """Hide the overlay with fade-out animation"""
