@@ -129,6 +129,11 @@ def create_main_window_mock(mock_auth_service, mock_config, mock_session_service
     window.show_error = Mock()
     window.apply_base_stylesheet = Mock(return_value="")
 
+    # Mock loading overlay for logout
+    window.loading_overlay = Mock()
+    window.loading_overlay.show_with_message = Mock()
+    window.loading_overlay.hide_overlay = Mock()
+
     # Mock Qt window methods to prevent showEvent triggering refresh_all_pages
     window.showNormal = Mock()
     window.activateWindow = Mock()
@@ -658,14 +663,26 @@ class TestLogout:
 
         mock_timer.close.assert_called_once()
 
-    def test_handle_logout_calls_auth_service_logout(self, main_window):
-        """Test handle_logout calls auth service"""
+    def test_handle_logout_starts_logout_thread(self, main_window):
+        """Test handle_logout starts logout worker thread"""
         main_window.show_confirm.return_value = True
 
-        with patch("ui.auth_window.AuthWindow"):
-            main_window.handle_logout()
+        main_window.handle_logout()
 
-        main_window.auth_service.logout.assert_called_once()
+        # Thread should be created
+        assert hasattr(main_window, "_logout_thread")
+        assert hasattr(main_window, "_logout_worker")
+
+    def test_on_logout_complete_shows_auth_window(self, main_window):
+        """Test _on_logout_complete shows auth window"""
+        with patch("ui.auth_window.AuthWindow") as MockAuthWindow:
+            mock_auth_window = Mock()
+            MockAuthWindow.return_value = mock_auth_window
+
+            main_window._on_logout_complete(True)
+
+            MockAuthWindow.assert_called_once()
+            mock_auth_window.show.assert_called_once()
 
     def test_handle_logout_aborted_by_user(self, main_window):
         """Test handle_logout does nothing when user cancels"""

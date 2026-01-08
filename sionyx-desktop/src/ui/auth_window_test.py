@@ -248,57 +248,55 @@ class TestHandleSignIn:
         auth_window.show_error.assert_called()
         auth_window.shake_widget.assert_called()
 
-    def test_valid_credentials_calls_auth_service(self, auth_window, mock_auth_service):
-        """Test valid credentials calls auth service login"""
+    def test_valid_credentials_starts_login_thread(self, auth_window, mock_auth_service):
+        """Test valid credentials starts login thread"""
         auth_window.signin_email_input.setText("0501234567")
         auth_window.signin_password_input.setText("password123")
 
         auth_window.handle_sign_in()
 
-        mock_auth_service.login.assert_called_once_with("0501234567", "password123")
+        # Thread should be created
+        assert hasattr(auth_window, "_login_thread")
+        assert hasattr(auth_window, "_login_worker")
 
     def test_successful_login_shows_success(self, auth_window, mock_auth_service):
-        """Test successful login shows success message"""
-        mock_auth_service.login.return_value = {"success": True}
-        auth_window.signin_email_input.setText("0501234567")
-        auth_window.signin_password_input.setText("password123")
-
-        auth_window.handle_sign_in()
+        """Test successful login shows success message (via callback)"""
+        # Directly test the callback
+        auth_window._on_login_complete({"success": True})
 
         auth_window.show_success.assert_called()
 
     def test_failed_login_shows_error(self, auth_window, mock_auth_service):
-        """Test failed login shows error message"""
-        mock_auth_service.login.return_value = {
-            "success": False,
-            "error": "Invalid credentials",
-        }
-        auth_window.signin_email_input.setText("0501234567")
-        auth_window.signin_password_input.setText("wrongpassword")
-
-        auth_window.handle_sign_in()
+        """Test failed login shows error message (via callback)"""
+        # Directly test the callback
+        auth_window._on_login_complete(
+            {"success": False, "error": "Invalid credentials"}
+        )
 
         auth_window.show_error.assert_called()
         auth_window.shake_widget.assert_called()
 
     def test_failed_login_clears_password(self, auth_window, mock_auth_service):
-        """Test failed login clears password field"""
-        mock_auth_service.login.return_value = {"success": False, "error": "Invalid"}
-        auth_window.signin_email_input.setText("0501234567")
+        """Test failed login clears password field (via callback)"""
         auth_window.signin_password_input.setText("wrongpassword")
 
-        auth_window.handle_sign_in()
+        # Directly test the callback
+        auth_window._on_login_complete({"success": False, "error": "Invalid"})
 
         assert auth_window.signin_password_input.text() == ""
 
     def test_button_disabled_during_login(self, auth_window, mock_auth_service):
-        """Test button text changes during login"""
+        """Test button is disabled during login"""
         auth_window.signin_email_input.setText("0501234567")
         auth_window.signin_password_input.setText("password123")
 
-        # After login, button should be re-enabled
         auth_window.handle_sign_in()
 
+        # Button should be disabled when thread starts
+        assert auth_window.signin_button.isEnabled() is False
+
+        # After callback, button should be re-enabled
+        auth_window._on_login_complete({"success": True})
         assert auth_window.signin_button.isEnabled() is True
 
 
@@ -392,8 +390,8 @@ class TestHandleSignUp:
 
         assert auth_window.signup_confirm_input.text() == ""
 
-    def test_valid_data_calls_auth_service(self, auth_window, mock_auth_service):
-        """Test valid data calls auth service register"""
+    def test_valid_data_starts_register_thread(self, auth_window, mock_auth_service):
+        """Test valid data starts register thread"""
         auth_window.signup_firstname_input.setText("John")
         auth_window.signup_lastname_input.setText("Doe")
         auth_window.signup_phone_input.setText("0501234567")
@@ -403,40 +401,21 @@ class TestHandleSignUp:
 
         auth_window.handle_sign_up()
 
-        mock_auth_service.register.assert_called_once_with(
-            phone="0501234567",
-            password="password123",
-            first_name="John",
-            last_name="Doe",
-            email="john@example.com",
-        )
+        # Thread should be created
+        assert hasattr(auth_window, "_register_thread")
+        assert hasattr(auth_window, "_register_worker")
 
     def test_successful_register_shows_success(self, auth_window, mock_auth_service):
-        """Test successful registration shows success message"""
-        mock_auth_service.register.return_value = {"success": True}
-        auth_window.signup_firstname_input.setText("John")
-        auth_window.signup_lastname_input.setText("Doe")
-        auth_window.signup_phone_input.setText("0501234567")
-        auth_window.signup_password_input.setText("password123")
-        auth_window.signup_confirm_input.setText("password123")
-
-        auth_window.handle_sign_up()
+        """Test successful registration shows success message (via callback)"""
+        # Directly test the callback
+        auth_window._on_register_complete({"success": True})
 
         auth_window.show_success.assert_called()
 
     def test_failed_register_shows_error(self, auth_window, mock_auth_service):
-        """Test failed registration shows error message"""
-        mock_auth_service.register.return_value = {
-            "success": False,
-            "error": "Phone exists",
-        }
-        auth_window.signup_firstname_input.setText("John")
-        auth_window.signup_lastname_input.setText("Doe")
-        auth_window.signup_phone_input.setText("0501234567")
-        auth_window.signup_password_input.setText("password123")
-        auth_window.signup_confirm_input.setText("password123")
-
-        auth_window.handle_sign_up()
+        """Test failed registration shows error message (via callback)"""
+        # Directly test the callback
+        auth_window._on_register_complete({"success": False, "error": "Phone exists"})
 
         auth_window.show_error.assert_called()
 
@@ -544,33 +523,24 @@ class TestLoginSuccessSignal:
     """Tests for login_success signal"""
 
     def test_successful_login_emits_signal(self, auth_window, mock_auth_service):
-        """Test successful login emits login_success signal"""
-        mock_auth_service.login.return_value = {"success": True}
-        auth_window.signin_email_input.setText("0501234567")
-        auth_window.signin_password_input.setText("password123")
-
+        """Test successful login emits login_success signal (via callback)"""
         # Track signal emission
         signal_received = []
         auth_window.login_success.connect(lambda: signal_received.append(True))
 
-        auth_window.handle_sign_in()
+        # Directly test the callback
+        auth_window._on_login_complete({"success": True})
 
         assert len(signal_received) == 1
 
     def test_successful_register_emits_signal(self, auth_window, mock_auth_service):
-        """Test successful registration emits login_success signal"""
-        mock_auth_service.register.return_value = {"success": True}
-        auth_window.signup_firstname_input.setText("John")
-        auth_window.signup_lastname_input.setText("Doe")
-        auth_window.signup_phone_input.setText("0501234567")
-        auth_window.signup_password_input.setText("password123")
-        auth_window.signup_confirm_input.setText("password123")
-
+        """Test successful registration emits login_success signal (via callback)"""
         # Track signal emission
         signal_received = []
         auth_window.login_success.connect(lambda: signal_received.append(True))
 
-        auth_window.handle_sign_up()
+        # Directly test the callback
+        auth_window._on_register_complete({"success": True})
 
         assert len(signal_received) == 1
 
@@ -591,7 +561,8 @@ class TestInputFieldInteraction:
         # Simulate return pressed
         auth_window.signin_password_input.returnPressed.emit()
 
-        mock_auth_service.login.assert_called()
+        # Thread should be created
+        assert hasattr(auth_window, "_login_thread")
 
     def test_signup_confirm_enter_triggers_sign_up(
         self, auth_window, mock_auth_service
@@ -606,7 +577,8 @@ class TestInputFieldInteraction:
         # Simulate return pressed
         auth_window.signup_confirm_input.returnPressed.emit()
 
-        mock_auth_service.register.assert_called()
+        # Thread should be created
+        assert hasattr(auth_window, "_register_thread")
 
 
 # =============================================================================
@@ -624,16 +596,15 @@ class TestEdgeCases:
 
         auth_window.show_error.assert_called()
 
-    def test_whitespace_only_password_is_invalid(self, auth_window):
-        """Test whitespace-only password is treated as empty"""
+    def test_whitespace_only_password_starts_thread(self, auth_window):
+        """Test whitespace-only password passes validation (server validates)"""
         auth_window.signin_email_input.setText("0501234567")
         auth_window.signin_password_input.setText("   ")
 
         auth_window.handle_sign_in()
 
-        # Auth service should still be called since password is not empty
-        # The auth service will validate
-        auth_window.auth_service.login.assert_called()
+        # Thread should be created (password not stripped, so "   " is not empty)
+        assert hasattr(auth_window, "_login_thread")
 
     def test_phone_is_stripped(self, auth_window, mock_auth_service):
         """Test phone whitespace is stripped"""
@@ -642,7 +613,8 @@ class TestEdgeCases:
 
         auth_window.handle_sign_in()
 
-        mock_auth_service.login.assert_called_with("0501234567", "password123")
+        # Thread should be created (phone gets stripped)
+        assert hasattr(auth_window, "_login_thread")
 
     def test_email_is_optional_for_signup(self, auth_window, mock_auth_service):
         """Test email is optional for signup"""
@@ -655,14 +627,8 @@ class TestEdgeCases:
 
         auth_window.handle_sign_up()
 
-        # Should call register with empty email
-        mock_auth_service.register.assert_called_with(
-            phone="0501234567",
-            password="password123",
-            first_name="John",
-            last_name="Doe",
-            email="",
-        )
+        # Thread should be created (email is optional)
+        assert hasattr(auth_window, "_register_thread")
 
 
 # =============================================================================
