@@ -384,37 +384,36 @@ Function KioskPagePre
     Pop $0
     
     ; Title
-    ${NSD_CreateLabel} 0 0 100% 30u "Step 2 of 2: Kiosk Security Setup"
+    ${NSD_CreateLabel} 0 0 100% 20u "Step 2 of 2: Kiosk Security Setup"
     Pop $0
     SendMessage $0 ${WM_SETFONT} $mui.Header.Text.Font 0
     
-    ; Explanation box
-    ${NSD_CreateGroupBox} 0 30u 100% 65u "What happens in this step?"
+    ; Explanation box - more compact
+    ${NSD_CreateGroupBox} 0 22u 100% 45u "What happens in this step?"
     Pop $0
     
-    ${NSD_CreateLabel} 10u 45u 95% 45u \
+    ${NSD_CreateLabel} 10u 34u 95% 30u \
         "We will create a special Windows user account called 'KioskUser'.$\n\
         This account has limited permissions so customers cannot:$\n\
         - Access system settings  - Install software  - Open command prompt"
     Pop $0
     
-    ; Password section
-    ${NSD_CreateLabel} 0 105u 100% 15u "Create a password for the KioskUser account:"
+    ; Password section - adjusted positions to fit in dialog
+    ${NSD_CreateLabel} 0 72u 100% 12u "Create a password for the KioskUser account:"
     Pop $0
     
-    ${NSD_CreatePassword} 0 120u 100% 14u ""
+    ${NSD_CreatePassword} 0 85u 100% 14u ""
     Pop $KioskPasswordInput
     
-    ${NSD_CreateLabel} 0 140u 100% 15u "Confirm password:"
+    ${NSD_CreateLabel} 0 103u 100% 12u "Confirm password:"
     Pop $0
     
-    ${NSD_CreatePassword} 0 155u 100% 14u ""
+    ${NSD_CreatePassword} 0 116u 100% 14u ""
     Pop $KioskPasswordConfirmInput
     
-    ; Note
-    ${NSD_CreateLabel} 0 180u 100% 30u \
-        "NOTE: This password is for the KIOSK account (what customers use).$\n\
-        Your administrator account remains unchanged."
+    ; Note - compact version
+    ${NSD_CreateLabel} 0 135u 100% 20u \
+        "NOTE: This password is for the KIOSK account (what customers use)."
     Pop $0
     
     nsDialogs::Show
