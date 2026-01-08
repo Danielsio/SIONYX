@@ -43,6 +43,14 @@ make merge-feature
 make release-minor
 ```
 Released as **v1.4.0** on 2026-01-08
+
+### Step 7: Bug Fix Release ✅
+```bash
+make release-patch
+```
+- Fixed spinner not animating (was blocking main thread)
+- Added QThread workers for async API calls
+- Released as **v1.4.1** on 2026-01-08
 This will:
 1. Create release/1.4.0 branch
 2. Bump version to 1.4.0
