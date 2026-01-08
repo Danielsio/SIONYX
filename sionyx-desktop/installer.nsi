@@ -24,6 +24,8 @@ Var KioskPasswordInput
 Var KioskPasswordConfirmInput
 Var KioskPasswordText
 Var KioskPasswordConfirmText
+Var BigFont
+Var MediumFont
 
 ; General
 Name "${APP_NAME}"
@@ -348,20 +350,27 @@ Function OrgPagePre
     nsDialogs::Create 1018
     Pop $0
     
-    ${NSD_CreateLabel} 0 0 100% 30u "Step 1 of 2: Organization Setup"
+    ; Title with big font
+    ${NSD_CreateLabel} 0 0 100% 24u "Step 1 of 2: Organization Setup"
     Pop $0
-    SendMessage $0 ${WM_SETFONT} $mui.Header.Text.Font 0
+    SendMessage $0 ${WM_SETFONT} $BigFont 0
     
-    ${NSD_CreateLabel} 0 35u 100% 20u "Enter your organization or business name:"
+    ; Label with medium font
+    ${NSD_CreateLabel} 0 30u 100% 18u "Enter your organization or business name:"
     Pop $0
+    SendMessage $0 ${WM_SETFONT} $MediumFont 0
     
-    ${NSD_CreateText} 0 55u 100% 14u ""
+    ; Larger input field
+    ${NSD_CreateText} 0 52u 100% 18u ""
     Pop $OrgNameInput
+    SendMessage $OrgNameInput ${WM_SETFONT} $MediumFont 0
     
+    ; Description with medium font
     ${NSD_CreateLabel} 0 80u 100% 50u \
         "This identifies your location in the SIONYX system.$\n$\n\
         Examples: 'City Gaming Center', 'Tech Hub Cafe', 'Library Station 1'"
     Pop $0
+    SendMessage $0 ${WM_SETFONT} $MediumFont 0
     
     nsDialogs::Show
 FunctionEnd
@@ -383,38 +392,44 @@ Function KioskPagePre
     nsDialogs::Create 1018
     Pop $0
     
-    ; Title
-    ${NSD_CreateLabel} 0 0 100% 20u "Step 2 of 2: Kiosk Security Setup"
+    ; Title with big font
+    ${NSD_CreateLabel} 0 0 100% 22u "Step 2 of 2: Kiosk Security Setup"
     Pop $0
-    SendMessage $0 ${WM_SETFONT} $mui.Header.Text.Font 0
+    SendMessage $0 ${WM_SETFONT} $BigFont 0
     
-    ; Explanation box - more compact
-    ${NSD_CreateGroupBox} 0 22u 100% 45u "What happens in this step?"
+    ; Explanation box
+    ${NSD_CreateGroupBox} 0 24u 100% 42u "What happens in this step?"
     Pop $0
+    SendMessage $0 ${WM_SETFONT} $MediumFont 0
     
-    ${NSD_CreateLabel} 10u 34u 95% 30u \
-        "We will create a special Windows user account called 'KioskUser'.$\n\
-        This account has limited permissions so customers cannot:$\n\
-        - Access system settings  - Install software  - Open command prompt"
+    ${NSD_CreateLabel} 10u 38u 95% 26u \
+        "We will create a Windows account called 'KioskUser' with$\n\
+        limited permissions (no settings, installs, or command prompt)."
     Pop $0
+    SendMessage $0 ${WM_SETFONT} $MediumFont 0
     
-    ; Password section - adjusted positions to fit in dialog
-    ${NSD_CreateLabel} 0 72u 100% 12u "Create a password for the KioskUser account:"
+    ; Password section with larger fonts
+    ${NSD_CreateLabel} 0 70u 100% 14u "Create a password for the KioskUser account:"
     Pop $0
+    SendMessage $0 ${WM_SETFONT} $MediumFont 0
     
-    ${NSD_CreatePassword} 0 85u 100% 14u ""
+    ${NSD_CreatePassword} 0 86u 100% 18u ""
     Pop $KioskPasswordInput
+    SendMessage $KioskPasswordInput ${WM_SETFONT} $MediumFont 0
     
-    ${NSD_CreateLabel} 0 103u 100% 12u "Confirm password:"
+    ${NSD_CreateLabel} 0 108u 100% 14u "Confirm password:"
     Pop $0
+    SendMessage $0 ${WM_SETFONT} $MediumFont 0
     
-    ${NSD_CreatePassword} 0 116u 100% 14u ""
+    ${NSD_CreatePassword} 0 124u 100% 18u ""
     Pop $KioskPasswordConfirmInput
+    SendMessage $KioskPasswordConfirmInput ${WM_SETFONT} $MediumFont 0
     
-    ; Note - compact version
-    ${NSD_CreateLabel} 0 135u 100% 20u \
-        "NOTE: This password is for the KIOSK account (what customers use)."
+    ; Note
+    ${NSD_CreateLabel} 0 146u 100% 16u \
+        "NOTE: This is for the KIOSK account, not your admin account."
     Pop $0
+    SendMessage $0 ${WM_SETFONT} $MediumFont 0
     
     nsDialogs::Show
 FunctionEnd
@@ -453,6 +468,10 @@ FunctionEnd
 ; INITIALIZATION
 ; ============================================================================
 Function .onInit
+    ; Create larger fonts for better readability
+    CreateFont $BigFont "Segoe UI" 12 700      ; Bold, 12pt for titles
+    CreateFont $MediumFont "Segoe UI" 10 400   ; Normal, 10pt for content
+    
     ; Check if already installed
     ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString"
     StrCmp $R0 "" done
