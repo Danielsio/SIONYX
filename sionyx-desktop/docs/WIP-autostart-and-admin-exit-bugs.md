@@ -87,3 +87,42 @@ If fixes cause issues:
 ```bash
 git revert HEAD
 ```
+
+---
+
+## Log Files Location
+
+### Production (Installed App)
+```
+%LOCALAPPDATA%\SIONYX\logs\
+```
+Example: `C:\Users\KioskUser\AppData\Local\SIONYX\logs\`
+
+### Development (Running as Script)
+```
+sionyx-desktop/logs/
+```
+
+### Log Files
+| File | Contents |
+|------|----------|
+| `sionyx_YYYYMMDD.log` | All log levels (DEBUG and above) |
+| `sionyx_errors_YYYYMMDD.log` | Errors only (ERROR and CRITICAL) |
+
+### When Logs Are Written
+Logs are written **immediately** on each log call (no buffering). They use JSON format for easy parsing.
+
+---
+
+## Additional Bug: App Can Be Closed via Taskbar Icon
+
+**Issue:** User can right-click the taskbar icon and close the app, bypassing kiosk restrictions.
+
+**Fix:** Override `closeEvent` in kiosk mode to ignore close requests unless triggered by admin exit.
+
+---
+
+## Pending: sionyx-web Admin Self-Revoke
+Admin should not be able to revoke their own admin powers. Need to:
+- Disable the "Remove Admin" button when viewing own profile
+- Or hide the button entirely for self

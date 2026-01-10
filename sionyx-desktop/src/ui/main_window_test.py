@@ -89,6 +89,8 @@ def create_main_window_mock(mock_auth_service, mock_config, mock_session_service
     # Set core attributes
     window.auth_service = mock_auth_service
     window.config = mock_config
+    window.kiosk_mode = False  # Default to non-kiosk mode for most tests
+    window._allow_close = False
     window.current_user = mock_auth_service.get_current_user().copy()  # Make a copy
     window.page_names = {0: "HOME", 1: "PACKAGES", 2: "HISTORY", 3: "HELP"}
     window.session_service = mock_session_service
@@ -760,6 +762,46 @@ class TestCleanup:
         main_window.closeEvent(event)
 
         assert event.isAccepted()
+
+    def test_close_event_blocked_in_kiosk_mode(self, main_window):
+        """Test closeEvent is blocked when in kiosk mode.
+
+        This is a regression test: users should not be able to close
+        the app by clicking on the taskbar icon in kiosk mode.
+        """
+        from PyQt6.QtGui import QCloseEvent
+
+        main_window.kiosk_mode = True
+        main_window._allow_close = False
+        event = QCloseEvent()
+
+        main_window.closeEvent(event)
+
+        # Event should be ignored (not accepted)
+        assert not event.isAccepted()
+
+    def test_close_event_allowed_in_kiosk_mode_with_flag(self, main_window):
+        """Test closeEvent is allowed when allow_close() has been called.
+
+        Admin exit calls allow_close() before quitting.
+        """
+        from PyQt6.QtGui import QCloseEvent
+
+        main_window.kiosk_mode = True
+        main_window.allow_close()  # Simulate admin exit allowing close
+        event = QCloseEvent()
+
+        main_window.closeEvent(event)
+
+        assert event.isAccepted()
+
+    def test_allow_close_sets_flag(self, main_window):
+        """Test allow_close method sets the flag."""
+        assert main_window._allow_close is False
+
+        main_window.allow_close()
+
+        assert main_window._allow_close is True
 
 
 # =============================================================================

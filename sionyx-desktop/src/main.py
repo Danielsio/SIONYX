@@ -167,7 +167,9 @@ class SionyxApp:
             self.auth_window.close()
             self.auth_window = None
 
-        self.main_window = MainWindow(self.auth_service, self.config)
+        self.main_window = MainWindow(
+            self.auth_service, self.config, kiosk_mode=self.kiosk_mode
+        )
         self.main_window.show()
 
     def handle_admin_exit(self):
@@ -328,6 +330,9 @@ class SionyxApp:
 
             # Force quit application
             logger.info("Force quitting application", action="admin_exit")
+            # Allow window to close in kiosk mode
+            if self.main_window:
+                self.main_window.allow_close()
             self.cleanup()
             self.app.quit()
             sys.exit(0)
