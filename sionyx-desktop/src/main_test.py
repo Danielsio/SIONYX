@@ -104,6 +104,39 @@ class TestSionyxApp:
         assert sionyx.global_hotkey_service is not None
         GlobalHotkeyService.return_value.start.assert_called_once()
 
+    def test_hotkey_service_uses_queued_connection(self, mock_dependencies):
+        """Admin exit signal MUST use QueuedConnection for cross-thread safety.
+
+        This is a regression test for a bug where the admin exit hotkey would not
+        show the password dialog because the signal was emitted from a background
+        thread but the dialog (GUI) must be created on the main thread.
+
+        Using Qt.ConnectionType.QueuedConnection ensures the slot runs on the
+        main thread even when the signal is emitted from a background thread.
+        """
+        from PyQt6.QtCore import Qt
+
+        from main import GlobalHotkeyService, SionyxApp
+
+        # Get the mock signal
+        mock_signal = GlobalHotkeyService.return_value.admin_exit_requested
+
+        sionyx = SionyxApp()
+
+        # Verify connect was called with QueuedConnection
+        mock_signal.connect.assert_called_once()
+        call_args = mock_signal.connect.call_args
+
+        # The second argument should be Qt.ConnectionType.QueuedConnection
+        assert len(call_args.args) == 2 or call_args.kwargs.get("type") is not None, (
+            "Signal must be connected with QueuedConnection for thread safety"
+        )
+
+        if len(call_args.args) == 2:
+            assert call_args.args[1] == Qt.ConnectionType.QueuedConnection, (
+                "Signal MUST use QueuedConnection to ensure slot runs on main thread"
+            )
+
     def test_init_starts_kiosk_services_when_enabled(self, mock_dependencies):
         """Should start keyboard and process restriction when kiosk mode enabled."""
         from main import (

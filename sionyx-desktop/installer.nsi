@@ -246,20 +246,14 @@ Section "Kiosk Security Setup" SecKiosk
     DetailPrint "ready for customers."
     DetailPrint ""
     
-    ; Add to Windows auto-start with --kiosk flag (machine-wide)
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}" '"$INSTDIR\${APP_EXECUTABLE}" --kiosk'
-    DetailPrint "[OK] Added to Windows startup (all users)"
+    ; NOTE: We only create startup shortcut for KioskUser, NOT for all users!
+    ; This prevents SIONYX from auto-starting on admin accounts.
     
-    ; Create shortcut in All Users startup folder (backup method)
-    SetShellVarContext all
-    CreateShortCut "$SMSTARTUP\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
-    DetailPrint "[OK] Created startup shortcut"
-    SetShellVarContext current
-    
-    ; Create startup shortcut specifically for KioskUser
+    ; Create startup shortcut ONLY for KioskUser
     CreateDirectory "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
     CreateShortCut "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
-    DetailPrint "[OK] Created startup shortcut for KioskUser"
+    DetailPrint "[OK] Created startup shortcut for KioskUser only"
+    DetailPrint "[INFO] SIONYX will NOT auto-start for other accounts"
     
     DetailPrint ""
     DetailPrint "============================================"
@@ -296,7 +290,8 @@ Section "Uninstall"
     Delete "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk"
     RMDir "$SMPROGRAMS\${APP_NAME}"
     
-    ; Remove auto-start entries (kiosk mode)
+    ; Remove auto-start entries
+    ; Note: We only create KioskUser startup shortcut now, but clean up old entries too
     DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}"
     SetShellVarContext all
     Delete "$SMSTARTUP\${APP_NAME}.lnk"
