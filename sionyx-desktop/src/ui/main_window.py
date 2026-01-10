@@ -69,10 +69,12 @@ class MainWindow(BaseKioskWindow):
 
     PAGES = {"HOME": 0, "PACKAGES": 1, "HISTORY": 2, "HELP": 3}
 
-    def __init__(self, auth_service, config):
+    def __init__(self, auth_service, config, kiosk_mode=False):
         super().__init__()
         self.auth_service = auth_service
         self.config = config
+        self.kiosk_mode = kiosk_mode
+        self._allow_close = False  # Flag to allow closing (set by admin exit)
         self.current_user = auth_service.get_current_user()
 
         self.page_names = {v: k for k, v in self.PAGES.items()}
@@ -783,8 +785,22 @@ class MainWindow(BaseKioskWindow):
         except Exception as e:
             logger.error(f"Error resetting force logout flag: {e}")
 
+    def allow_close(self):
+        """Allow the window to be closed (called from admin exit)"""
+        self._allow_close = True
+
     def closeEvent(self, event):
         """Handle window close event"""
+        # In kiosk mode, block close unless explicitly allowed (admin exit)
+        if self.kiosk_mode and not self._allow_close:
+            logger.warning(
+                "Close event blocked in kiosk mode",
+                action="close_blocked",
+                kiosk_mode=True,
+            )
+            event.ignore()
+            return
+
         # Stop force logout listener (may already be stopped by handle_logout)
         if self.force_logout_listener:
             self.force_logout_listener.stop()
