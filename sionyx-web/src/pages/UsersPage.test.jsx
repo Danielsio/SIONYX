@@ -349,3 +349,134 @@ describe('UsersPage', () => {
     expect(document.body.textContent).toContain('[MoreOutlined]');
   });
 });
+
+describe('UsersPage - Admin Self-Revoke Prevention', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.setItem('adminOrgId', 'my-org');
+  });
+
+  const renderWithCurrentUser = (currentUserId, users) => {
+    const mockSetUsers = vi.fn();
+    const mockUpdateUser = vi.fn();
+
+    useAuthStore.mockImplementation((selector) => {
+      const state = { user: { orgId: 'my-org', uid: currentUserId } };
+      return selector(state);
+    });
+
+    useDataStore.mockImplementation((selector) => {
+      const state = {
+        users: users,
+        setUsers: mockSetUsers,
+        updateUser: mockUpdateUser,
+      };
+      return selector ? selector(state) : state;
+    });
+
+    getAllUsers.mockResolvedValue({
+      success: true,
+      users: users,
+    });
+
+    getUserPurchaseHistory.mockResolvedValue({
+      success: true,
+      purchases: [],
+    });
+
+    getMessagesForUser.mockResolvedValue({
+      success: true,
+      messages: [],
+    });
+
+    adjustUserBalance.mockResolvedValue({ success: true });
+    grantAdminPermission.mockResolvedValue({ success: true });
+    revokeAdminPermission.mockResolvedValue({ success: true });
+    kickUser.mockResolvedValue({ success: true });
+    sendMessage.mockResolvedValue({ success: true });
+
+    return {
+      ...render(
+        <AntApp>
+          <UsersPage />
+        </AntApp>
+      ),
+      mockSetUsers,
+      mockUpdateUser,
+    };
+  };
+
+  it('disables revoke button when admin views their own profile in drawer', async () => {
+    const user = userEvent.setup();
+    const currentAdminId = 'admin-self';
+    const usersWithSelf = [
+      {
+        uid: currentAdminId,
+        firstName: 'מנהל',
+        lastName: 'ראשי',
+        phoneNumber: '0501111111',
+        email: 'admin@test.com',
+        remainingTime: 0,
+        printBalance: 0,
+        isAdmin: true,
+        isSessionActive: false,
+        createdAt: '2024-01-01T10:00:00Z',
+      },
+    ];
+
+    renderWithCurrentUser(currentAdminId, usersWithSelf);
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalled();
+    });
+
+    // Click on the admin's card to open drawer
+    const adminCard = screen.getByText(/מנהל ראשי/).closest('.ant-card');
+    if (adminCard) {
+      await user.click(adminCard);
+
+      await waitFor(() => {
+        // The revoke button in drawer should show disabled text
+        const revokeButton = screen.getByRole('button', { name: /לא ניתן להסיר מעצמך/ });
+        expect(revokeButton).toBeDisabled();
+      });
+    }
+  });
+
+  it('enables revoke button when admin views another admin profile', async () => {
+    const user = userEvent.setup();
+    const currentAdminId = 'admin-me';
+    const usersWithOtherAdmin = [
+      {
+        uid: 'admin-other',
+        firstName: 'מנהל',
+        lastName: 'אחר',
+        phoneNumber: '0502222222',
+        email: 'other-admin@test.com',
+        remainingTime: 0,
+        printBalance: 0,
+        isAdmin: true,
+        isSessionActive: false,
+        createdAt: '2024-01-01T10:00:00Z',
+      },
+    ];
+
+    renderWithCurrentUser(currentAdminId, usersWithOtherAdmin);
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalled();
+    });
+
+    // Click on the other admin's card to open drawer
+    const adminCard = screen.getByText(/מנהל אחר/).closest('.ant-card');
+    if (adminCard) {
+      await user.click(adminCard);
+
+      await waitFor(() => {
+        // The revoke button should be enabled for other admins
+        const revokeButton = screen.getByRole('button', { name: /הסר הרשאות מנהל/ });
+        expect(revokeButton).not.toBeDisabled();
+      });
+    }
+  });
+});
