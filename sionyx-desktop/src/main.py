@@ -124,10 +124,14 @@ class SionyxApp:
 
             # Initialize global hotkey service
             self.global_hotkey_service = GlobalHotkeyService()
+            # IMPORTANT: Use QueuedConnection because the signal is emitted from
+            # a background thread (keyboard listener), but GUI operations must
+            # run on the main thread
             self.global_hotkey_service.admin_exit_requested.connect(
-                self.handle_admin_exit
+                self.handle_admin_exit, Qt.ConnectionType.QueuedConnection
             )
             self.global_hotkey_service.start()
+            logger.info("Global hotkey service started (Ctrl+Alt+Q for admin exit)")
 
             # Initialize kiosk security services if in kiosk mode
             if self.kiosk_mode:
@@ -167,8 +171,12 @@ class SionyxApp:
         self.main_window.show()
 
     def handle_admin_exit(self):
-        """Handle global admin exit hotkey"""
-        logger.warning("Admin exit hotkey triggered", action="admin_exit_attempt")
+        """Handle global admin exit hotkey (Ctrl+Alt+Q)"""
+        logger.warning(
+            "Admin exit hotkey triggered on main thread",
+            action="admin_exit_attempt",
+            thread="main",
+        )
 
         # Show password dialog - use a more reliable approach
         from PyQt6.QtWidgets import (
