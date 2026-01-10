@@ -388,9 +388,10 @@ const UsersPage = () => {
         ? {
             key: 'revoke',
             icon: <MinusCircleOutlined />,
-            label: 'הסר הרשאות מנהל',
+            label: userRecord.uid === user?.uid ? 'לא ניתן להסיר מעצמך' : 'הסר הרשאות מנהל',
             danger: true,
             onClick: () => handleRevokeAdmin(userRecord),
+            disabled: userRecord.uid === user?.uid, // Prevent self-revoke
           }
         : {
             key: 'grant',
@@ -920,8 +921,10 @@ const UsersPage = () => {
                     icon={<MinusCircleOutlined />} 
                     danger
                     onClick={() => handleRevokeAdmin(selectedUser)}
+                    disabled={selectedUser.uid === user?.uid}
+                    title={selectedUser.uid === user?.uid ? 'לא ניתן להסיר הרשאות מנהל מעצמך' : ''}
                   >
-                    הסר הרשאות מנהל
+                    {selectedUser.uid === user?.uid ? 'לא ניתן להסיר מעצמך' : 'הסר הרשאות מנהל'}
                   </Button>
                 ) : (
                   <Button 
