@@ -138,25 +138,47 @@ Section "Kiosk Security Setup" SecKiosk
     
     ; Create KioskUser account using PowerShell
     ; First check if user exists
-    nsExec::ExecToLog 'powershell -Command "if (Get-LocalUser -Name \"${KIOSK_USERNAME}\" -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"'
+    DetailPrint "[CHECK] Looking for existing user '${KIOSK_USERNAME}'..."
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "if (Get-LocalUser -Name ''${KIOSK_USERNAME}'' -ErrorAction SilentlyContinue) { Write-Host ''User exists''; exit 0 } else { Write-Host ''User not found''; exit 1 }"'
     Pop $0
     
     ${If} $0 == 0
         DetailPrint "[INFO] User '${KIOSK_USERNAME}' already exists - updating password..."
-        nsExec::ExecToLog 'powershell -Command "Set-LocalUser -Name \"${KIOSK_USERNAME}\" -Password (ConvertTo-SecureString \"$KioskPasswordText\" -AsPlainText -Force)"'
+        nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "try { Set-LocalUser -Name ''${KIOSK_USERNAME}'' -Password (ConvertTo-SecureString ''$KioskPasswordText'' -AsPlainText -Force); Write-Host ''Password updated''; exit 0 } catch { Write-Host $$_.Exception.Message; exit 1 }"'
+        Pop $0
+        ${If} $0 != 0
+            DetailPrint "[ERROR] Failed to update password!"
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to update KioskUser password. Please run installer as Administrator."
+        ${EndIf}
     ${Else}
         DetailPrint "[CREATING] New user account '${KIOSK_USERNAME}'..."
-        nsExec::ExecToLog 'powershell -Command "New-LocalUser -Name \"${KIOSK_USERNAME}\" -Password (ConvertTo-SecureString \"$KioskPasswordText\" -AsPlainText -Force) -FullName \"SIONYX Kiosk User\" -Description \"Restricted kiosk account for SIONYX\" -PasswordNeverExpires"'
+        nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "try { New-LocalUser -Name ''${KIOSK_USERNAME}'' -Password (ConvertTo-SecureString ''$KioskPasswordText'' -AsPlainText -Force) -FullName ''SIONYX Kiosk User'' -Description ''Restricted kiosk account for SIONYX'' -PasswordNeverExpires:$$true -ErrorAction Stop; Write-Host ''User created successfully''; exit 0 } catch { Write-Host $$_.Exception.Message; exit 1 }"'
+        Pop $0
+        ${If} $0 != 0
+            DetailPrint "[ERROR] Failed to create user account!"
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to create KioskUser account.$\n$\nPlease make sure you are running this installer as Administrator.$\n$\nRight-click the installer and select 'Run as administrator'."
+            Abort
+        ${EndIf}
     ${EndIf}
+    
+    ; Verify user was created
+    DetailPrint "[VERIFY] Checking user account exists..."
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "if (Get-LocalUser -Name ''${KIOSK_USERNAME}'' -ErrorAction SilentlyContinue) { Write-Host ''User verified''; exit 0 } else { Write-Host ''User NOT found''; exit 1 }"'
     Pop $0
+    ${If} $0 != 0
+        DetailPrint "[ERROR] User verification failed!"
+        MessageBox MB_OK|MB_ICONEXCLAMATION "KioskUser account was not created.$\n$\nPlease run installer as Administrator."
+        Abort
+    ${EndIf}
+    DetailPrint "[OK] User '${KIOSK_USERNAME}' verified!"
     
     ; Make sure user is NOT an administrator (remove from Administrators group if somehow added)
     DetailPrint "[SECURITY] Ensuring user has limited permissions (not administrator)..."
-    nsExec::ExecToLog 'powershell -Command "Remove-LocalGroupMember -Group \"Administrators\" -Member \"${KIOSK_USERNAME}\" -ErrorAction SilentlyContinue"'
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "Remove-LocalGroupMember -Group ''Administrators'' -Member ''${KIOSK_USERNAME}'' -ErrorAction SilentlyContinue"'
     Pop $0
     
     ; Add user to Users group
-    nsExec::ExecToLog 'powershell -Command "Add-LocalGroupMember -Group \"Users\" -Member \"${KIOSK_USERNAME}\" -ErrorAction SilentlyContinue"'
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "Add-LocalGroupMember -Group ''Users'' -Member ''${KIOSK_USERNAME}'' -ErrorAction SilentlyContinue"'
     Pop $0
     
     DetailPrint "[OK] Kiosk user account ready!"
@@ -249,11 +271,32 @@ Section "Kiosk Security Setup" SecKiosk
     ; NOTE: We only create startup shortcut for KioskUser, NOT for all users!
     ; This prevents SIONYX from auto-starting on admin accounts.
     
-    ; Create startup shortcut ONLY for KioskUser
-    CreateDirectory "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
-    CreateShortCut "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk" "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
-    DetailPrint "[OK] Created startup shortcut for KioskUser only"
-    DetailPrint "[INFO] SIONYX will NOT auto-start for other accounts"
+    ; IMPORTANT: The KioskUser profile folder doesn't exist until first login!
+    ; So we use a Scheduled Task that runs on login for KioskUser specifically.
+    ; This is the most reliable method for targeting a specific user.
+    
+    DetailPrint "[AUTOSTART] Creating scheduled task for KioskUser auto-start..."
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "try { $$action = New-ScheduledTaskAction -Execute ''$INSTDIR\${APP_EXECUTABLE}'' -Argument ''--kiosk''; $$trigger = New-ScheduledTaskTrigger -AtLogOn -User ''${KIOSK_USERNAME}''; $$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable; $$principal = New-ScheduledTaskPrincipal -UserId ''${KIOSK_USERNAME}'' -LogonType Interactive -RunLevel Limited; Register-ScheduledTask -TaskName ''SIONYX Kiosk'' -Action $$action -Trigger $$trigger -Settings $$settings -Principal $$principal -Force; Write-Host ''Scheduled task created successfully''; exit 0 } catch { Write-Host $$_.Exception.Message; exit 1 }"'
+    Pop $0
+    ${If} $0 != 0
+        DetailPrint "[WARNING] Scheduled task creation may have failed. Trying fallback..."
+        ; Fallback: Try simpler schtasks command
+        nsExec::ExecToLog 'schtasks /create /tn "SIONYX Kiosk" /tr "\"$INSTDIR\${APP_EXECUTABLE}\" --kiosk" /sc onlogon /ru "${KIOSK_USERNAME}" /rl LIMITED /f'
+        Pop $0
+        ${If} $0 != 0
+            DetailPrint "[ERROR] Could not configure auto-start!"
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: Auto-start could not be configured.$\n$\nYou may need to manually start SIONYX when logging in as KioskUser."
+        ${Else}
+            DetailPrint "[OK] Fallback scheduled task created"
+        ${EndIf}
+    ${Else}
+        DetailPrint "[OK] Scheduled task created for KioskUser"
+    ${EndIf}
+    
+    ; Store kiosk username in registry for reference
+    WriteRegStr HKLM "SOFTWARE\${APP_NAME}" "KioskUsername" "${KIOSK_USERNAME}"
+    DetailPrint "[OK] Stored kiosk username in registry"
+    DetailPrint "[INFO] SIONYX will auto-start ONLY for ${KIOSK_USERNAME}"
     
     DetailPrint ""
     DetailPrint "============================================"
@@ -291,14 +334,20 @@ Section "Uninstall"
     RMDir "$SMPROGRAMS\${APP_NAME}"
     
     ; Remove auto-start entries
-    ; Note: We only create KioskUser startup shortcut now, but clean up old entries too
+    ; Remove scheduled task (primary method)
+    nsExec::ExecToLog 'schtasks /delete /tn "SIONYX Kiosk" /f'
+    
+    ; Clean up old entries from previous installations
     DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}"
     SetShellVarContext all
     Delete "$SMSTARTUP\${APP_NAME}.lnk"
     SetShellVarContext current
     
-    ; Remove KioskUser startup shortcut
+    ; Remove KioskUser startup shortcut (legacy cleanup)
     Delete "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk"
+    
+    ; Remove from Default profile (if we used that method)
+    Delete "C:\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk"
     
     ; Ask about removing KioskUser account
     MessageBox MB_YESNO|MB_ICONQUESTION \
