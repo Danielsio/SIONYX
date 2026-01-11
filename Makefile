@@ -11,7 +11,7 @@
 # ╚══════════════════════════════════════════════════════════════════════════╝
 
 .PHONY: help \
-        release release-patch release-minor release-major merge-release \
+        release release-patch release-minor release-major release-dry merge-release sync-branches \
         build build-patch build-minor build-major build-local build-dry version \
         dev dev-debug test test-cov test-fast lint format \
         web-dev web-build web-test web-lint web-deploy web-deploy-hosting \
@@ -65,15 +65,14 @@ help-full:
 	@echo "║                    SIONYX - Full Command List                  ║"
 	@echo "╚════════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "RELEASE (single command does: branch → build → merge → tag → push)"
+	@echo "  RELEASE (atomic: branch → build → version bump → merge → tag → push)"
 	@echo "  release-patch      Patch release (1.1.3 → 1.1.4) - bug fixes"
 	@echo "  release-minor      Minor release (1.1.3 → 1.2.0) - new features"
 	@echo "  release-major      Major release (1.1.3 → 2.0.0) - breaking changes"
+	@echo "  release-dry        Preview what would happen (no changes)"
 	@echo ""
-	@echo "  Options (pass via script):"
-	@echo "    --dry-run        Preview what would happen"
-	@echo "    --no-push        Don't push to remote"
-	@echo "    --branch-only    Only create branch (manual build/merge)"
+	@echo "  Note: Version is only bumped AFTER successful build."
+	@echo "        If build fails, everything is rolled back."
 	@echo ""
 	@echo "BUILD COMMANDS"
 	@echo "  build              Build installer (default: patch bump)"
@@ -115,6 +114,7 @@ help-full:
 	@echo "GIT WORKFLOW"
 	@echo "  merge-feature      Merge feature branch to main (coverage check)"
 	@echo "  merge-release      Merge release branch to main (create tag)"
+	@echo "  sync-branches      Create release branches for tags that don't have them"
 	@echo ""
 	@echo "OTHER"
 	@echo "  lint-all           Lint both apps"
@@ -147,9 +147,12 @@ release-minor:
 release-major:
 	@python scripts/release.py --major
 
-# For manual workflow (if you want to test installer before merging)
-release-branch-only:
-	@python scripts/release.py --patch --branch-only
+release-dry:
+	@python scripts/release.py --patch --dry-run
+
+# Sync release branches with tags (create missing branches)
+sync-branches:
+	@python scripts/sync_release_branches.py
 
 merge-release:
 	@python scripts/merge_release.py
