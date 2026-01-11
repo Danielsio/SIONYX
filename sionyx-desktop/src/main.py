@@ -98,11 +98,16 @@ class SionyxApp:
                 logger.debug(f"Application icon set from: {icon_path}")
 
             # Check if .env file exists, if not show error
-            # Look in repo root (parent of sionyx-desktop) or current directory
-            repo_root = Path(__file__).parent.parent.parent
-            env_path = repo_root / ".env"
-            if not env_path.exists():
-                env_path = Path(".env")
+            # Handle PyInstaller path resolution
+            if getattr(sys, "frozen", False):
+                # Running as PyInstaller executable - look in executable directory
+                env_path = Path(sys.executable).parent / ".env"
+            else:
+                # Running as script - look in repo root or current directory
+                repo_root = Path(__file__).parent.parent.parent
+                env_path = repo_root / ".env"
+                if not env_path.exists():
+                    env_path = Path(".env")
             if not env_path.exists():
                 logger.error(
                     "No .env file found. Please reinstall the application.",
