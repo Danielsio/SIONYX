@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import Dict
 
 from services.firebase_client import FirebaseClient
-from utils.device_info import get_computer_info
+from utils.device_info import get_computer_info, get_device_id
 from utils.logger import get_logger
 
 
@@ -19,6 +19,16 @@ class ComputerService:
 
     def __init__(self, firebase_client: FirebaseClient):
         self.firebase = firebase_client
+
+    def get_computer_id(self) -> str:
+        """
+        Get the unique ID of the current computer.
+        Uses the device ID as the computer identifier.
+
+        Returns:
+            str: The computer/device ID
+        """
+        return get_device_id()
 
     def register_computer(
         self, computer_name: str = None, location: str = None
