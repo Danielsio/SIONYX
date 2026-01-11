@@ -136,34 +136,40 @@ Section "Kiosk Security Setup" SecKiosk
     DetailPrint "This account will be used by customers at the kiosk."
     DetailPrint ""
     
-    ; Create KioskUser account using PowerShell
+    ; Create KioskUser account using net user (simpler and more reliable than PowerShell)
     ; First check if user exists
     DetailPrint "[CHECK] Looking for existing user '${KIOSK_USERNAME}'..."
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "if (Get-LocalUser -Name ''${KIOSK_USERNAME}'' -ErrorAction SilentlyContinue) { Write-Host ''User exists''; exit 0 } else { Write-Host ''User not found''; exit 1 }"'
+    nsExec::ExecToLog 'net user "${KIOSK_USERNAME}"'
     Pop $0
     
     ${If} $0 == 0
         DetailPrint "[INFO] User '${KIOSK_USERNAME}' already exists - updating password..."
-        nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "try { Set-LocalUser -Name ''${KIOSK_USERNAME}'' -Password (ConvertTo-SecureString ''$KioskPasswordText'' -AsPlainText -Force); Write-Host ''Password updated''; exit 0 } catch { Write-Host $$_.Exception.Message; exit 1 }"'
+        nsExec::ExecToLog 'net user "${KIOSK_USERNAME}" "$KioskPasswordText"'
         Pop $0
         ${If} $0 != 0
             DetailPrint "[ERROR] Failed to update password!"
-            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to update KioskUser password.$\n$\nThis may be caused by antivirus software or system restrictions."
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to update KioskUser password.$\n$\nError code: $0"
         ${EndIf}
     ${Else}
         DetailPrint "[CREATING] New user account '${KIOSK_USERNAME}'..."
-        nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "try { New-LocalUser -Name ''${KIOSK_USERNAME}'' -Password (ConvertTo-SecureString ''$KioskPasswordText'' -AsPlainText -Force) -FullName ''SIONYX Kiosk User'' -Description ''Restricted kiosk account for SIONYX'' -PasswordNeverExpires:$$true -ErrorAction Stop; Write-Host ''User created successfully''; exit 0 } catch { Write-Host $$_.Exception.Message; exit 1 }"'
+        ; Create user with net user command
+        nsExec::ExecToLog 'net user "${KIOSK_USERNAME}" "$KioskPasswordText" /add /fullname:"SIONYX Kiosk User" /comment:"Restricted kiosk account for SIONYX" /passwordchg:no'
         Pop $0
         ${If} $0 != 0
-            DetailPrint "[ERROR] Failed to create user account!"
-            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to create KioskUser account.$\n$\nPossible causes:$\n- Antivirus blocking the operation$\n- Windows security policy restrictions$\n- PowerShell execution policy$\n$\nTry temporarily disabling antivirus and retry."
+            DetailPrint "[ERROR] Failed to create user account! Error code: $0"
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to create KioskUser account.$\n$\nError code: $0$\n$\nPossible causes:$\n- Password doesn't meet complexity requirements$\n- Antivirus blocking the operation$\n- Windows security policy restrictions$\n$\nTry a password with uppercase, lowercase, number, and symbol."
             Abort
         ${EndIf}
+        
+        ; Set password to never expire using wmic
+        DetailPrint "[CONFIG] Setting password to never expire..."
+        nsExec::ExecToLog 'wmic useraccount where name="${KIOSK_USERNAME}" set PasswordExpires=false'
+        Pop $0
     ${EndIf}
     
     ; Verify user was created
     DetailPrint "[VERIFY] Checking user account exists..."
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "if (Get-LocalUser -Name ''${KIOSK_USERNAME}'' -ErrorAction SilentlyContinue) { Write-Host ''User verified''; exit 0 } else { Write-Host ''User NOT found''; exit 1 }"'
+    nsExec::ExecToLog 'net user "${KIOSK_USERNAME}"'
     Pop $0
     ${If} $0 != 0
         DetailPrint "[ERROR] User verification failed!"
