@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """
-Release Management Script
+Release Management Script (Atomic)
 
-Full release flow in one command:
-  1. Create release branch with version bump
-  2. Build installer (runs tests with coverage check)
-  3. Merge back to main
-  4. Create git tag
-  5. Push to remote
+Full release flow in one command with atomic guarantees:
+  - Version is only bumped AFTER successful build
+  - On failure, everything is rolled back
+
+Flow:
+  1. Create release branch
+  2. Build installer (tests must pass)
+  3. If build succeeds → bump version, commit, merge, tag, push
+  4. If build fails → delete branch, no version change
 
 Usage:
     python scripts/release.py --minor   # 1.1.3 → 1.2.0
@@ -17,7 +20,6 @@ Usage:
 Options:
     --dry-run       Preview what would happen
     --no-push       Don't push to remote (for local testing)
-    --branch-only   Only create the branch (skip build/merge/push)
 """
 
 import argparse
@@ -91,6 +93,7 @@ def bump_version(data: dict, bump_type: str) -> dict:
     data["minor"] = minor
     data["patch"] = patch
     data["version"] = f"{major}.{minor}.{patch}"
+    data["buildNumber"] = data.get("buildNumber", 0) + 1
     data["lastBuildDate"] = datetime.now().isoformat()
     
     return data
@@ -112,15 +115,31 @@ def print_step(step: int, total: int, text: str):
     print("-" * 50)
 
 
+def abort_release(branch_name: str, reason: str):
+    """Abort release and clean up."""
+    print()
+    print(f"[ABORT] {reason}")
+    print()
+    
+    # Switch back to main
+    run_cmd(["git", "checkout", "main"], check=False)
+    
+    # Delete the release branch
+    run_cmd(["git", "branch", "-D", branch_name], check=False)
+    
+    print(f"✓ Cleaned up branch: {branch_name}")
+    print("No version changes were made.")
+    sys.exit(1)
+
+
 def main():
-    parser = argparse.ArgumentParser(description="Create and complete a release")
+    parser = argparse.ArgumentParser(description="Create and complete a release (atomic)")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--major", action="store_true", help="Major release (breaking changes)")
     group.add_argument("--minor", action="store_true", help="Minor release (new features)")
     group.add_argument("--patch", action="store_true", help="Patch release (bug fixes)")
     parser.add_argument("--dry-run", action="store_true", help="Show what would happen")
     parser.add_argument("--no-push", action="store_true", help="Don't push to remote")
-    parser.add_argument("--branch-only", action="store_true", help="Only create branch (skip build/merge)")
     
     args = parser.parse_args()
     
@@ -132,11 +151,9 @@ def main():
     else:
         bump_type = "patch"
     
-    total_steps = 2 if args.branch_only else 5
-    if args.no_push:
-        total_steps -= 1
+    total_steps = 5 if not args.no_push else 4
     
-    print_header(f"{bump_type.upper()} Release")
+    print_header(f"ATOMIC {bump_type.upper()} Release")
     
     # ─────────────────────────────────────────────────────────────────────
     # PRE-FLIGHT CHECKS
@@ -160,7 +177,7 @@ def main():
     print("Pulling latest main...")
     run_cmd(["git", "pull", "origin", "main"], check=False)
     
-    # Load and bump version
+    # Calculate new version (but don't save yet!)
     version_data = load_version()
     old_version = version_data["version"]
     new_data = bump_version(version_data.copy(), bump_type)
@@ -169,17 +186,18 @@ def main():
     
     print(f"\nVersion: v{old_version} → v{new_version}")
     print(f"Branch:  {branch_name}")
+    print()
+    print("⚠️  ATOMIC: Version will only be bumped after successful build")
     
     if args.dry_run:
         print("\n[DRY RUN] No changes made.")
         print("\nWould execute:")
         print(f"  1. Create branch: {branch_name}")
-        print(f"  2. Update version.json to {new_version}")
-        if not args.branch_only:
-            print(f"  3. Build installer")
-            print(f"  4. Merge to main + tag v{new_version}")
-            if not args.no_push:
-                print(f"  5. Push to remote")
+        print(f"  2. Build installer with version {new_version}")
+        print(f"  3. If build succeeds → bump version.json, commit")
+        print(f"  4. Merge to main + tag v{new_version}")
+        if not args.no_push:
+            print(f"  5. Push to remote (main, tag, release branch)")
         return
     
     # ─────────────────────────────────────────────────────────────────────
@@ -200,70 +218,45 @@ def main():
     print(f"✓ Created branch: {branch_name}")
     
     # ─────────────────────────────────────────────────────────────────────
-    # STEP 2: Bump version
+    # STEP 2: Build installer (with new version, but don't commit yet)
     # ─────────────────────────────────────────────────────────────────────
     
-    print_step(2, total_steps, "Updating version")
-    
-    save_version(new_data)
-    run_cmd(["git", "add", str(VERSION_FILE)])
-    run_cmd(["git", "commit", "-m", f"chore: bump version to {new_version}"])
-    
-    print(f"✓ Version updated to {new_version}")
-    
-    if args.branch_only:
-        print()
-        print("=" * 60)
-        print(f"  ✓ Release branch created: {branch_name}")
-        print("=" * 60)
-        print()
-        print("Next steps (manual):")
-        print(f"  1. Build:  cd sionyx-desktop && python build.py")
-        print(f"  2. Test the installer")
-        print(f"  3. Merge:  make merge-release")
-        return
-    
-    # ─────────────────────────────────────────────────────────────────────
-    # STEP 3: Build installer
-    # ─────────────────────────────────────────────────────────────────────
-    
-    print_step(3, total_steps, "Building installer")
+    print_step(2, total_steps, f"Building installer v{new_version}")
     
     # Run build from sionyx-desktop directory
-    # Use --skip-version to prevent build.py from bumping version again
+    # Use --version to set specific version without auto-bump
     import os
     original_dir = os.getcwd()
     os.chdir("sionyx-desktop")
     
-    exit_code = run_cmd_live(["python", "build.py", "--skip-version"])
+    # Build with specific version - this will update version.json if successful
+    exit_code = run_cmd_live(["python", "build.py", "--version", new_version])
     
     os.chdir(original_dir)
     
     if exit_code != 0:
-        print()
-        print("[ERROR] Build failed!")
-        print(f"You're still on branch: {branch_name}")
-        print()
-        print("Options:")
-        print("  - Fix the issue and run: cd sionyx-desktop && python build.py")
-        print(f"  - Abort release: git checkout main && git branch -D {branch_name}")
-        sys.exit(1)
+        os.chdir(original_dir)  # Make sure we're back
+        abort_release(branch_name, "Build failed! Rolling back...")
     
     print("✓ Build completed successfully")
     
-    # Commit any build artifacts (version.json updates like build number, coverage)
-    result = run_cmd(["git", "status", "--porcelain"], check=False)
-    if result.stdout.strip():
-        print("Committing build artifacts...")
-        run_cmd(["git", "add", "-A"])
-        run_cmd(["git", "commit", "-m", "chore: update build artifacts"])
+    # ─────────────────────────────────────────────────────────────────────
+    # STEP 3: Commit the version bump (only after successful build)
+    # ─────────────────────────────────────────────────────────────────────
+    
+    print_step(3, total_steps, "Committing version bump")
+    
+    # Commit all changes (version.json was updated by build.py)
+    run_cmd(["git", "add", "-A"])
+    run_cmd(["git", "commit", "-m", f"release: v{new_version}"])
+    
+    print(f"✓ Committed release v{new_version}")
     
     # ─────────────────────────────────────────────────────────────────────
     # STEP 4: Merge to main + tag
     # ─────────────────────────────────────────────────────────────────────
     
-    step_num = 4 if not args.no_push else 4
-    print_step(step_num, total_steps, "Merging to main")
+    print_step(4, total_steps, "Merging to main + creating tag")
     
     # Switch to main
     result = run_cmd(["git", "checkout", "main"], check=False)
@@ -273,23 +266,21 @@ def main():
     
     # Merge release branch
     result = run_cmd(
-        ["git", "merge", branch_name, "--no-ff", "-m", f"Release v{new_version}"],
+        ["git", "merge", branch_name, "--no-ff", "-m", f"Merge release v{new_version}"],
         check=False
     )
     if result.returncode != 0:
         print(f"[ERROR] Merge failed: {result.stderr}")
         sys.exit(1)
     
-    # Create tag (ignore if exists)
+    # Create tag
     run_cmd(["git", "tag", f"v{new_version}"], check=False)
     
-    # Keep release branch (don't delete it)
     print(f"✓ Merged to main")
     print(f"✓ Created tag: v{new_version}")
-    print(f"✓ Kept release branch: {branch_name}")
     
     # ─────────────────────────────────────────────────────────────────────
-    # STEP 5: Push
+    # STEP 5: Push (main, tag, and release branch)
     # ─────────────────────────────────────────────────────────────────────
     
     if not args.no_push:
@@ -319,6 +310,9 @@ def main():
     print("=" * 60)
     print(f"  ✅ Release v{new_version} complete!")
     print("=" * 60)
+    print()
+    print(f"  Tag:    v{new_version}")
+    print(f"  Branch: {branch_name}")
     print()
     if args.no_push:
         print("Don't forget to push:")
