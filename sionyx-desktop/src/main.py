@@ -97,31 +97,50 @@ class SionyxApp:
                 self.app.setWindowIcon(QIcon(icon_path))
                 logger.debug(f"Application icon set from: {icon_path}")
 
-            # Check if .env file exists, if not show error
-            # Handle PyInstaller path resolution
-            if getattr(sys, "frozen", False):
-                # Running as PyInstaller executable - look in executable directory
-                env_path = Path(sys.executable).parent / ".env"
-            else:
-                # Running as script - look in repo root or current directory
+            # Check configuration exists before starting
+            # Production: Uses Windows Registry (set by installer)
+            # Development: Uses .env file
+            if not getattr(sys, "frozen", False):
+                # Development mode - check .env file exists
                 repo_root = Path(__file__).parent.parent.parent
                 env_path = repo_root / ".env"
                 if not env_path.exists():
                     env_path = Path(".env")
-            if not env_path.exists():
-                logger.error(
-                    "No .env file found. Please reinstall the application.",
-                    action="missing_config",
-                )
-                QMessageBox.critical(
-                    None,
-                    "Configuration Missing",
-                    "SIONYX configuration file (.env) not found.\n\n"
-                    "Please reinstall the application to fix this issue.\n\n"
-                    "If this problem persists, contact your system administrator.",
-                )
-                self.app.quit()
-                sys.exit(1)
+                if not env_path.exists():
+                    logger.error(
+                        "No .env file found for development mode.",
+                        action="missing_config",
+                    )
+                    QMessageBox.critical(
+                        None,
+                        "Configuration Missing",
+                        "SIONYX configuration file (.env) not found.\n\n"
+                        "Create a .env file in the project root with:\n"
+                        "- FIREBASE_API_KEY\n"
+                        "- FIREBASE_DATABASE_URL\n"
+                        "- FIREBASE_PROJECT_ID\n"
+                        "- ORG_ID",
+                    )
+                    self.app.quit()
+                    sys.exit(1)
+            else:
+                # Production mode - check registry config exists
+                from utils.registry_config import registry_config_exists
+
+                if not registry_config_exists():
+                    logger.error(
+                        "Registry configuration not found. Please reinstall.",
+                        action="missing_registry_config",
+                    )
+                    QMessageBox.critical(
+                        None,
+                        "Configuration Missing",
+                        "SIONYX configuration not found in Windows Registry.\n\n"
+                        "Please reinstall the application to fix this issue.\n\n"
+                        "If this problem persists, contact your system administrator.",
+                    )
+                    self.app.quit()
+                    sys.exit(1)
 
             # Initialize services
             self.config = get_firebase_config()
