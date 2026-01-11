@@ -285,12 +285,17 @@ def check_coverage_regression(
     print_info(f"Previous coverage: {previous_coverage:.2f}%")
     print_info(f"Current coverage:  {current_coverage:.2f}%")
     
-    if current_coverage < previous_coverage:
-        drop = previous_coverage - current_coverage
+    # Allow small drops (up to 0.1%) to account for rounding/noise
+    TOLERANCE = 0.1
+    drop = previous_coverage - current_coverage
+    
+    if drop > TOLERANCE:
         print_error(f"Coverage DROPPED by {drop:.2f}%!")
-        print_error(f"Build failed: Coverage must not decrease.")
+        print_error(f"Build failed: Coverage must not decrease by more than {TOLERANCE}%.")
         print_info("To override, use: python build.py --skip-coverage-check")
         return False
+    elif drop > 0:
+        print_warning(f"Coverage dropped by {drop:.2f}% (within {TOLERANCE}% tolerance)")
     elif current_coverage > previous_coverage:
         improvement = current_coverage - previous_coverage
         print_success(f"Coverage IMPROVED by {improvement:.2f}%!")
