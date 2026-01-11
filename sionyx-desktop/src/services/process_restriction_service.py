@@ -186,8 +186,10 @@ class ProcessRestrictionService(QObject):
             # Already gone
             pass
         except psutil.AccessDenied:
-            logger.error(
-                f"Access denied terminating {proc_name}. User may be admin.",
+            # Add to recently_blocked to avoid spamming logs with the same error
+            self.recently_blocked.add(pid)
+            logger.warning(
+                f"Access denied terminating {proc_name} (PID: {pid}). User may be admin. Will not retry.",
                 action="process_block_failed",
             )
             self.error_occurred.emit(f"Cannot terminate {proc_name} - access denied")
