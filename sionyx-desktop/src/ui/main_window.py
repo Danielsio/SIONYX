@@ -791,12 +791,13 @@ class MainWindow(BaseKioskWindow):
 
     def closeEvent(self, event):
         """Handle window close event"""
-        # In kiosk mode, block close unless explicitly allowed (admin exit)
-        if self.kiosk_mode and not self._allow_close:
+        # Always block close unless explicitly allowed (admin exit or proper logout)
+        # This prevents users from bypassing the session by closing the window
+        if not self._allow_close:
             logger.warning(
-                "Close event blocked in kiosk mode",
+                "Close event blocked - use logout or admin exit",
                 action="close_blocked",
-                kiosk_mode=True,
+                kiosk_mode=self.kiosk_mode,
             )
             event.ignore()
             return
