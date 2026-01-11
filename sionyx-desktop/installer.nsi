@@ -148,7 +148,7 @@ Section "Kiosk Security Setup" SecKiosk
         Pop $0
         ${If} $0 != 0
             DetailPrint "[ERROR] Failed to update password!"
-            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to update KioskUser password. Please run installer as Administrator."
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to update KioskUser password.$\n$\nThis may be caused by antivirus software or system restrictions."
         ${EndIf}
     ${Else}
         DetailPrint "[CREATING] New user account '${KIOSK_USERNAME}'..."
@@ -156,7 +156,7 @@ Section "Kiosk Security Setup" SecKiosk
         Pop $0
         ${If} $0 != 0
             DetailPrint "[ERROR] Failed to create user account!"
-            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to create KioskUser account.$\n$\nPlease make sure you are running this installer as Administrator.$\n$\nRight-click the installer and select 'Run as administrator'."
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to create KioskUser account.$\n$\nPossible causes:$\n- Antivirus blocking the operation$\n- Windows security policy restrictions$\n- PowerShell execution policy$\n$\nTry temporarily disabling antivirus and retry."
             Abort
         ${EndIf}
     ${EndIf}
@@ -167,7 +167,7 @@ Section "Kiosk Security Setup" SecKiosk
     Pop $0
     ${If} $0 != 0
         DetailPrint "[ERROR] User verification failed!"
-        MessageBox MB_OK|MB_ICONEXCLAMATION "KioskUser account was not created.$\n$\nPlease run installer as Administrator."
+        MessageBox MB_OK|MB_ICONEXCLAMATION "KioskUser account was not created.$\n$\nThe user creation command ran but the user doesn't exist.$\nThis is unusual - please check Windows Event Viewer for details."
         Abort
     ${EndIf}
     DetailPrint "[OK] User '${KIOSK_USERNAME}' verified!"
