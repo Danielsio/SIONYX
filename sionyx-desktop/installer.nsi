@@ -281,18 +281,31 @@ Section "Kiosk Security Setup" SecKiosk
     ; This is the most reliable method for targeting a specific user.
     
     DetailPrint "[AUTOSTART] Creating scheduled task for KioskUser auto-start..."
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -Command "try { $$action = New-ScheduledTaskAction -Execute ''$INSTDIR\${APP_EXECUTABLE}'' -Argument ''--kiosk''; $$trigger = New-ScheduledTaskTrigger -AtLogOn -User ''${KIOSK_USERNAME}''; $$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable; $$principal = New-ScheduledTaskPrincipal -UserId ''${KIOSK_USERNAME}'' -LogonType Interactive -RunLevel Limited; Register-ScheduledTask -TaskName ''SIONYX Kiosk'' -Action $$action -Trigger $$trigger -Settings $$settings -Principal $$principal -Force; Write-Host ''Scheduled task created successfully''; exit 0 } catch { Write-Host $$_.Exception.Message; exit 1 }"'
+    
+    ; Use schtasks directly - simpler and more reliable than PowerShell one-liner
+    ; The /rl LIMITED ensures it runs with standard user privileges
+    nsExec::ExecToLog 'schtasks /create /tn "SIONYX Kiosk" /tr "\"$INSTDIR\${APP_EXECUTABLE}\" --kiosk" /sc onlogon /ru "${KIOSK_USERNAME}" /rl LIMITED /f'
     Pop $0
     ${If} $0 != 0
-        DetailPrint "[WARNING] Scheduled task creation may have failed. Trying fallback..."
-        ; Fallback: Try simpler schtasks command
-        nsExec::ExecToLog 'schtasks /create /tn "SIONYX Kiosk" /tr "\"$INSTDIR\${APP_EXECUTABLE}\" --kiosk" /sc onlogon /ru "${KIOSK_USERNAME}" /rl LIMITED /f'
+        DetailPrint "[WARNING] schtasks failed (error $0). Trying PowerShell..."
+        ; Fallback: Try PowerShell (writes script to file to avoid escaping issues)
+        FileOpen $1 "$TEMP\create_task.ps1" w
+        FileWrite $1 '$$action = New-ScheduledTaskAction -Execute "$INSTDIR\${APP_EXECUTABLE}" -Argument "--kiosk"$\r$\n'
+        FileWrite $1 '$$trigger = New-ScheduledTaskTrigger -AtLogOn -User "${KIOSK_USERNAME}"$\r$\n'
+        FileWrite $1 '$$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable$\r$\n'
+        FileWrite $1 '$$principal = New-ScheduledTaskPrincipal -UserId "${KIOSK_USERNAME}" -LogonType Interactive -RunLevel Limited$\r$\n'
+        FileWrite $1 'Register-ScheduledTask -TaskName "SIONYX Kiosk" -Action $$action -Trigger $$trigger -Settings $$settings -Principal $$principal -Force$\r$\n'
+        FileClose $1
+        
+        nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\create_task.ps1"'
         Pop $0
+        Delete "$TEMP\create_task.ps1"
+        
         ${If} $0 != 0
             DetailPrint "[ERROR] Could not configure auto-start!"
-            MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: Auto-start could not be configured.$\n$\nYou may need to manually start SIONYX when logging in as KioskUser."
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: Auto-start could not be configured.$\n$\nPlease run this in PowerShell (Admin):$\n$\nschtasks /create /tn $\"SIONYX Kiosk$\" /tr $\"$INSTDIR\${APP_EXECUTABLE} --kiosk$\" /sc onlogon /ru ${KIOSK_USERNAME} /rl LIMITED /f"
         ${Else}
-            DetailPrint "[OK] Fallback scheduled task created"
+            DetailPrint "[OK] Scheduled task created via PowerShell"
         ${EndIf}
     ${Else}
         DetailPrint "[OK] Scheduled task created for KioskUser"
