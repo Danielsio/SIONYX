@@ -283,12 +283,10 @@ def main():
     # Create tag (ignore if exists)
     run_cmd(["git", "tag", f"v{new_version}"], check=False)
     
-    # Delete release branch
-    run_cmd(["git", "branch", "-d", branch_name], check=False)
-    
+    # Keep release branch (don't delete it)
     print(f"✓ Merged to main")
     print(f"✓ Created tag: v{new_version}")
-    print(f"✓ Deleted branch: {branch_name}")
+    print(f"✓ Kept release branch: {branch_name}")
     
     # ─────────────────────────────────────────────────────────────────────
     # STEP 5: Push
@@ -297,12 +295,21 @@ def main():
     if not args.no_push:
         print_step(5, total_steps, "Pushing to remote")
         
+        # Push main branch with tags
         result = run_cmd(["git", "push", "origin", "main", "--tags"], check=False)
         if result.returncode != 0:
-            print(f"[WARN] Push failed: {result.stderr}")
+            print(f"[WARN] Push main failed: {result.stderr}")
             print("Push manually: git push origin main --tags")
         else:
-            print("✓ Pushed to remote")
+            print("✓ Pushed main + tags")
+        
+        # Push release branch
+        result = run_cmd(["git", "push", "origin", branch_name], check=False)
+        if result.returncode != 0:
+            print(f"[WARN] Push release branch failed: {result.stderr}")
+            print(f"Push manually: git push origin {branch_name}")
+        else:
+            print(f"✓ Pushed release branch: {branch_name}")
     
     # ─────────────────────────────────────────────────────────────────────
     # DONE
@@ -314,7 +321,9 @@ def main():
     print("=" * 60)
     print()
     if args.no_push:
-        print("Don't forget to push: git push origin main --tags")
+        print("Don't forget to push:")
+        print(f"  git push origin main --tags")
+        print(f"  git push origin {branch_name}")
         print()
 
 
