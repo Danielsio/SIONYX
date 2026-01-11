@@ -374,8 +374,8 @@ def create_installer(version: str) -> Optional[Path]:
             f.write(f"SIONYX Software License\nVersion {version}\n")
             f.write("Copyright (c) 2024 SIONYX Technologies\n")
     
-    # Run NSIS
-    run_command("makensis installer.nsi")
+    # Run NSIS with version passed as define
+    run_command(f'makensis /DVERSION="{version}" installer.nsi')
     
     # Rename with version
     old_name = Path("SIONYX-Installer.exe")

@@ -2,7 +2,11 @@
 ; This creates a professional Windows installer with integrated kiosk setup
 
 !define APP_NAME "SIONYX"
-!define APP_VERSION "1.0.0"
+; VERSION is passed from build.py via /DVERSION="x.y.z"
+; Fallback to 0.0.0 if not provided (manual NSIS compile)
+!ifndef VERSION
+    !define VERSION "0.0.0"
+!endif
 !define APP_PUBLISHER "SIONYX Technologies"
 !define APP_URL "https://sionyx.app"
 !define APP_EXECUTABLE "SIONYX.exe"
@@ -58,6 +62,10 @@ Page custom KioskPagePre KioskPageLeave      ; Kiosk password setup page
 ; INSTALLER SECTION - Main Application
 ; ============================================================================
 Section "Main Application" SecMain
+    ; IMPORTANT: Force 64-bit registry view so keys are written to native
+    ; HKLM\SOFTWARE\SIONYX instead of WOW6432Node (which 64-bit apps can't read)
+    SetRegView 64
+    
     SetOutPath "$INSTDIR"
     
     ; Copy main executable
@@ -316,6 +324,9 @@ SectionEnd
 ; UNINSTALLER SECTION
 ; ============================================================================
 Section "Uninstall"
+    ; Use 64-bit registry view to match installation
+    SetRegView 64
+    
     ; Remove files
     Delete "$INSTDIR\${APP_EXECUTABLE}"
     Delete "$INSTDIR\${APP_ICON}"
@@ -492,16 +503,7 @@ Function KioskPageLeave
         MessageBox MB_OK|MB_ICONEXCLAMATION "Passwords do not match. Please try again."
         Abort
     
-    ; Final confirmation
-    MessageBox MB_YESNO|MB_ICONQUESTION \
-        "Ready to set up your kiosk!$\n$\n\
-        The installer will now:$\n\
-        1. Create the '${KIOSK_USERNAME}' account$\n\
-        2. Apply security restrictions$\n\
-        3. Set SIONYX to start automatically$\n$\n\
-        Continue?" \
-        IDYES +2
-    Abort
+    ; Proceed directly without confirmation - user already clicked Install
 FunctionEnd
 
 ; ============================================================================
