@@ -512,6 +512,15 @@ FunctionEnd
 ; INITIALIZATION
 ; ============================================================================
 Function .onInit
+    ; ========================================================================
+    ; ADMIN CHECK - Must run as Administrator to create users
+    ; ========================================================================
+    UserInfo::GetAccountType
+    Pop $0
+    StrCmp $0 "Admin" +3 0
+        MessageBox MB_OK|MB_ICONSTOP "This installer must be run as Administrator.$\n$\nPlease right-click the installer and select$\n'Run as administrator'."
+        Abort
+    
     ; Create larger fonts for better readability
     CreateFont $BigFont "Segoe UI" 12 700      ; Bold, 12pt for titles
     CreateFont $MediumFont "Segoe UI" 10 400   ; Normal, 10pt for content
