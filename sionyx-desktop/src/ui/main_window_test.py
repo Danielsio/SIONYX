@@ -717,9 +717,10 @@ class TestCleanup:
         yield window
 
     def test_close_event_stops_force_logout_listener(self, main_window):
-        """Test closeEvent stops force logout listener"""
+        """Test closeEvent stops force logout listener when allowed"""
         from PyQt6.QtGui import QCloseEvent
 
+        main_window.allow_close()  # Allow close for this test
         event = QCloseEvent()
 
         # Capture the mock before closeEvent sets it to None
@@ -732,7 +733,8 @@ class TestCleanup:
         assert main_window.force_logout_listener is None
 
     def test_close_event_ends_active_session(self, main_window):
-        """Test closeEvent ends active session"""
+        """Test closeEvent ends active session when allowed"""
+        main_window.allow_close()  # Allow close for this test
         main_window.session_service.is_session_active.return_value = True
 
         from PyQt6.QtGui import QCloseEvent
@@ -744,9 +746,10 @@ class TestCleanup:
         main_window.session_service.end_session.assert_called_once_with("user")
 
     def test_close_event_closes_floating_timer(self, main_window):
-        """Test closeEvent closes floating timer"""
+        """Test closeEvent closes floating timer when allowed"""
         from PyQt6.QtGui import QCloseEvent
 
+        main_window.allow_close()  # Allow close for this test
         event = QCloseEvent()
 
         main_window.closeEvent(event)
@@ -754,21 +757,37 @@ class TestCleanup:
         main_window.floating_timer.close.assert_called_once()
 
     def test_close_event_accepts_event(self, main_window):
-        """Test closeEvent accepts the event"""
+        """Test closeEvent accepts the event when allowed"""
         from PyQt6.QtGui import QCloseEvent
 
+        main_window.allow_close()  # Allow close for this test
         event = QCloseEvent()
 
         main_window.closeEvent(event)
 
         assert event.isAccepted()
 
-    def test_close_event_blocked_in_kiosk_mode(self, main_window):
-        """Test closeEvent is blocked when in kiosk mode.
+    def test_close_event_blocked_by_default(self, main_window):
+        """Test closeEvent is blocked by default regardless of kiosk mode.
 
         This is a regression test: users should not be able to close
-        the app by clicking on the taskbar icon in kiosk mode.
+        the app by clicking the X button or taskbar icon - they must
+        logout properly or use admin exit.
         """
+        from PyQt6.QtGui import QCloseEvent
+
+        # Test non-kiosk mode (blocked)
+        main_window.kiosk_mode = False
+        main_window._allow_close = False
+        event = QCloseEvent()
+
+        main_window.closeEvent(event)
+
+        # Event should be ignored (not accepted)
+        assert not event.isAccepted()
+
+    def test_close_event_blocked_in_kiosk_mode(self, main_window):
+        """Test closeEvent is also blocked in kiosk mode."""
         from PyQt6.QtGui import QCloseEvent
 
         main_window.kiosk_mode = True
@@ -780,11 +799,23 @@ class TestCleanup:
         # Event should be ignored (not accepted)
         assert not event.isAccepted()
 
-    def test_close_event_allowed_in_kiosk_mode_with_flag(self, main_window):
+    def test_close_event_allowed_with_flag(self, main_window):
         """Test closeEvent is allowed when allow_close() has been called.
 
-        Admin exit calls allow_close() before quitting.
+        Admin exit or proper logout calls allow_close() before closing.
         """
+        from PyQt6.QtGui import QCloseEvent
+
+        main_window.kiosk_mode = False  # Even in non-kiosk mode
+        main_window.allow_close()  # Simulate admin exit allowing close
+        event = QCloseEvent()
+
+        main_window.closeEvent(event)
+
+        assert event.isAccepted()
+
+    def test_close_event_allowed_in_kiosk_mode_with_flag(self, main_window):
+        """Test closeEvent is allowed in kiosk mode when allow_close() has been called."""
         from PyQt6.QtGui import QCloseEvent
 
         main_window.kiosk_mode = True
@@ -1089,6 +1120,7 @@ class TestCleanupAdditional:
 
     def test_close_event_without_force_logout_listener(self, main_window):
         """Test closeEvent when no force logout listener"""
+        main_window.allow_close()  # Allow close for this test
         main_window.force_logout_listener = None
         main_window.floating_timer = None
 
@@ -1101,6 +1133,7 @@ class TestCleanupAdditional:
 
     def test_close_event_without_floating_timer(self, main_window):
         """Test closeEvent when no floating timer"""
+        main_window.allow_close()  # Allow close for this test
         main_window.force_logout_listener = Mock()
         main_window.floating_timer = None
 
@@ -1113,6 +1146,7 @@ class TestCleanupAdditional:
 
     def test_close_event_with_inactive_session(self, main_window):
         """Test closeEvent when session is not active"""
+        main_window.allow_close()  # Allow close for this test
         main_window.force_logout_listener = Mock()
         main_window.floating_timer = Mock()
         main_window.session_service.is_session_active.return_value = False
