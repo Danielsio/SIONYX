@@ -1,21 +1,23 @@
-/* AnimatedCard - Lightweight CSS-only animations */
+/* AnimatedCard - Beautiful hover effects, GPU accelerated */
 
 .animated-card {
   position: relative;
   border-radius: 20px;
   overflow: hidden;
   
-  /* GPU-accelerated properties only */
+  /* GPU-accelerated base state */
   transform: translateY(0) translateZ(0);
   opacity: 1;
   
-  /* Smooth transitions */
-  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
+  /* Smooth transitions - only transform and box-shadow */
+  transition: 
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s ease-out;
   
   /* Entrance animation */
-  animation: cardEntrance 0.5s ease-out backwards;
+  animation: cardEntrance 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   
-  /* Enable hardware acceleration */
+  /* Hardware acceleration */
   will-change: transform;
   backface-visibility: hidden;
 }
@@ -23,7 +25,7 @@
 @keyframes cardEntrance {
   from {
     opacity: 0;
-    transform: translateY(30px) translateZ(0);
+    transform: translateY(40px) translateZ(0);
   }
   to {
     opacity: 1;
@@ -31,53 +33,155 @@
   }
 }
 
-/* Hover effect - simple and smooth */
+/* Hover effect - lift with enhanced shadow */
 .animated-card:hover {
-  transform: translateY(-6px) translateZ(0);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transform: translateY(-8px) translateZ(0);
+}
+
+/* Glow effect on hover - using pseudo element */
+.animated-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.animated-card:hover::before {
+  opacity: 1;
+}
+
+/* Shine effect on hover */
+.animated-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  transition: left 0.5s ease-out;
+  pointer-events: none;
+}
+
+.animated-card:hover::after {
+  left: 100%;
 }
 
 /* Variant: Default */
 .animated-card--default {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.animated-card--default:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+.animated-card--default::before {
+  background: radial-gradient(
+    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(99, 102, 241, 0.15),
+    transparent 40%
+  );
 }
 
 /* Variant: Glass */
 .animated-card--glass {
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .animated-card--glass:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.35),
+    0 0 30px rgba(99, 102, 241, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.animated-card--glass::before {
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.1) 0%,
+    transparent 50%,
+    rgba(139, 92, 246, 0.1) 100%
+  );
 }
 
 /* Variant: Gradient */
 .animated-card--gradient {
-  background: linear-gradient(145deg, rgba(94, 129, 244, 0.15), rgba(118, 75, 162, 0.15));
-  border: 1px solid rgba(94, 129, 244, 0.25);
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.12) 0%,
+    rgba(139, 92, 246, 0.12) 50%,
+    rgba(99, 102, 241, 0.12) 100%
+  );
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.15);
 }
 
 .animated-card--gradient:hover {
-  background: linear-gradient(145deg, rgba(94, 129, 244, 0.25), rgba(118, 75, 162, 0.25));
-  border-color: rgba(94, 129, 244, 0.4);
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.2) 0%,
+    rgba(139, 92, 246, 0.2) 50%,
+    rgba(99, 102, 241, 0.2) 100%
+  );
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 
+    0 25px 50px rgba(99, 102, 241, 0.25),
+    0 0 40px rgba(99, 102, 241, 0.1);
 }
 
-/* Variant: Glow */
+/* Variant: Glow (Primary CTA card) */
 .animated-card--glow {
-  background: linear-gradient(145deg, rgba(94, 129, 244, 0.95), rgba(118, 75, 162, 0.95));
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.95) 0%,
+    rgba(139, 92, 246, 0.95) 100%
+  );
   border: none;
-  box-shadow: 0 10px 40px rgba(94, 129, 244, 0.3);
+  box-shadow: 
+    0 10px 40px rgba(99, 102, 241, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
 .animated-card--glow:hover {
-  box-shadow: 0 20px 50px rgba(94, 129, 244, 0.5);
+  box-shadow: 
+    0 25px 60px rgba(99, 102, 241, 0.5),
+    0 0 60px rgba(99, 102, 241, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+}
+
+.animated-card--glow::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
 }
 
 /* Content wrapper */
@@ -87,7 +191,8 @@
 }
 
 /* Clickable cards */
-.animated-card[onclick] {
+.animated-card[onclick],
+.animated-card[role="button"] {
   cursor: pointer;
 }
 
@@ -98,7 +203,7 @@
     transition: none;
   }
   
-  .animated-card:hover {
-    transform: none;
+  .animated-card::after {
+    display: none;
   }
 }
