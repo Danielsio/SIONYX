@@ -177,8 +177,6 @@
 .features__grid {
   max-width: 1200px;
   margin: 0 auto;
-  display: flex;
-  justify-content: center;
 }
 
 .features__icon {
@@ -204,9 +202,6 @@
 .actions__grid {
   max-width: 1100px;
   margin: 0 auto;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
 }
 
 .actions__icon {
