@@ -182,32 +182,54 @@ vi.mock('gsap/ScrollTrigger', () => ({
   },
 }));
 
-// Mock Framer Motion
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, style, ...props }) => {
-      const { initial, animate, whileHover, whileTap, transition, variants, viewport, whileInView, ...validProps } = props;
-      return `<div style="${JSON.stringify(style || {})}" data-testid="motion-div">${children || ''}</div>`;
+// Mock Framer Motion with proper React elements
+vi.mock('framer-motion', async () => {
+  const React = await import('react');
+  
+  // Create a factory for motion components that render real DOM elements
+  const createMotionComponent = (tag) => {
+    const MotionComponent = React.forwardRef(({ children, ...props }, ref) => {
+      // Filter out framer-motion specific props
+      const {
+        initial, animate, exit, variants, transition, whileHover, whileTap,
+        whileInView, viewport, onAnimationComplete, layout, layoutId,
+        drag, dragConstraints, dragElastic, onDrag, onDragEnd, onDragStart,
+        ...domProps
+      } = props;
+      return React.createElement(tag, { ...domProps, ref }, children);
+    });
+    MotionComponent.displayName = `motion.${tag}`;
+    return MotionComponent;
+  };
+
+  return {
+    motion: {
+      div: createMotionComponent('div'),
+      span: createMotionComponent('span'),
+      button: createMotionComponent('button'),
+      p: createMotionComponent('p'),
+      h1: createMotionComponent('h1'),
+      section: createMotionComponent('section'),
+      footer: createMotionComponent('footer'),
+      a: createMotionComponent('a'),
+      ul: createMotionComponent('ul'),
+      li: createMotionComponent('li'),
+      img: createMotionComponent('img'),
+      input: createMotionComponent('input'),
+      form: createMotionComponent('form'),
+      nav: createMotionComponent('nav'),
+      header: createMotionComponent('header'),
+      main: createMotionComponent('main'),
+      aside: createMotionComponent('aside'),
+      article: createMotionComponent('article'),
     },
-    span: ({ children, style, ...props }) => {
-      const { initial, animate, whileHover, whileTap, transition, variants, ...validProps } = props;
-      return `<span style="${JSON.stringify(style || {})}">${children || ''}</span>`;
-    },
-    button: ({ children, style, onClick, ...props }) => {
-      const { initial, animate, whileHover, whileTap, transition, variants, ...validProps } = props;
-      return `<button style="${JSON.stringify(style || {})}">${children || ''}</button>`;
-    },
-    p: ({ children, ...props }) => `<p>${children || ''}</p>`,
-    h1: ({ children, ...props }) => `<h1>${children || ''}</h1>`,
-    section: ({ children, ...props }) => `<section>${children || ''}</section>`,
-    footer: ({ children, ...props }) => `<footer>${children || ''}</footer>`,
-  },
-  AnimatePresence: ({ children }) => children,
-  useScroll: vi.fn(() => ({ scrollY: { get: () => 0 } })),
-  useTransform: vi.fn(() => 0),
-  useSpring: vi.fn((val) => ({ set: vi.fn(), get: () => val })),
-  useMotionValue: vi.fn((val) => ({ set: vi.fn(), get: () => val })),
-}));
+    AnimatePresence: ({ children }) => children,
+    useScroll: vi.fn(() => ({ scrollY: { get: () => 0 } })),
+    useTransform: vi.fn(() => 0),
+    useSpring: vi.fn((val) => ({ set: vi.fn(), get: () => val })),
+    useMotionValue: vi.fn((val) => ({ set: vi.fn(), get: () => val })),
+  };
+});
 
 // ============================================
 // Date/Time Libraries Mocks
