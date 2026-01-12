@@ -140,9 +140,9 @@ const FeaturesSection = memo(() => {
         </Title>
       </div>
 
-      <Row gutter={[30, 30]} justify="center" className="features__grid">
+      <Row gutter={[30, 30]} justify="center" align="middle" className="features__grid">
         {features.map((feature, index) => (
-          <Col xs={24} md={8} key={index}>
+          <Col xs={24} sm={12} md={8} key={index}>
             <AnimatedCard
               variant="glass"
               delay={index * 0.1}
@@ -182,9 +182,9 @@ const ActionCardsSection = memo(({
 }) => {
   return (
     <section className="actions">
-      <Row gutter={[30, 30]} justify="center" className="actions__grid">
+      <Row gutter={[30, 30]} justify="center" align="top" className="actions__grid">
         {/* Registration Card */}
-        <Col xs={24} lg={24}>
+        <Col xs={24} lg={20}>
           <AnimatedCard
             variant="glow"
             onClick={onRegisterClick}
@@ -226,7 +226,7 @@ const ActionCardsSection = memo(({
         </Col>
 
         {/* Download Card */}
-        <Col xs={24} md={12}>
+        <Col xs={24} sm={24} md={12} lg={10}>
           <AnimatedCard
             variant="glass"
             delay={0.1}
@@ -268,7 +268,7 @@ const ActionCardsSection = memo(({
         </Col>
 
         {/* Already Registered Card */}
-        <Col xs={24} md={12}>
+        <Col xs={24} sm={24} md={12} lg={10}>
           <AnimatedCard
             variant="glass"
             delay={0.15}
