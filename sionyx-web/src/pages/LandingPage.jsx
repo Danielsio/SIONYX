@@ -82,29 +82,28 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [mouseX, mouseY]);
 
-  // GSAP entrance animation
+  // GSAP entrance animation - FAST
   useEffect(() => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline();
 
-      // Title animation
+      // Title animation - faster stagger and duration
       tl.from(titleRef.current?.querySelectorAll('span') || [], {
         opacity: 0,
-        y: 100,
-        rotateX: -90,
-        stagger: 0.08,
-        duration: 1,
+        y: 50,
+        scale: 0.5,
+        stagger: 0.05,
+        duration: 0.4,
         ease: 'back.out(1.7)',
       });
 
-      // Subtitle animation
+      // Subtitle animation - faster
       tl.from(subtitleRef.current, {
         opacity: 0,
-        y: 30,
-        filter: 'blur(10px)',
-        duration: 0.8,
+        y: 20,
+        duration: 0.4,
         ease: 'power3.out',
-      }, '-=0.3');
+      }, '-=0.2');
 
     }, heroRef);
 
@@ -129,9 +128,9 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
     >
       {/* Admin Button */}
       <motion.div
-        initial={{ opacity: 0, x: -50 }}
+        initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 1.5, duration: 0.5 }}
+        transition={{ delay: 0.3, duration: 0.3 }}
         style={{
           position: 'absolute',
           top: 30,
@@ -149,25 +148,28 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
         </AnimatedButton>
       </motion.div>
 
-      {/* Main Title */}
+      {/* Main Title - LTR to prevent RTL reversal */}
       <motion.div
         style={{
           x: mouseX,
           y: mouseY,
           textAlign: 'center',
           marginBottom: 30,
+          direction: 'ltr', // Force LTR for brand name
         }}
       >
         <h1
           ref={titleRef}
           style={{
-            fontSize: 'clamp(4rem, 15vw, 10rem)',
+            fontSize: 'clamp(4rem, 15vw, 8rem)',
             fontWeight: 900,
             color: 'white',
             margin: 0,
-            letterSpacing: '0.15em',
+            letterSpacing: '0.2em',
             fontFamily: "'Segoe UI', 'Inter', sans-serif",
             perspective: 1000,
+            direction: 'ltr',
+            unicodeBidi: 'bidi-override',
           }}
         >
           {'SIONYX'.split('').map((letter, i) => (
@@ -175,14 +177,14 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
               key={i}
               style={{
                 display: 'inline-block',
-                textShadow: '0 0 60px rgba(94, 129, 244, 0.8), 0 0 120px rgba(94, 129, 244, 0.4)',
+                textShadow: '0 0 40px rgba(94, 129, 244, 0.6), 0 0 80px rgba(94, 129, 244, 0.3)',
               }}
               whileHover={{
-                scale: 1.2,
-                color: '#667eea',
-                textShadow: '0 0 80px rgba(94, 129, 244, 1), 0 0 160px rgba(94, 129, 244, 0.6)',
+                scale: 1.15,
+                color: '#a5b4fc',
+                textShadow: '0 0 60px rgba(94, 129, 244, 1), 0 0 100px rgba(94, 129, 244, 0.5)',
               }}
-              transition={{ type: 'spring', stiffness: 300 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
             >
               {letter}
             </motion.span>
@@ -210,9 +212,9 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
 
       {/* CTA Button */}
       <motion.div
-        initial={{ opacity: 0, y: 50 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2, duration: 0.6 }}
+        transition={{ delay: 0.5, duration: 0.4 }}
       >
         <AnimatedButton
           variant="primary"
@@ -229,7 +231,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 2 }}
+        transition={{ delay: 0.8 }}
         style={{
           position: 'absolute',
           bottom: 40,
@@ -241,8 +243,8 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
       >
         <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>גלול למטה</Text>
         <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 1.2, repeat: Infinity }}
           style={{
             width: 30,
             height: 50,
