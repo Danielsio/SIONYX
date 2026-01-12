@@ -24,10 +24,6 @@
 ; Variables
 Var OrgNameInput
 Var OrgNameText
-Var KioskPasswordInput
-Var KioskPasswordConfirmInput
-Var KioskPasswordText
-Var KioskPasswordConfirmText
 Var BigFont
 Var MediumFont
 
@@ -48,7 +44,6 @@ RequestExecutionLevel admin
 !insertmacro MUI_PAGE_LICENSE "LICENSE.txt"
 !insertmacro MUI_PAGE_DIRECTORY
 Page custom OrgPagePre OrgPageLeave          ; Organization name page
-Page custom KioskPagePre KioskPageLeave      ; Kiosk password setup page
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
@@ -133,7 +128,13 @@ Section "Kiosk Security Setup" SecKiosk
     DetailPrint ""
     DetailPrint "Creating a restricted Windows user account..."
     DetailPrint "This account will be used by customers at the kiosk."
+    DetailPrint "(No password required - SIONYX app handles authentication)"
     DetailPrint ""
+    
+    ; Enable blank password logon (required for passwordless account)
+    DetailPrint "[CONFIG] Enabling blank password logon..."
+    nsExec::ExecToLog 'reg add "HKLM\SYSTEM\CurrentControlSet\Control\Lsa" /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f'
+    Pop $0
     
     ; Create KioskUser account using net user (simpler and more reliable than PowerShell)
     ; First check if user exists
@@ -142,25 +143,25 @@ Section "Kiosk Security Setup" SecKiosk
     Pop $0
     
     ${If} $0 == 0
-        DetailPrint "[INFO] User '${KIOSK_USERNAME}' already exists - updating password..."
-        nsExec::ExecToLog 'net user "${KIOSK_USERNAME}" "$KioskPasswordText"'
+        DetailPrint "[INFO] User '${KIOSK_USERNAME}' already exists - removing password..."
+        ; Set blank password for existing user
+        nsExec::ExecToLog 'net user "${KIOSK_USERNAME}" ""'
         Pop $0
         ${If} $0 != 0
-            DetailPrint "[ERROR] Failed to update password!"
-            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to update KioskUser password.$\n$\nError code: $0"
+            DetailPrint "[WARNING] Could not remove password, continuing..."
         ${EndIf}
     ${Else}
-        DetailPrint "[CREATING] New user account '${KIOSK_USERNAME}'..."
-        ; Create user with net user command
-        nsExec::ExecToLog 'net user "${KIOSK_USERNAME}" "$KioskPasswordText" /add /fullname:"SIONYX Kiosk User" /comment:"Restricted kiosk account for SIONYX" /passwordchg:no'
+        DetailPrint "[CREATING] New user account '${KIOSK_USERNAME}' (no password)..."
+        ; Create user with blank password
+        nsExec::ExecToLog 'net user "${KIOSK_USERNAME}" "" /add /fullname:"SIONYX Kiosk User" /comment:"Restricted kiosk account for SIONYX" /passwordchg:no'
         Pop $0
         ${If} $0 != 0
             DetailPrint "[ERROR] Failed to create user account! Error code: $0"
-            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to create KioskUser account.$\n$\nError code: $0$\n$\nPossible causes:$\n- Password doesn't meet complexity requirements$\n- Antivirus blocking the operation$\n- Windows security policy restrictions$\n$\nTry a password with uppercase, lowercase, number, and symbol."
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to create KioskUser account.$\n$\nError code: $0$\n$\nPlease contact support."
             Abort
         ${EndIf}
         
-        ; Set password to never expire using wmic
+        ; Ensure password never expires
         DetailPrint "[CONFIG] Setting password to never expire..."
         nsExec::ExecToLog 'wmic useraccount where name="${KIOSK_USERNAME}" set PasswordExpires=false'
         Pop $0
@@ -415,7 +416,7 @@ Function OrgPagePre
     Pop $0
     
     ; Title with big font
-    ${NSD_CreateLabel} 0 0 100% 24u "Step 1 of 2: Organization Setup"
+    ${NSD_CreateLabel} 0 0 100% 24u "Organization Setup"
     Pop $0
     SendMessage $0 ${WM_SETFONT} $BigFont 0
     
@@ -447,76 +448,6 @@ Function OrgPageLeave
         MessageBox MB_OK|MB_ICONEXCLAMATION "Please enter a valid organization name (at least 3 characters)."
         Abort
     ${EndIf}
-FunctionEnd
-
-; ============================================================================
-; CUSTOM PAGE: Kiosk Password Setup
-; ============================================================================
-Function KioskPagePre
-    nsDialogs::Create 1018
-    Pop $0
-    
-    ; Title with big font
-    ${NSD_CreateLabel} 0 0 100% 22u "Step 2 of 2: Kiosk Security Setup"
-    Pop $0
-    SendMessage $0 ${WM_SETFONT} $BigFont 0
-    
-    ; Explanation box
-    ${NSD_CreateGroupBox} 0 24u 100% 42u "What happens in this step?"
-    Pop $0
-    SendMessage $0 ${WM_SETFONT} $MediumFont 0
-    
-    ${NSD_CreateLabel} 10u 38u 95% 26u \
-        "We will create a Windows account called 'KioskUser' with$\n\
-        limited permissions (no settings, installs, or command prompt)."
-    Pop $0
-    SendMessage $0 ${WM_SETFONT} $MediumFont 0
-    
-    ; Password section with larger fonts
-    ${NSD_CreateLabel} 0 70u 100% 14u "Create a password for the KioskUser account:"
-    Pop $0
-    SendMessage $0 ${WM_SETFONT} $MediumFont 0
-    
-    ${NSD_CreatePassword} 0 86u 100% 18u ""
-    Pop $KioskPasswordInput
-    SendMessage $KioskPasswordInput ${WM_SETFONT} $MediumFont 0
-    
-    ${NSD_CreateLabel} 0 108u 100% 14u "Confirm password:"
-    Pop $0
-    SendMessage $0 ${WM_SETFONT} $MediumFont 0
-    
-    ${NSD_CreatePassword} 0 124u 100% 18u ""
-    Pop $KioskPasswordConfirmInput
-    SendMessage $KioskPasswordConfirmInput ${WM_SETFONT} $MediumFont 0
-    
-    ; Note
-    ${NSD_CreateLabel} 0 146u 100% 16u \
-        "NOTE: This is for the KIOSK account, not your admin account."
-    Pop $0
-    SendMessage $0 ${WM_SETFONT} $MediumFont 0
-    
-    nsDialogs::Show
-FunctionEnd
-
-Function KioskPageLeave
-    ${NSD_GetText} $KioskPasswordInput $KioskPasswordText
-    ${NSD_GetText} $KioskPasswordConfirmInput $KioskPasswordConfirmText
-    
-    ; Validate password length
-    StrLen $1 $KioskPasswordText
-    ${If} $1 < 6
-        MessageBox MB_OK|MB_ICONEXCLAMATION \
-            "Password must be at least 6 characters long.$\n$\n\
-            This protects your kiosk from unauthorized access."
-        Abort
-    ${EndIf}
-    
-    ; Validate passwords match
-    StrCmp $KioskPasswordText $KioskPasswordConfirmText +3 0
-        MessageBox MB_OK|MB_ICONEXCLAMATION "Passwords do not match. Please try again."
-        Abort
-    
-    ; Proceed directly without confirmation - user already clicked Install
 FunctionEnd
 
 ; ============================================================================
