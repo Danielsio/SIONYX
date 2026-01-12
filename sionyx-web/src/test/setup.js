@@ -130,8 +130,113 @@ vi.mock('@ant-design/icons', () => {
     SafetyOutlined: createMockIcon('SafetyOutlined'),
     UpOutlined: createMockIcon('UpOutlined'),
     DownOutlined: createMockIcon('DownOutlined'),
+    ThunderboltOutlined: createMockIcon('ThunderboltOutlined'),
+    SafetyCertificateOutlined: createMockIcon('SafetyCertificateOutlined'),
+    StarOutlined: createMockIcon('StarOutlined'),
+    HeartOutlined: createMockIcon('HeartOutlined'),
+    FireOutlined: createMockIcon('FireOutlined'),
+    ThunderboltFilled: createMockIcon('ThunderboltFilled'),
   };
 });
+
+// ============================================
+// Animation Libraries Mocks
+// ============================================
+
+// Mock framer-motion
+vi.mock('framer-motion', async (importOriginal) => {
+  const React = await import('react');
+  const actual = await importOriginal();
+  
+  const createMotionComponent = (tag) => {
+    return React.forwardRef((props, ref) => {
+      const { children, initial, animate, exit, whileHover, whileTap, whileInView, variants, transition, ...rest } = props;
+      return React.createElement(tag, { ...rest, ref }, children);
+    });
+  };
+  
+  return {
+    ...actual,
+    motion: {
+      div: createMotionComponent('div'),
+      span: createMotionComponent('span'),
+      p: createMotionComponent('p'),
+      h1: createMotionComponent('h1'),
+      h2: createMotionComponent('h2'),
+      h3: createMotionComponent('h3'),
+      section: createMotionComponent('section'),
+      button: createMotionComponent('button'),
+      a: createMotionComponent('a'),
+      ul: createMotionComponent('ul'),
+      li: createMotionComponent('li'),
+      img: createMotionComponent('img'),
+    },
+    useScroll: vi.fn(() => ({ scrollY: { get: vi.fn(() => 0) }, scrollYProgress: { get: vi.fn(() => 0) } })),
+    useTransform: vi.fn((value, inputRange, outputRange) => ({ get: vi.fn(() => outputRange?.[0] ?? 0) })),
+    useSpring: vi.fn((value) => ({ set: vi.fn(), get: vi.fn(() => 0) })),
+    useMotionValue: vi.fn((initial) => ({ get: vi.fn(() => initial), set: vi.fn() })),
+    useInView: vi.fn(() => true),
+    AnimatePresence: ({ children }) => children,
+  };
+});
+
+// Mock GSAP
+vi.mock('gsap', () => ({
+  gsap: {
+    to: vi.fn(),
+    from: vi.fn(),
+    fromTo: vi.fn(),
+    set: vi.fn(),
+    timeline: vi.fn(() => ({
+      to: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      fromTo: vi.fn().mockReturnThis(),
+      add: vi.fn().mockReturnThis(),
+      play: vi.fn(),
+      pause: vi.fn(),
+      kill: vi.fn(),
+    })),
+    registerPlugin: vi.fn(),
+    context: vi.fn(() => ({
+      revert: vi.fn(),
+    })),
+  },
+  default: {
+    to: vi.fn(),
+    from: vi.fn(),
+    fromTo: vi.fn(),
+    set: vi.fn(),
+    timeline: vi.fn(() => ({
+      to: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      fromTo: vi.fn().mockReturnThis(),
+      add: vi.fn().mockReturnThis(),
+      play: vi.fn(),
+      pause: vi.fn(),
+      kill: vi.fn(),
+    })),
+    registerPlugin: vi.fn(),
+    context: vi.fn(() => ({
+      revert: vi.fn(),
+    })),
+  },
+}));
+
+// Mock GSAP ScrollTrigger
+vi.mock('gsap/ScrollTrigger', () => ({
+  ScrollTrigger: {
+    create: vi.fn(),
+    refresh: vi.fn(),
+    getAll: vi.fn(() => []),
+    kill: vi.fn(),
+  },
+  default: {
+    create: vi.fn(),
+    refresh: vi.fn(),
+    getAll: vi.fn(() => []),
+    kill: vi.fn(),
+  },
+}));
 
 // ============================================
 // Date/Time Libraries Mocks
@@ -193,6 +298,34 @@ class ResizeObserverMock {
 }
 
 window.ResizeObserver = ResizeObserverMock;
+
+// Mock Canvas for animated backgrounds
+HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
+  clearRect: vi.fn(),
+  beginPath: vi.fn(),
+  arc: vi.fn(),
+  fill: vi.fn(),
+  moveTo: vi.fn(),
+  lineTo: vi.fn(),
+  stroke: vi.fn(),
+  fillRect: vi.fn(),
+  strokeRect: vi.fn(),
+  fillText: vi.fn(),
+  measureText: vi.fn(() => ({ width: 0 })),
+  drawImage: vi.fn(),
+  createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+  createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
+  save: vi.fn(),
+  restore: vi.fn(),
+  translate: vi.fn(),
+  rotate: vi.fn(),
+  scale: vi.fn(),
+  setTransform: vi.fn(),
+}));
+
+// Mock requestAnimationFrame
+window.requestAnimationFrame = vi.fn((cb) => setTimeout(cb, 16));
+window.cancelAnimationFrame = vi.fn((id) => clearTimeout(id));
 
 // Mock scrollTo
 window.scrollTo = vi.fn();
