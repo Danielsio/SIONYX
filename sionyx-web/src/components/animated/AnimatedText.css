@@ -2,10 +2,12 @@
 
 /* Gradient text */
 .gradient-text {
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-size: 100% 100%;
+  display: inline;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  background-size: 200% 100%;
 }
 
 /* Animated gradient */
