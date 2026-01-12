@@ -53,13 +53,7 @@ describe('LandingPage', () => {
   it('displays SIONYX branding', async () => {
     renderLandingPage();
 
-    // Each letter of SIONYX is in a separate span for animation
-    expect(screen.getByText('S')).toBeInTheDocument();
-    expect(screen.getByText('I')).toBeInTheDocument();
-    expect(screen.getByText('O')).toBeInTheDocument();
-    expect(screen.getByText('N')).toBeInTheDocument();
-    expect(screen.getByText('Y')).toBeInTheDocument();
-    expect(screen.getByText('X')).toBeInTheDocument();
+    expect(screen.getByText('SIONYX')).toBeInTheDocument();
   });
 
   it('fetches release info on mount', async () => {
