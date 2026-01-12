@@ -1,0 +1,104 @@
+/* AnimatedCard - Lightweight CSS-only animations */
+
+.animated-card {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  
+  /* GPU-accelerated properties only */
+  transform: translateY(0) translateZ(0);
+  opacity: 1;
+  
+  /* Smooth transitions */
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out;
+  
+  /* Entrance animation */
+  animation: cardEntrance 0.5s ease-out backwards;
+  
+  /* Enable hardware acceleration */
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+@keyframes cardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(30px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+/* Hover effect - simple and smooth */
+.animated-card:hover {
+  transform: translateY(-6px) translateZ(0);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Variant: Default */
+.animated-card--default {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Variant: Glass */
+.animated-card--glass {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+}
+
+.animated-card--glass:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* Variant: Gradient */
+.animated-card--gradient {
+  background: linear-gradient(145deg, rgba(94, 129, 244, 0.15), rgba(118, 75, 162, 0.15));
+  border: 1px solid rgba(94, 129, 244, 0.25);
+}
+
+.animated-card--gradient:hover {
+  background: linear-gradient(145deg, rgba(94, 129, 244, 0.25), rgba(118, 75, 162, 0.25));
+  border-color: rgba(94, 129, 244, 0.4);
+}
+
+/* Variant: Glow */
+.animated-card--glow {
+  background: linear-gradient(145deg, rgba(94, 129, 244, 0.95), rgba(118, 75, 162, 0.95));
+  border: none;
+  box-shadow: 0 10px 40px rgba(94, 129, 244, 0.3);
+}
+
+.animated-card--glow:hover {
+  box-shadow: 0 20px 50px rgba(94, 129, 244, 0.5);
+}
+
+/* Content wrapper */
+.animated-card__content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Clickable cards */
+.animated-card[onclick] {
+  cursor: pointer;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animated-card {
+    animation: none;
+    transition: none;
+  }
+  
+  .animated-card:hover {
+    transform: none;
+  }
+}
