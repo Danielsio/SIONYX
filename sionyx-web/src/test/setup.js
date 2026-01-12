@@ -144,19 +144,41 @@ vi.mock('@ant-design/icons', () => {
 // ============================================
 
 // Mock framer-motion
-vi.mock('framer-motion', async (importOriginal) => {
-  const React = await import('react');
-  const actual = await importOriginal();
+vi.mock('framer-motion', () => {
+  const React = require('react');
+  
+  // Create a mock motion value
+  const createMockMotionValue = (initial = 0) => ({
+    get: vi.fn(() => initial),
+    set: vi.fn(),
+    onChange: vi.fn(() => () => {}),
+    isAnimating: vi.fn(() => false),
+  });
   
   const createMotionComponent = (tag) => {
-    return React.forwardRef((props, ref) => {
-      const { children, initial, animate, exit, whileHover, whileTap, whileInView, variants, transition, ...rest } = props;
+    const MotionComponent = React.forwardRef((props, ref) => {
+      const { 
+        children, 
+        initial, 
+        animate, 
+        exit, 
+        whileHover, 
+        whileTap, 
+        whileInView, 
+        variants, 
+        transition,
+        onAnimationComplete,
+        drag,
+        dragConstraints,
+        ...rest 
+      } = props;
       return React.createElement(tag, { ...rest, ref }, children);
     });
+    MotionComponent.displayName = `motion.${tag}`;
+    return MotionComponent;
   };
   
   return {
-    ...actual,
     motion: {
       div: createMotionComponent('div'),
       span: createMotionComponent('span'),
@@ -171,10 +193,13 @@ vi.mock('framer-motion', async (importOriginal) => {
       li: createMotionComponent('li'),
       img: createMotionComponent('img'),
     },
-    useScroll: vi.fn(() => ({ scrollY: { get: vi.fn(() => 0) }, scrollYProgress: { get: vi.fn(() => 0) } })),
-    useTransform: vi.fn((value, inputRange, outputRange) => ({ get: vi.fn(() => outputRange?.[0] ?? 0) })),
-    useSpring: vi.fn((value) => ({ set: vi.fn(), get: vi.fn(() => 0) })),
-    useMotionValue: vi.fn((initial) => ({ get: vi.fn(() => initial), set: vi.fn() })),
+    useScroll: vi.fn(() => ({ 
+      scrollY: createMockMotionValue(0), 
+      scrollYProgress: createMockMotionValue(0) 
+    })),
+    useTransform: vi.fn(() => createMockMotionValue(0)),
+    useSpring: vi.fn(() => createMockMotionValue(0)),
+    useMotionValue: vi.fn((initial = 0) => createMockMotionValue(initial)),
     useInView: vi.fn(() => true),
     AnimatePresence: ({ children }) => children,
   };
