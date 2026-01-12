@@ -82,6 +82,7 @@ const ParticleField = memo(({ count = 50 }) => {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
+    if (!ctx) return; // Handle case where canvas context is not available (e.g., in tests)
     
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
