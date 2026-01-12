@@ -128,10 +128,86 @@ vi.mock('@ant-design/icons', () => {
     UserAddOutlined: createMockIcon('UserAddOutlined'),
     KeyOutlined: createMockIcon('KeyOutlined'),
     SafetyOutlined: createMockIcon('SafetyOutlined'),
+    SafetyCertificateOutlined: createMockIcon('SafetyCertificateOutlined'),
+    ThunderboltOutlined: createMockIcon('ThunderboltOutlined'),
     UpOutlined: createMockIcon('UpOutlined'),
     DownOutlined: createMockIcon('DownOutlined'),
   };
 });
+
+// ============================================
+// Animation Libraries Mocks
+// ============================================
+
+// Mock GSAP
+vi.mock('gsap', () => ({
+  default: {
+    registerPlugin: vi.fn(),
+    to: vi.fn(() => ({ kill: vi.fn() })),
+    from: vi.fn(() => ({ kill: vi.fn() })),
+    set: vi.fn(),
+    timeline: vi.fn(() => ({
+      to: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      kill: vi.fn(),
+    })),
+    context: vi.fn((fn, ref) => {
+      fn(ref);
+      return { revert: vi.fn() };
+    }),
+  },
+  gsap: {
+    registerPlugin: vi.fn(),
+    to: vi.fn(() => ({ kill: vi.fn() })),
+    from: vi.fn(() => ({ kill: vi.fn() })),
+    set: vi.fn(),
+    timeline: vi.fn(() => ({
+      to: vi.fn().mockReturnThis(),
+      from: vi.fn().mockReturnThis(),
+      kill: vi.fn(),
+    })),
+    context: vi.fn((fn, ref) => {
+      fn(ref);
+      return { revert: vi.fn() };
+    }),
+  },
+  registerPlugin: vi.fn(),
+}));
+
+// Mock GSAP ScrollTrigger
+vi.mock('gsap/ScrollTrigger', () => ({
+  ScrollTrigger: {
+    create: vi.fn(() => ({ kill: vi.fn() })),
+    refresh: vi.fn(),
+  },
+}));
+
+// Mock Framer Motion
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, style, ...props }) => {
+      const { initial, animate, whileHover, whileTap, transition, variants, viewport, whileInView, ...validProps } = props;
+      return `<div style="${JSON.stringify(style || {})}" data-testid="motion-div">${children || ''}</div>`;
+    },
+    span: ({ children, style, ...props }) => {
+      const { initial, animate, whileHover, whileTap, transition, variants, ...validProps } = props;
+      return `<span style="${JSON.stringify(style || {})}">${children || ''}</span>`;
+    },
+    button: ({ children, style, onClick, ...props }) => {
+      const { initial, animate, whileHover, whileTap, transition, variants, ...validProps } = props;
+      return `<button style="${JSON.stringify(style || {})}">${children || ''}</button>`;
+    },
+    p: ({ children, ...props }) => `<p>${children || ''}</p>`,
+    h1: ({ children, ...props }) => `<h1>${children || ''}</h1>`,
+    section: ({ children, ...props }) => `<section>${children || ''}</section>`,
+    footer: ({ children, ...props }) => `<footer>${children || ''}</footer>`,
+  },
+  AnimatePresence: ({ children }) => children,
+  useScroll: vi.fn(() => ({ scrollY: { get: () => 0 } })),
+  useTransform: vi.fn(() => 0),
+  useSpring: vi.fn((val) => ({ set: vi.fn(), get: () => val })),
+  useMotionValue: vi.fn((val) => ({ set: vi.fn(), get: () => val })),
+}));
 
 // ============================================
 // Date/Time Libraries Mocks
