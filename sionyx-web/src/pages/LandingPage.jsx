@@ -85,25 +85,15 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
   // GSAP entrance animation - FAST
   useEffect(() => {
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline();
+      const tl = gsap.timeline({ delay: 0.3 });
 
-      // Title animation - faster stagger and duration
-      tl.from(titleRef.current?.querySelectorAll('span') || [], {
-        opacity: 0,
-        y: 50,
-        scale: 0.5,
-        stagger: 0.05,
-        duration: 0.4,
-        ease: 'back.out(1.7)',
-      });
-
-      // Subtitle animation - faster
+      // Subtitle animation - fast
       tl.from(subtitleRef.current, {
         opacity: 0,
         y: 20,
         duration: 0.4,
         ease: 'power3.out',
-      }, '-=0.2');
+      });
 
     }, heroRef);
 
@@ -148,47 +138,33 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
         </AnimatedButton>
       </motion.div>
 
-      {/* Main Title - LTR to prevent RTL reversal */}
+      {/* Main Title */}
       <motion.div
+        initial={{ opacity: 0, scale: 0.8, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
         style={{
           x: mouseX,
           y: mouseY,
           textAlign: 'center',
           marginBottom: 30,
-          direction: 'ltr', // Force LTR for brand name
         }}
       >
         <h1
           ref={titleRef}
           style={{
-            fontSize: 'clamp(4rem, 15vw, 8rem)',
+            fontSize: 'clamp(3.5rem, 12vw, 7rem)',
             fontWeight: 900,
             color: 'white',
             margin: 0,
-            letterSpacing: '0.2em',
+            letterSpacing: '0.15em',
             fontFamily: "'Segoe UI', 'Inter', sans-serif",
-            perspective: 1000,
+            textShadow: '0 0 40px rgba(94, 129, 244, 0.6), 0 0 80px rgba(94, 129, 244, 0.3)',
             direction: 'ltr',
-            unicodeBidi: 'bidi-override',
+            display: 'inline-block',
           }}
         >
-          {'SIONYX'.split('').map((letter, i) => (
-            <motion.span
-              key={i}
-              style={{
-                display: 'inline-block',
-                textShadow: '0 0 40px rgba(94, 129, 244, 0.6), 0 0 80px rgba(94, 129, 244, 0.3)',
-              }}
-              whileHover={{
-                scale: 1.15,
-                color: '#a5b4fc',
-                textShadow: '0 0 60px rgba(94, 129, 244, 1), 0 0 100px rgba(94, 129, 244, 0.5)',
-              }}
-              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-            >
-              {letter}
-            </motion.span>
-          ))}
+          SIONYX
         </h1>
       </motion.div>
 
