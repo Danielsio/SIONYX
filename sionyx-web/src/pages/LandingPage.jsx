@@ -1,10 +1,9 @@
 /**
  * SIONYX Landing Page
- * Premium animated landing experience with immersive motion design
+ * Lightweight animations for smooth 60fps performance
  */
 
-import { useState, useCallback, useEffect, useRef, memo } from 'react';
-import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion';
+import { useState, useCallback, useEffect, memo } from 'react';
 import {
   Form,
   Input,
@@ -35,8 +34,6 @@ import {
   ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import { registerOrganization } from '../services/organizationService';
 import { downloadFile, getLatestRelease, formatVersion } from '../services/downloadService';
@@ -48,7 +45,7 @@ import {
   GradientText,
 } from '../components/animated';
 
-gsap.registerPlugin(ScrollTrigger);
+import './LandingPage.css';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -56,78 +53,10 @@ const { Title, Paragraph, Text } = Typography;
 // Hero Section Component
 // ============================================
 const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
-  const heroRef = useRef(null);
-  const titleRef = useRef(null);
-  const subtitleRef = useRef(null);
-
-  // Parallax effect on scroll
-  const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 500], [0, 150]);
-  const opacity = useTransform(scrollY, [0, 300], [1, 0]);
-  const scale = useTransform(scrollY, [0, 300], [1, 0.9]);
-
-  // Mouse parallax
-  const mouseX = useSpring(0, { stiffness: 50, damping: 20 });
-  const mouseY = useSpring(0, { stiffness: 50, damping: 20 });
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      const { clientX, clientY } = e;
-      const { innerWidth, innerHeight } = window;
-      mouseX.set((clientX / innerWidth - 0.5) * 30);
-      mouseY.set((clientY / innerHeight - 0.5) * 30);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [mouseX, mouseY]);
-
-  // GSAP entrance animation - FAST
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({ delay: 0.3 });
-
-      // Subtitle animation - fast
-      tl.from(subtitleRef.current, {
-        opacity: 0,
-        y: 20,
-        duration: 0.4,
-        ease: 'power3.out',
-      });
-
-    }, heroRef);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
-    <motion.section
-      ref={heroRef}
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        y,
-        opacity,
-        scale,
-        padding: '20px',
-      }}
-    >
+    <section className="hero">
       {/* Admin Button */}
-      <motion.div
-        initial={{ opacity: 0, x: -30 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 0.3, duration: 0.3 }}
-        style={{
-          position: 'absolute',
-          top: 30,
-          left: 30,
-          zIndex: 100,
-        }}
-      >
+      <div className="hero__admin-btn">
         <AnimatedButton
           variant="secondary"
           size="medium"
@@ -136,62 +65,22 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
         >
           כניסת מנהל
         </AnimatedButton>
-      </motion.div>
+      </div>
 
       {/* Main Title */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.8, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
-        style={{
-          x: mouseX,
-          y: mouseY,
-          textAlign: 'center',
-          marginBottom: 30,
-        }}
-      >
-        <h1
-          ref={titleRef}
-          style={{
-            fontSize: 'clamp(3.5rem, 12vw, 7rem)',
-            fontWeight: 900,
-            color: 'white',
-            margin: 0,
-            letterSpacing: '0.15em',
-            fontFamily: "'Segoe UI', 'Inter', sans-serif",
-            textShadow: '0 0 40px rgba(94, 129, 244, 0.6), 0 0 80px rgba(94, 129, 244, 0.3)',
-            direction: 'ltr',
-            display: 'inline-block',
-          }}
-        >
-          SIONYX
-        </h1>
-      </motion.div>
+      <div className="hero__title-wrapper">
+        <h1 className="hero__title">SIONYX</h1>
+      </div>
 
       {/* Subtitle */}
-      <motion.p
-        ref={subtitleRef}
-        style={{
-          fontSize: 'clamp(1rem, 3vw, 1.5rem)',
-          color: 'rgba(255, 255, 255, 0.85)',
-          maxWidth: 600,
-          textAlign: 'center',
-          lineHeight: 1.8,
-          fontWeight: 300,
-          marginBottom: 50,
-        }}
-      >
+      <p className="hero__subtitle">
         <GradientText animate gradient="linear-gradient(90deg, #a5b4fc, #818cf8, #c4b5fd, #a5b4fc)">
           פתרון מתקדם לניהול זמן מחשבים ואישורי הדפסה
         </GradientText>
-      </motion.p>
+      </p>
 
       {/* CTA Button */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.4 }}
-      >
+      <div className="hero__cta">
         <AnimatedButton
           variant="primary"
           size="large"
@@ -201,49 +90,16 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
         >
           התחל עכשיו
         </AnimatedButton>
-      </motion.div>
+      </div>
 
       {/* Scroll Indicator */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        style={{
-          position: 'absolute',
-          bottom: 40,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 10,
-        }}
-      >
+      <div className="hero__scroll-indicator">
         <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>גלול למטה</Text>
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ duration: 1.2, repeat: Infinity }}
-          style={{
-            width: 30,
-            height: 50,
-            border: '2px solid rgba(255,255,255,0.3)',
-            borderRadius: 15,
-            display: 'flex',
-            justifyContent: 'center',
-            paddingTop: 8,
-          }}
-        >
-          <motion.div
-            animate={{ y: [0, 15, 0], opacity: [1, 0.3, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            style={{
-              width: 6,
-              height: 10,
-              background: 'rgba(255,255,255,0.6)',
-              borderRadius: 3,
-            }}
-          />
-        </motion.div>
-      </motion.div>
-    </motion.section>
+        <div className="hero__scroll-mouse">
+          <div className="hero__scroll-wheel" />
+        </div>
+      </div>
+    </section>
   );
 });
 
@@ -275,39 +131,29 @@ const FeaturesSection = memo(() => {
   ];
 
   return (
-    <section style={{ padding: '100px 20px', position: 'relative', zIndex: 1 }}>
-      <motion.div
-        initial={{ opacity: 0, y: 50 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.8 }}
-        style={{ textAlign: 'center', marginBottom: 60 }}
-      >
-        <Title level={2} style={{ color: 'white', fontSize: 'clamp(2rem, 5vw, 3rem)' }}>
-          <GlowingText color="#667eea" glowIntensity={0.5}>
+    <section className="features">
+      <div className="features__header">
+        <Title level={2} style={{ color: 'white', fontSize: 'clamp(2rem, 5vw, 3rem)', margin: 0 }}>
+          <GlowingText color="#667eea">
             למה SIONYX?
           </GlowingText>
         </Title>
-      </motion.div>
+      </div>
 
-      <Row gutter={[30, 30]} justify="center" style={{ maxWidth: 1200, margin: '0 auto' }}>
+      <Row gutter={[30, 30]} justify="center" className="features__grid">
         {features.map((feature, index) => (
           <Col xs={24} md={8} key={index}>
             <AnimatedCard
               variant="glass"
-              delay={index * 0.15}
+              delay={index * 0.1}
               style={{ height: '100%', padding: '40px 30px', textAlign: 'center' }}
             >
-              <motion.div
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                style={{
-                  color: feature.color,
-                  marginBottom: 20,
-                  filter: `drop-shadow(0 0 20px ${feature.color})`,
-                }}
+              <div
+                className="features__icon"
+                style={{ color: feature.color }}
               >
                 {feature.icon}
-              </motion.div>
+              </div>
               <Title level={4} style={{ color: 'white', marginBottom: 15 }}>
                 {feature.title}
               </Title>
@@ -335,8 +181,8 @@ const ActionCardsSection = memo(({
   releaseInfo 
 }) => {
   return (
-    <section style={{ padding: '80px 20px', position: 'relative', zIndex: 1 }}>
-      <Row gutter={[30, 30]} justify="center" style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <section className="actions">
+      <Row gutter={[30, 30]} justify="center" className="actions__grid">
         {/* Registration Card */}
         <Col xs={24} lg={24}>
           <AnimatedCard
@@ -347,22 +193,11 @@ const ActionCardsSection = memo(({
               padding: '60px 40px',
               textAlign: 'center',
               cursor: 'pointer',
-              boxShadow: '0 20px 60px rgba(94, 129, 244, 0.4)',
             }}
           >
-            <motion.div
-              animate={{ 
-                rotate: [0, 5, -5, 0],
-                scale: [1, 1.05, 1],
-              }}
-              transition={{ duration: 4, repeat: Infinity }}
-            >
-              <UserAddOutlined style={{ 
-                fontSize: 64, 
-                color: 'white',
-                filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.3))',
-              }} />
-            </motion.div>
+            <div className="actions__icon actions__icon--animated">
+              <UserAddOutlined style={{ fontSize: 64, color: 'white' }} />
+            </div>
             <Title level={2} style={{ color: 'white', margin: '25px 0 15px', fontSize: 32 }}>
               שלום לך מנהל יקר
             </Title>
@@ -394,19 +229,12 @@ const ActionCardsSection = memo(({
         <Col xs={24} md={12}>
           <AnimatedCard
             variant="glass"
-            delay={0.2}
+            delay={0.1}
             style={{ height: '100%', padding: '40px 30px', textAlign: 'center' }}
           >
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              <RocketOutlined style={{ 
-                fontSize: 56, 
-                color: '#52c41a',
-                filter: 'drop-shadow(0 0 20px rgba(82, 196, 26, 0.5))',
-              }} />
-            </motion.div>
+            <div className="actions__icon" style={{ color: '#52c41a' }}>
+              <RocketOutlined style={{ fontSize: 56 }} />
+            </div>
             <Title level={3} style={{ color: 'white', marginTop: 20 }}>
               הורדת התוכנה
             </Title>
@@ -443,19 +271,12 @@ const ActionCardsSection = memo(({
         <Col xs={24} md={12}>
           <AnimatedCard
             variant="glass"
-            delay={0.3}
+            delay={0.15}
             style={{ height: '100%', padding: '40px 30px', textAlign: 'center' }}
           >
-            <motion.div
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-            >
-              <SettingOutlined style={{ 
-                fontSize: 56, 
-                color: '#faad14',
-                filter: 'drop-shadow(0 0 20px rgba(250, 173, 20, 0.5))',
-              }} />
-            </motion.div>
+            <div className="actions__icon actions__icon--spin" style={{ color: '#faad14' }}>
+              <SettingOutlined style={{ fontSize: 56 }} />
+            </div>
             <Title level={3} style={{ color: 'white', marginTop: 20 }}>
               כבר רשום?
             </Title>
@@ -512,13 +333,7 @@ const RegistrationModal = memo(({
       }}
       title={
         <div style={{ textAlign: 'center', paddingTop: 10 }}>
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 200 }}
-          >
-            <TeamOutlined style={{ fontSize: '2.5rem', color: '#667eea', marginBottom: 10 }} />
-          </motion.div>
+          <TeamOutlined style={{ fontSize: '2.5rem', color: '#667eea', marginBottom: 10 }} />
           <Title level={3} style={{ margin: 0, color: '#333' }}>הרשמת ארגון חדש</Title>
           <Text type="secondary">מלא את כל הפרטים ליצירת ארגון וחשבון מנהל</Text>
         </div>
@@ -532,19 +347,8 @@ const RegistrationModal = memo(({
         style={{ marginTop: 20 }}
       >
         {/* Organization Details Section */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          style={{ 
-            background: 'linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%)', 
-            padding: 25, 
-            borderRadius: 16,
-            marginBottom: 25,
-            border: '1px solid #e8ecff',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
+        <div className="form-section form-section--blue">
+          <div className="form-section__header">
             <BankOutlined style={{ fontSize: '1.5rem', color: '#667eea', marginLeft: 10 }} />
             <Title level={5} style={{ margin: 0, color: '#333' }}>פרטי הארגון</Title>
           </div>
@@ -592,22 +396,11 @@ const RegistrationModal = memo(({
               </Form.Item>
             </Col>
           </Row>
-        </motion.div>
+        </div>
 
         {/* Admin User Section */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          style={{ 
-            background: 'linear-gradient(135deg, #fff8f0 0%, #fff4e8 100%)', 
-            padding: 25, 
-            borderRadius: 16,
-            marginBottom: 25,
-            border: '1px solid #ffe8d4',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
+        <div className="form-section form-section--orange">
+          <div className="form-section__header">
             <CrownOutlined style={{ fontSize: '1.5rem', color: '#fa8c16', marginLeft: 10 }} />
             <Title level={5} style={{ margin: 0, color: '#333' }}>פרטי המנהל הראשי</Title>
           </div>
@@ -675,7 +468,7 @@ const RegistrationModal = memo(({
               style={inputStyle}
             />
           </Form.Item>
-        </motion.div>
+        </div>
 
         <Divider style={{ margin: '25px 0' }} />
 
@@ -784,20 +577,12 @@ const LandingPage = memo(() => {
   }, [registrationForm]);
 
   return (
-    <div 
-      style={{ 
-        minHeight: '100vh',
-        direction: 'rtl',
-        textAlign: 'right',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="landing">
       {/* Animated Background */}
       <AnimatedBackground />
 
       {/* Content */}
-      <div style={{ position: 'relative', zIndex: 1 }}>
+      <div className="landing__content">
         {/* Hero Section */}
         <HeroSection 
           onRegisterClick={openRegistrationModal}
@@ -817,34 +602,23 @@ const LandingPage = memo(() => {
         />
 
         {/* Footer */}
-        <motion.footer
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          style={{
-            textAlign: 'center',
-            padding: '40px 20px 60px',
-            color: 'rgba(255,255,255,0.5)',
-          }}
-        >
-          <Text style={{ color: 'inherit' }}>
+        <footer className="landing__footer">
+          <Text style={{ color: 'rgba(255,255,255,0.5)' }}>
             © 2026 SIONYX. כל הזכויות שמורות.
           </Text>
-        </motion.footer>
+        </footer>
       </div>
 
       {/* Registration Modal */}
-      <AnimatePresence>
-        {showRegistrationModal && (
-          <RegistrationModal
-            open={showRegistrationModal}
-            onClose={closeRegistrationModal}
-            onSubmit={handleRegistration}
-            loading={loading}
-            form={registrationForm}
-          />
-        )}
-      </AnimatePresence>
+      {showRegistrationModal && (
+        <RegistrationModal
+          open={showRegistrationModal}
+          onClose={closeRegistrationModal}
+          onSubmit={handleRegistration}
+          loading={loading}
+          form={registrationForm}
+        />
+      )}
     </div>
   );
 });

@@ -1,0 +1,114 @@
+/* AnimatedBackground - Lightweight CSS-only animations */
+
+.animated-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Base gradient */
+.animated-bg__base {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, 
+    #0a0a1a 0%, 
+    #1a1a3e 25%, 
+    #16213e 50%, 
+    #0f3460 75%, 
+    #0a192f 100%
+  );
+}
+
+/* Subtle animated overlay */
+.animated-bg__overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 30% 20%, rgba(94, 129, 244, 0.12) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 80%, rgba(118, 75, 162, 0.08) 0%, transparent 50%);
+  animation: overlayShift 20s ease-in-out infinite;
+}
+
+@keyframes overlayShift {
+  0%, 100% {
+    opacity: 1;
+    transform: translateZ(0);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateZ(0);
+  }
+}
+
+/* Floating orbs - pure CSS */
+.animated-bg__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.4;
+  animation: orbFloat 25s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animated-bg__orb--1 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(94, 129, 244, 0.3) 0%, transparent 70%);
+  top: -10%;
+  left: -5%;
+  animation-delay: 0s;
+}
+
+.animated-bg__orb--2 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.2) 0%, transparent 70%);
+  top: 50%;
+  right: -5%;
+  animation-delay: -8s;
+  animation-duration: 22s;
+}
+
+.animated-bg__orb--3 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(118, 75, 162, 0.25) 0%, transparent 70%);
+  bottom: 10%;
+  left: 20%;
+  animation-delay: -15s;
+  animation-duration: 28s;
+}
+
+@keyframes orbFloat {
+  0%, 100% {
+    transform: translate(0, 0) translateZ(0);
+  }
+  25% {
+    transform: translate(30px, -20px) translateZ(0);
+  }
+  50% {
+    transform: translate(-20px, 30px) translateZ(0);
+  }
+  75% {
+    transform: translate(20px, 20px) translateZ(0);
+  }
+}
+
+/* Vignette effect */
+.animated-bg__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animated-bg__overlay,
+  .animated-bg__orb {
+    animation: none;
+  }
+}

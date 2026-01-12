@@ -1,0 +1,39 @@
+/* AnimatedText - Lightweight CSS-only text effects */
+
+/* Gradient text */
+.gradient-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 100% 100%;
+}
+
+/* Animated gradient */
+.gradient-text--animated {
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease-in-out infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Glowing text */
+.glowing-text {
+  text-shadow: 
+    0 0 10px var(--glow-color, #667eea),
+    0 0 20px var(--glow-color, #667eea),
+    0 0 40px var(--glow-color, #667eea);
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .gradient-text--animated {
+    animation: none;
+  }
+}
