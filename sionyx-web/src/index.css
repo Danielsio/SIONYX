@@ -1,18 +1,64 @@
+/* ============================================
+   SIONYX Premium Design System
+   High-end animations and modern aesthetics
+   ============================================ */
+
+/* CSS Custom Properties for Animation System */
+:root {
+  /* Primary palette */
+  --sionyx-primary: #667eea;
+  --sionyx-primary-dark: #5a67d8;
+  --sionyx-primary-light: #a5b4fc;
+  --sionyx-secondary: #764ba2;
+  --sionyx-accent: #ec4899;
+  
+  /* Background colors */
+  --sionyx-bg-dark: #0a0a1a;
+  --sionyx-bg-gradient: linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 25%, #16213e 50%, #0f3460 75%, #0a192f 100%);
+  
+  /* Status colors */
+  --sionyx-success: #52c41a;
+  --sionyx-warning: #faad14;
+  --sionyx-error: #ff4d4f;
+  
+  /* Animation timing */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out-sine: cubic-bezier(0.37, 0, 0.63, 1);
+  --spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  
+  /* Animation durations */
+  --duration-fast: 150ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  --duration-slower: 800ms;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+*::selection {
+  background: var(--sionyx-primary);
+  color: white;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
-    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   direction: rtl;
   text-align: right;
+  background: var(--sionyx-bg-dark);
+  color: white;
+  overflow-x: hidden;
 }
 
 code {
@@ -395,5 +441,184 @@ body {
   /* Compact cards */
   .ant-card-body {
     padding: 12px !important;
+  }
+}
+
+/* ============================================
+   Premium Animation Classes
+   ============================================ */
+
+/* Glow effects */
+.glow-primary {
+  box-shadow: 0 0 20px rgba(102, 126, 234, 0.4),
+              0 0 40px rgba(102, 126, 234, 0.2),
+              0 0 60px rgba(102, 126, 234, 0.1);
+}
+
+.glow-success {
+  box-shadow: 0 0 20px rgba(82, 196, 26, 0.4),
+              0 0 40px rgba(82, 196, 26, 0.2);
+}
+
+.glow-warning {
+  box-shadow: 0 0 20px rgba(250, 173, 20, 0.4),
+              0 0 40px rgba(250, 173, 20, 0.2);
+}
+
+/* Text glow */
+.text-glow {
+  text-shadow: 0 0 10px currentColor,
+               0 0 20px currentColor,
+               0 0 40px currentColor;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--sionyx-primary), var(--sionyx-secondary), var(--sionyx-accent));
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 5s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Floating animation */
+.float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
+/* Pulse glow animation */
+.pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(102, 126, 234, 0.8),
+                0 0 60px rgba(102, 126, 234, 0.4);
+  }
+}
+
+/* Shimmer effect */
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Magnetic hover effect base */
+.magnetic {
+  transition: transform var(--duration-normal) var(--spring);
+}
+
+/* Glass morphism */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 3D Card effect */
+.card-3d {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  transition: transform var(--duration-slow) var(--ease-out-expo);
+}
+
+.card-3d:hover {
+  transform: translateY(-10px) rotateX(5deg) rotateY(-5deg);
+}
+
+/* Reveal animations */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(60px);
+  transition: all var(--duration-slower) var(--ease-out-expo);
+}
+
+.reveal-up.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children */
+.stagger-children > * {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: all var(--duration-slow) var(--ease-out-expo);
+}
+
+.stagger-children.revealed > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
+.stagger-children.revealed > *:nth-child(2) { transition-delay: 100ms; opacity: 1; transform: translateY(0); }
+.stagger-children.revealed > *:nth-child(3) { transition-delay: 200ms; opacity: 1; transform: translateY(0); }
+.stagger-children.revealed > *:nth-child(4) { transition-delay: 300ms; opacity: 1; transform: translateY(0); }
+.stagger-children.revealed > *:nth-child(5) { transition-delay: 400ms; opacity: 1; transform: translateY(0); }
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .float,
+  .pulse-glow,
+  .shimmer::after,
+  .gradient-text {
+    animation: none !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  * {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
 }
