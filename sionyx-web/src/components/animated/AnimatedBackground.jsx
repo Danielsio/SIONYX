@@ -1,6 +1,6 @@
 /**
  * Animated Background Component
- * Lightweight CSS-only background with gradient and subtle animation
+ * Balanced: Good looking CSS animations, no JavaScript overhead
  */
 
 import { memo } from 'react';
@@ -12,13 +12,17 @@ const AnimatedBackground = memo(() => {
       {/* Base gradient */}
       <div className="animated-bg__base" />
       
-      {/* Subtle animated gradient overlay */}
-      <div className="animated-bg__overlay" />
+      {/* Animated gradient mesh */}
+      <div className="animated-bg__mesh" />
       
-      {/* Floating orbs - CSS only */}
+      {/* Floating orbs */}
       <div className="animated-bg__orb animated-bg__orb--1" />
       <div className="animated-bg__orb animated-bg__orb--2" />
       <div className="animated-bg__orb animated-bg__orb--3" />
+      <div className="animated-bg__orb animated-bg__orb--4" />
+      
+      {/* Subtle grid pattern */}
+      <div className="animated-bg__grid" />
       
       {/* Vignette */}
       <div className="animated-bg__vignette" />
