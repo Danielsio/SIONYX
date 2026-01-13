@@ -57,7 +57,6 @@ const { Title, Paragraph, Text } = Typography;
 // ============================================
 const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
   const heroRef = useRef(null);
-  const titleRef = useRef(null);
   const subtitleRef = useRef(null);
 
   // Parallax effect on scroll
@@ -82,33 +81,25 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, [mouseX, mouseY]);
 
-  // GSAP entrance animation
+  // Subtitle GSAP animation (title uses Framer Motion to avoid conflicts)
   useEffect(() => {
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline();
-
-      // Title animation - faster and more reliable
-      const spans = titleRef.current?.querySelectorAll('span') || [];
-      if (spans.length > 0) {
-        tl.from(spans, {
+      // Only animate subtitle with GSAP - title uses Framer Motion
+      gsap.fromTo(subtitleRef.current, 
+        {
           opacity: 0,
-          y: 50,
-          rotateX: -45,
-          stagger: 0.05,
-          duration: 0.6,
+          y: 30,
+          filter: 'blur(10px)',
+        },
+        {
+          opacity: 1,
+          y: 0,
+          filter: 'blur(0px)',
+          duration: 0.8,
+          delay: 0.5, // After title animation
           ease: 'power3.out',
-        });
-      }
-
-      // Subtitle animation
-      tl.from(subtitleRef.current, {
-        opacity: 0,
-        y: 30,
-        filter: 'blur(10px)',
-        duration: 0.8,
-        ease: 'power3.out',
-      }, '-=0.3');
-
+        }
+      );
     }, heroRef);
 
     return () => ctx.revert();
@@ -161,7 +152,6 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
         }}
       >
         <h1
-          ref={titleRef}
           style={{
             fontSize: 'clamp(4rem, 15vw, 10rem)',
             fontWeight: 900,
@@ -179,6 +169,13 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
           {'SIONYX'.split('').map((letter, i) => (
             <motion.span
               key={i}
+              initial={{ opacity: 0, y: 50, rotateX: -45 }}
+              animate={{ opacity: 1, y: 0, rotateX: 0 }}
+              transition={{
+                duration: 0.6,
+                delay: i * 0.05,
+                ease: [0.25, 0.46, 0.45, 0.94],
+              }}
               style={{
                 display: 'inline-block',
                 textShadow: '0 0 60px rgba(94, 129, 244, 0.8), 0 0 120px rgba(94, 129, 244, 0.4)',
@@ -188,7 +185,6 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
                 color: '#667eea',
                 textShadow: '0 0 80px rgba(94, 129, 244, 1), 0 0 160px rgba(94, 129, 244, 0.6)',
               }}
-              transition={{ type: 'spring', stiffness: 300 }}
             >
               {letter}
             </motion.span>
