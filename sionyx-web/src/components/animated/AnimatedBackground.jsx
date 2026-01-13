@@ -1,13 +1,53 @@
 /**
  * Animated Background Component
  * Creates an immersive, dynamic background with floating orbs and gradient mesh
+ * Optimized for smooth 60fps on both desktop and mobile
  */
 
-import { useEffect, useRef, memo } from 'react';
+import { useEffect, useRef, memo, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import gsap from 'gsap';
 
-// Floating Orb Component
+// Detect if we should use reduced animations (large screens need lighter animations)
+const usePerformanceMode = () => {
+  const [mode, setMode] = useState('full');
+  
+  useEffect(() => {
+    const checkPerformance = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const pixels = width * height;
+      
+      // Check for reduced motion preference
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        setMode('minimal');
+        return;
+      }
+      
+      // Mobile devices (< 768px) - full animations work great
+      if (width < 768) {
+        setMode('full');
+        return;
+      }
+      
+      // Large screens (> 2M pixels like 1920x1080) - use optimized mode
+      if (pixels > 2000000) {
+        setMode('optimized');
+        return;
+      }
+      
+      setMode('full');
+    };
+    
+    checkPerformance();
+    window.addEventListener('resize', checkPerformance);
+    return () => window.removeEventListener('resize', checkPerformance);
+  }, []);
+  
+  return mode;
+};
+
+// Floating Orb Component - CSS animations instead of GSAP for better GPU acceleration
 const FloatingOrb = memo(({ 
   size = 300, 
   color = 'rgba(94, 129, 244, 0.15)', 
@@ -15,53 +55,31 @@ const FloatingOrb = memo(({
   initialY = 0,
   duration = 20,
   delay = 0,
+  reducedBlur = false,
 }) => {
-  const orbRef = useRef(null);
-
-  useEffect(() => {
-    if (!orbRef.current) return;
-
-    // Create complex floating path
-    const tl = gsap.timeline({ repeat: -1, delay });
-    
-    tl.to(orbRef.current, {
-      x: `+=${Math.random() * 200 - 100}`,
-      y: `+=${Math.random() * 200 - 100}`,
-      scale: 1 + Math.random() * 0.3,
-      duration: duration / 3,
-      ease: 'sine.inOut',
-    })
-    .to(orbRef.current, {
-      x: `+=${Math.random() * 200 - 100}`,
-      y: `+=${Math.random() * 200 - 100}`,
-      scale: 1 - Math.random() * 0.2,
-      duration: duration / 3,
-      ease: 'sine.inOut',
-    })
-    .to(orbRef.current, {
-      x: initialX,
-      y: initialY,
-      scale: 1,
-      duration: duration / 3,
-      ease: 'sine.inOut',
-    });
-
-    return () => tl.kill();
-  }, [duration, delay, initialX, initialY]);
+  // Use CSS keyframe animation ID based on position for variety
+  const animationName = useMemo(() => {
+    const seed = typeof initialX === 'string' ? initialX.length : initialX;
+    return `float-${seed % 3}`;
+  }, [initialX]);
 
   return (
     <div
-      ref={orbRef}
       style={{
         position: 'absolute',
         width: size,
         height: size,
         borderRadius: '50%',
         background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-        filter: 'blur(40px)',
+        // Reduced blur for desktop performance - blur is VERY expensive
+        filter: reducedBlur ? 'blur(20px)' : 'blur(40px)',
         pointerEvents: 'none',
         left: initialX,
         top: initialY,
+        // Use CSS animation for GPU acceleration
+        animation: `${animationName} ${duration}s ease-in-out ${delay}s infinite`,
+        // GPU hints
+        transform: 'translateZ(0)',
         willChange: 'transform',
       }}
     />
@@ -70,53 +88,94 @@ const FloatingOrb = memo(({
 
 FloatingOrb.displayName = 'FloatingOrb';
 
-// Particle Field Component
-const ParticleField = memo(({ count = 50 }) => {
+// Optimized Particle Field Component
+const ParticleField = memo(({ count = 50, enableConnections = true }) => {
   const canvasRef = useRef(null);
   const particlesRef = useRef([]);
-  const mouseRef = useRef({ x: 0, y: 0 });
+  const mouseRef = useRef({ x: -1000, y: -1000 }); // Start off-screen
   const animationRef = useRef(null);
+  const lastMouseUpdate = useRef(0);
+  const frameCount = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
+    
+    // Use device pixel ratio but cap it for performance
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      
+      // Set display size
+      canvas.style.width = width + 'px';
+      canvas.style.height = height + 'px';
+      
+      // Set actual size in memory (scaled for retina but capped)
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      
+      // Scale context to match
+      ctx.scale(dpr, dpr);
+      
+      // Reinitialize particles on resize
+      particlesRef.current = Array.from({ length: count }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        size: Math.random() * 2 + 1,
+        opacity: Math.random() * 0.4 + 0.2,
+      }));
     };
     
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    // Initialize particles
-    particlesRef.current = Array.from({ length: count }, () => ({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: (Math.random() - 0.5) * 0.5,
-      size: Math.random() * 2 + 1,
-      opacity: Math.random() * 0.5 + 0.2,
-    }));
-
-    const handleMouseMove = (e) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
+    
+    // Debounced resize handler
+    let resizeTimeout;
+    const handleResize = () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(resizeCanvas, 150);
     };
-    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('resize', handleResize);
+
+    // Throttled mouse handler - only update every 50ms
+    const handleMouseMove = (e) => {
+      const now = Date.now();
+      if (now - lastMouseUpdate.current > 50) {
+        mouseRef.current = { x: e.clientX, y: e.clientY };
+        lastMouseUpdate.current = now;
+      }
+    };
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
     const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      frameCount.current++;
+      
+      ctx.clearRect(0, 0, width, height);
 
-      particlesRef.current.forEach((particle) => {
-        // Mouse attraction
-        const dx = mouseRef.current.x - particle.x;
-        const dy = mouseRef.current.y - particle.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+      const particles = particlesRef.current;
+      const mouseX = mouseRef.current.x;
+      const mouseY = mouseRef.current.y;
+
+      // Update and draw particles
+      for (let i = 0; i < particles.length; i++) {
+        const particle = particles[i];
         
-        if (dist < 200) {
-          const force = (200 - dist) / 200 * 0.02;
+        // Mouse attraction (simplified calculation)
+        const dx = mouseX - particle.x;
+        const dy = mouseY - particle.y;
+        const distSq = dx * dx + dy * dy; // Avoid sqrt when possible
+        
+        if (distSq < 40000) { // 200^2
+          const dist = Math.sqrt(distSq);
+          const force = (200 - dist) / 200 * 0.015;
           particle.vx += dx * force * 0.01;
           particle.vy += dy * force * 0.01;
         }
@@ -125,9 +184,11 @@ const ParticleField = memo(({ count = 50 }) => {
         particle.x += particle.vx;
         particle.y += particle.vy;
 
-        // Bounce off edges
-        if (particle.x < 0 || particle.x > canvas.width) particle.vx *= -1;
-        if (particle.y < 0 || particle.y > canvas.height) particle.vy *= -1;
+        // Wrap around edges (smoother than bouncing)
+        if (particle.x < -10) particle.x = width + 10;
+        if (particle.x > width + 10) particle.x = -10;
+        if (particle.y < -10) particle.y = height + 10;
+        if (particle.y > height + 10) particle.y = -10;
 
         // Damping
         particle.vx *= 0.99;
@@ -138,24 +199,33 @@ const ParticleField = memo(({ count = 50 }) => {
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(147, 168, 255, ${particle.opacity})`;
         ctx.fill();
-      });
+      }
 
-      // Draw connections
-      particlesRef.current.forEach((p1, i) => {
-        particlesRef.current.slice(i + 1).forEach((p2) => {
-          const dx = p1.x - p2.x;
-          const dy = p1.y - p2.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+      // Draw connections - ONLY every 2nd frame and with distance limit
+      if (enableConnections && frameCount.current % 2 === 0) {
+        ctx.lineWidth = 0.5;
+        
+        // Only check nearby particles (spatial optimization)
+        for (let i = 0; i < particles.length; i++) {
+          const p1 = particles[i];
+          // Only check particles after current one, and limit checks
+          for (let j = i + 1; j < Math.min(i + 10, particles.length); j++) {
+            const p2 = particles[j];
+            const dx = p1.x - p2.x;
+            const dy = p1.y - p2.y;
+            const distSq = dx * dx + dy * dy;
 
-          if (dist < 150) {
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `rgba(147, 168, 255, ${0.1 * (1 - dist / 150)})`;
-            ctx.stroke();
+            if (distSq < 12100) { // 110^2 - reduced connection distance
+              const dist = Math.sqrt(distSq);
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.strokeStyle = `rgba(147, 168, 255, ${0.08 * (1 - dist / 110)})`;
+              ctx.stroke();
+            }
           }
-        });
-      });
+        }
+      }
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -163,13 +233,14 @@ const ParticleField = memo(({ count = 50 }) => {
     animate();
 
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      clearTimeout(resizeTimeout);
+      window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [count]);
+  }, [count, enableConnections]);
 
   return (
     <canvas
@@ -190,6 +261,36 @@ ParticleField.displayName = 'ParticleField';
 
 // Main Animated Background Component
 const AnimatedBackground = memo(() => {
+  const performanceMode = usePerformanceMode();
+  
+  // Adjust settings based on performance mode
+  const settings = useMemo(() => {
+    switch (performanceMode) {
+      case 'minimal':
+        return {
+          particleCount: 0,
+          enableConnections: false,
+          showOrbs: false,
+          reducedBlur: true,
+        };
+      case 'optimized':
+        return {
+          particleCount: 25,
+          enableConnections: false, // Connections are expensive
+          showOrbs: true,
+          reducedBlur: true,
+        };
+      case 'full':
+      default:
+        return {
+          particleCount: 35,
+          enableConnections: true,
+          showOrbs: true,
+          reducedBlur: false,
+        };
+    }
+  }, [performanceMode]);
+
   return (
     <div
       style={{
@@ -203,11 +304,28 @@ const AnimatedBackground = memo(() => {
         zIndex: 0,
       }}
     >
-      {/* Base Gradient */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 2 }}
+      {/* CSS Keyframe animations for orbs - defined inline for simplicity */}
+      <style>
+        {`
+          @keyframes float-0 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -40px) scale(1.05); }
+            66% { transform: translate(-20px, 20px) scale(0.95); }
+          }
+          @keyframes float-1 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(-40px, 30px) scale(0.95); }
+            66% { transform: translate(25px, -25px) scale(1.05); }
+          }
+          @keyframes float-2 {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(35px, 35px) scale(1.03); }
+          }
+        `}
+      </style>
+
+      {/* Base Gradient - static, no animation needed */}
+      <div
         style={{
           position: 'absolute',
           inset: 0,
@@ -215,74 +333,64 @@ const AnimatedBackground = memo(() => {
         }}
       />
 
-      {/* Animated Gradient Overlay */}
+      {/* Animated Gradient Overlay - simplified animation */}
       <motion.div
         animate={{
-          background: [
-            'radial-gradient(ellipse at 20% 20%, rgba(94, 129, 244, 0.15) 0%, transparent 50%)',
-            'radial-gradient(ellipse at 80% 80%, rgba(94, 129, 244, 0.15) 0%, transparent 50%)',
-            'radial-gradient(ellipse at 50% 50%, rgba(94, 129, 244, 0.15) 0%, transparent 50%)',
-            'radial-gradient(ellipse at 20% 20%, rgba(94, 129, 244, 0.15) 0%, transparent 50%)',
-          ],
+          opacity: [0.8, 1, 0.8],
         }}
         transition={{
-          duration: 15,
+          duration: 8,
           repeat: Infinity,
           ease: 'easeInOut',
         }}
         style={{
           position: 'absolute',
           inset: 0,
+          background: 'radial-gradient(ellipse at 30% 30%, rgba(94, 129, 244, 0.12) 0%, transparent 50%)',
         }}
       />
 
-      {/* Floating Orbs */}
-      <FloatingOrb 
-        size={500} 
-        color="rgba(94, 129, 244, 0.12)" 
-        initialX={-100} 
-        initialY={-100}
-        duration={25}
-      />
-      <FloatingOrb 
-        size={400} 
-        color="rgba(236, 72, 153, 0.08)" 
-        initialX="70%" 
-        initialY="20%"
-        duration={20}
-        delay={2}
-      />
-      <FloatingOrb 
-        size={350} 
-        color="rgba(118, 75, 162, 0.1)" 
-        initialX="30%" 
-        initialY="60%"
-        duration={22}
-        delay={4}
-      />
-      <FloatingOrb 
-        size={300} 
-        color="rgba(82, 196, 26, 0.06)" 
-        initialX="80%" 
-        initialY="70%"
-        duration={18}
-        delay={1}
-      />
+      {/* Floating Orbs - CSS animated */}
+      {settings.showOrbs && (
+        <>
+          <FloatingOrb 
+            size={400} 
+            color="rgba(94, 129, 244, 0.1)" 
+            initialX={-50} 
+            initialY={-50}
+            duration={20}
+            reducedBlur={settings.reducedBlur}
+          />
+          <FloatingOrb 
+            size={350} 
+            color="rgba(236, 72, 153, 0.07)" 
+            initialX="65%" 
+            initialY="15%"
+            duration={18}
+            delay={1}
+            reducedBlur={settings.reducedBlur}
+          />
+          <FloatingOrb 
+            size={300} 
+            color="rgba(118, 75, 162, 0.08)" 
+            initialX="25%" 
+            initialY="55%"
+            duration={22}
+            delay={2}
+            reducedBlur={settings.reducedBlur}
+          />
+        </>
+      )}
 
-      {/* Particle Field */}
-      <ParticleField count={40} />
+      {/* Particle Field - with performance-based settings */}
+      {settings.particleCount > 0 && (
+        <ParticleField 
+          count={settings.particleCount} 
+          enableConnections={settings.enableConnections}
+        />
+      )}
 
-      {/* Noise Texture Overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          opacity: 0.03,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-        }}
-      />
-
-      {/* Vignette */}
+      {/* Vignette - static */}
       <div
         style={{
           position: 'absolute',
