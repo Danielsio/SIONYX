@@ -10,6 +10,10 @@
 # ║    • web-*           →  Web admin commands                                ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 
+# Python 3.12 is required for desktop builds (enforced in build.py)
+# Use py launcher to select exact version on Windows
+PYTHON := py -3.12
+
 .PHONY: help \
         release release-patch release-minor release-major release-dry merge-release sync-branches \
         build build-patch build-minor build-major build-local build-dry version \
@@ -139,23 +143,23 @@ help-full:
 release: release-patch
 
 release-patch:
-	@python scripts/release.py --patch
+	@$(PYTHON) scripts/release.py --patch
 
 release-minor:
-	@python scripts/release.py --minor
+	@$(PYTHON) scripts/release.py --minor
 
 release-major:
-	@python scripts/release.py --major
+	@$(PYTHON) scripts/release.py --major
 
 release-dry:
-	@python scripts/release.py --patch --dry-run
+	@$(PYTHON) scripts/release.py --patch --dry-run
 
 # Sync release branches with tags (create missing branches)
 sync-branches:
-	@python scripts/sync_release_branches.py
+	@$(PYTHON) scripts/sync_release_branches.py
 
 merge-release:
-	@python scripts/merge_release.py
+	@$(PYTHON) scripts/merge_release.py
 
 # ════════════════════════════════════════════════════════════════════════════
 #  BUILD COMMANDS
@@ -165,29 +169,29 @@ merge-release:
 SKIP_COV_FLAG := $(if $(SKIP_COV),--skip-coverage-check,)
 
 version:
-	@python -c "import json; v=json.load(open('sionyx-desktop/version.json')); print(f\"SIONYX v{v['version']} (Build #{v.get('buildNumber', 1)})\")"
+	@$(PYTHON) -c "import json; v=json.load(open('sionyx-desktop/version.json')); print(f\"SIONYX v{v['version']} (Build #{v.get('buildNumber', 1)})\")"
 
 build: build-patch
 
 build-patch:
 	@echo "Building installer (patch version)..."
-	cd sionyx-desktop && python build.py --patch $(SKIP_COV_FLAG)
+	cd sionyx-desktop && $(PYTHON) build.py --patch $(SKIP_COV_FLAG)
 
 build-minor:
 	@echo "Building installer (minor version)..."
-	cd sionyx-desktop && python build.py --minor $(SKIP_COV_FLAG)
+	cd sionyx-desktop && $(PYTHON) build.py --minor $(SKIP_COV_FLAG)
 
 build-major:
 	@echo "Building installer (major version)..."
-	cd sionyx-desktop && python build.py --major $(SKIP_COV_FLAG)
+	cd sionyx-desktop && $(PYTHON) build.py --major $(SKIP_COV_FLAG)
 
 build-local:
 	@echo "Building installer locally (no upload)..."
-	cd sionyx-desktop && python build.py --no-upload --keep-local $(SKIP_COV_FLAG)
+	cd sionyx-desktop && $(PYTHON) build.py --no-upload --keep-local $(SKIP_COV_FLAG)
 
 build-dry:
 	@echo "Dry run - previewing version changes..."
-	cd sionyx-desktop && python build.py --dry-run
+	cd sionyx-desktop && $(PYTHON) build.py --dry-run
 
 # ════════════════════════════════════════════════════════════════════════════
 #  DESKTOP APP - Development
@@ -195,13 +199,13 @@ build-dry:
 
 dev:
 	@echo "Starting desktop app..."
-	cd sionyx-desktop && python src/main.py
+	cd sionyx-desktop && $(PYTHON) src/main.py
 
 run: dev
 
 dev-debug:
 	@echo "Starting desktop app (DEBUG mode)..."
-	cd sionyx-desktop && python src/main.py --verbose
+	cd sionyx-desktop && $(PYTHON) src/main.py --verbose
 
 run-debug: dev-debug
 
@@ -211,29 +215,29 @@ run-debug: dev-debug
 
 test:
 	@echo "Running tests..."
-	cd sionyx-desktop && pytest src/ -v
+	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v
 
 test-cov:
 	@echo "Running tests with coverage..."
-	cd sionyx-desktop && pytest src/ -v --cov=src --cov-report=term-missing --cov-report=html
+	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v --cov=src --cov-report=term-missing --cov-report=html
 	@echo ""
 	@echo "HTML report: sionyx-desktop/htmlcov/index.html"
 
 test-fast:
 	@echo "Running fast tests (utils + services)..."
-	cd sionyx-desktop && pytest src/utils/ src/services/ -v
+	cd sionyx-desktop && $(PYTHON) -m pytest src/utils/ src/services/ -v
 
 test-fail:
 	@echo "Running tests (stop on first failure)..."
-	cd sionyx-desktop && pytest src/ -v -x
+	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v -x
 
 # Run specific test file: make test-file FILE=src/services/auth_service_test.py
 test-file:
-	cd sionyx-desktop && pytest $(FILE) -v
+	cd sionyx-desktop && $(PYTHON) -m pytest $(FILE) -v
 
 # Run tests matching pattern: make test-match PATTERN=test_login
 test-match:
-	cd sionyx-desktop && pytest src/ -v -k "$(PATTERN)"
+	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v -k "$(PATTERN)"
 
 # ════════════════════════════════════════════════════════════════════════════
 #  DESKTOP APP - Code Quality
@@ -241,29 +245,29 @@ test-match:
 
 lint:
 	@echo "Checking code style..."
-	@cd sionyx-desktop && black --check src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
-	@cd sionyx-desktop && isort --check-only src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
-	@cd sionyx-desktop && flake8 src/ --config=.flake8 || (echo "flake8 errors - fix manually." && exit 1)
+	@cd sionyx-desktop && $(PYTHON) -m black --check src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
+	@cd sionyx-desktop && $(PYTHON) -m isort --check-only src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
+	@cd sionyx-desktop && $(PYTHON) -m flake8 src/ --config=.flake8 || (echo "flake8 errors - fix manually." && exit 1)
 	@echo "OK!"
 
 lint-fix:
 	@echo "Fixing code style..."
-	@cd sionyx-desktop && black src/
-	@cd sionyx-desktop && isort src/
+	@cd sionyx-desktop && $(PYTHON) -m black src/
+	@cd sionyx-desktop && $(PYTHON) -m isort src/
 	@echo "Done!"
 
 format:
 	@echo "Full formatting..."
-	@cd sionyx-desktop && python format.py src/
-	@cd sionyx-desktop && black src/
-	@cd sionyx-desktop && isort src/
+	@cd sionyx-desktop && $(PYTHON) format.py src/
+	@cd sionyx-desktop && $(PYTHON) -m black src/
+	@cd sionyx-desktop && $(PYTHON) -m isort src/
 	@echo "Done!"
 
 format-check:
 	@echo "Checking formatting..."
-	@cd sionyx-desktop && python format.py --check src/
-	@cd sionyx-desktop && black --check src/
-	@cd sionyx-desktop && isort --check-only src/
+	@cd sionyx-desktop && $(PYTHON) format.py --check src/
+	@cd sionyx-desktop && $(PYTHON) -m black --check src/
+	@cd sionyx-desktop && $(PYTHON) -m isort --check-only src/
 	@echo "OK!"
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -327,7 +331,7 @@ web-deploy-database:
 # - Compares with main branch baseline
 # - Only merges if coverage didn't drop
 merge-feature:
-	@python scripts/merge_feature.py
+	@$(PYTHON) scripts/merge_feature.py
 
 # ════════════════════════════════════════════════════════════════════════════
 #  UTILITIES
