@@ -192,6 +192,7 @@ vi.mock('framer-motion', () => {
       ul: createMotionComponent('ul'),
       li: createMotionComponent('li'),
       img: createMotionComponent('img'),
+      footer: createMotionComponent('footer'),
     },
     useScroll: vi.fn(() => ({ 
       scrollY: createMockMotionValue(0), 
