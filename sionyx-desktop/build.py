@@ -318,7 +318,7 @@ def check_dependencies() -> bool:
         os.environ["PATH"] = f"{os.environ.get('PATH', '')};{nsis_path}"
     
     tools = {
-        "python": "Python 3.8+",
+        "python": "Python 3.12+",
         "pyinstaller": "PyInstaller",
         "makensis": "NSIS",
     }
@@ -327,8 +327,8 @@ def check_dependencies() -> bool:
     for tool, desc in tools.items():
         try:
             if tool == "python":
-                if sys.version_info < (3, 8):
-                    raise Exception("Python 3.8+ required")
+                if sys.version_info < (3, 12):
+                    raise Exception("Python 3.12+ required")
             elif tool == "pyinstaller":
                 if run_command("pyinstaller --version", check=False).returncode != 0:
                     raise Exception("Not found")
