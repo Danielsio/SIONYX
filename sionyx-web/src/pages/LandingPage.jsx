@@ -153,12 +153,11 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
       </motion.div>
 
       {/* Main Title */}
-      <motion.div
+      <div
         style={{
-          x: mouseX,
-          y: mouseY,
           textAlign: 'center',
           marginBottom: 30,
+          width: '100%',
         }}
       >
         <h1
@@ -195,7 +194,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
             </motion.span>
           ))}
         </h1>
-      </motion.div>
+      </div>
 
       {/* Subtitle */}
       <motion.p
