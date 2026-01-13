@@ -87,15 +87,18 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
     const ctx = gsap.context(() => {
       const tl = gsap.timeline();
 
-      // Title animation
-      tl.from(titleRef.current?.querySelectorAll('span') || [], {
-        opacity: 0,
-        y: 100,
-        rotateX: -90,
-        stagger: 0.08,
-        duration: 1,
-        ease: 'back.out(1.7)',
-      });
+      // Title animation - faster and more reliable
+      const spans = titleRef.current?.querySelectorAll('span') || [];
+      if (spans.length > 0) {
+        tl.from(spans, {
+          opacity: 0,
+          y: 50,
+          rotateX: -45,
+          stagger: 0.05,
+          duration: 0.6,
+          ease: 'power3.out',
+        });
+      }
 
       // Subtitle animation
       tl.from(subtitleRef.current, {
@@ -168,6 +171,10 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
             letterSpacing: '0.15em',
             fontFamily: "'Segoe UI', 'Inter', sans-serif",
             perspective: 1000,
+            direction: 'ltr', // Force LTR for brand name
+            display: 'flex',
+            justifyContent: 'center',
+            unicodeBidi: 'bidi-override',
           }}
         >
           {'SIONYX'.split('').map((letter, i) => (
