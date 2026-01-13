@@ -17,6 +17,23 @@ vi.mock('react-router-dom', async (importOriginal) => {
   };
 });
 
+// Mock animated components to avoid complex framer-motion/gsap interactions
+vi.mock('../components/animated', () => {
+  const React = require('react');
+  
+  return {
+    AnimatedBackground: () => React.createElement('div', { 'data-testid': 'animated-background' }),
+    AnimatedButton: ({ children, onClick, icon, loading, fullWidth, variant, size, magnetic, ...props }) => 
+      React.createElement('button', { onClick, ...props }, icon, children),
+    AnimatedCard: ({ children, onClick, tilt, glow, entrance, delay, variant, ...props }) => 
+      React.createElement('div', { onClick, ...props }, children),
+    GlowingText: ({ children, color, glowIntensity, pulse }) => 
+      React.createElement('span', null, children),
+    GradientText: ({ children, gradient, animate }) => 
+      React.createElement('span', null, children),
+  };
+});
+
 const mockReleaseInfo = {
   version: '1.2.3',
   downloadUrl: 'https://example.com/download/sionyx.exe',
@@ -53,7 +70,11 @@ describe('LandingPage', () => {
   it('displays SIONYX branding', async () => {
     renderLandingPage();
 
-    expect(screen.getByText('SIONYX')).toBeInTheDocument();
+    // SIONYX is rendered as individual animated letters, so check for each
+    const letters = ['S', 'I', 'O', 'N', 'Y', 'X'];
+    letters.forEach((letter) => {
+      expect(screen.getByText(letter)).toBeInTheDocument();
+    });
   });
 
   it('fetches release info on mount', async () => {
