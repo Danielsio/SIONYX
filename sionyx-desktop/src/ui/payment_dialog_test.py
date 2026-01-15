@@ -673,6 +673,225 @@ class TestPaymentDialogEdgeCases:
 
 
 # =============================================================================
+# Additional PaymentDialog Tests for Coverage
+# =============================================================================
+
+
+class TestPaymentDialogCloseDialog:
+    """Tests for close_dialog method"""
+
+    @pytest.fixture
+    def payment_dialog(self, qapp, sample_package, mock_parent_widget):
+        """Create PaymentDialog instance"""
+        dialog = create_payment_dialog_mock(sample_package, mock_parent_widget)
+        dialog.web_view = Mock()
+        yield dialog
+        dialog.close()
+
+    def test_close_dialog_stops_timer_and_accepts(self, payment_dialog):
+        """Test close_dialog stops countdown timer and accepts dialog"""
+        mock_timer = Mock()
+        payment_dialog.countdown_timer = mock_timer
+
+        with patch.object(payment_dialog, "accept") as mock_accept:
+            payment_dialog.close_dialog()
+
+        mock_timer.stop.assert_called_once()
+        mock_accept.assert_called_once()
+
+
+class TestPaymentDialogPageLoading:
+    """Tests for page loading and config injection"""
+
+    @pytest.fixture
+    def payment_dialog(self, qapp, sample_package, mock_parent_widget):
+        """Create PaymentDialog instance"""
+        dialog = create_payment_dialog_mock(sample_package, mock_parent_widget)
+        dialog.web_view = Mock()
+        dialog.web_view.page.return_value = Mock()
+        yield dialog
+        dialog.close()
+
+    def test_on_page_loaded_missing_mosad_id(self, payment_dialog):
+        """Test error handling when mosad_id is missing"""
+        with patch("ui.payment_dialog.OrganizationMetadataService") as mock_service:
+            mock_instance = Mock()
+            mock_instance.get_nedarim_credentials.return_value = {
+                "success": True,
+                "credentials": {"mosad_id": None, "api_valid": "ABC"},
+            }
+            mock_service.return_value = mock_instance
+
+            with patch.object(payment_dialog, "show_credentials_error") as mock_error:
+                payment_dialog.on_page_loaded(True)
+
+            mock_error.assert_called_once_with("Missing Nedarim Plus credentials")
+
+    def test_on_page_loaded_missing_api_valid(self, payment_dialog):
+        """Test error handling when api_valid is missing"""
+        with patch("ui.payment_dialog.OrganizationMetadataService") as mock_service:
+            mock_instance = Mock()
+            mock_instance.get_nedarim_credentials.return_value = {
+                "success": True,
+                "credentials": {"mosad_id": "123", "api_valid": None},
+            }
+            mock_service.return_value = mock_instance
+
+            with patch.object(payment_dialog, "show_credentials_error") as mock_error:
+                payment_dialog.on_page_loaded(True)
+
+            mock_error.assert_called_once_with("Missing Nedarim Plus credentials")
+
+    def test_on_page_loaded_injects_config_successfully(self, payment_dialog):
+        """Test successful config injection"""
+        mock_page = Mock()
+        payment_dialog.web_view.page.return_value = mock_page
+
+        with patch("ui.payment_dialog.OrganizationMetadataService") as mock_service:
+            mock_instance = Mock()
+            mock_instance.get_nedarim_credentials.return_value = {
+                "success": True,
+                "credentials": {"mosad_id": "123", "api_valid": "ABC"},
+            }
+            mock_service.return_value = mock_instance
+
+            with patch(
+                "services.package_service.PackageService.calculate_final_price"
+            ) as mock_calc:
+                mock_calc.return_value = {"original_price": 100, "final_price": 90}
+                payment_dialog.on_page_loaded(True)
+
+        mock_page.runJavaScript.assert_called_once()
+        call_args = mock_page.runJavaScript.call_args[0][0]
+        assert "setConfig" in call_args
+        assert '"mosadId": "123"' in call_args
+
+
+class TestPaymentDialogSuccessMessage:
+    """Tests for success message display"""
+
+    @pytest.fixture
+    def payment_dialog(self, qapp, sample_package, mock_parent_widget):
+        """Create PaymentDialog instance"""
+        dialog = create_payment_dialog_mock(sample_package, mock_parent_widget)
+        dialog.web_view = Mock()
+        dialog.web_view.hide = Mock()
+        # Mock layout
+        mock_layout = Mock()
+        dialog.layout = Mock(return_value=mock_layout)
+        yield dialog
+        dialog.close()
+
+    def test_show_success_via_javascript_fallback(self, payment_dialog):
+        """Test show_success_via_javascript falls back on exception"""
+        # Make runJavaScript raise an exception
+        payment_dialog.web_view.page.return_value.runJavaScript.side_effect = Exception(
+            "JS error"
+        )
+
+        with patch.object(payment_dialog, "show_success_message") as mock_fallback:
+            payment_dialog.show_success_via_javascript()
+
+        mock_fallback.assert_called_once()
+
+    def test_show_success_message_creates_overlay(self, payment_dialog):
+        """Test show_success_message creates overlay and starts timer"""
+        with patch("ui.payment_dialog.QWidget") as mock_widget:
+            with patch("ui.payment_dialog.QVBoxLayout"):
+                with patch("ui.payment_dialog.QLabel"):
+                    with patch("ui.payment_dialog.QTimer") as mock_timer_cls:
+                        mock_timer = Mock()
+                        mock_timer_cls.return_value = mock_timer
+
+                        payment_dialog.show_success_message()
+
+        # Timer should be started with 3000ms
+        mock_timer.start.assert_called_once_with(3000)
+        payment_dialog.web_view.hide.assert_called_once()
+
+    def test_show_success_message_exception_fallback(self, payment_dialog):
+        """Test show_success_message falls back to accept on exception"""
+        payment_dialog.web_view.hide.side_effect = Exception("Widget error")
+
+        with patch.object(payment_dialog, "accept") as mock_accept:
+            payment_dialog.show_success_message()
+
+        mock_accept.assert_called_once()
+
+
+class TestPaymentDialogCredentialsError:
+    """Tests for credentials error display"""
+
+    @pytest.fixture
+    def payment_dialog(self, qapp, sample_package, mock_parent_widget):
+        """Create PaymentDialog instance"""
+        dialog = create_payment_dialog_mock(sample_package, mock_parent_widget)
+        dialog.web_view = Mock()
+        dialog.web_view.hide = Mock()
+        mock_layout = Mock()
+        dialog.layout = Mock(return_value=mock_layout)
+        yield dialog
+        dialog.close()
+
+    def test_show_credentials_error_creates_overlay(self, payment_dialog):
+        """Test show_credentials_error creates error overlay"""
+        with patch("ui.payment_dialog.QWidget") as mock_widget:
+            with patch("ui.payment_dialog.QVBoxLayout"):
+                with patch("ui.payment_dialog.QLabel"):
+                    with patch("ui.payment_dialog.QPushButton") as mock_btn:
+                        mock_button = Mock()
+                        mock_btn.return_value = mock_button
+
+                        payment_dialog.show_credentials_error("Test error message")
+
+        payment_dialog.web_view.hide.assert_called_once()
+
+    def test_show_credentials_error_exception_fallback(self, payment_dialog):
+        """Test show_credentials_error falls back to reject on exception"""
+        payment_dialog.web_view.hide.side_effect = Exception("Widget error")
+
+        with patch.object(payment_dialog, "reject") as mock_reject:
+            payment_dialog.show_credentials_error("Error")
+
+        mock_reject.assert_called_once()
+
+
+class TestFirebaseStreamListenerStop:
+    """Tests for FirebaseStreamListener stop behavior"""
+
+    @pytest.fixture
+    def stream_listener(self, qapp):
+        """Create FirebaseStreamListener instance"""
+        from ui.payment_dialog import FirebaseStreamListener
+
+        listener = FirebaseStreamListener(
+            database_url="https://test-project.firebaseio.com",
+            auth_token="test-token",
+            purchase_id="purchase-123",
+            org_id="test-org",
+        )
+        return listener
+
+    def test_stop_when_not_running(self, stream_listener):
+        """Test stop when thread is not running"""
+        with patch.object(stream_listener, "isRunning", return_value=False):
+            stream_listener.stop()
+
+        assert stream_listener.running is False
+
+    def test_stop_when_running_waits_for_thread(self, stream_listener):
+        """Test stop waits for running thread"""
+        with patch.object(stream_listener, "isRunning", return_value=True):
+            with patch.object(stream_listener, "quit") as mock_quit:
+                with patch.object(stream_listener, "wait") as mock_wait:
+                    stream_listener.stop()
+
+        assert stream_listener.running is False
+        mock_quit.assert_called_once()
+        mock_wait.assert_called_once_with(1000)
+
+
+# =============================================================================
 # Tests for FirebaseStreamListener edge cases
 # =============================================================================
 class TestFirebaseStreamListenerEdgeCases:

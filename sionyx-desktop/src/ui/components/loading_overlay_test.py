@@ -201,3 +201,62 @@ class TestSpinnerPaint:
         spinner._angle = 180
         event = QPaintEvent(spinner.rect())
         spinner.paintEvent(event)
+
+
+class TestLoadingOverlayAnimation:
+    """Tests for LoadingOverlay animation functionality"""
+
+    @pytest.fixture
+    def parent_widget(self, qapp):
+        """Create parent widget for overlay"""
+        parent = QWidget()
+        parent.setFixedSize(800, 600)
+        parent.show()  # Must show parent for overlay visibility
+        yield parent
+        parent.close()
+
+    @pytest.fixture
+    def overlay(self, parent_widget):
+        """Create LoadingOverlay instance"""
+        overlay = LoadingOverlay(parent_widget)
+        yield overlay
+        if overlay._spinner._timer.isActive():
+            overlay._spinner.stop()
+
+    def test_hide_overlay_creates_fade_animation(self, overlay, parent_widget):
+        """Test hide_overlay creates fade-out animation when visible"""
+        from unittest.mock import patch
+
+        # Show the overlay first (makes it visible)
+        overlay.show_with_message("טוען...")
+        assert overlay.isVisible()
+
+        # Now hide it - this should create the animation
+        with patch("ui.components.loading_overlay.QPropertyAnimation") as mock_anim:
+            mock_animation = mock_anim.return_value
+            mock_animation.finished = type("Signal", (), {"connect": lambda s, f: None})()
+
+            overlay.hide_overlay()
+
+            # Animation should be created
+            mock_anim.assert_called_once()
+
+    def test_hide_overlay_animation_properties(self, overlay, parent_widget):
+        """Test hide_overlay sets correct animation properties"""
+        overlay.show_with_message("טוען...")
+
+        # Call hide and check that fade animation is set up
+        overlay.hide_overlay()
+
+        # The animation should exist
+        assert hasattr(overlay, "_fade_animation")
+
+    def test_on_fade_out_complete_stops_spinner(self, overlay):
+        """Test _on_fade_out_complete stops spinner and hides"""
+        overlay.show_with_message("טוען...")
+        assert overlay._spinner._timer.isActive()
+
+        overlay._on_fade_out_complete()
+
+        assert not overlay._spinner._timer.isActive()
+        assert not overlay.isVisible()

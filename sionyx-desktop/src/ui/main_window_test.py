@@ -1241,6 +1241,223 @@ class TestExceptionHandling:
 
 
 # =============================================================================
+# Print Signal Handler Tests
+# =============================================================================
+
+
+class TestPrintSignalHandlers:
+    """Tests for print-related signal handlers"""
+
+    @pytest.fixture
+    def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
+        """Create MainWindow instance"""
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
+        yield window
+        window.close()
+
+    def test_on_print_allowed_updates_timer_balance(self, main_window):
+        """Test on_print_allowed updates floating timer balance"""
+        mock_timer = Mock()
+        main_window.floating_timer = mock_timer
+
+        main_window.on_print_allowed("Document.pdf", 5, 5.0, 45.0)
+
+        mock_timer.update_print_balance.assert_called_with(45.0)
+
+    def test_on_print_allowed_updates_current_user(self, main_window):
+        """Test on_print_allowed updates current_user printBalance"""
+        mock_timer = Mock()
+        main_window.floating_timer = mock_timer
+
+        main_window.on_print_allowed("Document.pdf", 5, 5.0, 45.0)
+
+        assert main_window.current_user["printBalance"] == 45.0
+
+    def test_on_print_allowed_shows_notification(self, main_window):
+        """Test on_print_allowed shows success notification"""
+        mock_timer = Mock()
+        main_window.floating_timer = mock_timer
+
+        main_window.on_print_allowed("Document.pdf", 5, 5.0, 45.0)
+
+        main_window.show_notification.assert_called_once()
+        call_args = main_window.show_notification.call_args
+        assert "success" in str(call_args)
+        assert "🖨️" in call_args[0][0]
+
+    def test_on_print_allowed_without_timer(self, main_window):
+        """Test on_print_allowed works without floating timer"""
+        main_window.floating_timer = None
+
+        # Should not raise
+        main_window.on_print_allowed("Document.pdf", 5, 5.0, 45.0)
+
+        assert main_window.current_user["printBalance"] == 45.0
+
+    def test_on_print_blocked_shows_error(self, main_window):
+        """Test on_print_blocked shows error notification"""
+        main_window.on_print_blocked("BigDocument.pdf", 100, 100.0, 5.0)
+
+        main_window.show_notification.assert_called_once()
+        call_args = main_window.show_notification.call_args
+        assert "error" in str(call_args)
+        assert "❌" in call_args[0][0]
+
+    def test_on_print_blocked_includes_cost_info(self, main_window):
+        """Test on_print_blocked notification includes cost information"""
+        main_window.on_print_blocked("Document.pdf", 50, 50.0, 10.0)
+
+        call_args = main_window.show_notification.call_args
+        notification_text = call_args[0][0]
+        assert "50.00" in notification_text  # Cost
+        assert "10.00" in notification_text  # Budget
+
+    def test_on_print_budget_updated_updates_timer(self, main_window):
+        """Test on_print_budget_updated updates floating timer"""
+        mock_timer = Mock()
+        main_window.floating_timer = mock_timer
+
+        main_window.on_print_budget_updated(30.0)
+
+        mock_timer.update_print_balance.assert_called_with(30.0)
+
+    def test_on_print_budget_updated_updates_current_user(self, main_window):
+        """Test on_print_budget_updated updates current_user"""
+        mock_timer = Mock()
+        main_window.floating_timer = mock_timer
+
+        main_window.on_print_budget_updated(25.5)
+
+        assert main_window.current_user["printBalance"] == 25.5
+
+    def test_on_print_budget_updated_without_timer(self, main_window):
+        """Test on_print_budget_updated works without floating timer"""
+        main_window.floating_timer = None
+
+        # Should not raise
+        main_window.on_print_budget_updated(30.0)
+
+        assert main_window.current_user["printBalance"] == 30.0
+
+
+# =============================================================================
+# Show Event Tests
+# =============================================================================
+
+
+class TestShowEvent:
+    """Tests for showEvent handling"""
+
+    @pytest.fixture
+    def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
+        """Create MainWindow instance"""
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
+        yield window
+        window.close()
+
+    def test_show_event_refreshes_all_pages(self, main_window):
+        """Test showEvent triggers refresh_all_pages with force=True"""
+        from PyQt6.QtGui import QShowEvent
+
+        event = QShowEvent()
+
+        with patch.object(main_window, "refresh_all_pages") as mock_refresh:
+            # Call showEvent directly
+            main_window.showEvent(event)
+
+        mock_refresh.assert_called_once_with(force=True)
+
+
+# =============================================================================
+# Refresh Current Page Edge Cases
+# =============================================================================
+
+
+class TestRefreshCurrentPageEdgeCases:
+    """Tests for refresh_current_page edge cases"""
+
+    @pytest.fixture
+    def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
+        """Create MainWindow instance"""
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
+        yield window
+        window.close()
+
+    def test_refresh_current_page_no_refresh_method(self, main_window):
+        """Test refresh_current_page when page has no refresh_user_data method"""
+        mock_page = Mock(spec=[])  # No methods
+        main_window.content_stack.currentWidget.return_value = mock_page
+
+        # Should not raise
+        main_window.refresh_current_page(force=True)
+
+    def test_refresh_all_pages_page_without_refresh_method(self, main_window):
+        """Test refresh_all_pages skips pages without refresh_user_data"""
+        main_window.content_stack.count.return_value = 2
+
+        mock_page_with_refresh = Mock()
+        mock_page_with_refresh.refresh_user_data = Mock()
+        mock_page_with_refresh.__class__.__name__ = "PageWithRefresh"
+
+        mock_page_without_refresh = Mock(spec=[])  # No refresh method
+        mock_page_without_refresh.__class__.__name__ = "PageWithoutRefresh"
+
+        main_window.content_stack.widget.side_effect = [
+            mock_page_with_refresh,
+            mock_page_without_refresh,
+        ]
+
+        main_window.refresh_all_pages(force=True)
+
+        # Only the page with refresh should be called
+        mock_page_with_refresh.refresh_user_data.assert_called()
+
+
+# =============================================================================
+# LogoutWorker Tests
+# =============================================================================
+
+
+class TestLogoutWorker:
+    """Tests for LogoutWorker thread"""
+
+    def test_logout_worker_success(self, qapp, mock_auth_service):
+        """Test LogoutWorker emits True on success"""
+        from ui.main_window import LogoutWorker
+
+        worker = LogoutWorker(mock_auth_service)
+        mock_auth_service.logout.return_value = None
+
+        signals_received = []
+        worker.finished.connect(lambda x: signals_received.append(x))
+
+        worker.run()
+
+        assert signals_received == [True]
+        mock_auth_service.logout.assert_called_once()
+
+    def test_logout_worker_failure(self, qapp, mock_auth_service):
+        """Test LogoutWorker emits False on exception"""
+        from ui.main_window import LogoutWorker
+
+        worker = LogoutWorker(mock_auth_service)
+        mock_auth_service.logout.side_effect = Exception("Logout failed")
+
+        signals_received = []
+        worker.finished.connect(lambda x: signals_received.append(x))
+
+        worker.run()
+
+        assert signals_received == [False]
+
+
+# =============================================================================
 # Force Logout Exception Tests
 # =============================================================================
 

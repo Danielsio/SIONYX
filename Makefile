@@ -11,13 +11,13 @@
 # ╚══════════════════════════════════════════════════════════════════════════╝
 
 # Python 3.12 is required for desktop builds (enforced in build.py)
-# Use py launcher to select exact version on Windows
-PYTHON := py -3.12
+# Use venv's python - ensure you've activated the venv first
+PYTHON := python
 
 .PHONY: help \
         release release-patch release-minor release-major release-dry merge-release sync-branches \
         build build-patch build-minor build-major build-local build-dry version \
-        dev dev-debug test test-cov test-fast lint format \
+        dev dev-debug test test-cov test-fast test-int test-int-cov lint format \
         web-dev web-build web-test web-lint web-deploy web-deploy-hosting \
         merge-feature clean
 
@@ -45,8 +45,10 @@ help:
 	@echo "  DEVELOPMENT"
 	@echo "  -----------"
 	@echo "  make dev               Run desktop app"
-	@echo "  make test              Run tests"
+	@echo "  make test              Run all tests"
 	@echo "  make test-cov          Run tests with coverage report"
+	@echo "  make test-int          Run integration tests only"
+	@echo "  make test-unit         Run unit tests only"
 	@echo "  make lint              Check code style"
 	@echo "  make format            Auto-fix formatting"
 	@echo ""
@@ -95,6 +97,9 @@ help-full:
 	@echo "  dev-debug          Run app with DEBUG logging"
 	@echo "  test               Run all tests"
 	@echo "  test-cov           Run tests with coverage report"
+	@echo "  test-int           Run integration tests only (25 tests)"
+	@echo "  test-int-cov       Run integration tests with coverage"
+	@echo "  test-unit          Run unit tests only (no integration)"
 	@echo "  test-fast          Run fast tests only (utils + services)"
 	@echo "  test-fail          Run tests, stop on first failure"
 	@echo "  lint               Check code style"
@@ -219,9 +224,7 @@ test:
 
 test-cov:
 	@echo "Running tests with coverage..."
-	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v --cov=src --cov-report=term-missing --cov-report=html
-	@echo ""
-	@echo "HTML report: sionyx-desktop/htmlcov/index.html"
+	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v --cov=src --cov-report=term-missing
 
 test-fast:
 	@echo "Running fast tests (utils + services)..."
@@ -230,6 +233,18 @@ test-fast:
 test-fail:
 	@echo "Running tests (stop on first failure)..."
 	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v -x
+
+test-int:
+	@echo "Running integration tests..."
+	cd sionyx-desktop && $(PYTHON) -m pytest src/tests/integration/ -v
+
+test-int-cov:
+	@echo "Running integration tests with coverage..."
+	cd sionyx-desktop && $(PYTHON) -m pytest src/tests/integration/ -v --cov=src --cov-report=term-missing
+
+test-unit:
+	@echo "Running unit tests only (excluding integration)..."
+	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v --ignore=src/tests/integration/
 
 # Run specific test file: make test-file FILE=src/services/auth_service_test.py
 test-file:

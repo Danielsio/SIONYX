@@ -436,8 +436,11 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
     try:
         import firebase_admin
         from firebase_admin import credentials, storage
-    except ImportError:
-        print_error("firebase-admin not installed. Run: pip install firebase-admin")
+    except ImportError as e:
+        print_error(f"firebase-admin import failed: {e}")
+        import traceback
+        traceback.print_exc()
+        print_error("Try: pip install firebase-admin")
         return False
     
     try:

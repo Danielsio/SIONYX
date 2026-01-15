@@ -51,6 +51,11 @@ JOB_CONTROL_CANCEL = 3
 class PrintMonitorService(QObject):
     """
     Print Monitor - uses WMI events for instant detection with polling fallback.
+
+    Safety Features:
+    - On startup: Cleans up any orphaned paused jobs from previous crashes
+    - On shutdown: Resumes any jobs we've paused to prevent blocking printer queue
+    - Tracks which jobs we've paused to avoid affecting other users' jobs
     """
 
     # Signals for UI notifications
@@ -87,6 +92,9 @@ class PrintMonitorService(QObject):
         self._bw_price = 1.0  # Default fallback
         self._color_price = 3.0  # Default fallback
 
+        # Safety: Track jobs WE paused (to resume on crash/shutdown)
+        self._paused_by_us: Dict[str, int] = {}  # "printer:job_id" -> job_id
+
     # =========================================================================
     # PUBLIC API
     # =========================================================================
@@ -100,6 +108,9 @@ class PrintMonitorService(QObject):
         try:
             logger.info("Starting print monitor service")
 
+            # Safety: Clean up any orphaned paused jobs from previous crashes
+            self._cleanup_orphaned_jobs()
+
             # Load org pricing
             self._load_pricing()
 
@@ -108,6 +119,10 @@ class PrintMonitorService(QObject):
 
             # Clear processed jobs set
             self._processed_jobs.clear()
+
+            # Clear paused jobs tracking
+            with self._lock:
+                self._paused_by_us.clear()
 
             # Start WMI event watcher (primary - instant detection)
             self._start_wmi_watcher()
@@ -133,6 +148,9 @@ class PrintMonitorService(QObject):
         try:
             logger.info("Stopping print monitor service")
 
+            # Safety: Resume any jobs we paused to prevent blocking printer queue
+            self._resume_all_paused_jobs()
+
             # Stop WMI watcher
             self._stop_wmi_watcher()
 
@@ -145,6 +163,7 @@ class PrintMonitorService(QObject):
             with self._lock:
                 self._known_jobs.clear()
                 self._processed_jobs.clear()
+                self._paused_by_us.clear()
 
             logger.info("Print monitor stopped")
             return {"success": True}
@@ -392,7 +411,7 @@ class PrintMonitorService(QObject):
             return {}
 
     def _pause_job(self, printer_name: str, job_id: int) -> bool:
-        """Pause a print job."""
+        """Pause a print job and track it for safety cleanup."""
         if not win32print:
             return False
         try:
@@ -400,6 +419,12 @@ class PrintMonitorService(QObject):
             try:
                 win32print.SetJob(handle, job_id, 0, None, JOB_CONTROL_PAUSE)
                 logger.debug(f"Paused job {job_id}")
+
+                # Track this job so we can resume it on crash/shutdown
+                job_key = f"{printer_name}:{job_id}"
+                with self._lock:
+                    self._paused_by_us[job_key] = job_id
+
                 return True
             finally:
                 win32print.ClosePrinter(handle)
@@ -414,7 +439,7 @@ class PrintMonitorService(QObject):
             return False
 
     def _resume_job(self, printer_name: str, job_id: int) -> bool:
-        """Resume a paused print job."""
+        """Resume a paused print job and remove from tracking."""
         if not win32print:
             return False
         try:
@@ -422,6 +447,12 @@ class PrintMonitorService(QObject):
             try:
                 win32print.SetJob(handle, job_id, 0, None, JOB_CONTROL_RESUME)
                 logger.debug(f"Resumed job {job_id}")
+
+                # Remove from tracking - no longer paused by us
+                job_key = f"{printer_name}:{job_id}"
+                with self._lock:
+                    self._paused_by_us.pop(job_key, None)
+
                 return True
             finally:
                 win32print.ClosePrinter(handle)
@@ -431,12 +462,16 @@ class PrintMonitorService(QObject):
             error_code = getattr(e, "winerror", None) or (e.args[0] if e.args else None)
             if error_code == 87:
                 logger.debug(f"Job {job_id} already completed (cannot resume)")
+                # Remove from tracking anyway
+                job_key = f"{printer_name}:{job_id}"
+                with self._lock:
+                    self._paused_by_us.pop(job_key, None)
                 return True  # Job printed successfully, just completed fast
             logger.error(f"Error resuming job {job_id}: {e}")
             return False
 
     def _cancel_job(self, printer_name: str, job_id: int) -> bool:
-        """Cancel a print job."""
+        """Cancel a print job and remove from tracking."""
         if not win32print:
             return False
         try:
@@ -444,6 +479,12 @@ class PrintMonitorService(QObject):
             try:
                 win32print.SetJob(handle, job_id, 0, None, JOB_CONTROL_CANCEL)
                 logger.debug(f"Cancelled job {job_id}")
+
+                # Remove from tracking - job is gone
+                job_key = f"{printer_name}:{job_id}"
+                with self._lock:
+                    self._paused_by_us.pop(job_key, None)
+
                 return True
             finally:
                 win32print.ClosePrinter(handle)
@@ -452,9 +493,93 @@ class PrintMonitorService(QObject):
             error_code = getattr(e, "winerror", None) or (e.args[0] if e.args else None)
             if error_code == 87:
                 logger.debug(f"Job {job_id} already completed (cannot cancel)")
+                # Remove from tracking anyway
+                job_key = f"{printer_name}:{job_id}"
+                with self._lock:
+                    self._paused_by_us.pop(job_key, None)
                 return True  # Job is gone, which is what we wanted
             logger.error(f"Error cancelling job {job_id}: {e}")
             return False
+
+    # =========================================================================
+    # SAFETY: CRASH RECOVERY & GRACEFUL SHUTDOWN
+    # =========================================================================
+
+    def _cleanup_orphaned_jobs(self):
+        """
+        Clean up paused jobs that may be orphaned from a previous crash.
+
+        On startup, check all printer queues for paused jobs. Since we can't know
+        which ones were paused by SIONYX (vs user manually pausing), we log them
+        but don't automatically resume - could be intentional pauses.
+
+        This is mainly for logging/awareness. For actual recovery, we track jobs
+        we pause during this session and resume them on graceful shutdown.
+        """
+        if not win32print:
+            return
+
+        try:
+            printers = self._get_all_printers()
+            paused_jobs_found = 0
+
+            # Windows job status flags
+            JOB_STATUS_PAUSED = 0x1
+
+            for printer_name in printers:
+                try:
+                    jobs = self._get_printer_jobs(printer_name)
+                    for job in jobs:
+                        status = job.get("Status", 0)
+                        if status & JOB_STATUS_PAUSED:
+                            job_id = job.get("JobId", 0)
+                            doc_name = job.get("pDocument", "Unknown")
+                            paused_jobs_found += 1
+                            logger.warning(
+                                f"Found paused job in queue: '{doc_name}' "
+                                f"(ID: {job_id}) on '{printer_name}'. "
+                                "This may be from a previous SIONYX crash."
+                            )
+                except Exception as e:
+                    logger.error(f"Error checking printer {printer_name}: {e}")
+
+            if paused_jobs_found > 0:
+                logger.warning(
+                    f"Found {paused_jobs_found} paused job(s) in printer queues. "
+                    "These may need manual attention if they were from a SIONYX crash."
+                )
+            else:
+                logger.info("No orphaned paused jobs found in printer queues")
+
+        except Exception as e:
+            logger.error(f"Error during orphaned job cleanup: {e}")
+
+    def _resume_all_paused_jobs(self):
+        """
+        Resume all jobs that WE paused during this session.
+
+        Called on graceful shutdown to prevent leaving jobs stuck in the queue.
+        This ensures that if SIONYX exits normally, it doesn't block the printer.
+        """
+        with self._lock:
+            paused_jobs = dict(self._paused_by_us)  # Copy to avoid modification during iteration
+
+        if not paused_jobs:
+            logger.debug("No paused jobs to resume on shutdown")
+            return
+
+        logger.info(f"Resuming {len(paused_jobs)} job(s) paused by SIONYX before shutdown...")
+
+        for job_key, job_id in paused_jobs.items():
+            try:
+                # Extract printer name from key "printer_name:job_id"
+                printer_name = job_key.rsplit(":", 1)[0]
+                logger.info(f"Resuming job {job_id} on '{printer_name}'")
+                self._resume_job(printer_name, job_id)
+            except Exception as e:
+                logger.error(f"Failed to resume job {job_key}: {e}")
+
+        logger.info("Finished resuming paused jobs")
 
     # =========================================================================
     # POLLING FALLBACK

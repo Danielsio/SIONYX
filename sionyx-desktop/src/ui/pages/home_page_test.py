@@ -570,3 +570,82 @@ class TestHomePage:
 
             assert len(page.pending_messages) == 1
             page.countdown_timer.stop()
+
+    # =========================================================================
+    # SESSION START TESTS (Additional)
+    # =========================================================================
+
+    def test_handle_start_session_zero_remaining_time(self, home_page):
+        """Test handle_start_session returns early when remaining time is 0"""
+        home_page.current_user["remainingTime"] = 0
+
+        # Mock the parent chain to track if start_user_session is called
+        mock_main_window = Mock()
+        mock_main_window.session_service = Mock()
+        mock_main_window.session_service.is_active = False
+        mock_main_window.start_user_session = Mock()
+
+        # Create parent chain: home_page -> stacked_widget -> main_window
+        mock_stacked = Mock()
+        mock_stacked.parent.return_value = mock_main_window
+
+        with patch.object(home_page, "parent", return_value=mock_stacked):
+            home_page.handle_start_session()
+
+            # Should not call start_user_session because remaining time is 0
+            mock_main_window.start_user_session.assert_not_called()
+
+    # =========================================================================
+    # MESSAGE MODAL TESTS
+    # =========================================================================
+
+    def test_show_message_modal_closes_existing(self, home_page):
+        """Test show_message_modal closes existing modal before creating new one"""
+        # Setup pending messages
+        home_page.pending_messages = [{"id": "msg1", "content": "Test"}]
+
+        # Create existing mock modal
+        old_modal = Mock()
+        home_page.message_modal = old_modal
+
+        with patch("ui.pages.home_page.MODAL_AVAILABLE", True):
+            with patch("ui.pages.home_page.MessageModal") as mock_modal_cls:
+                new_modal = Mock()
+                new_modal.message_read = Mock()
+                new_modal.message_read.connect = Mock()
+                new_modal.all_messages_read = Mock()
+                new_modal.all_messages_read.connect = Mock()
+                mock_modal_cls.return_value = new_modal
+
+                home_page.show_message_modal()
+
+                # Old modal should be closed
+                old_modal.close.assert_called_once()
+
+    def test_show_message_modal_not_available(self, home_page):
+        """Test show_message_modal does nothing when MODAL_AVAILABLE is False"""
+        home_page.pending_messages = [{"id": "msg1"}]
+        home_page.message_modal = None
+
+        with patch("ui.pages.home_page.MODAL_AVAILABLE", False):
+            home_page.show_message_modal()
+
+            # Should not create modal
+            assert home_page.message_modal is None
+
+    def test_focus_modal(self, home_page):
+        """Test _focus_modal raises and activates modal"""
+        mock_modal = Mock()
+        home_page.message_modal = mock_modal
+
+        home_page._focus_modal()
+
+        mock_modal.raise_.assert_called_once()
+        mock_modal.activateWindow.assert_called_once()
+
+    def test_focus_modal_no_modal(self, home_page):
+        """Test _focus_modal handles missing modal gracefully"""
+        home_page.message_modal = None
+
+        # Should not raise
+        home_page._focus_modal()
