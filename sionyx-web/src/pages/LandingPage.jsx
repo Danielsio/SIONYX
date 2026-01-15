@@ -519,20 +519,38 @@ const RegistrationModal = memo(({
     height: 48,
     fontSize: 15,
     borderRadius: 10,
+    width: '100%',
   };
 
   const labelStyle = { fontSize: 14, fontWeight: 600, color: '#333' };
+
+  // Responsive section style - less padding on mobile
+  const sectionStyle = {
+    padding: 'clamp(16px, 4vw, 25px)',
+    borderRadius: 16,
+    marginBottom: 20,
+  };
 
   return (
     <Modal
       open={open}
       onCancel={onClose}
       footer={null}
-      width={700}
+      width="95%"
       centered
+      className="registration-modal"
       styles={{ 
-        body: { padding: '30px 40px', direction: 'rtl' },
+        body: { 
+          padding: 'clamp(16px, 4vw, 30px) clamp(12px, 3vw, 40px)', 
+          direction: 'rtl',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+        },
         header: { textAlign: 'center' },
+        content: {
+          maxWidth: 700,
+          margin: '0 auto',
+        },
       }}
       title={
         <div style={{ textAlign: 'center', paddingTop: 10 }}>
@@ -541,10 +559,10 @@ const RegistrationModal = memo(({
             animate={{ scale: 1 }}
             transition={{ type: 'spring', stiffness: 200 }}
           >
-            <TeamOutlined style={{ fontSize: '2.5rem', color: '#667eea', marginBottom: 10 }} />
+            <TeamOutlined style={{ fontSize: 'clamp(1.8rem, 5vw, 2.5rem)', color: '#667eea', marginBottom: 10 }} />
           </motion.div>
-          <Title level={3} style={{ margin: 0, color: '#333' }}>הרשמת ארגון חדש</Title>
-          <Text type="secondary">מלא את כל הפרטים ליצירת ארגון וחשבון מנהל</Text>
+          <Title level={3} style={{ margin: 0, color: '#333', fontSize: 'clamp(1.1rem, 4vw, 1.5rem)' }}>הרשמת ארגון חדש</Title>
+          <Text type="secondary" style={{ fontSize: 'clamp(0.8rem, 3vw, 1rem)' }}>מלא את כל הפרטים ליצירת ארגון וחשבון מנהל</Text>
         </div>
       }
     >
@@ -553,7 +571,7 @@ const RegistrationModal = memo(({
         onFinish={onSubmit}
         layout="vertical"
         size="large"
-        style={{ marginTop: 20 }}
+        style={{ marginTop: 16 }}
       >
         {/* Organization Details Section */}
         <motion.div
@@ -561,14 +579,12 @@ const RegistrationModal = memo(({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.1 }}
           style={{ 
+            ...sectionStyle,
             background: 'linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%)', 
-            padding: 25, 
-            borderRadius: 16,
-            marginBottom: 25,
             border: '1px solid #e8ecff',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
             <BankOutlined style={{ fontSize: '1.5rem', color: '#667eea', marginLeft: 10 }} />
             <Title level={5} style={{ margin: 0, color: '#333' }}>פרטי הארגון</Title>
           </div>
@@ -588,8 +604,8 @@ const RegistrationModal = memo(({
             />
           </Form.Item>
 
-          <Row gutter={16}>
-            <Col span={12}>
+          <Row gutter={[16, 0]}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="nedarimMosadId"
                 label={<span style={labelStyle}>מזהה מוסד NEDARIM</span>}
@@ -602,7 +618,7 @@ const RegistrationModal = memo(({
                 />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="nedarimApiValid"
                 label={<span style={labelStyle}>מפתח API של NEDARIM</span>}
@@ -624,20 +640,18 @@ const RegistrationModal = memo(({
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
           style={{ 
+            ...sectionStyle,
             background: 'linear-gradient(135deg, #fff8f0 0%, #fff4e8 100%)', 
-            padding: 25, 
-            borderRadius: 16,
-            marginBottom: 25,
             border: '1px solid #ffe8d4',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
             <CrownOutlined style={{ fontSize: '1.5rem', color: '#fa8c16', marginLeft: 10 }} />
             <Title level={5} style={{ margin: 0, color: '#333' }}>פרטי המנהל הראשי</Title>
           </div>
 
-          <Row gutter={16}>
-            <Col span={12}>
+          <Row gutter={[16, 0]}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="adminFirstName"
                 label={<span style={labelStyle}>שם פרטי</span>}
@@ -646,7 +660,7 @@ const RegistrationModal = memo(({
                 <Input placeholder="שם פרטי" style={inputStyle} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item
                 name="adminLastName"
                 label={<span style={labelStyle}>שם משפחה</span>}
@@ -701,10 +715,10 @@ const RegistrationModal = memo(({
           </Form.Item>
         </motion.div>
 
-        <Divider style={{ margin: '25px 0' }} />
+        <Divider style={{ margin: '20px 0' }} />
 
         <Form.Item style={{ marginBottom: 0, textAlign: 'center' }}>
-          <Space size="middle">
+          <Space size="middle" wrap style={{ justifyContent: 'center', width: '100%' }}>
             <AnimatedButton
               variant="ghost"
               onClick={onClose}
@@ -712,6 +726,7 @@ const RegistrationModal = memo(({
                 color: '#666', 
                 borderColor: '#d9d9d9',
                 background: 'white',
+                minWidth: 80,
               }}
             >
               ביטול
@@ -721,6 +736,7 @@ const RegistrationModal = memo(({
               loading={loading}
               onClick={() => form.submit()}
               icon={<TeamOutlined />}
+              style={{ minWidth: 160 }}
             >
               {loading ? 'יוצר ארגון...' : 'צור ארגון וחשבון מנהל'}
             </AnimatedButton>

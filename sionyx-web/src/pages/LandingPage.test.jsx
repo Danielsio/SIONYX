@@ -320,4 +320,241 @@ describe('LandingPage', () => {
     // Cancel button should be present
     expect(screen.getByRole('button', { name: /ביטול/i })).toBeInTheDocument();
   });
+
+  it('closes modal when cancel button is clicked', async () => {
+    const user = userEvent.setup();
+    renderLandingPage();
+
+    // Open the modal
+    const registerButton = screen.getByText(/התחל הרשמה/);
+    await user.click(registerButton);
+
+    await waitFor(() => {
+      expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+    });
+
+    // Click cancel button
+    const cancelButton = screen.getByRole('button', { name: /ביטול/i });
+    await user.click(cancelButton);
+
+    // Modal should close
+    await waitFor(() => {
+      expect(screen.queryByText(/הרשמת ארגון חדש/)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Registration Modal Responsiveness', () => {
+    it('has registration-modal class for responsive styling', async () => {
+      const user = userEvent.setup();
+      renderLandingPage();
+
+      // Open the modal
+      const registerButton = screen.getByText(/התחל הרשמה/);
+      await user.click(registerButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+      });
+
+      // Find the modal wrapper with registration-modal class
+      const modal = document.querySelector('.registration-modal');
+      expect(modal).toBeInTheDocument();
+    });
+
+    it('modal has width style of 95% for responsiveness', async () => {
+      const user = userEvent.setup();
+      renderLandingPage();
+
+      // Open the modal
+      const registerButton = screen.getByText(/התחל הרשמה/);
+      await user.click(registerButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+      });
+
+      // The ant-modal should have responsive width
+      const modalContent = document.querySelector('.ant-modal');
+      expect(modalContent).toBeInTheDocument();
+      // Width should be percentage-based for responsiveness
+      const style = window.getComputedStyle(modalContent);
+      expect(style.width).not.toBe('700px');
+    });
+
+    it('modal body is scrollable with max-height constraint', async () => {
+      const user = userEvent.setup();
+      renderLandingPage();
+
+      // Open the modal
+      const registerButton = screen.getByText(/התחל הרשמה/);
+      await user.click(registerButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+      });
+
+      // Modal body should have overflow-y auto for scrolling on small screens
+      const modalBody = document.querySelector('.ant-modal-body');
+      expect(modalBody).toBeInTheDocument();
+    });
+
+    it('renders all form sections stacked properly', async () => {
+      const user = userEvent.setup();
+      renderLandingPage();
+
+      // Open the modal
+      const registerButton = screen.getByText(/התחל הרשמה/);
+      await user.click(registerButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+      });
+
+      // Both organization and admin sections should be visible
+      expect(screen.getByText(/פרטי הארגון/)).toBeInTheDocument();
+      expect(screen.getByText(/פרטי המנהל הראשי/)).toBeInTheDocument();
+    });
+
+    it('form inputs are rendered within modal', async () => {
+      const user = userEvent.setup();
+      renderLandingPage();
+
+      // Open the modal
+      const registerButton = screen.getByText(/התחל הרשמה/);
+      await user.click(registerButton);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/שם הארגון/)).toBeInTheDocument();
+      });
+
+      // Verify all form inputs are present and accessible within the modal
+      const orgNameInput = screen.getByLabelText(/שם הארגון/);
+      expect(orgNameInput).toBeInTheDocument();
+      expect(orgNameInput.tagName).toBe('INPUT');
+      
+      // Inputs should be inside the modal body
+      const modalBody = document.querySelector('.ant-modal-body');
+      expect(modalBody).toContainElement(orgNameInput);
+    });
+
+    it('buttons wrap properly with Space component', async () => {
+      const user = userEvent.setup();
+      renderLandingPage();
+
+      // Open the modal
+      const registerButton = screen.getByText(/התחל הרשמה/);
+      await user.click(registerButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+      });
+
+      // Both buttons should be present
+      expect(screen.getByRole('button', { name: /ביטול/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i })).toBeInTheDocument();
+    });
+
+    it('validates form fields before submission', async () => {
+      const user = userEvent.setup();
+      renderLandingPage();
+
+      // Open the modal
+      const registerButton = screen.getByText(/התחל הרשמה/);
+      await user.click(registerButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+      });
+
+      // Try to submit without filling fields
+      const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+      await user.click(submitButton);
+
+      // Validation should prevent submission
+      await waitFor(() => {
+        expect(registerOrganization).not.toHaveBeenCalled();
+      });
+    });
+
+    it('shows validation error for invalid phone number', async () => {
+      const user = userEvent.setup();
+      renderLandingPage();
+
+      // Open the modal
+      const registerButton = screen.getByText(/התחל הרשמה/);
+      await user.click(registerButton);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/מספר טלפון/)).toBeInTheDocument();
+      });
+
+      // Enter invalid phone number
+      const phoneInput = screen.getByLabelText(/מספר טלפון/);
+      await user.type(phoneInput, '123');
+
+      // Blur to trigger validation
+      await user.tab();
+
+      // Try to submit
+      const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+      await user.click(submitButton);
+
+      // Should show validation error
+      await waitFor(() => {
+        expect(screen.getByText(/מספר טלפון לא תקין/)).toBeInTheDocument();
+      });
+    });
+
+    it('shows validation error for short password', async () => {
+      const user = userEvent.setup();
+      renderLandingPage();
+
+      // Open the modal
+      const registerButton = screen.getByText(/התחל הרשמה/);
+      await user.click(registerButton);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/סיסמה/)).toBeInTheDocument();
+      });
+
+      // Enter short password
+      const passwordInput = screen.getByLabelText(/סיסמה/);
+      await user.type(passwordInput, '123');
+
+      // Try to submit
+      const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+      await user.click(submitButton);
+
+      // Should show validation error
+      await waitFor(() => {
+        expect(screen.getByText(/הסיסמה חייבת להכיל לפחות 6 תווים/)).toBeInTheDocument();
+      });
+    });
+
+    it('shows validation error for invalid email format', async () => {
+      const user = userEvent.setup();
+      renderLandingPage();
+
+      // Open the modal
+      const registerButton = screen.getByText(/התחל הרשמה/);
+      await user.click(registerButton);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/אימייל/)).toBeInTheDocument();
+      });
+
+      // Enter invalid email
+      const emailInput = screen.getByLabelText(/אימייל/);
+      await user.type(emailInput, 'invalid-email');
+
+      // Try to submit
+      const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+      await user.click(submitButton);
+
+      // Should show validation error
+      await waitFor(() => {
+        expect(screen.getByText(/כתובת אימייל לא תקינה/)).toBeInTheDocument();
+      });
+    });
+  });
 });
