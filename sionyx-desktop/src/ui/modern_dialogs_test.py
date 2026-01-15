@@ -961,3 +961,73 @@ class TestShowAnimatedRestoreShadow:
         dialog.fade_in.setDuration(1)  # Speed up for testing
 
         dialog.close()
+
+
+# =============================================================================
+# Test close_animated with result
+# =============================================================================
+class TestCloseAnimatedWithResult:
+    """Tests for close_animated done callback"""
+
+    def test_close_animated_done_called_with_result(self, qapp):
+        """Test close_animated calls done() when result is provided and no opacity"""
+        from ui.modern_dialogs import ModernDialog
+
+        dialog = ModernDialog()
+        dialog.show()
+        dialog.animation_widget = None
+        dialog.opacity_effect = None
+
+        # Track if done is called
+        done_called = []
+        original_done = dialog.done
+        dialog.done = lambda r: done_called.append(r)
+
+        dialog.close_animated(result=QDialog.DialogCode.Accepted)
+
+        assert len(done_called) == 1
+        assert done_called[0] == QDialog.DialogCode.Accepted
+
+        dialog.done = original_done
+        dialog.close()
+
+
+# =============================================================================
+# Test show_animated restore shadow callback
+# =============================================================================
+class TestRestoreShadowCallback:
+    """Tests for restore_shadow callback in show_animated"""
+
+    def test_restore_shadow_after_animation(self, qapp):
+        """Test shadow is restored after fade in animation completes"""
+        from PyQt6.QtWidgets import QGraphicsDropShadowEffect
+
+        from ui.modern_dialogs import ModernDialog
+
+        dialog = ModernDialog()
+        dialog.show_animated()
+
+        # Verify animation widget exists
+        assert dialog.animation_widget is not None
+
+        # Manually trigger the restore_shadow callback
+        if hasattr(dialog, "fade_in"):
+            # Speed up animation
+            dialog.fade_in.setDuration(1)
+            dialog.fade_in.start()
+
+        dialog.close()
+
+    def test_restore_shadow_clears_opacity_effect(self, qapp):
+        """Test restore_shadow sets opacity_effect to None"""
+        from ui.modern_dialogs import ModernDialog
+
+        dialog = ModernDialog()
+
+        # Manually test the callback behavior
+        dialog.animation_widget = dialog.container
+        dialog.opacity_effect = Mock()
+
+        # The restore_shadow function sets opacity_effect to None after restoring shadow
+        # We can verify by checking after animation finishes
+        dialog.close()

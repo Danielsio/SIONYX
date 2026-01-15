@@ -738,3 +738,103 @@ class TestCleanupOldLogs:
                 # Just verify the method exists and can be called
                 mock_cleanup()
                 mock_cleanup.assert_called_once()
+
+
+# =============================================================================
+# Test SionyxLogger.setup with frozen mode
+# =============================================================================
+class TestSionyxLoggerFrozenMode:
+    """Tests for SionyxLogger in frozen (PyInstaller) mode"""
+
+    def test_cleanup_old_logs_uses_appdata_when_frozen(self):
+        """Test cleanup_old_logs uses AppData directory when frozen"""
+        import sys
+        from pathlib import Path
+
+        from utils.logger import SionyxLogger
+
+        # Create a mock that simulates sys.frozen = True
+        with patch("utils.logger.getattr") as mock_getattr:
+            # Make getattr(sys, "frozen", False) return True
+            mock_getattr.return_value = True
+
+            with patch("utils.logger.Path") as mock_path:
+                mock_log_dir = Mock()
+                mock_log_dir.exists.return_value = True
+                mock_log_dir.glob.return_value = []
+
+                mock_home = Mock()
+                mock_appdata = Mock()
+                mock_local = Mock()
+                mock_sionyx = Mock()
+
+                mock_home.__truediv__ = Mock(return_value=mock_appdata)
+                mock_appdata.__truediv__ = Mock(return_value=mock_local)
+                mock_local.__truediv__ = Mock(return_value=mock_sionyx)
+                mock_sionyx.__truediv__ = Mock(return_value=mock_log_dir)
+
+                mock_path.home.return_value = mock_home
+
+                # Should not raise
+                SionyxLogger.cleanup_old_logs()
+
+
+# =============================================================================
+# Test setup with stdout issues
+# =============================================================================
+class TestSionyxLoggerStdoutHandling:
+    """Tests for SionyxLogger handling stdout edge cases"""
+
+    def test_setup_handles_none_stdout(self):
+        """Test setup handles None stdout (PyInstaller --noconsole)"""
+        import sys
+
+        from utils.logger import SionyxLogger
+
+        SionyxLogger._initialized = False
+        original_stdout = sys.stdout
+
+        try:
+            sys.stdout = None
+
+            with patch("utils.logger.logging.getLogger") as mock_get_logger:
+                mock_logger = Mock()
+                mock_logger.handlers = []
+                mock_get_logger.return_value = mock_logger
+
+                with patch("utils.logger.logging.StreamHandler") as mock_handler:
+                    SionyxLogger.setup(log_to_file=False, enable_colors=False)
+
+                    # Should create StreamHandler without stdout argument
+                    mock_handler.assert_called()
+
+        finally:
+            sys.stdout = original_stdout
+            SionyxLogger._initialized = False
+
+    def test_setup_fallback_formatter_when_not_tty(self):
+        """Test setup uses simple formatter when stdout is not a TTY"""
+        import sys
+
+        from utils.logger import SionyxLogger
+
+        SionyxLogger._initialized = False
+
+        mock_stdout = Mock()
+        mock_stdout.isatty.return_value = False
+
+        original_stdout = sys.stdout
+
+        try:
+            sys.stdout = mock_stdout
+
+            with patch("utils.logger.logging.getLogger") as mock_get_logger:
+                mock_logger = Mock()
+                mock_logger.handlers = []
+                mock_get_logger.return_value = mock_logger
+
+                SionyxLogger.setup(log_to_file=False, enable_colors=True)
+
+        finally:
+            sys.stdout = original_stdout
+            SionyxLogger._initialized = False

@@ -148,3 +148,30 @@ class TestGetComputerInfo:
             result = get_computer_info()
             assert result["computerName"] == "Unknown-PC"
             assert "deviceId" in result
+
+
+class TestGetMacAddress:
+    """Tests for _get_mac_address internal function"""
+
+    def test_mac_address_validation_mismatch(self):
+        """Test MAC validation when getnode returns different values"""
+        from utils.device_info import _get_mac_address
+
+        call_count = [0]
+        def mock_getnode():
+            call_count[0] += 1
+            # Return different values on each call
+            return call_count[0]
+
+        with patch("utils.device_info.uuid.getnode", side_effect=mock_getnode):
+            result = _get_mac_address()
+            # Should return None when MAC validation fails
+            assert result is None
+
+    def test_mac_address_exception(self):
+        """Test MAC address retrieval with exception"""
+        from utils.device_info import _get_mac_address
+
+        with patch("utils.device_info.uuid.getnode", side_effect=Exception("Error")):
+            result = _get_mac_address()
+            assert result is None

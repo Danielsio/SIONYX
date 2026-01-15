@@ -488,3 +488,76 @@ class TestPackagesPage:
             page._fetch_packages()  # Second fetch - with data
 
             assert len(page.packages) == 3
+
+    # =========================================================================
+    # PURCHASE HANDLER TESTS
+    # =========================================================================
+
+    def test_handle_purchase_success(self, packages_page):
+        """Test _handle_purchase with successful payment"""
+        test_package = MOCK_PACKAGES[0]
+
+        # PaymentDialog is imported locally, so patch at source
+        with patch("ui.payment_dialog.PaymentDialog") as mock_dialog_cls:
+            mock_dialog = Mock()
+            mock_dialog.exec.return_value = 1  # QDialog.DialogCode.Accepted
+            mock_dialog.get_payment_response.return_value = {"success": True}
+            mock_dialog_cls.return_value = mock_dialog
+
+            with patch.object(packages_page, "_show_success") as mock_success:
+                with patch.object(packages_page, "load_packages") as mock_reload:
+                    packages_page._handle_purchase(test_package)
+
+                    mock_success.assert_called_once_with(test_package)
+                    mock_reload.assert_called_once()
+
+    def test_handle_purchase_no_response(self, packages_page):
+        """Test _handle_purchase when payment accepted but no response"""
+        test_package = MOCK_PACKAGES[0]
+
+        with patch("ui.payment_dialog.PaymentDialog") as mock_dialog_cls:
+            mock_dialog = Mock()
+            mock_dialog.exec.return_value = 1  # Accepted
+            mock_dialog.get_payment_response.return_value = None
+            mock_dialog_cls.return_value = mock_dialog
+
+            with patch.object(packages_page, "_show_payment_error") as mock_error:
+                packages_page._handle_purchase(test_package)
+
+                mock_error.assert_called_once()
+
+    def test_handle_purchase_cancelled(self, packages_page):
+        """Test _handle_purchase when payment cancelled"""
+        test_package = MOCK_PACKAGES[0]
+
+        with patch("ui.payment_dialog.PaymentDialog") as mock_dialog_cls:
+            mock_dialog = Mock()
+            mock_dialog.exec.return_value = 0  # QDialog.DialogCode.Rejected
+            mock_dialog_cls.return_value = mock_dialog
+
+            with patch.object(packages_page, "_show_success") as mock_success:
+                with patch.object(packages_page, "_show_payment_error") as mock_error:
+                    packages_page._handle_purchase(test_package)
+
+                    mock_success.assert_not_called()
+                    mock_error.assert_not_called()
+
+    def test_show_success_calls_messagebox(self, packages_page):
+        """Test _show_success shows QMessageBox"""
+        from PyQt6.QtWidgets import QMessageBox
+
+        test_package = MOCK_PACKAGES[0]
+
+        with patch.object(QMessageBox, "information") as mock_info:
+            packages_page._show_success(test_package)
+
+            mock_info.assert_called_once()
+
+    def test_show_payment_error_calls_messagebox(self, packages_page):
+        """Test _show_payment_error shows QMessageBox"""
+        from PyQt6.QtWidgets import QMessageBox
+
+        with patch.object(QMessageBox, "critical") as mock_critical:
+            packages_page._show_payment_error()
+
+            mock_critical.assert_called_once()

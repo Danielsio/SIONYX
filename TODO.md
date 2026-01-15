@@ -89,6 +89,23 @@
   - Workaround: `chcp 65001` before running
   - Functionality works fine, just display issue
 
+## 🧪 Testing
+
+- [x] **Integration Tests** - Complete user flow testing ✅
+  - 📄 See: `sionyx-desktop/docs/WIP-integration-tests.md`
+  - ✅ Created test structure: `src/tests/integration/`
+  - ✅ Service integration tests: 9/9 passing (registration, login, session, logout flows)
+  - ✅ UI integration tests: 16/16 passing (auth window, navigation, floating timer)
+  - ✅ Full user journey test (registration → login → session → logout)
+  - ⬜ Add to CI pipeline (optional future work)
+
+- [x] **Unit Test Coverage** - Improved from 92% to 93%
+  - ✅ Added tests for device_info exception paths
+  - ✅ Added tests for ModernMessageBox static methods
+  - ✅ Added tests for PrintMonitorService exception handling
+  - ✅ Added tests for logger ColoredFormatter
+  - ✅ Added tests for base_window icon path logic
+
 ## ✅ Recently Completed
 
 - [x] **Kiosk Security Lockdown** (v1.2.0) - Full kiosk mode implementation
@@ -138,5 +155,5 @@
 - [x] **Handle empty Firebase collections** - No crash on missing data
 
 ---
-*Last updated: 2026-01-07*
+*Last updated: 2026-01-15*
 
