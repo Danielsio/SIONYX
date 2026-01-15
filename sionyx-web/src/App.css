@@ -351,3 +351,81 @@
     gap: 12px;
   }
 }
+
+/* ==========================================
+   Registration Modal Responsive Styles
+   ========================================== */
+
+/* Base modal styling */
+.registration-modal .ant-modal-content {
+  max-width: 700px;
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.registration-modal .ant-modal-header {
+  padding: 16px 20px;
+  border-bottom: none;
+}
+
+.registration-modal .ant-modal-close {
+  top: 12px;
+  right: 12px;
+}
+
+/* Mobile modal adjustments */
+@media (max-width: 576px) {
+  .registration-modal .ant-modal-content {
+    border-radius: 12px;
+    margin: 8px;
+  }
+  
+  .registration-modal .ant-modal-header {
+    padding: 12px 16px;
+  }
+  
+  .registration-modal .ant-modal-title {
+    font-size: 16px;
+  }
+  
+  .registration-modal .ant-modal-close {
+    top: 8px;
+    right: 8px;
+  }
+  
+  /* Compact form items on mobile */
+  .registration-modal .ant-form-item {
+    margin-bottom: 12px;
+  }
+  
+  .registration-modal .ant-form-item-label {
+    padding-bottom: 4px;
+  }
+  
+  .registration-modal .ant-form-item-label > label {
+    font-size: 13px;
+  }
+  
+  .registration-modal .ant-input,
+  .registration-modal .ant-input-password {
+    height: 40px !important;
+    font-size: 14px !important;
+  }
+  
+  .registration-modal .ant-divider {
+    margin: 16px 0 !important;
+  }
+  
+  /* Responsive buttons */
+  .registration-modal .ant-space {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .registration-modal .ant-btn {
+    min-width: auto !important;
+    flex: 1;
+    max-width: 200px;
+  }
+}
