@@ -712,8 +712,9 @@ exports.registerOrganization = onCall(async (request) => {
       status: "active",
       created_by: "public-registration",
       admin_uid: adminUid,
-      admin_phone: cleanAdminPhone, // For password reset contact
-      admin_email: adminEmail ? adminEmail.trim() : "", // For password reset notifications
+      // Admin contact for password reset flow
+      admin_phone: cleanAdminPhone,
+      admin_email: adminEmail ? adminEmail.trim() : "",
       correlation_id: correlationId,
     };
 
@@ -735,7 +736,8 @@ exports.registerOrganization = onCall(async (request) => {
       email: adminEmail ? adminEmail.trim() : "",
       remainingTime: 0, // Admins don't need time balance for admin dashboard
       printBalance: 0.0,
-      isSessionActive: false, // Active session is managed by sionyx-desktop only
+      // Active session is managed by sionyx-desktop only
+      isSessionActive: false,
       isAdmin: true, // This user is the organization admin
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
