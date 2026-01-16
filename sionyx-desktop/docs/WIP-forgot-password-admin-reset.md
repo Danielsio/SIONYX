@@ -1,8 +1,9 @@
 # WIP: Forgot Password - Admin Reset Flow
 
 **Started**: 2026-01-16
-**Status**: In Progress
-**Target Version**: v1.7.0
+**Completed**: 2026-01-16
+**Status**: ✅ COMPLETE
+**Released Version**: v1.7.0
 
 ## Overview
 

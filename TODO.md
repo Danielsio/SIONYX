@@ -83,19 +83,19 @@
   - Single persistent connection instead of repeated HTTP requests
   - Auto-reconnect with exponential backoff on connection errors
 
-## 🔐 Forgot Password Feature (v1.7.0)
+## ✅ Recently Completed (v1.7.0)
 
-- [ ] **Admin-Assisted Password Reset** - Users can request password reset through admin
+- [x] **Admin-Assisted Password Reset** - Users can request password reset through admin
   - **Problem**: Users have fake phone-to-email (e.g., `0501234567@sionyx.app`), can't use standard Firebase reset
   - **Solution**: When user forgets password, notify admin who can reset it manually
   
   ### Implementation:
-  - [ ] Desktop: Update "שכחת את הסיסמה?" to show admin contact info (phone number in Hebrew)
-  - [ ] Desktop: Fetch admin contact from organization metadata
-  - [ ] Firebase Function: `requestPasswordReset` - sends email notification to admin
-  - [ ] Firebase Function: `resetUserPassword` - allows admin to set new password for user
-  - [ ] Web Admin: Add "איפוס סיסמה" button in UsersPage user details drawer
-  - [ ] Add tests for all new functionality
+  - [x] Desktop: Update "שכחת את הסיסמה?" to show admin contact info (phone number in Hebrew)
+  - [x] Desktop: Fetch admin contact from organization metadata via `get_admin_contact()`
+  - [x] Firebase Function: `resetUserPassword` - allows admin to set new password for user
+  - [x] Organization registration stores admin_phone and admin_email in metadata
+  - [x] Web Admin: Add "איפוס סיסמה" button in UsersPage user details drawer
+  - [x] Add tests for all new functionality (14 new tests)
   
   ### User Flow:
   1. User clicks "שכחת את הסיסמה?" on login screen
@@ -177,5 +177,5 @@
 - [x] **Handle empty Firebase collections** - No crash on missing data
 
 ---
-*Last updated: 2026-01-15*
+*Last updated: 2026-01-16*
 
