@@ -191,3 +191,57 @@ class OrganizationMetadataService:
         except Exception as e:
             logger.error(f"Error setting print pricing: {e}")
             return {"success": False, "error": f"Error setting print pricing: {str(e)}"}
+
+    def get_admin_contact(self, org_id: str) -> Dict[str, Any]:
+        """
+        Get organization admin contact info for password reset flow
+
+        Args:
+            org_id: Organization ID
+
+        Returns:
+            Dict with success status and admin contact info (phone, email)
+        """
+        try:
+            # Fetch metadata from organizations/{orgId}/metadata
+            result = self.firebase.db_get(f"organizations/{org_id}/metadata")
+
+            if not result["success"]:
+                logger.error(
+                    f"Failed to fetch organization metadata: {result.get('error')}"
+                )
+                return {
+                    "success": False,
+                    "error": f"Failed to fetch organization metadata: "
+                    f"{result.get('error')}",
+                }
+
+            metadata = result.get("data")
+            if not metadata:
+                return {"success": False, "error": "Organization metadata not found"}
+
+            admin_phone = metadata.get("admin_phone", "")
+            admin_email = metadata.get("admin_email", "")
+            org_name = metadata.get("name", "")
+
+            if not admin_phone and not admin_email:
+                return {
+                    "success": False,
+                    "error": "Admin contact info not found in organization metadata",
+                }
+
+            return {
+                "success": True,
+                "contact": {
+                    "phone": admin_phone,
+                    "email": admin_email,
+                    "org_name": org_name,
+                },
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting admin contact: {e}")
+            return {
+                "success": False,
+                "error": f"Error getting admin contact: {str(e)}",
+            }

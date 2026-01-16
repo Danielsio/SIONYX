@@ -1,5 +1,6 @@
 import { ref, get, update } from 'firebase/database';
-import { database } from '../config/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { database, functions } from '../config/firebase';
 
 /**
  * Get all users in an organization
@@ -207,6 +208,32 @@ export const revokeAdminPermission = async (orgId, userId) => {
     return {
       success: false,
       error: error.message,
+    };
+  }
+};
+
+/**
+ * Reset user password (admin only)
+ * Calls Firebase Cloud Function to update user's password
+ */
+export const resetUserPassword = async (orgId, userId, newPassword) => {
+  try {
+    const resetPasswordFn = httpsCallable(functions, 'resetUserPassword');
+    const result = await resetPasswordFn({ orgId, userId, newPassword });
+    
+    return {
+      success: true,
+      message: result.data.message || 'הסיסמה אופסה בהצלחה',
+    };
+  } catch (error) {
+    console.error('Error resetting user password:', error);
+    
+    // Extract error message from Firebase function error
+    const errorMessage = error.message || 'שגיאה באיפוס הסיסמה';
+    
+    return {
+      success: false,
+      error: errorMessage,
     };
   }
 };

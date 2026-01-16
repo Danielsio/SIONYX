@@ -83,6 +83,28 @@
   - Single persistent connection instead of repeated HTTP requests
   - Auto-reconnect with exponential backoff on connection errors
 
+## 🔐 Forgot Password Feature (v1.7.0)
+
+- [ ] **Admin-Assisted Password Reset** - Users can request password reset through admin
+  - **Problem**: Users have fake phone-to-email (e.g., `0501234567@sionyx.app`), can't use standard Firebase reset
+  - **Solution**: When user forgets password, notify admin who can reset it manually
+  
+  ### Implementation:
+  - [ ] Desktop: Update "שכחת את הסיסמה?" to show admin contact info (phone number in Hebrew)
+  - [ ] Desktop: Fetch admin contact from organization metadata
+  - [ ] Firebase Function: `requestPasswordReset` - sends email notification to admin
+  - [ ] Firebase Function: `resetUserPassword` - allows admin to set new password for user
+  - [ ] Web Admin: Add "איפוס סיסמה" button in UsersPage user details drawer
+  - [ ] Add tests for all new functionality
+  
+  ### User Flow:
+  1. User clicks "שכחת את הסיסמה?" on login screen
+  2. Desktop shows: "לאיפוס סיסמה, אנא פנה למנהל: [phone]" (Hebrew)
+  3. User calls/contacts admin
+  4. Admin opens web dashboard → Users → finds user → clicks "איפוס סיסמה"
+  5. Admin sets new password, tells user
+  6. User logs in with new password
+
 ## 🐛 Known Issues
 
 - [ ] **Hebrew encoding in console** - Document names with Hebrew show as gibberish in PowerShell

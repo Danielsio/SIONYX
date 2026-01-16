@@ -515,6 +515,71 @@ class TestForgotPassword:
 
         auth_window.show_info.assert_called_once()
 
+    def test_forgot_password_shows_admin_contact_when_available(
+        self, auth_window, mock_auth_service
+    ):
+        """Test forgot password shows admin contact info when available"""
+        mock_auth_service.firebase = Mock()
+        mock_auth_service.firebase.org_id = "test-org"
+
+        with patch(
+            "ui.auth_window.OrganizationMetadataService"
+        ) as mock_metadata_service:
+            mock_service_instance = Mock()
+            mock_metadata_service.return_value = mock_service_instance
+            mock_service_instance.get_admin_contact.return_value = {
+                "success": True,
+                "contact": {
+                    "phone": "0501234567",
+                    "email": "admin@test.com",
+                    "org_name": "Test Organization",
+                },
+            }
+
+            auth_window.forgot_password_clicked()
+
+            auth_window.show_info.assert_called()
+            call_args = auth_window.show_info.call_args
+            # Check that admin contact is displayed
+            assert "0501234567" in str(call_args) or "admin@test.com" in str(call_args)
+
+    def test_forgot_password_fallback_when_no_admin_contact(
+        self, auth_window, mock_auth_service
+    ):
+        """Test forgot password shows fallback when admin contact not found"""
+        mock_auth_service.firebase = Mock()
+        mock_auth_service.firebase.org_id = "test-org"
+
+        with patch(
+            "ui.auth_window.OrganizationMetadataService"
+        ) as mock_metadata_service:
+            mock_service_instance = Mock()
+            mock_metadata_service.return_value = mock_service_instance
+            mock_service_instance.get_admin_contact.return_value = {
+                "success": False,
+                "error": "Admin contact not found",
+            }
+
+            auth_window.forgot_password_clicked()
+
+            auth_window.show_info.assert_called_once()
+
+    def test_forgot_password_fallback_on_exception(
+        self, auth_window, mock_auth_service
+    ):
+        """Test forgot password shows fallback on exception"""
+        mock_auth_service.firebase = Mock()
+        mock_auth_service.firebase.org_id = "test-org"
+
+        with patch(
+            "ui.auth_window.OrganizationMetadataService"
+        ) as mock_metadata_service:
+            mock_metadata_service.side_effect = Exception("Service error")
+
+            auth_window.forgot_password_clicked()
+
+            auth_window.show_info.assert_called_once()
+
 
 # =============================================================================
 # login_success signal tests
