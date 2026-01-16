@@ -38,6 +38,7 @@ import {
   SendOutlined,
   PhoneOutlined,
   MailOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -49,6 +50,7 @@ import {
   grantAdminPermission,
   revokeAdminPermission,
   kickUser,
+  resetUserPassword,
 } from '../services/userService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
@@ -76,6 +78,12 @@ const UsersPage = () => {
   const [sendMessageVisible, setSendMessageVisible] = useState(false);
   const [messageForm] = Form.useForm();
   const [sending, setSending] = useState(false);
+
+  // Password reset state
+  const [resetPasswordVisible, setResetPasswordVisible] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState(null);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetPasswordForm] = Form.useForm();
 
   const user = useAuthStore(state => state.user);
   const { users, setUsers } = useDataStore();
@@ -285,6 +293,39 @@ const UsersPage = () => {
     setSendMessageVisible(true);
   };
 
+  const handleResetPassword = record => {
+    setResetPasswordUser(record);
+    setResetPasswordVisible(true);
+  };
+
+  const handleResetPasswordSubmit = async () => {
+    try {
+      const values = await resetPasswordForm.validateFields();
+      
+      if (values.newPassword !== values.confirmPassword) {
+        message.error('הסיסמאות אינן תואמות');
+        return;
+      }
+
+      setResettingPassword(true);
+
+      const result = await resetUserPassword(orgId, resetPasswordUser.uid, values.newPassword);
+
+      if (result.success) {
+        message.success(result.message || 'הסיסמה אופסה בהצלחה');
+        setResetPasswordVisible(false);
+        resetPasswordForm.resetFields();
+        setResetPasswordUser(null);
+      } else {
+        message.error(result.error || 'שגיאה באיפוס הסיסמה');
+      }
+    } catch (error) {
+      console.error('Password reset validation failed:', error);
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   const handleSendMessage = async values => {
     try {
       const { message: messageText } = values;
@@ -365,6 +406,12 @@ const UsersPage = () => {
         icon: <EditOutlined />,
         label: 'התאם יתרה',
         onClick: () => handleAdjustBalance(userRecord),
+      },
+      {
+        key: 'resetPassword',
+        icon: <LockOutlined />,
+        label: 'איפוס סיסמה',
+        onClick: () => handleResetPassword(userRecord),
       },
       {
         type: 'divider',
@@ -916,6 +963,12 @@ const UsersPage = () => {
                 >
                   התאם יתרה
                 </Button>
+                <Button 
+                  icon={<LockOutlined />} 
+                  onClick={() => handleResetPassword(selectedUser)}
+                >
+                  איפוס סיסמה
+                </Button>
                 {selectedUser.isAdmin ? (
                   <Button 
                     icon={<MinusCircleOutlined />} 
@@ -1045,6 +1098,78 @@ const UsersPage = () => {
             </Space>
           </Form.Item>
         </Form>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal
+        title={
+          <Space>
+            <LockOutlined />
+            <span>
+              איפוס סיסמה {resetPasswordUser && `ל${resetPasswordUser.firstName} ${resetPasswordUser.lastName}`}
+            </span>
+          </Space>
+        }
+        open={resetPasswordVisible}
+        onOk={handleResetPasswordSubmit}
+        onCancel={() => {
+          setResetPasswordVisible(false);
+          resetPasswordForm.resetFields();
+          setResetPasswordUser(null);
+        }}
+        confirmLoading={resettingPassword}
+        okText='אפס סיסמה'
+        cancelText='ביטול'
+        width={450}
+        dir='rtl'
+      >
+        {resetPasswordUser && (
+          <Space direction='vertical' size='large' style={{ width: '100%' }}>
+            <div
+              style={{
+                padding: '12px',
+                backgroundColor: '#fff7e6',
+                borderRadius: '8px',
+                border: '1px solid #ffd591',
+              }}
+            >
+              <Text>
+                <strong>שים לב:</strong> הסיסמה החדשה תיכנס לתוקף מיד. 
+                וודא שאתה מעביר את הסיסמה החדשה למשתמש בצורה מאובטחת.
+              </Text>
+            </div>
+
+            <Form form={resetPasswordForm} layout='vertical' dir='rtl'>
+              <Form.Item
+                name='newPassword'
+                label='סיסמה חדשה'
+                rules={[
+                  { required: true, message: 'אנא הכנס סיסמה חדשה' },
+                  { min: 6, message: 'הסיסמה חייבת להכיל לפחות 6 תווים' },
+                ]}
+              >
+                <Input.Password
+                  prefix={<LockOutlined />}
+                  placeholder='לפחות 6 תווים'
+                />
+              </Form.Item>
+
+              <Form.Item
+                name='confirmPassword'
+                label='אשר סיסמה'
+                rules={[
+                  { required: true, message: 'אנא אשר את הסיסמה' },
+                  { min: 6, message: 'הסיסמה חייבת להכיל לפחות 6 תווים' },
+                ]}
+              >
+                <Input.Password
+                  prefix={<LockOutlined />}
+                  placeholder='הכנס שוב את הסיסמה'
+                />
+              </Form.Item>
+            </Form>
+          </Space>
+        )}
       </Modal>
     </div>
   );

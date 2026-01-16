@@ -440,6 +440,148 @@ const phoneToEmail = (phone) => {
 };
 
 /**
+ * Reset User Password Function
+ * Allows organization admin to reset a user's password
+ * Called from web admin dashboard
+ */
+exports.resetUserPassword = onCall(async (request) => {
+  const correlationId = generateCorrelationId();
+  const log = createLogger({
+    correlationId,
+    service: "reset-user-password",
+  });
+
+  log.info("Password reset request received", {
+    hasData: !!request.data,
+    hasAuth: !!request.auth,
+  });
+
+  try {
+    // Verify caller is authenticated
+    if (!request.auth) {
+      throw new functions.https.HttpsError(
+          "unauthenticated",
+          "Must be authenticated to reset passwords",
+      );
+    }
+
+    const callerUid = request.auth.uid;
+    const {orgId, userId, newPassword} = request.data;
+
+    // Validate required fields
+    if (!orgId || !userId || !newPassword) {
+      throw new functions.https.HttpsError(
+          "invalid-argument",
+          "Missing required fields: orgId, userId, newPassword",
+      );
+    }
+
+    // Validate password length
+    if (newPassword.length < 6) {
+      throw new functions.https.HttpsError(
+          "invalid-argument",
+          "הסיסמה חייבת להכיל לפחות 6 תווים",
+      );
+    }
+
+    log.info("Validating caller permissions", {
+      callerUid,
+      orgId,
+      targetUserId: userId,
+    });
+
+    // Verify caller is admin of the organization
+    const callerRef = admin.database()
+        .ref(`organizations/${orgId}/users/${callerUid}`);
+    const callerSnapshot = await callerRef.once("value");
+
+    if (!callerSnapshot.exists()) {
+      log.warn("Caller not found in organization", {callerUid, orgId});
+      throw new functions.https.HttpsError(
+          "permission-denied",
+          "You are not a member of this organization",
+      );
+    }
+
+    const callerData = callerSnapshot.val();
+    if (!callerData.isAdmin) {
+      log.warn("Caller is not an admin", {callerUid, orgId});
+      throw new functions.https.HttpsError(
+          "permission-denied",
+          "רק מנהלים יכולים לאפס סיסמאות",
+      );
+    }
+
+    // Verify target user exists in organization
+    const targetUserRef = admin.database()
+        .ref(`organizations/${orgId}/users/${userId}`);
+    const targetUserSnapshot = await targetUserRef.once("value");
+
+    if (!targetUserSnapshot.exists()) {
+      log.warn("Target user not found", {userId, orgId});
+      throw new functions.https.HttpsError(
+          "not-found",
+          "המשתמש לא נמצא",
+      );
+    }
+
+    const targetUserData = targetUserSnapshot.val();
+
+    log.info("Resetting password for user", {
+      targetUserId: userId,
+      targetUserPhone: targetUserData.phoneNumber,
+      callerUid,
+    });
+
+    // Reset the password using Firebase Admin SDK
+    await admin.auth().updateUser(userId, {
+      password: newPassword,
+    });
+
+    // Update user record with password reset timestamp
+    await targetUserRef.update({
+      passwordResetAt: new Date().toISOString(),
+      passwordResetBy: callerUid,
+      updatedAt: new Date().toISOString(),
+    });
+
+    log.info("Password reset successful", {
+      targetUserId: userId,
+      callerUid,
+      correlationId,
+    });
+
+    return {
+      success: true,
+      message: "הסיסמה אופסה בהצלחה",
+      correlationId,
+    };
+  } catch (error) {
+    log.error("Error resetting password", error, {
+      correlationId,
+    });
+
+    // Re-throw HttpsError as-is
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+
+    // Handle specific Firebase Auth errors
+    if (error.code === "auth/user-not-found") {
+      throw new functions.https.HttpsError(
+          "not-found",
+          "המשתמש לא נמצא במערכת האימות",
+      );
+    }
+
+    throw new functions.https.HttpsError(
+        "internal",
+        "שגיאה באיפוס הסיסמה: " + error.message,
+    );
+  }
+});
+
+/**
  * Organization Registration Function
  * Handles secure registration of new organizations with NEDARIM credentials
  * AND creates the first admin user for the organization
@@ -570,6 +712,8 @@ exports.registerOrganization = onCall(async (request) => {
       status: "active",
       created_by: "public-registration",
       admin_uid: adminUid,
+      admin_phone: cleanAdminPhone, // For password reset contact
+      admin_email: adminEmail ? adminEmail.trim() : "", // For password reset notifications
       correlation_id: correlationId,
     };
 

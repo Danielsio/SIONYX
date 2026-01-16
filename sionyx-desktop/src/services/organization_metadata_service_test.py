@@ -387,3 +387,145 @@ class TestSetPrintPricing:
         call_args = mock_firebase.db_update.call_args
         assert call_args[0][1]["blackAndWhitePrice"] == 10.0
         assert call_args[0][1]["colorPrice"] == 50.0
+
+
+# =============================================================================
+# get_admin_contact tests
+# =============================================================================
+class TestGetAdminContact:
+    """Tests for get_admin_contact method"""
+
+    def test_get_admin_contact_success(self, metadata_service, mock_firebase):
+        """Test successful admin contact retrieval"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {
+                "name": "Test Organization",
+                "admin_phone": "0501234567",
+                "admin_email": "admin@test.com",
+            },
+        }
+
+        result = metadata_service.get_admin_contact("org123")
+
+        assert result["success"] is True
+        assert "contact" in result
+
+    def test_get_admin_contact_returns_phone(self, metadata_service, mock_firebase):
+        """Test admin contact includes phone"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {
+                "name": "Test Organization",
+                "admin_phone": "0501234567",
+                "admin_email": "admin@test.com",
+            },
+        }
+
+        result = metadata_service.get_admin_contact("org123")
+
+        assert result["contact"]["phone"] == "0501234567"
+
+    def test_get_admin_contact_returns_email(self, metadata_service, mock_firebase):
+        """Test admin contact includes email"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {
+                "name": "Test Organization",
+                "admin_phone": "0501234567",
+                "admin_email": "admin@test.com",
+            },
+        }
+
+        result = metadata_service.get_admin_contact("org123")
+
+        assert result["contact"]["email"] == "admin@test.com"
+
+    def test_get_admin_contact_returns_org_name(self, metadata_service, mock_firebase):
+        """Test admin contact includes org name"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {
+                "name": "Test Organization",
+                "admin_phone": "0501234567",
+                "admin_email": "admin@test.com",
+            },
+        }
+
+        result = metadata_service.get_admin_contact("org123")
+
+        assert result["contact"]["org_name"] == "Test Organization"
+
+    def test_get_admin_contact_phone_only(self, metadata_service, mock_firebase):
+        """Test admin contact with phone only"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {
+                "name": "Test Organization",
+                "admin_phone": "0501234567",
+            },
+        }
+
+        result = metadata_service.get_admin_contact("org123")
+
+        assert result["success"] is True
+        assert result["contact"]["phone"] == "0501234567"
+        assert result["contact"]["email"] == ""
+
+    def test_get_admin_contact_email_only(self, metadata_service, mock_firebase):
+        """Test admin contact with email only"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {
+                "name": "Test Organization",
+                "admin_email": "admin@test.com",
+            },
+        }
+
+        result = metadata_service.get_admin_contact("org123")
+
+        assert result["success"] is True
+        assert result["contact"]["phone"] == ""
+        assert result["contact"]["email"] == "admin@test.com"
+
+    def test_get_admin_contact_missing_both(self, metadata_service, mock_firebase):
+        """Test failure when no admin contact info"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {
+                "name": "Test Organization",
+            },
+        }
+
+        result = metadata_service.get_admin_contact("org123")
+
+        assert result["success"] is False
+        assert "not found" in result["error"]
+
+    def test_get_admin_contact_firebase_failure(self, metadata_service, mock_firebase):
+        """Test handling of Firebase failure"""
+        mock_firebase.db_get.return_value = {
+            "success": False,
+            "error": "Connection failed",
+        }
+
+        result = metadata_service.get_admin_contact("org123")
+
+        assert result["success"] is False
+
+    def test_get_admin_contact_no_data(self, metadata_service, mock_firebase):
+        """Test handling of missing metadata"""
+        mock_firebase.db_get.return_value = {"success": True, "data": None}
+
+        result = metadata_service.get_admin_contact("org123")
+
+        assert result["success"] is False
+        assert "not found" in result["error"]
+
+    def test_get_admin_contact_exception_handling(self, metadata_service, mock_firebase):
+        """Test exception handling"""
+        mock_firebase.db_get.side_effect = Exception("Unexpected error")
+
+        result = metadata_service.get_admin_contact("org123")
+
+        assert result["success"] is False

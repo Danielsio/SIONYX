@@ -26,6 +26,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from services.organization_metadata_service import OrganizationMetadataService
 from ui.base_window import BaseKioskWindow
 from ui.components.loading_overlay import LoadingOverlay
 from ui.styles.auth_window import AUTH_WINDOW_QSS
@@ -627,11 +628,51 @@ class AuthWindow(BaseKioskWindow):
             self.shake_widget(self.signup_panel)
 
     def forgot_password_clicked(self):
-        """Handle forgot password"""
-        self.show_info(
-            "איפוס סיסמה",
-            "שכחת את הסיסמה?",
-            "אנא פנה למנהל המערכת שלך.<br><br>"
-            "<b>אימייל:</b> support@sionyx.com<br>"
-            "<b>טלפון:</b> +1 (555) 123-4567",
-        )
+        """Handle forgot password - show admin contact info"""
+        try:
+            # Try to get admin contact from organization metadata
+            org_metadata_service = OrganizationMetadataService(
+                self.auth_service.firebase
+            )
+            org_id = self.auth_service.firebase.org_id
+
+            contact_result = org_metadata_service.get_admin_contact(org_id)
+
+            if contact_result.get("success"):
+                contact = contact_result["contact"]
+                admin_phone = contact.get("phone", "")
+                admin_email = contact.get("email", "")
+                org_name = contact.get("org_name", "")
+
+                # Build contact info message in Hebrew
+                contact_info = ""
+                if admin_phone:
+                    contact_info += f"<b>טלפון:</b> {admin_phone}<br>"
+                if admin_email:
+                    contact_info += f"<b>אימייל:</b> {admin_email}<br>"
+
+                org_display = f" ({org_name})" if org_name else ""
+
+                self.show_info(
+                    "איפוס סיסמה",
+                    "שכחת את הסיסמה?",
+                    f"לאיפוס סיסמה, אנא פנה למנהל הארגון{org_display}.<br><br>"
+                    f"{contact_info}<br>"
+                    "המנהל יוכל לאפס את הסיסמה שלך דרך לוח הבקרה.",
+                )
+            else:
+                # Fallback if admin contact not found
+                self.show_info(
+                    "איפוס סיסמה",
+                    "שכחת את הסיסמה?",
+                    "לאיפוס סיסמה, אנא פנה למנהל הארגון שלך.<br><br>"
+                    "המנהל יוכל לאפס את הסיסמה שלך דרך לוח הבקרה.",
+                )
+        except Exception:
+            # Fallback on error
+            self.show_info(
+                "איפוס סיסמה",
+                "שכחת את הסיסמה?",
+                "לאיפוס סיסמה, אנא פנה למנהל הארגון שלך.<br><br>"
+                "המנהל יוכל לאפס את הסיסמה שלך דרך לוח הבקרה.",
+            )
