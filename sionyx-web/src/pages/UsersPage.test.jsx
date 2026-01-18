@@ -10,6 +10,7 @@ import {
   grantAdminPermission,
   revokeAdminPermission,
   kickUser,
+  resetUserPassword,
 } from '../services/userService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { useAuthStore } from '../store/authStore';
@@ -102,6 +103,7 @@ const renderUsersPage = (usersOverride = mockUsers) => {
   revokeAdminPermission.mockResolvedValue({ success: true });
   kickUser.mockResolvedValue({ success: true });
   sendMessage.mockResolvedValue({ success: true });
+  resetUserPassword.mockResolvedValue({ success: true, message: 'הסיסמה אופסה בהצלחה' });
 
   return {
     ...render(
@@ -394,6 +396,7 @@ describe('UsersPage - Admin Self-Revoke Prevention', () => {
     revokeAdminPermission.mockResolvedValue({ success: true });
     kickUser.mockResolvedValue({ success: true });
     sendMessage.mockResolvedValue({ success: true });
+    resetUserPassword.mockResolvedValue({ success: true, message: 'הסיסמה אופסה בהצלחה' });
 
     return {
       ...render(
@@ -476,6 +479,258 @@ describe('UsersPage - Admin Self-Revoke Prevention', () => {
         // The revoke button should be enabled for other admins
         const revokeButton = screen.getByRole('button', { name: /הסר הרשאות מנהל/ });
         expect(revokeButton).not.toBeDisabled();
+      });
+    }
+  });
+});
+
+describe('UsersPage - Password Reset', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.setItem('adminOrgId', 'my-org');
+  });
+
+  const renderForPasswordReset = () => {
+    const mockSetUsers = vi.fn();
+    const mockUpdateUser = vi.fn();
+
+    useAuthStore.mockImplementation((selector) => {
+      const state = { user: { orgId: 'my-org', uid: 'admin-123' } };
+      return selector(state);
+    });
+
+    useDataStore.mockImplementation((selector) => {
+      const state = {
+        users: mockUsers,
+        setUsers: mockSetUsers,
+        updateUser: mockUpdateUser,
+      };
+      return selector ? selector(state) : state;
+    });
+
+    getAllUsers.mockResolvedValue({ success: true, users: mockUsers });
+    getUserPurchaseHistory.mockResolvedValue({ success: true, purchases: [] });
+    getMessagesForUser.mockResolvedValue({ success: true, messages: [] });
+    adjustUserBalance.mockResolvedValue({ success: true });
+    grantAdminPermission.mockResolvedValue({ success: true });
+    revokeAdminPermission.mockResolvedValue({ success: true });
+    kickUser.mockResolvedValue({ success: true });
+    sendMessage.mockResolvedValue({ success: true });
+    resetUserPassword.mockResolvedValue({ success: true, message: 'הסיסמה אופסה בהצלחה' });
+
+    return render(
+      <AntApp>
+        <UsersPage />
+      </AntApp>
+    );
+  };
+
+  it('shows reset password button in user details drawer', async () => {
+    const user = userEvent.setup();
+    renderForPasswordReset();
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalled();
+    });
+
+    // Click on a user card to open drawer
+    const userCard = screen.getByText(/יוסי כהן/).closest('.ant-card');
+    if (userCard) {
+      await user.click(userCard);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /איפוס סיסמה/ })).toBeInTheDocument();
+      });
+    }
+  });
+
+  it('opens password reset modal when button clicked', async () => {
+    const user = userEvent.setup();
+    renderForPasswordReset();
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalled();
+    });
+
+    // Click on a user card to open drawer
+    const userCard = screen.getByText(/יוסי כהן/).closest('.ant-card');
+    if (userCard) {
+      await user.click(userCard);
+
+      await waitFor(() => {
+        const resetButton = screen.getByRole('button', { name: /איפוס סיסמה/ });
+        expect(resetButton).toBeInTheDocument();
+      });
+
+      // Click the reset password button
+      const resetButton = screen.getByRole('button', { name: /איפוס סיסמה/ });
+      await user.click(resetButton);
+
+      // Modal should appear
+      await waitFor(() => {
+        expect(screen.getByText(/סיסמה חדשה/)).toBeInTheDocument();
+      });
+    }
+  });
+
+  it('shows password validation message for short password', async () => {
+    const user = userEvent.setup();
+    renderForPasswordReset();
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalled();
+    });
+
+    // Click on a user card to open drawer
+    const userCard = screen.getByText(/יוסי כהן/).closest('.ant-card');
+    if (userCard) {
+      await user.click(userCard);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /איפוס סיסמה/ })).toBeInTheDocument();
+      });
+
+      // Click the reset password button
+      await user.click(screen.getByRole('button', { name: /איפוס סיסמה/ }));
+
+      // Wait for modal
+      await waitFor(() => {
+        expect(screen.getByText(/סיסמה חדשה/)).toBeInTheDocument();
+      });
+
+      // Type a short password
+      const passwordInputs = screen.getAllByPlaceholderText(/לפחות 6 תווים|הכנס שוב/);
+      if (passwordInputs.length > 0) {
+        await user.type(passwordInputs[0], '12345');
+      }
+    }
+  });
+
+  it('calls resetUserPassword when form submitted with valid data', async () => {
+    const user = userEvent.setup();
+    renderForPasswordReset();
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalled();
+    });
+
+    // Click on a user card to open drawer
+    const userCard = screen.getByText(/יוסי כהן/).closest('.ant-card');
+    if (userCard) {
+      await user.click(userCard);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /איפוס סיסמה/ })).toBeInTheDocument();
+      });
+
+      // Click the reset password button
+      await user.click(screen.getByRole('button', { name: /איפוס סיסמה/ }));
+
+      // Wait for modal
+      await waitFor(() => {
+        expect(screen.getByText(/סיסמה חדשה/)).toBeInTheDocument();
+      });
+
+      // Find password inputs in modal using placeholder text
+      const newPasswordInput = screen.getByPlaceholderText(/לפחות 6 תווים/);
+      const confirmPasswordInput = screen.getByPlaceholderText(/הכנס שוב/);
+      
+      await user.type(newPasswordInput, 'newPassword123');
+      await user.type(confirmPasswordInput, 'newPassword123');
+
+      // Submit the form
+      const submitButton = screen.getByRole('button', { name: /אפס סיסמה/ });
+      await user.click(submitButton);
+
+      await waitFor(() => {
+        expect(resetUserPassword).toHaveBeenCalledWith('my-org', 'user-1', 'newPassword123');
+      });
+    }
+  });
+
+  it('shows error when password reset fails', async () => {
+    resetUserPassword.mockResolvedValue({ success: false, error: 'שגיאה באיפוס הסיסמה' });
+    
+    const user = userEvent.setup();
+    renderForPasswordReset();
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalled();
+    });
+
+    // Click on a user card to open drawer
+    const userCard = screen.getByText(/יוסי כהן/).closest('.ant-card');
+    if (userCard) {
+      await user.click(userCard);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /איפוס סיסמה/ })).toBeInTheDocument();
+      });
+
+      // Click the reset password button
+      await user.click(screen.getByRole('button', { name: /איפוס סיסמה/ }));
+
+      // Wait for modal
+      await waitFor(() => {
+        expect(screen.getByText(/סיסמה חדשה/)).toBeInTheDocument();
+      });
+    }
+  });
+
+  it('closes modal when cancel button clicked', async () => {
+    const user = userEvent.setup();
+    renderForPasswordReset();
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalled();
+    });
+
+    // Click on a user card to open drawer
+    const userCard = screen.getByText(/יוסי כהן/).closest('.ant-card');
+    if (userCard) {
+      await user.click(userCard);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /איפוס סיסמה/ })).toBeInTheDocument();
+      });
+
+      // Click the reset password button
+      await user.click(screen.getByRole('button', { name: /איפוס סיסמה/ }));
+
+      // Wait for modal
+      await waitFor(() => {
+        expect(screen.getByText(/סיסמה חדשה/)).toBeInTheDocument();
+      });
+
+      // Click cancel button
+      const cancelButton = screen.getByRole('button', { name: /ביטול/ });
+      await user.click(cancelButton);
+    }
+  });
+
+  it('shows warning message about secure password handling', async () => {
+    const user = userEvent.setup();
+    renderForPasswordReset();
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalled();
+    });
+
+    // Click on a user card to open drawer
+    const userCard = screen.getByText(/יוסי כהן/).closest('.ant-card');
+    if (userCard) {
+      await user.click(userCard);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /איפוס סיסמה/ })).toBeInTheDocument();
+      });
+
+      // Click the reset password button
+      await user.click(screen.getByRole('button', { name: /איפוס סיסמה/ }));
+
+      // Wait for modal and check for warning message
+      await waitFor(() => {
+        expect(screen.getByText(/שים לב/)).toBeInTheDocument();
       });
     }
   });
