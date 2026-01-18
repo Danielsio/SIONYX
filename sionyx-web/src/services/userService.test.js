@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ref, get, update } from 'firebase/database';
+import { httpsCallable } from 'firebase/functions';
 import {
   getAllUsers,
   getUserPurchaseHistory,
@@ -7,11 +8,14 @@ import {
   grantAdminPermission,
   revokeAdminPermission,
   kickUser,
+  resetUserPassword,
 } from './userService';
 
 vi.mock('firebase/database');
+vi.mock('firebase/functions');
 vi.mock('../config/firebase', () => ({
   database: {},
+  functions: {},
 }));
 
 describe('userService', () => {
@@ -303,6 +307,70 @@ describe('userService', () => {
       expect(update.mock.calls.length).toBeGreaterThan(1);
     });
   });
-});
 
+  describe('resetUserPassword', () => {
+    it('calls the resetUserPassword cloud function', async () => {
+      const mockCallable = vi.fn().mockResolvedValue({
+        data: { success: true, message: 'הסיסמה אופסה בהצלחה' },
+      });
+      httpsCallable.mockReturnValue(mockCallable);
+
+      const result = await resetUserPassword('my-org', 'user-123', 'newPassword123');
+
+      expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'resetUserPassword');
+      expect(mockCallable).toHaveBeenCalledWith({
+        orgId: 'my-org',
+        userId: 'user-123',
+        newPassword: 'newPassword123',
+      });
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('הסיסמה אופסה בהצלחה');
+    });
+
+    it('returns success with default message if no message in response', async () => {
+      const mockCallable = vi.fn().mockResolvedValue({
+        data: { success: true },
+      });
+      httpsCallable.mockReturnValue(mockCallable);
+
+      const result = await resetUserPassword('my-org', 'user-123', 'newPassword123');
+
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('הסיסמה אופסה בהצלחה');
+    });
+
+    it('handles cloud function error', async () => {
+      const mockCallable = vi.fn().mockRejectedValue(new Error('Permission denied'));
+      httpsCallable.mockReturnValue(mockCallable);
+
+      const result = await resetUserPassword('my-org', 'user-123', 'newPassword123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Permission denied');
+    });
+
+    it('handles error without message', async () => {
+      const mockCallable = vi.fn().mockRejectedValue({});
+      httpsCallable.mockReturnValue(mockCallable);
+
+      const result = await resetUserPassword('my-org', 'user-123', 'newPassword123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('שגיאה באיפוס הסיסמה');
+    });
+
+    it('passes correct parameters to cloud function', async () => {
+      const mockCallable = vi.fn().mockResolvedValue({ data: { success: true } });
+      httpsCallable.mockReturnValue(mockCallable);
+
+      await resetUserPassword('org-test', 'uid-abc', 'securePass!');
+
+      expect(mockCallable).toHaveBeenCalledWith({
+        orgId: 'org-test',
+        userId: 'uid-abc',
+        newPassword: 'securePass!',
+      });
+    });
+  });
+});
 
