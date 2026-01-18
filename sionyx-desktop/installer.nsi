@@ -467,19 +467,49 @@ Function .onInit
     CreateFont $BigFont "Segoe UI" 12 700      ; Bold, 12pt for titles
     CreateFont $MediumFont "Segoe UI" 10 400   ; Normal, 10pt for content
     
+    ; ========================================================================
+    ; UPGRADE CHECK - Detect existing installation
+    ; IMPORTANT: Use 64-bit registry view to match where we install!
+    ; Without this, we read from WOW6432Node and miss existing installs.
+    ; ========================================================================
+    SetRegView 64
+    
     ; Check if already installed
     ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString"
+    StrCmp $R0 "" check_32bit
+    Goto found_existing
+    
+    ; Fallback: Also check 32-bit registry (for older installations)
+    check_32bit:
+    SetRegView 32
+    ReadRegStr $R0 HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString"
+    SetRegView 64  ; Reset to 64-bit for rest of installer
     StrCmp $R0 "" done
     
+    found_existing:
+    ; Get the installed version for display
+    ReadRegStr $R1 HKLM "SOFTWARE\${APP_NAME}" "Version"
+    StrCmp $R1 "" show_upgrade_no_version show_upgrade_with_version
+    
+    show_upgrade_with_version:
+    MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
+        "${APP_NAME} version $R1 is already installed.$\n$\n\
+        Click 'OK' to upgrade to version ${VERSION}.$\n\
+        Click 'Cancel' to abort installation." \
+        IDOK uninst
+    Abort
+    
+    show_upgrade_no_version:
     MessageBox MB_OKCANCEL|MB_ICONEXCLAMATION \
         "${APP_NAME} is already installed.$\n$\n\
-        Click 'OK' to remove the previous version and install fresh.$\n\
+        Click 'OK' to remove the previous version and install version ${VERSION}.$\n\
         Click 'Cancel' to abort." \
         IDOK uninst
     Abort
     
     uninst:
         ClearErrors
+        ; Run uninstaller silently with _?= to wait for completion
         ExecWait '$R0 _?=$INSTDIR'
         
         IfErrors no_remove_uninstaller done
