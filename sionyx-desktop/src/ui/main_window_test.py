@@ -458,6 +458,139 @@ class TestSessionManagement:
 
 
 # =============================================================================
+# Fresh Print Balance Tests (Bug Fix)
+# =============================================================================
+
+
+class TestFetchFreshPrintBalance:
+    """Tests for _fetch_fresh_print_balance method - fixes stale cache bug"""
+
+    @pytest.fixture
+    def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
+        """Create MainWindow instance"""
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
+        yield window
+        window.close()
+
+    def test_fetches_fresh_balance_from_firebase(self, main_window):
+        """Test _fetch_fresh_print_balance fetches from database"""
+        # Setup: Firebase returns fresh balance (different from cached)
+        main_window.current_user = {"uid": "user-123", "printBalance": 0.0}
+        main_window.auth_service.firebase.db_get.return_value = {
+            "success": True,
+            "data": {"printBalance": 95.0},
+        }
+
+        result = main_window._fetch_fresh_print_balance()
+
+        main_window.auth_service.firebase.db_get.assert_called_with("users/user-123")
+        assert result == 95.0
+
+    def test_returns_fresh_balance_even_when_cached_is_zero(self, main_window):
+        """Test fixes bug where cached balance is 0 but DB has 95"""
+        # This is the exact bug scenario reported by user
+        main_window.current_user = {"uid": "user-123", "printBalance": 0.0}
+        main_window.auth_service.firebase.db_get.return_value = {
+            "success": True,
+            "data": {"printBalance": 95.0},
+        }
+
+        result = main_window._fetch_fresh_print_balance()
+
+        assert result == 95.0  # Should return fresh value, not stale 0.0
+
+    def test_falls_back_to_cached_on_firebase_error(self, main_window):
+        """Test returns cached balance on Firebase failure"""
+        main_window.current_user = {"uid": "user-123", "printBalance": 50.0}
+        main_window.auth_service.firebase.db_get.return_value = {
+            "success": False,
+            "error": "Network error",
+        }
+
+        result = main_window._fetch_fresh_print_balance()
+
+        assert result == 50.0  # Falls back to cached
+
+    def test_falls_back_to_cached_on_exception(self, main_window):
+        """Test returns cached balance on exception"""
+        main_window.current_user = {"uid": "user-123", "printBalance": 30.0}
+        main_window.auth_service.firebase.db_get.side_effect = Exception("Connection")
+
+        result = main_window._fetch_fresh_print_balance()
+
+        assert result == 30.0  # Falls back to cached
+
+    def test_returns_zero_when_field_missing_in_db(self, main_window):
+        """Test returns 0.0 when printBalance missing in user data"""
+        main_window.current_user = {"uid": "user-123", "printBalance": 10.0}
+        main_window.auth_service.firebase.db_get.return_value = {
+            "success": True,
+            "data": {"firstName": "Test", "lastName": "User"},  # No printBalance
+        }
+
+        result = main_window._fetch_fresh_print_balance()
+
+        assert result == 0.0  # Default when field is missing
+
+    def test_returns_cached_when_no_uid(self, main_window):
+        """Test returns cached balance when no user ID"""
+        main_window.current_user = {"printBalance": 25.0}  # No uid
+
+        result = main_window._fetch_fresh_print_balance()
+
+        assert result == 25.0
+
+
+class TestStartSessionFetchesFreshBalance:
+    """Tests that start_user_session fetches fresh print balance"""
+
+    @pytest.fixture
+    def main_window(self, qapp, mock_auth_service, mock_config, mock_session_service):
+        """Create MainWindow instance"""
+        window = create_main_window_mock(
+            mock_auth_service, mock_config, mock_session_service, qapp
+        )
+        yield window
+        window.close()
+
+    def test_start_session_fetches_fresh_balance(self, main_window):
+        """Test start_user_session fetches fresh balance before showing timer"""
+        main_window.current_user = {"uid": "user-123", "printBalance": 0.0}
+        main_window.auth_service.firebase.db_get.return_value = {
+            "success": True,
+            "data": {"printBalance": 95.0},
+        }
+
+        with patch("ui.main_window.FloatingTimer") as mock_timer_cls:
+            mock_timer = Mock()
+            mock_timer_cls.return_value = mock_timer
+
+            main_window.start_user_session(3600)
+
+            # Timer should receive fresh balance from DB, not stale cache
+            mock_timer.update_print_balance.assert_called_with(95.0)
+
+    def test_start_session_updates_cached_balance(self, main_window):
+        """Test start_user_session updates cached current_user"""
+        main_window.current_user = {"uid": "user-123", "printBalance": 0.0}
+        main_window.auth_service.firebase.db_get.return_value = {
+            "success": True,
+            "data": {"printBalance": 95.0},
+        }
+
+        with patch("ui.main_window.FloatingTimer") as mock_timer_cls:
+            mock_timer = Mock()
+            mock_timer_cls.return_value = mock_timer
+
+            main_window.start_user_session(3600)
+
+            # Cache should be updated
+            assert main_window.current_user["printBalance"] == 95.0
+
+
+# =============================================================================
 # Signal Handler Tests
 # =============================================================================
 
