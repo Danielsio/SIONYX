@@ -585,8 +585,10 @@ class MainWindow(BaseKioskWindow):
         self.floating_timer.update_time(remaining_time)
         self.floating_timer.update_usage_time(0)  # Start with 0 usage time
 
-        # Update print balance with user's actual print budget (stored in printBalance)
-        print_balance = self.current_user.get("printBalance", 0.0)
+        # Fetch FRESH print balance from Firebase (fixes stale cache bug)
+        # Admin may have updated user's balance since login
+        print_balance = self._fetch_fresh_print_balance()
+        self.current_user["printBalance"] = print_balance  # Update cache
         self.floating_timer.update_print_balance(print_balance)
 
         self.floating_timer.show()
@@ -595,6 +597,34 @@ class MainWindow(BaseKioskWindow):
         self.showMinimized()
 
         logger.info("Session started, main window minimized")
+
+    def _fetch_fresh_print_balance(self) -> float:
+        """
+        Fetch fresh print balance from Firebase database.
+
+        This fixes a bug where the cached print balance is stale
+        (e.g., admin added balance after user logged in).
+
+        Returns:
+            float: Current print balance from database, or 0.0 on error
+        """
+        try:
+            uid = self.current_user.get("uid")
+            if not uid:
+                logger.warning("No user ID available, using cached balance")
+                return self.current_user.get("printBalance", 0.0)
+
+            result = self.auth_service.firebase.db_get(f"users/{uid}")
+            if result.get("success") and result.get("data"):
+                fresh_balance = float(result["data"].get("printBalance", 0.0))
+                logger.info(f"Fetched fresh print balance: {fresh_balance}₪")
+                return fresh_balance
+            else:
+                logger.warning("Failed to fetch fresh balance, using cached")
+                return self.current_user.get("printBalance", 0.0)
+        except Exception as e:
+            logger.error(f"Error fetching fresh print balance: {e}")
+            return self.current_user.get("printBalance", 0.0)
 
     def return_from_session(self):
         """User clicked return button on floating timer"""
