@@ -15,6 +15,16 @@
             
             "isAdmin": {
               ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+            },
+            
+            "remainingTime": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "printBalance": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "forceLogout": {
+              ".validate": "newData.isBoolean()"
             }
           }
         },
@@ -24,7 +34,21 @@
           ".indexOn": ["isActive", "createdAt"],
           
           "$packageId": {
-            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+            ".validate": "newData.hasChildren(['name', 'price', 'timeMinutes'])",
+            
+            "name": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
+            },
+            "price": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "timeMinutes": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "isActive": {
+              ".validate": "newData.isBoolean()"
+            }
           }
         },
         
@@ -34,24 +58,49 @@
           
           "$purchaseId": {
             ".read": "data.child('userId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
-            ".write": "(!data.exists() && newData.child('userId').val() == auth.uid) || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+            ".write": "(!data.exists() && newData.child('userId').val() == auth.uid) || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+            ".validate": "newData.hasChildren(['userId', 'status', 'createdAt'])",
+            
+            "userId": {
+              ".validate": "newData.isString()"
+            },
+            "status": {
+              ".validate": "newData.isString() && (newData.val() == 'pending' || newData.val() == 'completed' || newData.val() == 'failed' || newData.val() == 'cancelled')"
+            },
+            "amount": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            }
           }
         },
         
         "messages": {
-          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
           ".indexOn": ["toUserId", "timestamp", "read"],
 
           "$messageId": {
             ".read": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true)",
-            ".write": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true)",
+            ".write": "auth != null && ((!data.exists() && root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true) || data.child('toUserId').val() == auth.uid)",
+            ".validate": "newData.hasChildren(['toUserId', 'message', 'timestamp'])",
 
             "read": {
-              ".write": "data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+              ".write": "auth != null && (data.parent().child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true)",
+              ".validate": "newData.isBoolean()"
             },
 
             "readAt": {
-              ".write": "data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+              ".write": "auth != null && (data.parent().child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true)",
+              ".validate": "newData.isNumber()"
+            },
+            
+            "message": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 1000"
+            },
+            
+            "toUserId": {
+              ".validate": "newData.isString()"
+            },
+            
+            "timestamp": {
+              ".validate": "newData.isNumber()"
             }
           }
         },
@@ -62,14 +111,26 @@
           
           "$computerId": {
             ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
-            ".write": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()"
+            ".write": "auth != null && (data.child('userId').val() == auth.uid || !data.exists() || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true)",
+            
+            "userId": {
+              ".validate": "newData.isString()"
+            },
+            "computerName": {
+              ".validate": "newData.isString() && newData.val().length <= 100"
+            },
+            "isActive": {
+              ".validate": "newData.isBoolean()"
+            },
+            "lastSeen": {
+              ".validate": "newData.isNumber()"
+            }
           }
         },
         
         "metadata": {
           ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
           ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
-          ".validate": "newData.hasChildren() || newData.isNumber() || newData.isString()",
           
           "name": {
             ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
@@ -84,13 +145,19 @@
             ".validate": "newData.isString()"
           },
           "status": {
-            ".validate": "newData.isString() && newData.val() === 'active'"
+            ".validate": "newData.isString() && (newData.val() == 'active' || newData.val() == 'inactive' || newData.val() == 'suspended')"
           },
           "blackAndWhitePrice": {
-            ".validate": "newData.isNumber() && newData.val() > 0"
+            ".validate": "newData.isNumber() && newData.val() >= 0"
           },
           "colorPrice": {
-            ".validate": "newData.isNumber() && newData.val() > 0"
+            ".validate": "newData.isNumber() && newData.val() >= 0"
+          },
+          "admin_phone": {
+            ".validate": "newData.isString() && newData.val().length <= 20"
+          },
+          "admin_email": {
+            ".validate": "newData.isString() && newData.val().length <= 100"
           }
         }
       }
