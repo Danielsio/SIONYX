@@ -39,6 +39,7 @@ import {
   PhoneOutlined,
   MailOutlined,
   LockOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -934,6 +935,28 @@ const UsersPage = () => {
                     <PrinterOutlined />
                     <Text style={{ fontWeight: 600 }}>₪{selectedUser.printBalance || 0}</Text>
                   </Space>
+                </Descriptions.Item>
+                <Descriptions.Item label='תוקף זמן'>
+                  {selectedUser.timeExpiresAt ? (
+                    <Space>
+                      <CalendarOutlined style={{ 
+                        color: dayjs(selectedUser.timeExpiresAt).isBefore(dayjs()) 
+                          ? '#ff4d4f' 
+                          : '#fa8c16' 
+                      }} />
+                      <Text style={{ 
+                        color: dayjs(selectedUser.timeExpiresAt).isBefore(dayjs()) 
+                          ? '#ff4d4f' 
+                          : undefined 
+                      }}>
+                        {dayjs(selectedUser.timeExpiresAt).isBefore(dayjs()) 
+                          ? 'פג תוקף' 
+                          : dayjs(selectedUser.timeExpiresAt).format('DD/MM/YYYY')}
+                      </Text>
+                    </Space>
+                  ) : (
+                    <Text type='secondary'>ללא הגבלה</Text>
+                  )}
                 </Descriptions.Item>
                 <Descriptions.Item label='נוצר'>
                   {selectedUser.createdAt

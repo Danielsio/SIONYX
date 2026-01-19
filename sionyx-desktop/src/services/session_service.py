@@ -83,6 +83,16 @@ class SessionService(QObject):
             logger.warning("Session already active")
             return {"success": False, "error": "Session already active"}
 
+        # Check if user's time has expired (package deadline passed)
+        expiration_result = self._check_time_expiration()
+        if expiration_result.get("expired"):
+            logger.warning("User's time has expired, resetting to 0")
+            return {
+                "success": False,
+                "error": "הזמן שלך פג תוקף. אנא רכוש חבילה חדשה.",
+                "expired": True,
+            }
+
         if initial_remaining_time <= 0:
             logger.error("Cannot start session with 0 time")
             return {"success": False, "error": "No time remaining"}
@@ -241,6 +251,67 @@ class SessionService(QObject):
         except Exception as e:
             # Don't fail session start if cleanup fails
             logger.error(f"Process cleanup failed: {e}")
+
+    def _check_time_expiration(self) -> Dict:
+        """
+        Check if user's purchased time has expired.
+
+        Packages can have a validity period (e.g., 30 days). If the
+        deadline has passed, the remaining time is reset to 0.
+
+        Returns:
+            Dict with 'expired' bool and optional 'message'
+        """
+        try:
+            # Fetch current user data to check expiration
+            result = self.firebase.db_get(f"users/{self.user_id}")
+            if not result.get("success") or not result.get("data"):
+                logger.debug("Could not fetch user data for expiration check")
+                return {"expired": False}
+
+            user_data = result["data"]
+            expires_at_str = user_data.get("timeExpiresAt")
+
+            if not expires_at_str:
+                # No expiration set - time never expires
+                return {"expired": False}
+
+            # Parse expiration date
+            try:
+                expires_at = datetime.fromisoformat(expires_at_str)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid timeExpiresAt format: {expires_at_str}")
+                return {"expired": False}
+
+            now = datetime.now()
+
+            if now > expires_at:
+                # Time has expired - reset remaining time to 0
+                logger.info(
+                    f"User time expired at {expires_at_str}, resetting to 0"
+                )
+                self.firebase.db_update(
+                    f"users/{self.user_id}",
+                    {
+                        "remainingTime": 0,
+                        "timeExpiresAt": None,
+                        "updatedAt": now.isoformat(),
+                    },
+                )
+                return {
+                    "expired": True,
+                    "message": "הזמן שלך פג תוקף. אנא רכוש חבילה חדשה.",
+                }
+
+            # Calculate days remaining for logging
+            days_remaining = (expires_at - now).days
+            logger.debug(f"Time expires in {days_remaining} days")
+
+            return {"expired": False, "days_remaining": days_remaining}
+
+        except Exception as e:
+            logger.error(f"Error checking time expiration: {e}")
+            return {"expired": False}
 
     def _on_countdown_tick(self):
         """Called every second to update countdown"""

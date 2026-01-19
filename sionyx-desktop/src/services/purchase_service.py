@@ -45,6 +45,8 @@ class PurchaseService(DatabaseService):
                 "packageName": package.get("name"),
                 "minutes": package.get("minutes"),
                 "prints": package.get("prints"),
+                "printBudget": package.get("prints"),  # For consistency with callback
+                "validityDays": package.get("validityDays", 0),  # Package expiration
                 "amount": package.get("price"),  # Will update with final amount
                 "status": "pending",
                 "createdAt": datetime.now().isoformat(),

@@ -527,3 +527,104 @@ class TestProcessCleanup:
 
             # Should not raise - just logs error
             session_service._cleanup_user_processes()
+
+
+# =============================================================================
+# Time Expiration Tests
+# =============================================================================
+
+
+class TestTimeExpiration:
+    """Tests for time expiration on session start."""
+
+    @pytest.fixture
+    def session_service(self, mock_firebase_client, qtbot):
+        """Create SessionService instance with mocked dependencies"""
+        with patch("services.session_service.ComputerService"):
+            with patch("services.session_service.PrintMonitorService"):
+                with patch("services.session_service.BrowserCleanupService"):
+                    with patch("services.session_service.ProcessCleanupService"):
+                        return SessionService(
+                            mock_firebase_client, "test-user-id", "org"
+                        )
+
+    def test_check_expiration_no_expiry_set(
+        self, session_service, mock_firebase_client
+    ):
+        """Test no expiration when timeExpiresAt not set."""
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {"remainingTime": 3600},
+        }
+
+        result = session_service._check_time_expiration()
+
+        assert result["expired"] is False
+
+    def test_check_expiration_not_expired(
+        self, session_service, mock_firebase_client
+    ):
+        """Test not expired when deadline is in the future."""
+        from datetime import datetime, timedelta
+
+        future_date = (datetime.now() + timedelta(days=10)).isoformat()
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {"remainingTime": 3600, "timeExpiresAt": future_date},
+        }
+
+        result = session_service._check_time_expiration()
+
+        assert result["expired"] is False
+        assert result.get("days_remaining", 0) > 0
+
+    def test_check_expiration_expired(
+        self, session_service, mock_firebase_client
+    ):
+        """Test expired when deadline has passed."""
+        from datetime import datetime, timedelta
+
+        past_date = (datetime.now() - timedelta(days=1)).isoformat()
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {"remainingTime": 3600, "timeExpiresAt": past_date},
+        }
+        mock_firebase_client.db_update.return_value = {"success": True}
+
+        result = session_service._check_time_expiration()
+
+        assert result["expired"] is True
+        # Should have reset remaining time to 0
+        mock_firebase_client.db_update.assert_called()
+
+    def test_check_expiration_db_error(
+        self, session_service, mock_firebase_client
+    ):
+        """Test handles database error gracefully."""
+        mock_firebase_client.db_get.return_value = {
+            "success": False,
+            "error": "Network error",
+        }
+
+        result = session_service._check_time_expiration()
+
+        # Should not crash, assume not expired
+        assert result["expired"] is False
+
+    def test_start_session_blocked_when_expired(
+        self, session_service, mock_firebase_client
+    ):
+        """Test session start blocked when time expired."""
+        from datetime import datetime, timedelta
+
+        past_date = (datetime.now() - timedelta(days=1)).isoformat()
+        mock_firebase_client.db_get.return_value = {
+            "success": True,
+            "data": {"remainingTime": 3600, "timeExpiresAt": past_date},
+        }
+        mock_firebase_client.db_update.return_value = {"success": True}
+
+        result = session_service.start_session(3600)
+
+        assert result["success"] is False
+        assert result.get("expired") is True
