@@ -159,15 +159,23 @@ class PackagesPage(QWidget):
         
         logger.debug(f"Package fetch result: success={result.get('success')}")
 
+        # Safety check: widget may be deleted during test teardown
+        try:
+            spinner_valid = self.loading_spinner is not None
+        except RuntimeError:
+            spinner_valid = False
+
         if not result.get("success"):
             logger.error(f"Failed to fetch packages: {result.get('error')}")
-            self.loading_spinner.hide()
+            if spinner_valid:
+                self.loading_spinner.hide()
             self._show_error()
             return
 
         self.packages = result.get("data", [])
         logger.info(f"PackagesPage: Received {len(self.packages)} packages to display")
-        self.loading_spinner.hide()
+        if spinner_valid:
+            self.loading_spinner.hide()
 
         if not self.packages:
             logger.warning("No packages to display - showing empty state")
