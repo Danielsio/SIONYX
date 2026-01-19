@@ -133,20 +133,47 @@ class KeyboardRestrictionService(QObject):
     def _run_hook_loop(self):
         """Run the hook in its own thread with a message loop."""
         try:
+            logger.debug("Keyboard hook thread started")
+            
             # Create the hook callback
             self._hook_proc = HOOKPROC(self._keyboard_hook_callback)
+            logger.debug(f"Hook callback created: {self._hook_proc}")
 
+            # Get module handle for the hook
+            module_handle = kernel32.GetModuleHandleW(None)
+            logger.debug(f"Module handle obtained: {module_handle}")
+            
+            if not module_handle:
+                module_error = ctypes.get_last_error()
+                logger.error(f"Failed to get module handle: error {module_error}")
+                return
+
+            # Clear last error before installing hook
+            ctypes.set_last_error(0)
+            
             # Install the hook
+            logger.debug("Attempting to install keyboard hook...")
             self.hook_handle = user32.SetWindowsHookExW(
-                WH_KEYBOARD_LL, self._hook_proc, kernel32.GetModuleHandleW(None), 0
+                WH_KEYBOARD_LL, self._hook_proc, module_handle, 0
             )
 
             if not self.hook_handle:
                 error = ctypes.get_last_error()
-                logger.error(f"Failed to install keyboard hook: error {error}")
+                logger.error(
+                    f"Failed to install keyboard hook: error {error}",
+                    module_handle=module_handle,
+                    hook_type=WH_KEYBOARD_LL,
+                    thread_id=threading.current_thread().ident,
+                )
+                # Additional diagnostics
+                logger.debug(f"SetWindowsHookExW returned NULL")
+                logger.debug(f"Hook proc address: {ctypes.addressof(self._hook_proc)}")
                 return
 
-            logger.info("Keyboard restriction hook installed successfully")
+            logger.info(
+                "Keyboard restriction hook installed successfully",
+                hook_handle=self.hook_handle,
+            )
 
             # Run message loop (required for low-level hooks)
             msg = wintypes.MSG()
