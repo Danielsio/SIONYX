@@ -18,7 +18,9 @@ class TestSessionService:
         """Create SessionService instance with mocked dependencies"""
         with patch("services.session_service.ComputerService"):
             with patch("services.session_service.PrintMonitorService"):
-                return SessionService(mock_firebase_client, "test-user-id", "test-org")
+                with patch("services.session_service.ProcessCleanupService"):
+                    with patch("services.session_service.BrowserCleanupService"):
+                        yield SessionService(mock_firebase_client, "test-user-id", "test-org")
 
     def test_initialization(self, session_service):
         """Test SessionService initialization"""
@@ -309,7 +311,9 @@ class TestSessionServiceAdditional:
         """Create SessionService instance with mocked dependencies"""
         with patch("services.session_service.ComputerService"):
             with patch("services.session_service.PrintMonitorService"):
-                return SessionService(mock_firebase_client, "test-user-id", "test-org")
+                with patch("services.session_service.ProcessCleanupService"):
+                    with patch("services.session_service.BrowserCleanupService"):
+                        yield SessionService(mock_firebase_client, "test-user-id", "test-org")
 
     def test_countdown_tick_when_not_active(self, session_service):
         """Test countdown tick does nothing when not active"""
@@ -393,7 +397,8 @@ class TestBrowserCleanup:
         with patch("services.session_service.ComputerService"):
             with patch("services.session_service.PrintMonitorService"):
                 with patch("services.session_service.BrowserCleanupService"):
-                    return SessionService(mock_firebase_client, "test-user-id", "org")
+                    with patch("services.session_service.ProcessCleanupService"):
+                        yield SessionService(mock_firebase_client, "test-user-id", "org")
 
     def test_end_session_calls_browser_cleanup(
         self, session_service, mock_firebase_client, qtbot
@@ -469,7 +474,7 @@ class TestProcessCleanup:
             with patch("services.session_service.PrintMonitorService"):
                 with patch("services.session_service.BrowserCleanupService"):
                     with patch("services.session_service.ProcessCleanupService"):
-                        return SessionService(
+                        yield SessionService(
                             mock_firebase_client, "test-user-id", "org"
                         )
 
@@ -544,7 +549,7 @@ class TestTimeExpiration:
             with patch("services.session_service.PrintMonitorService"):
                 with patch("services.session_service.BrowserCleanupService"):
                     with patch("services.session_service.ProcessCleanupService"):
-                        return SessionService(
+                        yield SessionService(
                             mock_firebase_client, "test-user-id", "org"
                         )
 
