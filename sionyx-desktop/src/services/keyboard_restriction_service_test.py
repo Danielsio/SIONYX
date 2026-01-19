@@ -503,7 +503,7 @@ class TestRunHookLoop:
         """_run_hook_loop should install Windows hook."""
         mock_user32.SetWindowsHookExW.return_value = 12345
         mock_user32.GetMessageW.return_value = 0  # Exit immediately
-        mock_kernel32.GetModuleHandleW.return_value = 0
+        mock_kernel32.GetModuleHandleW.return_value = 12345  # Valid handle
 
         service = KeyboardRestrictionService(enabled=True)
         service._run_hook_loop()
@@ -517,7 +517,7 @@ class TestRunHookLoop:
         """_run_hook_loop should handle hook installation failure."""
         mock_user32.SetWindowsHookExW.return_value = None  # Failure
         mock_error.return_value = 1234
-        mock_kernel32.GetModuleHandleW.return_value = 0
+        mock_kernel32.GetModuleHandleW.return_value = 12345  # Valid handle
 
         service = KeyboardRestrictionService(enabled=True)
         service._run_hook_loop()
@@ -527,10 +527,27 @@ class TestRunHookLoop:
 
     @patch("services.keyboard_restriction_service.user32")
     @patch("services.keyboard_restriction_service.kernel32")
+    @patch("services.keyboard_restriction_service.ctypes.get_last_error")
+    def test_hook_loop_handles_invalid_module_handle(
+        self, mock_error, mock_kernel32, mock_user32
+    ):
+        """_run_hook_loop should handle invalid module handle (0)."""
+        mock_kernel32.GetModuleHandleW.return_value = 0  # Invalid handle
+        mock_error.return_value = 126  # ERROR_MOD_NOT_FOUND
+
+        service = KeyboardRestrictionService(enabled=True)
+        service._run_hook_loop()
+
+        # Hook should not be installed
+        mock_user32.SetWindowsHookExW.assert_not_called()
+        assert service.hook_handle is None
+
+    @patch("services.keyboard_restriction_service.user32")
+    @patch("services.keyboard_restriction_service.kernel32")
     def test_hook_loop_runs_message_loop(self, mock_kernel32, mock_user32):
         """_run_hook_loop should run message loop."""
         mock_user32.SetWindowsHookExW.return_value = 12345
-        mock_kernel32.GetModuleHandleW.return_value = 0
+        mock_kernel32.GetModuleHandleW.return_value = 12345  # Valid handle
 
         # Simulate message loop: return non-zero once, then zero to exit
         mock_user32.GetMessageW.side_effect = [1, 0]
@@ -547,7 +564,7 @@ class TestRunHookLoop:
     def test_hook_loop_handles_exception(self, mock_kernel32, mock_user32):
         """_run_hook_loop should handle exceptions gracefully."""
         mock_user32.SetWindowsHookExW.side_effect = Exception("Test error")
-        mock_kernel32.GetModuleHandleW.return_value = 0
+        mock_kernel32.GetModuleHandleW.return_value = 12345  # Valid handle
 
         service = KeyboardRestrictionService(enabled=True)
 
@@ -562,7 +579,7 @@ class TestRunHookLoop:
         """_run_hook_loop should clean up hook on exit."""
         mock_user32.SetWindowsHookExW.return_value = 12345
         mock_user32.GetMessageW.return_value = 0
-        mock_kernel32.GetModuleHandleW.return_value = 0
+        mock_kernel32.GetModuleHandleW.return_value = 12345  # Valid handle
 
         service = KeyboardRestrictionService(enabled=True)
         service._run_hook_loop()
