@@ -3,7 +3,7 @@
   "major": 1,
   "minor": 10,
   "patch": 0,
-  "buildNumber": 49,
+  "buildNumber": 50,
   "lastBuildDate": "2026-01-19T21:30:00.000000",
   "changelog": [
     "feat: Remove redundant account button from floating timer",
@@ -11,5 +11,5 @@
     "feat: Close user programs on session start",
     "feat: Package expiration/deadline support"
   ],
-  "coverage": 95.79
+  "coverage": 95.86
 }
