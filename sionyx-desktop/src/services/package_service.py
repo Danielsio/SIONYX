@@ -36,15 +36,34 @@ class PackageService(DatabaseService):
             }
         """
         self.log_operation("get_all_packages")
+        logger.debug("Fetching all packages from Firebase...")
 
         result = self.get_all_documents()
+        logger.debug(f"get_all_documents result: success={result.get('success')}")
 
         if result.get("success"):
             packages = result.get("data", [])
+            
+            # Filter to only active packages
+            active_packages = [p for p in packages if p.get("isActive", True)]
+            logger.info(
+                f"Packages loaded: {len(packages)} total, {len(active_packages)} active",
+                total=len(packages),
+                active=len(active_packages),
+            )
+            
+            # Log package names for debugging
+            if active_packages:
+                names = [p.get("name", "?") for p in active_packages]
+                logger.debug(f"Active packages: {names}")
+            else:
+                logger.warning("No active packages found!")
+            
             return self.create_success_response(
-                packages, f"Fetched {len(packages)} packages"
+                active_packages, f"Fetched {len(active_packages)} active packages"
             )
         else:
+            logger.error(f"Failed to fetch packages: {result.get('error')}")
             return result
 
     def get_package_by_id(self, package_id: str) -> Dict:
