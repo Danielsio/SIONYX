@@ -452,3 +452,78 @@ class TestBrowserCleanup:
 
             # Should not raise - just logs error
             session_service._cleanup_browser_data()
+
+
+# =============================================================================
+# Process Cleanup Tests
+# =============================================================================
+
+
+class TestProcessCleanup:
+    """Tests for process cleanup on session start."""
+
+    @pytest.fixture
+    def session_service(self, mock_firebase_client, qtbot):
+        """Create SessionService instance with mocked dependencies"""
+        with patch("services.session_service.ComputerService"):
+            with patch("services.session_service.PrintMonitorService"):
+                with patch("services.session_service.BrowserCleanupService"):
+                    with patch("services.session_service.ProcessCleanupService"):
+                        return SessionService(
+                            mock_firebase_client, "test-user-id", "org"
+                        )
+
+    def test_start_session_calls_process_cleanup(
+        self, session_service, mock_firebase_client, qtbot
+    ):
+        """Test start_session calls process cleanup."""
+        mock_firebase_client.db_update.return_value = {"success": True}
+
+        with patch.object(
+            session_service, "_cleanup_user_processes"
+        ) as mock_cleanup:
+            session_service.start_session(3600)
+
+        mock_cleanup.assert_called_once()
+
+    def test_cleanup_user_processes_success(self, session_service):
+        """Test _cleanup_user_processes handles success."""
+        with patch(
+            "services.session_service.ProcessCleanupService"
+        ) as mock_service_cls:
+            mock_service = Mock()
+            mock_service.cleanup_user_processes.return_value = {
+                "success": True,
+                "closed_count": 3,
+                "closed_processes": ["chrome.exe", "notepad.exe"],
+            }
+            mock_service_cls.return_value = mock_service
+
+            session_service._cleanup_user_processes()
+
+        mock_service.cleanup_user_processes.assert_called_once()
+
+    def test_cleanup_user_processes_handles_errors(self, session_service):
+        """Test _cleanup_user_processes handles errors gracefully."""
+        with patch(
+            "services.session_service.ProcessCleanupService"
+        ) as mock_service_cls:
+            mock_service = Mock()
+            mock_service.cleanup_user_processes.return_value = {
+                "success": False,
+                "failed_processes": ["chrome.exe"],
+            }
+            mock_service_cls.return_value = mock_service
+
+            # Should not raise
+            session_service._cleanup_user_processes()
+
+    def test_cleanup_user_processes_handles_exception(self, session_service):
+        """Test _cleanup_user_processes handles exceptions."""
+        with patch(
+            "services.session_service.ProcessCleanupService"
+        ) as mock_service_cls:
+            mock_service_cls.side_effect = Exception("Service error")
+
+            # Should not raise - just logs error
+            session_service._cleanup_user_processes()

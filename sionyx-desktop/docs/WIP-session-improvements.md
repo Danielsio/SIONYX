@@ -14,7 +14,7 @@ Implementing multiple session-related improvements and bug fixes in a single dev
 |---|------|------|--------|--------|---------|
 | 1 | Remove redundant "החשבון שלי" button | Bug Fix | ✅ Done | `fix/redundant-timer-button` | v1.7.3 |
 | 2 | Clear browser cookies on session end | Feature | ✅ Done | `feature/session-end-cleanup` | v1.8.0 |
-| 3 | Close all programs on session start | Feature | ⏳ Pending | `feature/session-start-cleanup` | Minor |
+| 3 | Close all programs on session start | Feature | ✅ Done | `feature/session-start-cleanup` | v1.9.0 |
 | 4 | Package expiration/deadline | Feature | ⏳ Pending | `feature/package-expiration` | Minor |
 
 ---
@@ -110,7 +110,14 @@ Close all non-essential programs when a session starts, leaving only SIONYX and 
 
 ### Progress Log
 ```
-[Pending]
+[2026-01-19] Started Task 3
+[2026-01-19] Created branch: feature/session-start-cleanup
+[2026-01-19] Created ProcessCleanupService with whitelist/targets
+[2026-01-19] Integrated cleanup into SessionService.start_session()
+[2026-01-19] Added 22 tests for ProcessCleanupService
+[2026-01-19] Added 4 tests for session service integration
+[2026-01-19] All tests passing
+[2026-01-19] ✅ COMPLETED - Merged and released as v1.9.0
 ```
 
 ---
