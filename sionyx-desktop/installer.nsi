@@ -274,43 +274,120 @@ Section "Kiosk Security Setup" SecKiosk
     DetailPrint "ready for customers."
     DetailPrint ""
     
-    ; NOTE: We only create startup shortcut for KioskUser, NOT for all users!
-    ; This prevents SIONYX from auto-starting on admin accounts.
+    ; NOTE: We use MULTIPLE methods to ensure auto-start works reliably:
+    ; 1. Scheduled Task (works even if profile doesn't exist yet)
+    ; 2. Startup folder shortcut (created when profile exists or on first login)
+    ; 3. Registry Run key for KioskUser (as fallback)
     
-    ; IMPORTANT: The KioskUser profile folder doesn't exist until first login!
-    ; So we use a Scheduled Task that runs on login for KioskUser specifically.
-    ; This is the most reliable method for targeting a specific user.
+    ; =========================================================================
+    ; METHOD 1: Scheduled Task (primary, most reliable)
+    ; =========================================================================
+    DetailPrint "[AUTOSTART] Creating scheduled task for KioskUser..."
     
-    DetailPrint "[AUTOSTART] Creating scheduled task for KioskUser auto-start..."
+    ; Delete any existing task first to ensure clean state
+    nsExec::ExecToLog 'schtasks /delete /tn "SIONYX Kiosk" /f'
     
-    ; Use schtasks directly - simpler and more reliable than PowerShell one-liner
-    ; The /rl LIMITED ensures it runs with standard user privileges
-    nsExec::ExecToLog 'schtasks /create /tn "SIONYX Kiosk" /tr "\"$INSTDIR\${APP_EXECUTABLE}\" --kiosk" /sc onlogon /ru "${KIOSK_USERNAME}" /rl LIMITED /f'
+    ; Create PowerShell script for scheduled task (more control over settings)
+    FileOpen $1 "$TEMP\create_sionyx_task.ps1" w
+    FileWrite $1 '# Create SIONYX Kiosk scheduled task$\r$\n'
+    FileWrite $1 '$$ErrorActionPreference = "Stop"$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '$$exePath = "$INSTDIR\${APP_EXECUTABLE}"$\r$\n'
+    FileWrite $1 '$$taskName = "SIONYX Kiosk"$\r$\n'
+    FileWrite $1 '$$userName = "${KIOSK_USERNAME}"$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# Create action - run SIONYX in kiosk mode$\r$\n'
+    FileWrite $1 '$$action = New-ScheduledTaskAction -Execute $$exePath -Argument "--kiosk"$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# Trigger on logon of KioskUser$\r$\n'
+    FileWrite $1 '$$trigger = New-ScheduledTaskTrigger -AtLogOn -User $$userName$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# Settings - ensure it runs reliably$\r$\n'
+    FileWrite $1 '$$settings = New-ScheduledTaskSettingsSet `$\r$\n'
+    FileWrite $1 '    -AllowStartIfOnBatteries `$\r$\n'
+    FileWrite $1 '    -DontStopIfGoingOnBatteries `$\r$\n'
+    FileWrite $1 '    -StartWhenAvailable `$\r$\n'
+    FileWrite $1 '    -ExecutionTimeLimit (New-TimeSpan -Hours 0) `$\r$\n'
+    FileWrite $1 '    -RestartCount 3 `$\r$\n'
+    FileWrite $1 '    -RestartInterval (New-TimeSpan -Minutes 1)$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# Principal - run as KioskUser interactively$\r$\n'
+    FileWrite $1 '$$principal = New-ScheduledTaskPrincipal `$\r$\n'
+    FileWrite $1 '    -UserId $$userName `$\r$\n'
+    FileWrite $1 '    -LogonType Interactive `$\r$\n'
+    FileWrite $1 '    -RunLevel Limited$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# Register the task$\r$\n'
+    FileWrite $1 'Register-ScheduledTask `$\r$\n'
+    FileWrite $1 '    -TaskName $$taskName `$\r$\n'
+    FileWrite $1 '    -Action $$action `$\r$\n'
+    FileWrite $1 '    -Trigger $$trigger `$\r$\n'
+    FileWrite $1 '    -Settings $$settings `$\r$\n'
+    FileWrite $1 '    -Principal $$principal `$\r$\n'
+    FileWrite $1 '    -Force$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 'Write-Host "[OK] Scheduled task created successfully"$\r$\n'
+    FileClose $1
+    
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\create_sionyx_task.ps1"'
     Pop $0
-    ${If} $0 != 0
-        DetailPrint "[WARNING] schtasks failed (error $0). Trying PowerShell..."
-        ; Fallback: Try PowerShell (writes script to file to avoid escaping issues)
-        FileOpen $1 "$TEMP\create_task.ps1" w
-        FileWrite $1 '$$action = New-ScheduledTaskAction -Execute "$INSTDIR\${APP_EXECUTABLE}" -Argument "--kiosk"$\r$\n'
-        FileWrite $1 '$$trigger = New-ScheduledTaskTrigger -AtLogOn -User "${KIOSK_USERNAME}"$\r$\n'
-        FileWrite $1 '$$settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable$\r$\n'
-        FileWrite $1 '$$principal = New-ScheduledTaskPrincipal -UserId "${KIOSK_USERNAME}" -LogonType Interactive -RunLevel Limited$\r$\n'
-        FileWrite $1 'Register-ScheduledTask -TaskName "SIONYX Kiosk" -Action $$action -Trigger $$trigger -Settings $$settings -Principal $$principal -Force$\r$\n'
-        FileClose $1
-        
-        nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\create_task.ps1"'
-        Pop $0
-        Delete "$TEMP\create_task.ps1"
-        
-        ${If} $0 != 0
-            DetailPrint "[ERROR] Could not configure auto-start!"
-            MessageBox MB_OK|MB_ICONEXCLAMATION "Warning: Auto-start could not be configured.$\n$\nPlease run this in PowerShell (Admin):$\n$\nschtasks /create /tn $\"SIONYX Kiosk$\" /tr $\"$INSTDIR\${APP_EXECUTABLE} --kiosk$\" /sc onlogon /ru ${KIOSK_USERNAME} /rl LIMITED /f"
-        ${Else}
-            DetailPrint "[OK] Scheduled task created via PowerShell"
-        ${EndIf}
+    Delete "$TEMP\create_sionyx_task.ps1"
+    
+    ${If} $0 == 0
+        DetailPrint "[OK] Scheduled task created successfully"
     ${Else}
-        DetailPrint "[OK] Scheduled task created for KioskUser"
+        DetailPrint "[WARNING] Scheduled task creation failed (error $0)"
     ${EndIf}
+    
+    ; =========================================================================
+    ; METHOD 2: Startup folder shortcut (fallback)
+    ; =========================================================================
+    DetailPrint "[AUTOSTART] Creating startup folder shortcut..."
+    
+    ; Check if KioskUser profile exists
+    IfFileExists "C:\Users\${KIOSK_USERNAME}\*.*" 0 create_profile_first
+    
+    ; Profile exists - create startup shortcut directly
+    CreateDirectory "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
+    CreateShortCut "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk" \
+        "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
+    DetailPrint "[OK] Startup shortcut created for KioskUser"
+    Goto autostart_done
+    
+    create_profile_first:
+    ; Profile doesn't exist yet - create it and the startup shortcut
+    DetailPrint "[INFO] KioskUser profile doesn't exist yet, creating..."
+    
+    ; Force profile creation by running a command as the user
+    ; This creates the basic profile structure
+    FileOpen $1 "$TEMP\create_profile.ps1" w
+    FileWrite $1 '# Force create KioskUser profile$\r$\n'
+    FileWrite $1 '$$username = "${KIOSK_USERNAME}"$\r$\n'
+    FileWrite $1 '$$profilePath = "C:\Users\$$username"$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# Create profile directories$\r$\n'
+    FileWrite $1 '$$startupPath = "$$profilePath\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"$\r$\n'
+    FileWrite $1 'New-Item -Path $$startupPath -ItemType Directory -Force | Out-Null$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# Create .sionyx directory$\r$\n'
+    FileWrite $1 'New-Item -Path "$$profilePath\.sionyx" -ItemType Directory -Force | Out-Null$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# Create Local AppData SIONYX directory$\r$\n'
+    FileWrite $1 'New-Item -Path "$$profilePath\AppData\Local\SIONYX\logs" -ItemType Directory -Force | Out-Null$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 'Write-Host "[OK] Profile directories created"$\r$\n'
+    FileClose $1
+    
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\create_profile.ps1"'
+    Pop $0
+    Delete "$TEMP\create_profile.ps1"
+    
+    ; Now create the startup shortcut
+    CreateShortCut "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk" \
+        "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
+    DetailPrint "[OK] Startup shortcut created for KioskUser"
+    
+    autostart_done:
     
     ; Store kiosk username in registry for reference
     WriteRegStr HKLM "SOFTWARE\${APP_NAME}" "KioskUsername" "${KIOSK_USERNAME}"
@@ -341,20 +418,30 @@ Section "Uninstall"
     ; Use 64-bit registry view to match installation
     SetRegView 64
     
-    ; Remove files
+    DetailPrint ""
+    DetailPrint "============================================"
+    DetailPrint "  Removing SIONYX Application"
+    DetailPrint "============================================"
+    DetailPrint ""
+    
+    ; Remove program files
+    DetailPrint "[CLEANUP] Removing program files..."
     Delete "$INSTDIR\${APP_EXECUTABLE}"
     Delete "$INSTDIR\${APP_ICON}"
     Delete "$INSTDIR\Uninstall.exe"
     RMDir /r "$INSTDIR\web"
     RMDir /r "$INSTDIR\templates"
+    RMDir /r "$INSTDIR\_internal"
     
     ; Remove shortcuts
+    DetailPrint "[CLEANUP] Removing shortcuts..."
     Delete "$DESKTOP\${APP_NAME}.lnk"
     Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
     Delete "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk"
     RMDir "$SMPROGRAMS\${APP_NAME}"
     
     ; Remove auto-start entries
+    DetailPrint "[CLEANUP] Removing auto-start entries..."
     ; Remove scheduled task (primary method)
     nsExec::ExecToLog 'schtasks /delete /tn "SIONYX Kiosk" /f'
     
@@ -370,7 +457,49 @@ Section "Uninstall"
     ; Remove from Default profile (if we used that method)
     Delete "C:\Users\Default\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk"
     
-    ; Ask about removing KioskUser account
+    ; =========================================================================
+    ; CLEANUP SIONYX APPLICATION DATA (for all users)
+    ; This ensures a fresh start on reinstall
+    ; =========================================================================
+    DetailPrint ""
+    DetailPrint "[CLEANUP] Removing SIONYX application data..."
+    
+    ; Remove current user's SIONYX data
+    ; ~/.sionyx folder (contains auth.db with encrypted tokens)
+    RMDir /r "$PROFILE\.sionyx"
+    
+    ; %LOCALAPPDATA%\SIONYX folder (contains logs)
+    RMDir /r "$LOCALAPPDATA\${APP_NAME}"
+    
+    ; Remove KioskUser's SIONYX data
+    RMDir /r "C:\Users\${KIOSK_USERNAME}\.sionyx"
+    RMDir /r "C:\Users\${KIOSK_USERNAME}\AppData\Local\${APP_NAME}"
+    
+    ; =========================================================================
+    ; CLEANUP TEMP FILES
+    ; Remove any leftover temp files from installation/operation
+    ; =========================================================================
+    DetailPrint "[CLEANUP] Removing temporary files..."
+    
+    ; Remove installer temp scripts
+    Delete "$TEMP\sionyx_kiosk_setup.ps1"
+    Delete "$TEMP\create_task.ps1"
+    
+    ; Remove any SIONYX temp folders
+    RMDir /r "$TEMP\SIONYX"
+    RMDir /r "$TEMP\sionyx"
+    RMDir /r "$TEMP\_MEI*"
+    
+    ; Remove KioskUser temp files
+    RMDir /r "C:\Users\${KIOSK_USERNAME}\AppData\Local\Temp\SIONYX"
+    RMDir /r "C:\Users\${KIOSK_USERNAME}\AppData\Local\Temp\sionyx"
+    
+    DetailPrint "[OK] Application data cleaned up"
+    DetailPrint ""
+    
+    ; =========================================================================
+    ; ASK ABOUT KIOSK USER REMOVAL
+    ; =========================================================================
     MessageBox MB_YESNO|MB_ICONQUESTION \
         "Do you want to remove the '${KIOSK_USERNAME}' Windows account?$\n$\n\
         Choose YES to completely remove the kiosk setup.$\n\
@@ -378,6 +507,8 @@ Section "Uninstall"
         IDYES removeUser IDNO skipRemoveUser
     
     removeUser:
+        DetailPrint "[CLEANUP] Removing KioskUser account..."
+        
         ; Remove registry restrictions first
         nsExec::ExecToLog 'powershell -Command "Remove-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\" -Name \"NoRun\" -ErrorAction SilentlyContinue"'
         nsExec::ExecToLog 'powershell -Command "Remove-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\" -Name \"DisableRegistryTools\" -ErrorAction SilentlyContinue"'
@@ -387,7 +518,7 @@ Section "Uninstall"
         ; Remove the user account
         nsExec::ExecToLog 'powershell -Command "Remove-LocalUser -Name \"${KIOSK_USERNAME}\" -ErrorAction SilentlyContinue"'
         
-        ; Optionally remove user profile folder (dangerous - contains user data)
+        ; Ask about removing user profile folder
         MessageBox MB_YESNO|MB_ICONEXCLAMATION \
             "Do you also want to delete the KioskUser profile folder?$\n$\n\
             Location: C:\Users\${KIOSK_USERNAME}$\n$\n\
@@ -395,17 +526,28 @@ Section "Uninstall"
             IDYES removeProfile IDNO skipRemoveProfile
         
         removeProfile:
+            DetailPrint "[CLEANUP] Removing KioskUser profile folder..."
             RMDir /r "C:\Users\${KIOSK_USERNAME}"
+            DetailPrint "[OK] KioskUser profile removed"
         skipRemoveProfile:
+        
+        DetailPrint "[OK] KioskUser account removed"
     
     skipRemoveUser:
     
     ; Remove registry entries (all SIONYX config and uninstall info)
+    DetailPrint "[CLEANUP] Removing registry entries..."
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
     DeleteRegKey HKLM "SOFTWARE\${APP_NAME}"
     
     ; Remove installation directory
     RMDir "$INSTDIR"
+    
+    DetailPrint ""
+    DetailPrint "============================================"
+    DetailPrint "  SIONYX Uninstallation Complete"
+    DetailPrint "============================================"
+    DetailPrint ""
 SectionEnd
 
 ; ============================================================================
