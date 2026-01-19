@@ -44,23 +44,17 @@ class PackageService(DatabaseService):
         if result.get("success"):
             packages = result.get("data", [])
             
-            # Filter to only active packages
-            active_packages = [p for p in packages if p.get("isActive", True)]
-            logger.info(
-                f"Packages loaded: {len(packages)} total, {len(active_packages)} active",
-                total=len(packages),
-                active=len(active_packages),
-            )
+            logger.info(f"Packages loaded: {len(packages)} total")
             
             # Log package names for debugging
-            if active_packages:
-                names = [p.get("name", "?") for p in active_packages]
-                logger.debug(f"Active packages: {names}")
+            if packages:
+                names = [p.get("name", "?") for p in packages]
+                logger.debug(f"Packages: {names}")
             else:
-                logger.warning("No active packages found!")
+                logger.warning("No packages found in database!")
             
             return self.create_success_response(
-                active_packages, f"Fetched {len(active_packages)} active packages"
+                packages, f"Fetched {len(packages)} packages"
             )
         else:
             logger.error(f"Failed to fetch packages: {result.get('error')}")
