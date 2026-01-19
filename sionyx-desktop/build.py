@@ -26,6 +26,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple
 
+# Force UTF-8 encoding for Windows console (handles Hebrew characters)
+if sys.stdout:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+if sys.stderr:
+    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+
 
 # =============================================================================
 # STYLING
