@@ -105,11 +105,57 @@
   5. Admin sets new password, tells user
   6. User logs in with new password
 
-## 🐛 Known Issues
+## 🐛 Known Issues / Bugs
+
+- [ ] **Print Monitor - First Print No Reaction** 🔴 HIGH PRIORITY
+  - First time someone prints, there is no reaction from the system
+  - Second time there is a reaction but no actual charge is deducted
+  - Needs investigation: WMI event subscription timing? Job detection race condition?
+  - Related: `services/print_monitor_service.py`
+
+- [ ] **Floating Timer - Redundant Button** 🟡 LOW PRIORITY
+  - Remove "החשבון שלי" button from floating timer
+  - If "יציאה" does the same thing, the button is redundant
+  - Related: `ui/floating_timer.py`
 
 - [ ] **Hebrew encoding in console** - Document names with Hebrew show as gibberish in PowerShell
   - Workaround: `chcp 65001` before running
   - Functionality works fine, just display issue
+
+## 🚀 Features (Planned)
+
+### Session Management Improvements
+
+- [ ] **Session Start - Close All Programs** 🟠 MEDIUM PRIORITY
+  - When someone starts a session, software should ensure everything is closed
+  - Close all user programs (browsers, documents, etc.) before new session
+  - Ensures clean state for each customer
+  - Consider: whitelist for SIONYX-related processes
+  - Related: Could extend `ProcessRestrictionService`
+
+- [ ] **Session End - Logout from Gmail/Websites** 🟠 MEDIUM PRIORITY  
+  - When someone ends a session, Gmail and other logged-in sites should be disconnected
+  - Implementation: Clear browser cookies on session end
+  - Options:
+    - Delete cookie folders for Chrome/Edge/Firefox
+    - Use browser automation to clear data
+    - Run browser with `--incognito` flag by default
+  - Security benefit: Prevents next user from accessing previous user's accounts
+
+### Package System Enhancements
+
+- [ ] **Package Expiration/Deadline** 🟢 NEW FEATURE
+  - Packages should have an optional expiration date/deadline
+  - Admin can create time-limited packages (e.g., "100 hours valid for 30 days")
+  - When user buys the package, countdown starts
+  - Once deadline passes, remaining time is reset to 0
+  - Database changes needed:
+    - `packages/{id}`: add `validityDays` field (optional)
+    - `users/{id}`: add `timeExpiresAt` field (optional)
+  - UI changes:
+    - Show expiration date in package cards
+    - Show "expires in X days" in user dashboard
+    - Warning notifications before expiration
 
 ## 🧪 Testing
 
@@ -177,5 +223,5 @@
 - [x] **Handle empty Firebase collections** - No crash on missing data
 
 ---
-*Last updated: 2026-01-16*
+*Last updated: 2026-01-19*
 
