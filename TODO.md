@@ -113,6 +113,43 @@
   - Needs investigation: WMI event subscription timing? Job detection race condition?
   - Related: `services/print_monitor_service.py`
 
+- [ ] **Messages/Chat SSE 401 Unauthorized** 🔴 HIGH PRIORITY
+  - **Log evidence**: Lines 52-53, 62-90, 145-147 in `sionyx_20260119.log`
+  - **Error**: `401 Client Error: Unauthorized` when reading `organizations/{orgId}/messages`
+  - **Root cause**: Firebase security rules only allow per-message read access
+    - Rule: `.read` is on `$messageId` level, not `messages` collection level
+    - ChatService tries to read entire `messages` collection → fails
+  - **Impact**: SSE reconnects with exponential backoff (1s→2s→4s→8s→16s→32s→60s)
+  - **Fix needed**: Either change security rules OR change ChatService to query by user
+  - Related: `database.rules.json` (line 82-112), `services/chat_service.py`
+
+- [ ] **Computer Registration 401 Unauthorized** 🟡 MEDIUM PRIORITY
+  - **Log evidence**: Lines 38-40 in `sionyx_20260119.log`
+  - **Error**: `401 Client Error: Unauthorized` writing to `organizations/{orgId}/computers/{id}`
+  - **Root cause**: Security rules require `data.child('userId').val() == auth.uid` 
+    - But for NEW computers, `data` doesn't exist yet, so check fails
+  - **Impact**: Warning only - login continues but computer registration fails
+  - **Fix needed**: Security rule should allow write if `!data.exists()` (it does, but something's wrong)
+  - Related: `database.rules.json` (line 120), `services/computer_service.py`
+
+- [ ] **Keyboard Hook Failed (Error 0)** 🟡 MEDIUM PRIORITY
+  - **Log evidence**: Line 15 in `sionyx_20260119.log`
+  - **Error**: `"Failed to install keyboard hook: error 0"`
+  - **Root cause**: Windows low-level keyboard hook failed to install
+    - Error 0 means no error code was returned - unusual
+    - Could be: another hook already installed, permission issue, or timing issue
+  - **Impact**: Kiosk mode keyboard restrictions (Alt+Tab, Win key) don't work
+  - **Workaround**: Process restriction still works (blocks cmd, regedit, etc.)
+  - Related: `services/keyboard_restriction_service.py`
+
+- [ ] **Process Cleanup - Discord Not Closable** 🟢 LOW PRIORITY
+  - **Log evidence**: Lines 95-96 in `sionyx_20260119.log`
+  - **Warning**: `"Failed to close 6 processes"` - Discord.exe couldn't be terminated
+  - **Root cause**: Discord may resist termination or have multiple processes
+  - **Impact**: Discord remains open when session starts (minor security issue)
+  - **Fix options**: Force kill with admin rights, or add Discord to whitelist
+  - Related: `services/process_cleanup_service.py`
+
 - [x] **Floating Timer - Redundant Button** ✅ FIXED (v1.7.3)
   - Removed "החשבון שלי" button from floating timer
   - "יציאה" button does the same thing (emit return_clicked)
