@@ -27,6 +27,7 @@ import {
   PrinterOutlined,
   MoreOutlined,
   GiftOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -98,6 +99,7 @@ const PackagesPage = () => {
       discountPercent: record.discountPercent || 0,
       minutes: record.minutes || 0,
       prints: record.prints || 0,
+      validityDays: record.validityDays || 0,
     });
     setModalVisible(true);
   };
@@ -294,10 +296,26 @@ const PackagesPage = () => {
                   padding: '8px 12px',
                   background: '#f6ffed',
                   borderRadius: 8,
+                  marginBottom: pkg.validityDays > 0 ? 8 : 0,
                 }}
               >
                 <PrinterOutlined style={{ color: '#52c41a' }} />
                 <Text style={{ color: '#52c41a' }}>₪{pkg.prints} תקציב הדפסות</Text>
+              </div>
+            )}
+            {pkg.validityDays > 0 && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  background: '#fff7e6',
+                  borderRadius: 8,
+                }}
+              >
+                <CalendarOutlined style={{ color: '#fa8c16' }} />
+                <Text style={{ color: '#fa8c16' }}>תקף ל-{pkg.validityDays} ימים</Text>
               </div>
             )}
           </div>
@@ -456,6 +474,20 @@ const PackagesPage = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          <Form.Item
+            name='validityDays'
+            label='תוקף (ימים)'
+            tooltip='מספר ימים שהחבילה תקפה אחרי הרכישה. השאר 0 ללא תוקף.'
+            rules={[{ type: 'number', min: 0, message: 'חייב להיות חיובי' }]}
+          >
+            <InputNumber 
+              style={{ width: '100%' }} 
+              placeholder='0 = ללא הגבלה' 
+              min={0}
+              addonAfter='ימים'
+            />
+          </Form.Item>
         </Form>
       </Modal>
 
@@ -504,6 +536,11 @@ const PackagesPage = () => {
             </Descriptions.Item>
             <Descriptions.Item label='תקציב הדפסות'>
               {viewingPackage.prints ? `₪${viewingPackage.prints}` : 'אין'}
+            </Descriptions.Item>
+            <Descriptions.Item label='תוקף'>
+              {viewingPackage.validityDays > 0 
+                ? `${viewingPackage.validityDays} ימים` 
+                : 'ללא הגבלה'}
             </Descriptions.Item>
             <Descriptions.Item label='נוצר'>
               {viewingPackage.createdAt ? dayjs(viewingPackage.createdAt).format('DD/MM/YYYY HH:mm') : 'לא זמין'}

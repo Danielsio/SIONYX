@@ -15,7 +15,7 @@ Implementing multiple session-related improvements and bug fixes in a single dev
 | 1 | Remove redundant "החשבון שלי" button | Bug Fix | ✅ Done | `fix/redundant-timer-button` | v1.7.3 |
 | 2 | Clear browser cookies on session end | Feature | ✅ Done | `feature/session-end-cleanup` | v1.8.0 |
 | 3 | Close all programs on session start | Feature | ✅ Done | `feature/session-start-cleanup` | v1.9.0 |
-| 4 | Package expiration/deadline | Feature | ⏳ Pending | `feature/package-expiration` | Minor |
+| 4 | Package expiration/deadline | Feature | ✅ Done | `feature/package-expiration` | v1.10.0 |
 
 ---
 
@@ -158,7 +158,17 @@ Add optional expiration to packages. When user buys, countdown starts. After dea
 
 ### Progress Log
 ```
-[Pending]
+[2026-01-19] Started Task 4
+[2026-01-19] Created branch: feature/package-expiration
+[2026-01-19] Updated database.rules.json with validityDays and timeExpiresAt
+[2026-01-19] Updated PackagesPage.jsx with validity days input/display
+[2026-01-19] Updated purchase_service.py to include validityDays in purchase
+[2026-01-19] Updated functions/index.js to set timeExpiresAt on purchase
+[2026-01-19] Added _check_time_expiration to SessionService
+[2026-01-19] Updated UsersPage.jsx to display expiration date
+[2026-01-19] Added 5 tests for expiration checking
+[2026-01-19] All tests passing
+[2026-01-19] ✅ COMPLETED - Merged and released as v1.10.0
 ```
 
 ---
