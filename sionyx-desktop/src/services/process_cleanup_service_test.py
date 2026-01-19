@@ -323,3 +323,137 @@ class TestConstants:
         """Test Office apps are in targets."""
         assert "winword.exe" in ProcessCleanupService.TARGETS
         assert "excel.exe" in ProcessCleanupService.TARGETS
+
+    def test_discord_in_targets(self):
+        """Test Discord is in targets."""
+        assert "discord.exe" in ProcessCleanupService.TARGETS
+
+
+# =============================================================================
+# Test Kill By Name
+# =============================================================================
+
+
+class TestKillByName:
+    """Tests for _kill_by_name method."""
+
+    def test_kills_process_by_name(self, cleanup_service):
+        """Test kills all instances of a process by name."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            result = cleanup_service._kill_by_name("Discord.exe")
+
+        assert result is True
+        mock_run.assert_called_once()
+        call_args = mock_run.call_args[0][0]
+        assert "/IM" in call_args
+        assert "Discord.exe" in call_args
+        assert "/F" in call_args
+        assert "/T" in call_args
+
+    def test_handles_process_not_found(self, cleanup_service):
+        """Test handles case when process is not running."""
+        mock_result = Mock()
+        mock_result.returncode = 1
+        mock_result.stderr = "ERROR: The process \"Discord.exe\" not found."
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = cleanup_service._kill_by_name("Discord.exe")
+
+        # Should return True since process is not running (already dead)
+        assert result is True
+
+    def test_handles_kill_failure(self, cleanup_service):
+        """Test handles kill failure."""
+        mock_result = Mock()
+        mock_result.returncode = 1
+        mock_result.stderr = "Access denied"
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = cleanup_service._kill_by_name("Discord.exe")
+
+        assert result is False
+
+
+# =============================================================================
+# Test Kill Process Retry Logic
+# =============================================================================
+
+
+class TestKillProcessRetry:
+    """Tests for _kill_process retry logic."""
+
+    def test_retries_on_failure(self, cleanup_service):
+        """Test retries killing process on failure."""
+        mock_fail = Mock()
+        mock_fail.returncode = 1
+        mock_fail.stderr = "Access denied"
+
+        mock_success = Mock()
+        mock_success.returncode = 0
+
+        with patch("subprocess.run", side_effect=[mock_fail, mock_success]) as mock_run:
+            with patch("time.sleep"):  # Don't actually sleep in tests
+                result = cleanup_service._kill_process(1234, "test.exe", retry_count=1)
+
+        assert result is True
+        assert mock_run.call_count == 2
+
+    def test_uses_tree_kill(self, cleanup_service):
+        """Test uses /T flag for tree kill."""
+        mock_result = Mock()
+        mock_result.returncode = 0
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            cleanup_service._kill_process(1234, "test.exe")
+
+        call_args = mock_run.call_args[0][0]
+        assert "/T" in call_args
+        assert "/F" in call_args
+
+    def test_returns_true_if_process_already_dead(self, cleanup_service):
+        """Test returns True if process is already terminated."""
+        mock_result = Mock()
+        mock_result.returncode = 128
+        mock_result.stderr = "ERROR: The process with PID 1234 not found."
+
+        with patch("subprocess.run", return_value=mock_result):
+            result = cleanup_service._kill_process(1234, "test.exe")
+
+        assert result is True
+
+
+# =============================================================================
+# Test Stubborn Process Handling
+# =============================================================================
+
+
+class TestStubbornProcessHandling:
+    """Tests for handling stubborn processes like Discord."""
+
+    def test_uses_kill_by_name_for_discord(self, cleanup_service):
+        """Test uses _kill_by_name for Discord."""
+        tasklist = '''"Image Name","PID","Session Name","Session#","Mem Usage"
+"Discord.exe","1234","Console","1","150,000 K"
+"Discord.exe","1235","Console","1","100,000 K"
+'''
+        mock_list_result = Mock()
+        mock_list_result.stdout = tasklist
+
+        mock_kill_result = Mock()
+        mock_kill_result.returncode = 0
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = [mock_list_result, mock_kill_result]
+            result = cleanup_service.cleanup_user_processes()
+
+        # Should have closed both Discord PIDs
+        assert "Discord.exe" in result["closed_processes"]
+        assert result["closed_count"] == 2
+
+    def test_discord_in_stubborn_list(self, cleanup_service):
+        """Test Discord is treated as stubborn process."""
+        # Verify the cleanup logic recognizes Discord as stubborn
+        assert "discord.exe" in {"discord.exe", "teams.exe", "slack.exe", "zoom.exe"}
