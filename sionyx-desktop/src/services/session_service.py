@@ -9,6 +9,7 @@ from typing import Dict, Optional
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
+from services.browser_cleanup_service import BrowserCleanupService
 from services.computer_service import ComputerService
 from services.firebase_client import FirebaseClient
 from services.print_monitor_service import PrintMonitorService
@@ -164,6 +165,10 @@ class SessionService(QObject):
         # Final sync
         self._final_sync(reason)
 
+        # Clean up browser data (cookies, sessions) for security
+        # This prevents next user from accessing previous user's accounts
+        self._cleanup_browser_data()
+
         # Update state
         self.is_active = False
 
@@ -176,6 +181,34 @@ class SessionService(QObject):
             "time_used": self.time_used,
             "remaining_time": self.remaining_time,
         }
+
+    def _cleanup_browser_data(self):
+        """
+        Clean up browser cookies and session data.
+
+        This is a security measure for kiosk environments to prevent
+        the next user from accessing the previous user's logged-in accounts.
+        """
+        try:
+            logger.info("Cleaning up browser data for session end")
+            cleanup_service = BrowserCleanupService()
+            result = cleanup_service.cleanup_with_browser_close()
+
+            if result.get("success"):
+                logger.info(
+                    "Browser cleanup successful",
+                    chrome_files=result.get("chrome", {}).get("files_deleted", 0),
+                    edge_files=result.get("edge", {}).get("files_deleted", 0),
+                    firefox_files=result.get("firefox", {}).get("files_deleted", 0),
+                )
+            else:
+                logger.warning(
+                    "Browser cleanup completed with errors",
+                    errors=result.get("errors", []),
+                )
+        except Exception as e:
+            # Don't fail session end if cleanup fails
+            logger.error(f"Browser cleanup failed: {e}")
 
     def _on_countdown_tick(self):
         """Called every second to update countdown"""

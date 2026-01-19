@@ -3,7 +3,7 @@ Tests for SessionService
 """
 
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -377,3 +377,78 @@ class TestSessionServiceAdditional:
         result = session_service._get_current_computer_id()
 
         assert result == "unknown"
+
+
+# =============================================================================
+# Browser Cleanup Tests
+# =============================================================================
+
+
+class TestBrowserCleanup:
+    """Tests for browser cleanup on session end."""
+
+    @pytest.fixture
+    def session_service(self, mock_firebase_client, qtbot):
+        """Create SessionService instance with mocked dependencies"""
+        with patch("services.session_service.ComputerService"):
+            with patch("services.session_service.PrintMonitorService"):
+                with patch("services.session_service.BrowserCleanupService"):
+                    return SessionService(mock_firebase_client, "test-user-id", "org")
+
+    def test_end_session_calls_browser_cleanup(
+        self, session_service, mock_firebase_client, qtbot
+    ):
+        """Test end_session calls browser cleanup."""
+        session_service.is_active = True
+        session_service.session_id = "test-session-id"
+        mock_firebase_client.db_update.return_value = {"success": True}
+
+        with patch.object(
+            session_service, "_cleanup_browser_data"
+        ) as mock_cleanup:
+            session_service.end_session("user")
+
+        mock_cleanup.assert_called_once()
+
+    def test_cleanup_browser_data_success(self, session_service):
+        """Test _cleanup_browser_data handles success."""
+        with patch(
+            "services.session_service.BrowserCleanupService"
+        ) as mock_service_cls:
+            mock_service = Mock()
+            mock_service.cleanup_with_browser_close.return_value = {
+                "success": True,
+                "chrome": {"files_deleted": 5},
+                "edge": {"files_deleted": 3},
+                "firefox": {"files_deleted": 2},
+            }
+            mock_service_cls.return_value = mock_service
+
+            session_service._cleanup_browser_data()
+
+        mock_service.cleanup_with_browser_close.assert_called_once()
+
+    def test_cleanup_browser_data_handles_errors(self, session_service):
+        """Test _cleanup_browser_data handles errors gracefully."""
+        with patch(
+            "services.session_service.BrowserCleanupService"
+        ) as mock_service_cls:
+            mock_service = Mock()
+            mock_service.cleanup_with_browser_close.return_value = {
+                "success": False,
+                "errors": ["Permission denied"],
+            }
+            mock_service_cls.return_value = mock_service
+
+            # Should not raise
+            session_service._cleanup_browser_data()
+
+    def test_cleanup_browser_data_handles_exception(self, session_service):
+        """Test _cleanup_browser_data handles exceptions."""
+        with patch(
+            "services.session_service.BrowserCleanupService"
+        ) as mock_service_cls:
+            mock_service_cls.side_effect = Exception("Service error")
+
+            # Should not raise - just logs error
+            session_service._cleanup_browser_data()
