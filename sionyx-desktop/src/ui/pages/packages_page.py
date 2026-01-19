@@ -392,7 +392,26 @@ class PackagesPage(QWidget):
 
         from ui.payment_dialog import PaymentDialog
 
-        dialog = PaymentDialog(package, self)
+        try:
+            dialog = PaymentDialog(package, self)
+        except ValueError as e:
+            logger.error(f"Failed to open payment dialog: {e}")
+            QMessageBox.critical(
+                self,
+                "שגיאה",
+                "לא ניתן לפתוח את חלון התשלום.\n"
+                "נסה להתנתק ולהתחבר מחדש.",
+            )
+            return
+        except Exception as e:
+            logger.exception(f"Unexpected error opening payment dialog: {e}")
+            QMessageBox.critical(
+                self,
+                "שגיאה",
+                f"שגיאה לא צפויה: {e}",
+            )
+            return
+
         result = dialog.exec()
 
         if result == QDialog.DialogCode.Accepted:
