@@ -1,3 +1,0 @@
-SIONYX Software License
-Version 1.10.0
-Copyright (c) 2024 SIONYX Technologies
