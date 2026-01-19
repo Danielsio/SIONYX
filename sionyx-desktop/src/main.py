@@ -41,11 +41,18 @@ QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 
 # Set up logging with appropriate level
 # Support --verbose, -v, or --debug for debug logging
-log_level = (
-    logging.DEBUG
-    if any(arg in sys.argv for arg in ["--verbose", "-v", "--debug"])
-    else logging.INFO
+# Check both exact match and prefix match (for paths like C:\...\SIONYX.exe --debug)
+debug_flags = ["--verbose", "-v", "--debug"]
+is_debug = any(
+    any(arg == flag or arg.endswith(flag) for flag in debug_flags)
+    for arg in sys.argv
 )
+log_level = logging.DEBUG if is_debug else logging.INFO
+
+# Print to stderr so we know if debug is enabled (before logger is set up)
+if is_debug:
+    print(f"[SIONYX] DEBUG mode enabled via command line: {sys.argv}", file=sys.stderr)
+
 SionyxLogger.setup(log_level=log_level, log_to_file=True, enable_colors=True)
 
 SionyxLogger.cleanup_old_logs(days_to_keep=7)

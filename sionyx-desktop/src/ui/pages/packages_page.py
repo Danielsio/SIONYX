@@ -154,20 +154,27 @@ class PackagesPage(QWidget):
 
     def _fetch_packages(self):
         """Fetch packages from service"""
+        logger.debug("PackagesPage._fetch_packages called")
         result = self.package_service.get_all_packages()
+        
+        logger.debug(f"Package fetch result: success={result.get('success')}")
 
         if not result.get("success"):
+            logger.error(f"Failed to fetch packages: {result.get('error')}")
             self.loading_spinner.hide()
             self._show_error()
             return
 
         self.packages = result.get("data", [])
+        logger.info(f"PackagesPage: Received {len(self.packages)} packages to display")
         self.loading_spinner.hide()
 
         if not self.packages:
+            logger.warning("No packages to display - showing empty state")
             self._show_empty()
             return
 
+        logger.debug(f"Displaying {len(self.packages)} packages")
         self._display_packages()
 
     def _show_error(self):

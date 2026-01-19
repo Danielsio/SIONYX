@@ -250,12 +250,11 @@ class SionyxLogger:
 
         root_logger.addHandler(console_handler)
 
-        # File Handler (respects log_level in production, DEBUG in development)
+        # File Handler - always use the specified log_level for files
+        # This ensures --debug flag works in both development and production
         if log_to_file:
             file_handler = logging.FileHandler(log_file, encoding="utf-8")
-            # In production, use the specified log_level; in development, use DEBUG for detailed logs
-            file_log_level = log_level if getattr(sys, "frozen", False) else logging.DEBUG
-            file_handler.setLevel(file_log_level)
+            file_handler.setLevel(log_level)  # Respect the user's choice
             file_handler.setFormatter(FileFormatter())
             root_logger.addHandler(file_handler)
 
