@@ -127,10 +127,12 @@ class PrintMonitorService(QObject):
             # Start WMI event watcher (primary - instant detection)
             self._start_wmi_watcher()
 
-            # Start polling timer (fallback - every 500ms for faster detection)
+            # Start polling timer (fallback - every 250ms for faster detection)
+            # Reduced from 500ms to catch fast-completing jobs like virtual printers
             self._poll_timer = QTimer()
             self._poll_timer.timeout.connect(self._poll_spooler)
-            self._poll_timer.start(500)  # 500ms for faster detection
+            self._poll_timer.start(250)  # 250ms for faster detection
+            logger.debug("Polling timer started with 250ms interval")
 
             self._is_monitoring = True
             logger.info("Print monitor started (WMI events + polling fallback)")
@@ -248,10 +250,15 @@ class PrintMonitorService(QObject):
 
     def _on_wmi_print_job_event(self, event):
         """Handle WMI print job creation event."""
+        import time
+        event_time = time.time()
+        
         try:
             # Extract job info from WMI event
             # WMI Win32_PrintJob properties: Name format is "PrinterName, JobId"
             job_name = event.Name  # e.g., "HP LaserJet, 42"
+            logger.debug(f"WMI raw event received at {event_time:.3f}: {job_name}")
+            
             if "," not in job_name:
                 logger.warning(f"Unexpected job name format: {job_name}")
                 return
@@ -260,7 +267,7 @@ class PrintMonitorService(QObject):
             printer_name = parts[0].strip()
             job_id = int(parts[1].strip())
 
-            logger.info(f"WMI event: New print job {job_id} on '{printer_name}'")
+            logger.info(f"WMI event: New print job {job_id} on '{printer_name}' (detected at {event_time:.3f})")
 
             # Build job data from WMI event
             job_data = {
@@ -278,8 +285,13 @@ class PrintMonitorService(QObject):
 
     def _process_job_thread_safe(self, printer_name: str, job_data: dict):
         """Process a print job with thread safety (can be called from WMI thread)."""
+        import time
+        process_start = time.time()
+        
         job_id = job_data.get("JobId", 0)
         job_key = f"{printer_name}:{job_id}"
+        
+        logger.debug(f"Processing job {job_key} at {process_start:.3f}")
 
         with self._lock:
             # Check if already processed (avoid duplicates from WMI + polling)
@@ -287,6 +299,7 @@ class PrintMonitorService(QObject):
                 logger.debug(f"Job {job_key} already processed, skipping")
                 return
             self._processed_jobs.add(job_key)
+            logger.debug(f"Job {job_key} marked as processed, total processed: {len(self._processed_jobs)}")
 
             # Update known jobs
             if printer_name not in self._known_jobs:
@@ -294,7 +307,9 @@ class PrintMonitorService(QObject):
             self._known_jobs[printer_name].add(job_id)
 
         # Handle the job (actual processing)
+        logger.debug(f"Starting _handle_new_job for {job_key}")
         self._handle_new_job(printer_name, job_data)
+        logger.debug(f"Finished processing job {job_key} in {time.time() - process_start:.3f}s")
 
     # =========================================================================
     # PRICING
@@ -327,10 +342,16 @@ class PrintMonitorService(QObject):
 
     def _get_user_budget(self) -> float:
         """Get user's current print budget (printBalance field)."""
+        db_path = f"users/{self.user_id}"
+        logger.debug(f"Getting user budget from path: {db_path}")
         try:
-            result = self.firebase.db_get(f"users/{self.user_id}")
+            result = self.firebase.db_get(db_path)
+            logger.debug(f"Budget fetch result: success={result.get('success')}, has_data={result.get('data') is not None}")
             if result.get("success") and result.get("data"):
-                return float(result["data"].get("printBalance", 0.0))
+                budget = float(result["data"].get("printBalance", 0.0))
+                logger.debug(f"User budget retrieved: {budget}₪")
+                return budget
+            logger.warning(f"No budget data found for user {self.user_id}")
             return 0.0
         except Exception as e:
             logger.error(f"Error getting user budget: {e}")
@@ -338,12 +359,16 @@ class PrintMonitorService(QObject):
 
     def _deduct_budget(self, amount: float) -> bool:
         """Deduct amount from user's print budget."""
+        db_path = f"users/{self.user_id}"
+        logger.debug(f"Deducting {amount}₪ from user budget at path: {db_path}")
         try:
             current_budget = self._get_user_budget()
             new_budget = max(0.0, current_budget - amount)
+            
+            logger.debug(f"Budget calculation: {current_budget}₪ - {amount}₪ = {new_budget}₪")
 
             result = self.firebase.db_update(
-                f"users/{self.user_id}",
+                db_path,
                 {
                     "printBalance": new_budget,
                     "updatedAt": datetime.now().isoformat(),
@@ -623,7 +648,15 @@ class PrintMonitorService(QObject):
 
             if not hasattr(self, "_last_poll_log"):
                 self._last_poll_log = 0
+            if not hasattr(self, "_poll_count"):
+                self._poll_count = 0
+            
+            self._poll_count += 1
             now = time.time()
+            
+            # Log every poll at DEBUG level for detailed debugging
+            logger.debug(f"Poll #{self._poll_count} - checking {len(printers)} printers")
+            
             if now - self._last_poll_log > 30:
                 logger.info(f"Print monitor active - polling {len(printers)} printers")
                 self._last_poll_log = now
