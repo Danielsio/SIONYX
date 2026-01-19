@@ -138,17 +138,41 @@ class PaymentDialog(QDialog):
 
         # Derive dependencies from parent (e.g., PackagesPage)
         self.auth_service = getattr(parent, "auth_service", None)
-        derived_user = getattr(parent, "current_user", None)
 
         if self.auth_service is None:
             logger.error("PaymentDialog could not find 'auth_service' on parent")
             raise ValueError("Parent must expose 'auth_service'")
 
-        # Fallback to fetching from auth if not provided by parent
-        if derived_user is None and hasattr(self.auth_service, "get_current_user"):
+        # ALWAYS get fresh user from auth_service - don't rely on cached page data
+        # This fixes crashes when page's current_user is stale or None
+        derived_user = None
+        if hasattr(self.auth_service, "get_current_user"):
             derived_user = self.auth_service.get_current_user()
+            logger.debug(
+                "PaymentDialog fetched user from auth_service",
+                has_user=derived_user is not None,
+                has_uid=derived_user.get("uid") if derived_user else None,
+            )
+
+        # Fallback to parent's cached user if auth_service returns None
+        if derived_user is None:
+            derived_user = getattr(parent, "current_user", None)
+            logger.debug(
+                "PaymentDialog falling back to parent.current_user",
+                has_user=derived_user is not None,
+            )
 
         self.user = derived_user or {}
+        
+        # Validate user has required uid field
+        if not self.user.get("uid"):
+            logger.error(
+                "PaymentDialog: No valid user with uid found",
+                derived_user=derived_user,
+                action="payment_init_failed",
+            )
+            raise ValueError("Cannot initiate payment: user not properly loaded")
+        
         self.payment_response = None
         self.purchase_id = None
         self._local_server: LocalFileServer | None = None
