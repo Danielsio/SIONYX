@@ -80,6 +80,7 @@
         },
         
         "messages": {
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
           ".indexOn": ["toUserId", "timestamp", "read"],
 
           "$messageId": {
