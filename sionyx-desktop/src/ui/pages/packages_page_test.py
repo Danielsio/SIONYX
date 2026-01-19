@@ -456,10 +456,11 @@ class TestPackagesPage:
     def test_fetch_packages_updates_display(self, mock_auth_service, qapp):
         """Test that calling _fetch_packages updates the display"""
         mock_service = Mock()
-        # First return empty, then return packages
+        # PackagesPage.__init__ calls load_packages() which uses QTimer.singleShot(300, ...)
+        # That timer doesn't fire in tests (no event loop processing), so only explicit calls count
         mock_service.get_all_packages.side_effect = [
-            {"success": True, "data": []},
-            {"success": True, "data": MOCK_PACKAGES},
+            {"success": True, "data": []},  # First explicit call - empty
+            {"success": True, "data": MOCK_PACKAGES},  # Second explicit call - with data
         ]
 
         def mock_calculate_final_price(package):
@@ -481,11 +482,11 @@ class TestPackagesPage:
             side_effect=mock_calculate_final_price,
         ):
             page = PackagesPage(mock_auth_service)
-            page._fetch_packages()  # First fetch - empty
+            page._fetch_packages()  # First explicit fetch - empty
 
             assert page.packages == []
 
-            page._fetch_packages()  # Second fetch - with data
+            page._fetch_packages()  # Second explicit fetch - with data
 
             assert len(page.packages) == 3
 
