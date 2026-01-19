@@ -45,7 +45,7 @@ class FloatingTimer(QWidget):
         )
 
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setFixedSize(280, 140)  # Further increased height for perfect text display
+        self.setFixedSize(280, 110)  # Compact height after removing redundant button
 
         # Position at top-center of screen - stick to ceiling
         from PyQt6.QtWidgets import QApplication
@@ -58,7 +58,7 @@ class FloatingTimer(QWidget):
         # Debug positioning (only shown at DEBUG level)
         logger.debug(f"Screen size: {screen.width()}x{screen.height()}")
         logger.debug(f"Timer positioned at: {x}, {y}")
-        logger.debug("Timer size: 280x140")
+        logger.debug("Timer size: 280x110")
 
         # Main container
         self.container = QWidget()
@@ -107,12 +107,8 @@ class FloatingTimer(QWidget):
         )  # Further reduced minimum width for more compact design
 
         right_layout = QVBoxLayout(right_section)
-        right_layout.setContentsMargins(
-            12, 20, 12, 20
-        )  # Further increased vertical padding for perfect text fit
-        right_layout.setSpacing(
-            10
-        )  # Increased spacing between elements for better text fit
+        right_layout.setContentsMargins(12, 12, 12, 12)  # Compact padding
+        right_layout.setSpacing(6)  # Compact spacing
         right_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
 
         # Time remaining row
@@ -169,19 +165,11 @@ class FloatingTimer(QWidget):
         print_balance_row.addWidget(self.print_balance_value)
         print_balance_row.addWidget(self.print_balance_label)
 
-        # My Account button
-        self.account_button = QPushButton("החשבון שלי")
-        self.account_button.setObjectName("accountButton")
-        self.account_button.setFont(QFont("Segoe UI", 12))
-        self.account_button.setFixedHeight(30)
-        self.account_button.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.account_button.clicked.connect(self.return_clicked.emit)
+        # Removed redundant "החשבון שלי" button - "יציאה" button does the same thing
 
         right_layout.addLayout(time_remaining_row)
         right_layout.addLayout(usage_time_row)
         right_layout.addLayout(print_balance_row)
-        right_layout.addStretch()
-        right_layout.addWidget(self.account_button)
 
         # Add sections to main layout
         main_layout.addWidget(left_section)
@@ -337,23 +325,6 @@ class FloatingTimer(QWidget):
                 font-weight: bold;
                 font-size: 16px;
             }
-
-            #accountButton {
-                background-color: #363636;
-                color: #FFFFFF;
-                border: 1px solid #AAAAAA;
-                border-radius: 4px;
-                font-size: 12px;
-                padding: 6px 12px;
-            }
-
-            #accountButton:hover {
-                background-color: #4A4A4A;
-            }
-
-            #accountButton:pressed {
-                background-color: #2A2A2A;
-            }
         """
         )
 
@@ -443,23 +414,6 @@ class FloatingTimer(QWidget):
                 font-weight: bold;
                 font-size: 16px;
             }
-
-            #accountButton {
-                background-color: #4A3A00;
-                color: #FFFFFF;
-                border: 1px solid #FFA500;
-                border-radius: 4px;
-                font-size: 9px;
-                padding: 6px 12px;
-            }
-
-            #accountButton:hover {
-                background-color: #5A4A00;
-            }
-
-            #accountButton:pressed {
-                background-color: #3A2A00;
-            }
         """
         )
 
@@ -540,23 +494,6 @@ class FloatingTimer(QWidget):
                 color: #FFFFFF;
                 font-weight: bold;
                 font-size: 16px;
-            }
-
-            #accountButton {
-                background-color: #4A0000;
-                color: #FFFFFF;
-                border: 1px solid #FF0000;
-                border-radius: 4px;
-                font-size: 9px;
-                padding: 6px 12px;
-            }
-
-            #accountButton:hover {
-                background-color: #5A0000;
-            }
-
-            #accountButton:pressed {
-                background-color: #3A0000;
             }
         """
         )
