@@ -50,9 +50,9 @@ class TestFloatingTimerInit:
         assert hasattr(floating_timer, "return_clicked")
 
     def test_has_fixed_size(self, floating_timer):
-        """Test timer has fixed size"""
+        """Test timer has fixed size (compact after removing redundant button)"""
         assert floating_timer.width() == 280
-        assert floating_timer.height() == 140
+        assert floating_timer.height() == 110
 
     def test_has_frameless_window_hint(self, floating_timer):
         """Test timer has frameless window hint"""
@@ -120,12 +120,6 @@ class TestFloatingTimerUI:
         """Test timer has print balance label"""
         assert hasattr(floating_timer, "print_balance_label")
         assert isinstance(floating_timer.print_balance_label, QLabel)
-
-    def test_has_account_button(self, floating_timer):
-        """Test timer has account button"""
-        assert hasattr(floating_timer, "account_button")
-        assert isinstance(floating_timer.account_button, QPushButton)
-
 
 # =============================================================================
 # Test update_time
@@ -306,16 +300,6 @@ class TestButtonSignals:
 
         assert len(signal_received) == 1
 
-    def test_account_button_emits_return_clicked(self, floating_timer):
-        """Test account button click emits return_clicked signal"""
-        signal_received = []
-        floating_timer.return_clicked.connect(lambda: signal_received.append(True))
-
-        floating_timer.account_button.click()
-
-        assert len(signal_received) == 1
-
-
 # =============================================================================
 # Test style methods
 # =============================================================================
@@ -408,11 +392,6 @@ class TestInitialLabelValues:
     def test_exit_button_text(self, floating_timer):
         """Test exit button has Hebrew text"""
         assert "יציאה" in floating_timer.exit_button.text()
-
-    def test_account_button_text(self, floating_timer):
-        """Test account button has Hebrew text"""
-        assert "החשבון שלי" in floating_timer.account_button.text()
-
 
 # =============================================================================
 # Test mouse tracking
