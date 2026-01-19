@@ -6,7 +6,8 @@ This ensures a clean state for each customer in kiosk environments.
 """
 
 import subprocess
-from typing import Dict, List, Set
+import time
+from typing import Dict, List
 
 from utils.logger import get_logger
 
@@ -161,6 +162,9 @@ class ProcessCleanupService:
         # Get list of running processes
         running_processes = self._get_running_processes()
 
+        # Stubborn processes that need special handling (kill by name first)
+        stubborn_processes = {"discord.exe", "teams.exe", "slack.exe", "zoom.exe"}
+
         for process_name, pids in running_processes.items():
             process_lower = process_name.lower()
 
@@ -168,18 +172,31 @@ class ProcessCleanupService:
             if process_lower in self.WHITELIST:
                 continue
 
-            # Only kill if it's a known target OR if we're being aggressive
+            # Only kill if it's a known target
             if process_lower in self.TARGETS:
-                for pid in pids:
-                    success = self._kill_process(pid, process_name)
+                # For stubborn processes, try kill by name first (more effective)
+                if process_lower in stubborn_processes:
+                    success = self._kill_by_name(process_name)
                     if success:
-                        closed_count += 1
+                        closed_count += len(pids)
                         if process_name not in closed_processes:
                             closed_processes.append(process_name)
                     else:
-                        failed_count += 1
+                        failed_count += len(pids)
                         if process_name not in failed_processes:
                             failed_processes.append(process_name)
+                else:
+                    # Regular kill by PID with retry
+                    for pid in pids:
+                        success = self._kill_process(pid, process_name)
+                        if success:
+                            closed_count += 1
+                            if process_name not in closed_processes:
+                                closed_processes.append(process_name)
+                        else:
+                            failed_count += 1
+                            if process_name not in failed_processes:
+                                failed_processes.append(process_name)
 
         result = {
             "success": failed_count == 0,
@@ -246,37 +263,96 @@ class ProcessCleanupService:
 
         return processes
 
-    def _kill_process(self, pid: int, name: str) -> bool:
+    def _kill_process(self, pid: int, name: str, retry_count: int = 2) -> bool:
         """
-        Kill a process by PID.
+        Kill a process by PID with retry logic.
+
+        Uses /F (force) and /T (tree - kill child processes) flags.
+        Retries on failure to handle stubborn processes like Discord.
 
         Args:
             pid: Process ID
             name: Process name (for logging)
+            retry_count: Number of retries on failure (default 2)
+
+        Returns:
+            True if successfully killed
+        """
+        for attempt in range(retry_count + 1):
+            try:
+                # Use /F (force) and /T (tree - kill child processes)
+                result = subprocess.run(
+                    ["taskkill", "/PID", str(pid), "/F", "/T"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+
+                if result.returncode == 0:
+                    logger.debug(f"Killed process: {name} (PID: {pid})")
+                    return True
+                else:
+                    # Check if process no longer exists (already dead)
+                    if "not found" in result.stderr.lower():
+                        logger.debug(f"Process already terminated: {name} (PID: {pid})")
+                        return True
+
+                    if attempt < retry_count:
+                        logger.debug(
+                            f"Retry {attempt + 1}/{retry_count} for {name}: {result.stderr.strip()}"
+                        )
+                        time.sleep(0.2)  # Brief delay before retry
+                    else:
+                        logger.debug(f"Failed to kill {name} after {retry_count + 1} attempts")
+                        return False
+
+            except subprocess.TimeoutExpired:
+                logger.warning(f"Timeout killing process: {name}")
+                if attempt == retry_count:
+                    return False
+                time.sleep(0.2)
+            except Exception as e:
+                logger.error(f"Error killing process {name}: {e}")
+                return False
+
+        return False
+
+    def _kill_by_name(self, process_name: str) -> bool:
+        """
+        Kill all instances of a process by name.
+
+        This is more effective for stubborn processes like Discord
+        that have multiple PIDs. Kills all at once.
+
+        Args:
+            process_name: Process name (e.g., "Discord.exe")
 
         Returns:
             True if successfully killed
         """
         try:
             result = subprocess.run(
-                ["taskkill", "/PID", str(pid), "/F"],
+                ["taskkill", "/IM", process_name, "/F", "/T"],
                 capture_output=True,
                 text=True,
-                timeout=5,
+                timeout=10,
             )
 
             if result.returncode == 0:
-                logger.debug(f"Killed process: {name} (PID: {pid})")
+                logger.debug(f"Killed all instances of: {process_name}")
+                return True
+            elif "not found" in result.stderr.lower():
+                logger.debug(f"Process not running: {process_name}")
                 return True
             else:
-                logger.debug(f"Failed to kill {name}: {result.stderr}")
+                logger.debug(f"Failed to kill by name {process_name}: {result.stderr.strip()}")
                 return False
 
         except subprocess.TimeoutExpired:
-            logger.warning(f"Timeout killing process: {name}")
+            logger.warning(f"Timeout killing process by name: {process_name}")
             return False
         except Exception as e:
-            logger.error(f"Error killing process {name}: {e}")
+            logger.error(f"Error killing process by name {process_name}: {e}")
             return False
 
     def close_browsers_only(self) -> Dict[str, any]:
