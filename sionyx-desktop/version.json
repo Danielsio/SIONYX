@@ -1,10 +1,10 @@
 {
-  "version": "1.10.4",
+  "version": "1.10.5",
   "major": 1,
   "minor": 10,
-  "patch": 4,
-  "buildNumber": 54,
-  "lastBuildDate": "2026-01-20T00:40:26.927536",
+  "patch": 5,
+  "buildNumber": 55,
+  "lastBuildDate": "2026-01-20T01:09:50.460267",
   "changelog": [
     "feat: Remove redundant account button from floating timer",
     "feat: Clear browser cookies on session end",
