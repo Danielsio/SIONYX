@@ -13,7 +13,7 @@ Implementing multiple session-related improvements and bug fixes in a single dev
 | # | Task | Type | Status | Branch | Release |
 |---|------|------|--------|--------|---------|
 | 1 | Remove redundant "החשבון שלי" button | Bug Fix | ✅ Done | `fix/redundant-timer-button` | v1.7.3 |
-| 2 | Clear browser cookies on session end | Feature | ⏳ Pending | `feature/session-end-cleanup` | Minor |
+| 2 | Clear browser cookies on session end | Feature | ✅ Done | `feature/session-end-cleanup` | v1.8.0 |
 | 3 | Close all programs on session start | Feature | ⏳ Pending | `feature/session-start-cleanup` | Minor |
 | 4 | Package expiration/deadline | Feature | ⏳ Pending | `feature/package-expiration` | Minor |
 
@@ -75,7 +75,14 @@ Clear browser cookies/data when session ends. Options:
 
 ### Progress Log
 ```
-[Pending]
+[2026-01-19] Started Task 2
+[2026-01-19] Created branch: feature/session-end-cleanup
+[2026-01-19] Created BrowserCleanupService with Chrome/Edge/Firefox support
+[2026-01-19] Integrated cleanup into SessionService.end_session()
+[2026-01-19] Added 24 tests for BrowserCleanupService
+[2026-01-19] Added 4 tests for session service integration
+[2026-01-19] All tests passing
+[2026-01-19] ✅ COMPLETED - Merged and released as v1.8.0
 ```
 
 ---
