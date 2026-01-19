@@ -13,6 +13,7 @@ from services.browser_cleanup_service import BrowserCleanupService
 from services.computer_service import ComputerService
 from services.firebase_client import FirebaseClient
 from services.print_monitor_service import PrintMonitorService
+from services.process_cleanup_service import ProcessCleanupService
 from utils.logger import get_logger
 
 
@@ -85,6 +86,10 @@ class SessionService(QObject):
         if initial_remaining_time <= 0:
             logger.error("Cannot start session with 0 time")
             return {"success": False, "error": "No time remaining"}
+
+        # Clean up previous user's processes for a fresh start
+        # This ensures each customer gets a clean computer
+        self._cleanup_user_processes()
 
         # OPTIMIZATION: No separate session table!
         # Store everything on user record to save 50% more writes
@@ -209,6 +214,33 @@ class SessionService(QObject):
         except Exception as e:
             # Don't fail session end if cleanup fails
             logger.error(f"Browser cleanup failed: {e}")
+
+    def _cleanup_user_processes(self):
+        """
+        Close user processes before starting a new session.
+
+        This ensures each customer gets a clean computer with no
+        leftover applications from the previous user.
+        """
+        try:
+            logger.info("Cleaning up user processes for new session")
+            cleanup_service = ProcessCleanupService()
+            result = cleanup_service.cleanup_user_processes()
+
+            if result.get("success"):
+                logger.info(
+                    "Process cleanup successful",
+                    closed_count=result.get("closed_count", 0),
+                    closed=result.get("closed_processes", []),
+                )
+            else:
+                logger.warning(
+                    "Process cleanup completed with some failures",
+                    failed=result.get("failed_processes", []),
+                )
+        except Exception as e:
+            # Don't fail session start if cleanup fails
+            logger.error(f"Process cleanup failed: {e}")
 
     def _on_countdown_tick(self):
         """Called every second to update countdown"""
