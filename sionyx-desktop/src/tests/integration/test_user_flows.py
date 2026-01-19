@@ -129,15 +129,17 @@ class TestSessionFlow:
     @pytest.fixture
     def session_service(self, qapp, mock_firebase_client):
         """Create SessionService for testing."""
-        service = SessionService(
-            firebase_client=mock_firebase_client,
-            user_id="test-user-session",
-            org_id="test-org",
-        )
-        yield service
-        # Cleanup
-        if service.is_active:
-            service.end_session("test_cleanup")
+        # Mock ProcessCleanupService to avoid killing actual processes during tests
+        with patch("services.session_service.ProcessCleanupService"):
+            service = SessionService(
+                firebase_client=mock_firebase_client,
+                user_id="test-user-session",
+                org_id="test-org",
+            )
+            yield service
+            # Cleanup
+            if service.is_active:
+                service.end_session("test_cleanup")
 
     def test_start_session_initializes_correctly(self, session_service):
         """Test starting a session initializes all components."""
@@ -304,27 +306,29 @@ class TestFullUserJourney:
         assert assoc_result["success"] is True
         
         # ===== STEP 4: START SESSION =====
-        session_service = SessionService(
-            firebase_client=mock_firebase_client,
-            user_id=user_id,
-            org_id="test-org",
-        )
-        
-        initial_time = 3600  # 1 hour
-        session_result = session_service.start_session(initial_time)
-        assert session_result["success"] is True
-        assert session_service.is_active is True
-        
-        # ===== STEP 5: USE TIME (Simulate countdown) =====
-        # Manually trigger countdown tick (more reliable than waiting)
-        session_service._on_countdown_tick()
-        
-        assert session_service.remaining_time == initial_time - 1
-        
-        # ===== STEP 6: RETURN FROM SESSION =====
-        end_result = session_service.end_session("user")
-        assert end_result["success"] is True
-        assert session_service.is_active is False
+        # Mock ProcessCleanupService to avoid killing actual processes during tests
+        with patch("services.session_service.ProcessCleanupService"):
+            session_service = SessionService(
+                firebase_client=mock_firebase_client,
+                user_id=user_id,
+                org_id="test-org",
+            )
+            
+            initial_time = 3600  # 1 hour
+            session_result = session_service.start_session(initial_time)
+            assert session_result["success"] is True
+            assert session_service.is_active is True
+            
+            # ===== STEP 5: USE TIME (Simulate countdown) =====
+            # Manually trigger countdown tick (more reliable than waiting)
+            session_service._on_countdown_tick()
+            
+            assert session_service.remaining_time == initial_time - 1
+            
+            # ===== STEP 6: RETURN FROM SESSION =====
+            end_result = session_service.end_session("user")
+            assert end_result["success"] is True
+            assert session_service.is_active is False
         
         # ===== STEP 7: LOGOUT =====
         logout_result = computer_service.disassociate_user_from_computer(
