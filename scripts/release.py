@@ -140,6 +140,7 @@ def main():
     group.add_argument("--patch", action="store_true", help="Patch release (bug fixes)")
     parser.add_argument("--dry-run", action="store_true", help="Show what would happen")
     parser.add_argument("--no-push", action="store_true", help="Don't push to remote")
+    parser.add_argument("--skip-coverage-check", action="store_true", help="Skip coverage check (for critical fixes)")
     
     args = parser.parse_args()
     
@@ -230,7 +231,10 @@ def main():
     os.chdir("sionyx-desktop")
     
     # Build with specific version - this will update version.json if successful
-    exit_code = run_cmd_live(["python", "build.py", "--version", new_version])
+    build_cmd = ["python", "build.py", "--version", new_version]
+    if args.skip_coverage_check:
+        build_cmd.append("--skip-coverage-check")
+    exit_code = run_cmd_live(build_cmd)
     
     os.chdir(original_dir)
     
