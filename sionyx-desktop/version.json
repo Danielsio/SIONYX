@@ -1,10 +1,10 @@
 {
-  "version": "1.7.2",
+  "version": "1.7.3",
   "major": 1,
   "minor": 7,
-  "patch": 2,
-  "buildNumber": 44,
-  "lastBuildDate": "2026-01-18T20:13:31.779660",
+  "patch": 3,
+  "buildNumber": 45,
+  "lastBuildDate": "2026-01-19T21:11:59.876871",
   "changelog": [],
-  "coverage": 96.06
+  "coverage": 95.96
 }
