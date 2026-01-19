@@ -107,48 +107,31 @@
 
 ## 🐛 Known Issues / Bugs
 
-- [ ] **Print Monitor - First Print No Reaction** 🔴 HIGH PRIORITY
+- [ ] **Print Monitor - First Print No Reaction** 🔴 HIGH PRIORITY - UNDER INVESTIGATION
   - First time someone prints, there is no reaction from the system
   - Second time there is a reaction but no actual charge is deducted
-  - Needs investigation: WMI event subscription timing? Job detection race condition?
-  - Related: `services/print_monitor_service.py`
+  - **v1.10.1**: Added extensive debug logging + reduced polling to 250ms
+  - Run with `--debug` flag and check logs to diagnose
+  - Possible cause: Virtual printers (PDF, OneNote) complete too fast
+  - Related: `services/print_monitor_service.py`, `docs/WIP-fix-print-monitor-first-print.md`
 
-- [ ] **Messages/Chat SSE 401 Unauthorized** 🔴 HIGH PRIORITY
-  - **Log evidence**: Lines 52-53, 62-90, 145-147 in `sionyx_20260119.log`
-  - **Error**: `401 Client Error: Unauthorized` when reading `organizations/{orgId}/messages`
-  - **Root cause**: Firebase security rules only allow per-message read access
-    - Rule: `.read` is on `$messageId` level, not `messages` collection level
-    - ChatService tries to read entire `messages` collection → fails
-  - **Impact**: SSE reconnects with exponential backoff (1s→2s→4s→8s→16s→32s→60s)
-  - **Fix needed**: Either change security rules OR change ChatService to query by user
-  - Related: `database.rules.json` (line 82-112), `services/chat_service.py`
+- [x] **Messages/Chat SSE 401 Unauthorized** ✅ FIXED (v1.10.1)
+  - **Fix**: Added collection-level `.read` rule for messages
+  - Related: `database.rules.json`, `docs/WIP-fix-messages-sse-401.md`
 
-- [ ] **Computer Registration 401 Unauthorized** 🟡 MEDIUM PRIORITY
-  - **Log evidence**: Lines 38-40 in `sionyx_20260119.log`
-  - **Error**: `401 Client Error: Unauthorized` writing to `organizations/{orgId}/computers/{id}`
-  - **Root cause**: Security rules require `data.child('userId').val() == auth.uid` 
-    - But for NEW computers, `data` doesn't exist yet, so check fails
-  - **Impact**: Warning only - login continues but computer registration fails
-  - **Fix needed**: Security rule should allow write if `!data.exists()` (it does, but something's wrong)
-  - Related: `database.rules.json` (line 120), `services/computer_service.py`
+- [x] **Computer Registration 401 Unauthorized** ✅ FIXED (v1.10.1)
+  - **Fix**: Simplified write rule - any org user can claim any computer
+  - Related: `database.rules.json`, `docs/WIP-fix-computer-registration-401.md`
 
-- [ ] **Keyboard Hook Failed (Error 0)** 🟡 MEDIUM PRIORITY
-  - **Log evidence**: Line 15 in `sionyx_20260119.log`
-  - **Error**: `"Failed to install keyboard hook: error 0"`
-  - **Root cause**: Windows low-level keyboard hook failed to install
-    - Error 0 means no error code was returned - unusual
-    - Could be: another hook already installed, permission issue, or timing issue
-  - **Impact**: Kiosk mode keyboard restrictions (Alt+Tab, Win key) don't work
-  - **Workaround**: Process restriction still works (blocks cmd, regedit, etc.)
-  - Related: `services/keyboard_restriction_service.py`
+- [x] **Keyboard Hook Failed (Error 0)** ✅ DEBUG LOGGING ADDED (v1.10.1)
+  - **Fix**: Added extensive debug logging + --debug flag
+  - Run with `SIONYX.exe --debug` to get detailed logs
+  - Related: `services/keyboard_restriction_service.py`, `docs/WIP-fix-keyboard-hook-debug.md`
 
-- [ ] **Process Cleanup - Discord Not Closable** 🟢 LOW PRIORITY
-  - **Log evidence**: Lines 95-96 in `sionyx_20260119.log`
-  - **Warning**: `"Failed to close 6 processes"` - Discord.exe couldn't be terminated
-  - **Root cause**: Discord may resist termination or have multiple processes
-  - **Impact**: Discord remains open when session starts (minor security issue)
-  - **Fix options**: Force kill with admin rights, or add Discord to whitelist
-  - Related: `services/process_cleanup_service.py`
+- [x] **Process Cleanup - Discord Not Closable** ✅ FIXED (v1.10.1)
+  - **Fix**: Added retry logic + tree kill (/T flag) for stubborn processes
+  - Discord, Teams, Slack, Zoom now use kill-by-name for better results
+  - Related: `services/process_cleanup_service.py`, `docs/WIP-fix-discord-force-kill.md`
 
 - [x] **Floating Timer - Redundant Button** ✅ FIXED (v1.7.3)
   - Removed "החשבון שלי" button from floating timer
