@@ -325,6 +325,7 @@ exports.nedarimCallback = onRequest(async (req, res) => {
           const currentPrintBudget = user.printBalance || 0;
           const addingMinutes = purchase.minutes || 0;
           const addingPrintBudget = purchase.printBudget || 0;
+          const validityDays = purchase.validityDays || 0;
           const newTime = currentTime + (addingMinutes * 60);
           const newPrintBudget = currentPrintBudget + addingPrintBudget;
 
@@ -335,19 +336,34 @@ exports.nedarimCallback = onRequest(async (req, res) => {
             currentPrintBudget,
             addingPrintBudget,
             newPrintBudget,
+            validityDays,
             userId: purchase.userId,
           });
 
-          // Performance timing for user update
-          const userUpdateTimer = createTimer("user-crediting-update");
-          await userRef.update({
+          // Calculate expiration date if package has validity
+          const updatePayload = {
             remainingTime: newTime,
-            printBalance: newPrintBudget, // Now stores print budget in NIS
+            printBalance: newPrintBudget,
             updatedAt: new Date().toISOString(),
             lastCreditedAt: new Date().toISOString(),
             lastCreditedBy: "nedarim-callback",
             correlationId,
-          });
+          };
+
+          // Set time expiration if package has validityDays
+          if (validityDays > 0) {
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + validityDays);
+            updatePayload.timeExpiresAt = expiresAt.toISOString();
+            log.info("Setting time expiration", {
+              validityDays,
+              expiresAt: updatePayload.timeExpiresAt,
+            });
+          }
+
+          // Performance timing for user update
+          const userUpdateTimer = createTimer("user-crediting-update");
+          await userRef.update(updatePayload);
           userUpdateTimer.end(log.info);
 
           log.info("User credited successfully", {
