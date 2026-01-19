@@ -25,6 +25,9 @@
             },
             "forceLogout": {
               ".validate": "newData.isBoolean()"
+            },
+            "timeExpiresAt": {
+              ".validate": "newData.isString() || !newData.exists()"
             }
           }
         },
@@ -44,6 +47,9 @@
               ".validate": "newData.isNumber() && newData.val() >= 0"
             },
             "timeMinutes": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "validityDays": {
               ".validate": "newData.isNumber() && newData.val() >= 0"
             },
             "isActive": {
