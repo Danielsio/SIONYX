@@ -113,10 +113,10 @@
   - Needs investigation: WMI event subscription timing? Job detection race condition?
   - Related: `services/print_monitor_service.py`
 
-- [ ] **Floating Timer - Redundant Button** 🟡 LOW PRIORITY
-  - Remove "החשבון שלי" button from floating timer
-  - If "יציאה" does the same thing, the button is redundant
-  - Related: `ui/floating_timer.py`
+- [x] **Floating Timer - Redundant Button** ✅ FIXED (v1.7.3)
+  - Removed "החשבון שלי" button from floating timer
+  - "יציאה" button does the same thing (emit return_clicked)
+  - Widget height reduced from 140 to 110 for compact design
 
 - [ ] **Hebrew encoding in console** - Document names with Hebrew show as gibberish in PowerShell
   - Workaround: `chcp 65001` before running
@@ -126,36 +126,28 @@
 
 ### Session Management Improvements
 
-- [ ] **Session Start - Close All Programs** 🟠 MEDIUM PRIORITY
-  - When someone starts a session, software should ensure everything is closed
-  - Close all user programs (browsers, documents, etc.) before new session
-  - Ensures clean state for each customer
-  - Consider: whitelist for SIONYX-related processes
-  - Related: Could extend `ProcessRestrictionService`
+- [x] **Session Start - Close All Programs** ✅ COMPLETED (v1.9.0)
+  - Created `ProcessCleanupService` with whitelist/targets
+  - Closes browsers, Office apps, media players, etc. on session start
+  - Whitelist protects SIONYX, system processes, Windows core
+  - 22 tests added for cleanup service
 
-- [ ] **Session End - Logout from Gmail/Websites** 🟠 MEDIUM PRIORITY  
-  - When someone ends a session, Gmail and other logged-in sites should be disconnected
-  - Implementation: Clear browser cookies on session end
-  - Options:
-    - Delete cookie folders for Chrome/Edge/Firefox
-    - Use browser automation to clear data
-    - Run browser with `--incognito` flag by default
-  - Security benefit: Prevents next user from accessing previous user's accounts
+- [x] **Session End - Logout from Gmail/Websites** ✅ COMPLETED (v1.8.0)
+  - Created `BrowserCleanupService` for cookie/session cleanup
+  - Clears Chrome, Edge, Firefox cookies and login data
+  - Closes browsers before cleanup for clean deletion
+  - 24 tests added for cleanup service
 
 ### Package System Enhancements
 
-- [ ] **Package Expiration/Deadline** 🟢 NEW FEATURE
-  - Packages should have an optional expiration date/deadline
-  - Admin can create time-limited packages (e.g., "100 hours valid for 30 days")
-  - When user buys the package, countdown starts
-  - Once deadline passes, remaining time is reset to 0
-  - Database changes needed:
-    - `packages/{id}`: add `validityDays` field (optional)
-    - `users/{id}`: add `timeExpiresAt` field (optional)
-  - UI changes:
-    - Show expiration date in package cards
-    - Show "expires in X days" in user dashboard
-    - Warning notifications before expiration
+- [x] **Package Expiration/Deadline** ✅ COMPLETED (v1.10.0)
+  - Packages now have optional `validityDays` field
+  - Users have `timeExpiresAt` set when purchasing expiring packages
+  - Session start checks expiration and resets time if expired
+  - Web admin: Package creation shows validity days input
+  - Web admin: User details show expiration date
+  - Firebase function sets expiration on purchase completion
+  - 5 tests added for expiration checking
 
 ## 🧪 Testing
 
