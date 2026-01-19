@@ -40,8 +40,11 @@ from utils.logger import (
 QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 
 # Set up logging with appropriate level
+# Support --verbose, -v, or --debug for debug logging
 log_level = (
-    logging.DEBUG if "--verbose" in sys.argv or "-v" in sys.argv else logging.INFO
+    logging.DEBUG
+    if any(arg in sys.argv for arg in ["--verbose", "-v", "--debug"])
+    else logging.INFO
 )
 SionyxLogger.setup(log_level=log_level, log_to_file=True, enable_colors=True)
 
