@@ -634,9 +634,8 @@ class AuthWindow(BaseKioskWindow):
             org_metadata_service = OrganizationMetadataService(
                 self.auth_service.firebase
             )
-            org_id = self.auth_service.firebase.org_id
-
-            contact_result = org_metadata_service.get_admin_contact(org_id)
+            # firebase_client handles org_id automatically (multi-tenancy)
+            contact_result = org_metadata_service.get_admin_contact()
 
             if contact_result.get("success"):
                 contact = contact_result["contact"]

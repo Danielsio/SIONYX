@@ -192,19 +192,18 @@ class OrganizationMetadataService:
             logger.error(f"Error setting print pricing: {e}")
             return {"success": False, "error": f"Error setting print pricing: {str(e)}"}
 
-    def get_admin_contact(self, org_id: str) -> Dict[str, Any]:
+    def get_admin_contact(self) -> Dict[str, Any]:
         """
-        Get organization admin contact info for password reset flow
-
-        Args:
-            org_id: Organization ID
+        Get organization admin contact info for password reset flow.
+        
+        Uses the firebase_client's org_id automatically (multi-tenancy).
 
         Returns:
             Dict with success status and admin contact info (phone, email)
         """
         try:
-            # Fetch metadata from organizations/{orgId}/metadata
-            result = self.firebase.db_get(f"organizations/{org_id}/metadata")
+            # Just use "metadata" - firebase_client._get_org_path() handles the org prefix
+            result = self.firebase.db_get("metadata")
 
             if not result["success"]:
                 logger.error(

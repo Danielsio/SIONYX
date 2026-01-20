@@ -14,6 +14,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from services.organization_metadata_service import OrganizationMetadataService
 from ui.components.base_components import PageHeader, apply_shadow
 from ui.constants.ui_constants import (
     BorderRadius,
@@ -158,11 +159,45 @@ class ContactCard(QFrame):
 class HelpPage(QWidget):
     """Modern help and support page"""
 
-    def __init__(self, auth_service, parent=None):
+    def __init__(self, auth_service, firebase_client=None, parent=None):
         super().__init__(parent)
         self.auth_service = auth_service
+        self.firebase_client = firebase_client
         self.current_user = auth_service.get_current_user()
+        
+        # Fetch admin contact from organization metadata
+        self.admin_phone = ""
+        self.admin_email = ""
+        self.org_name = ""
+        self._fetch_admin_contact()
+        
         self.init_ui()
+
+    def _fetch_admin_contact(self):
+        """Fetch admin contact info from organization metadata"""
+        if not self.firebase_client:
+            logger.warning("No firebase_client provided, using default contact info")
+            return
+            
+        try:
+            # firebase_client handles org_id automatically (multi-tenancy)
+            metadata_service = OrganizationMetadataService(self.firebase_client)
+            result = metadata_service.get_admin_contact()
+            
+            if result.get("success"):
+                contact = result["contact"]
+                self.admin_phone = contact.get("phone", "")
+                self.admin_email = contact.get("email", "")
+                self.org_name = contact.get("org_name", "")
+                logger.debug(
+                    "Admin contact fetched",
+                    has_phone=bool(self.admin_phone),
+                    has_email=bool(self.admin_email),
+                )
+            else:
+                logger.warning(f"Failed to fetch admin contact: {result.get('error')}")
+        except Exception as e:
+            logger.error(f"Error fetching admin contact: {e}")
 
     def init_ui(self):
         """Build the UI"""
@@ -200,7 +235,10 @@ class HelpPage(QWidget):
         scroll_layout.setSpacing(Spacing.LG)
 
         # Contact section
-        contact_title = QLabel("📞 יצירת קשר")
+        contact_title_text = "📞 יצירת קשר"
+        if self.org_name:
+            contact_title_text += f" - {self.org_name}"
+        contact_title = QLabel(contact_title_text)
         contact_title.setFont(
             QFont(
                 Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD
@@ -214,9 +252,21 @@ class HelpPage(QWidget):
         contact_layout.setContentsMargins(0, 0, 0, 0)
         contact_layout.setSpacing(Spacing.BASE)
 
-        contact_layout.addWidget(ContactCard("📧", "אימייל", "support@sionyx.co.il"))
-        contact_layout.addWidget(ContactCard("📱", "טלפון", "03-1234567"))
-        contact_layout.addWidget(ContactCard("💬", "וואטסאפ", "050-1234567"))
+        # Show admin contact info from organization metadata
+        if self.admin_email:
+            contact_layout.addWidget(ContactCard("📧", "אימייל מנהל", self.admin_email))
+        
+        if self.admin_phone:
+            contact_layout.addWidget(ContactCard("📱", "טלפון מנהל", self.admin_phone))
+            # Also show WhatsApp with the same phone number
+            contact_layout.addWidget(ContactCard("💬", "וואטסאפ", self.admin_phone))
+        
+        # If no admin contact info available, show placeholder
+        if not self.admin_email and not self.admin_phone:
+            contact_layout.addWidget(
+                ContactCard("ℹ️", "מידע", "פנה למנהל המערכת")
+            )
+        
         contact_layout.addStretch()
 
         scroll_layout.addWidget(contact_row)

@@ -38,7 +38,7 @@
           
           "$packageId": {
             ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
-            ".validate": "newData.hasChildren(['name', 'price', 'timeMinutes'])",
+            ".validate": "newData.hasChildren(['name', 'price'])",
             
             "name": {
               ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
@@ -46,11 +46,20 @@
             "price": {
               ".validate": "newData.isNumber() && newData.val() >= 0"
             },
-            "timeMinutes": {
+            "minutes": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "prints": {
               ".validate": "newData.isNumber() && newData.val() >= 0"
             },
             "validityDays": {
               ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "discountPercent": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+            },
+            "description": {
+              ".validate": "newData.isString() && newData.val().length <= 500"
             },
             "isActive": {
               ".validate": "newData.isBoolean()"

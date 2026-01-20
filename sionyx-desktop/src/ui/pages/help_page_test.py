@@ -12,6 +12,25 @@ from PyQt6.QtWidgets import QFrame, QScrollArea, QWidget
 from ui.pages.help_page import ContactCard, FAQCard, HelpPage
 
 
+# Helper to create HelpPage with mocked dependencies
+def create_help_page(auth_service, firebase_client=None, parent=None):
+    """Create HelpPage with OrganizationMetadataService mocked"""
+    with patch("ui.pages.help_page.OrganizationMetadataService") as mock_meta_service:
+        mock_meta_service.return_value.get_admin_contact.return_value = {
+            "success": True,
+            "contact": {
+                "phone": "0501234567",
+                "email": "admin@test.com",
+                "org_name": "Test Org",
+            },
+        }
+        return HelpPage(
+            auth_service=auth_service,
+            firebase_client=firebase_client,
+            parent=parent,
+        )
+
+
 # =============================================================================
 # FAQCard tests
 # =============================================================================
@@ -116,53 +135,58 @@ class TestHelpPage:
         }
         return auth
 
+    @pytest.fixture
+    def mock_firebase_client(self):
+        """Create mock firebase client"""
+        return Mock()
+
     def test_help_page_initialization(self, qapp, mock_auth_service):
         """Test HelpPage initializes correctly"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
-            page = HelpPage(auth_service=mock_auth_service)
+            page = create_help_page(auth_service=mock_auth_service)
             assert page is not None
 
     def test_help_page_stores_auth_service(self, qapp, mock_auth_service):
         """Test HelpPage stores auth_service reference"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
-            page = HelpPage(auth_service=mock_auth_service)
+            page = create_help_page(auth_service=mock_auth_service)
             assert page.auth_service == mock_auth_service
 
     def test_help_page_gets_current_user(self, qapp, mock_auth_service):
         """Test HelpPage fetches current user on init"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
-            page = HelpPage(auth_service=mock_auth_service)
+            page = create_help_page(auth_service=mock_auth_service)
             mock_auth_service.get_current_user.assert_called_once()
 
     def test_help_page_stores_current_user(self, qapp, mock_auth_service):
         """Test HelpPage stores current user data"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
-            page = HelpPage(auth_service=mock_auth_service)
+            page = create_help_page(auth_service=mock_auth_service)
             assert page.current_user["uid"] == "user123"
 
     def test_help_page_object_name(self, qapp, mock_auth_service):
         """Test HelpPage has correct object name"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
-            page = HelpPage(auth_service=mock_auth_service)
+            page = create_help_page(auth_service=mock_auth_service)
             assert page.objectName() == "helpPage"
 
     def test_help_page_rtl_layout(self, qapp, mock_auth_service):
         """Test HelpPage uses RTL layout for Hebrew"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
-            page = HelpPage(auth_service=mock_auth_service)
+            page = create_help_page(auth_service=mock_auth_service)
             assert page.layoutDirection() == Qt.LayoutDirection.RightToLeft
 
     def test_help_page_inherits_qwidget(self, qapp, mock_auth_service):
         """Test HelpPage inherits from QWidget"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
-            page = HelpPage(auth_service=mock_auth_service)
+            page = create_help_page(auth_service=mock_auth_service)
             assert isinstance(page, QWidget)
 
     def test_help_page_with_parent(self, qapp, mock_auth_service):
@@ -170,14 +194,14 @@ class TestHelpPage:
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
             parent = QWidget()
-            page = HelpPage(auth_service=mock_auth_service, parent=parent)
+            page = create_help_page(auth_service=mock_auth_service, parent=parent)
             assert page.parent() == parent
 
     def test_refresh_user_data_does_nothing(self, qapp, mock_auth_service):
         """Test refresh_user_data is a no-op for help page"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
-            page = HelpPage(auth_service=mock_auth_service)
+            page = create_help_page(auth_service=mock_auth_service)
             # Should not raise
             page.refresh_user_data()
 
@@ -188,5 +212,51 @@ class TestHelpPage:
 
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
-            page = HelpPage(auth_service=auth)
+            page = create_help_page(auth_service=auth)
             assert page.current_user is None
+
+    def test_help_page_fetches_admin_contact(self, qapp, mock_auth_service, mock_firebase_client):
+        """Test HelpPage fetches admin contact from metadata"""
+        with patch("ui.pages.help_page.get_logger") as mock_logger:
+            mock_logger.return_value = Mock()
+            with patch("ui.pages.help_page.OrganizationMetadataService") as mock_meta:
+                mock_meta.return_value.get_admin_contact.return_value = {
+                    "success": True,
+                    "contact": {
+                        "phone": "0509876543",
+                        "email": "admin@org.com",
+                        "org_name": "My Org",
+                    },
+                }
+                page = HelpPage(
+                    auth_service=mock_auth_service,
+                    firebase_client=mock_firebase_client,
+                )
+                assert page.admin_phone == "0509876543"
+                assert page.admin_email == "admin@org.com"
+                assert page.org_name == "My Org"
+
+    def test_help_page_handles_missing_admin_contact(self, qapp, mock_auth_service, mock_firebase_client):
+        """Test HelpPage handles missing admin contact gracefully"""
+        with patch("ui.pages.help_page.get_logger") as mock_logger:
+            mock_logger.return_value = Mock()
+            with patch("ui.pages.help_page.OrganizationMetadataService") as mock_meta:
+                mock_meta.return_value.get_admin_contact.return_value = {
+                    "success": False,
+                    "error": "Not found",
+                }
+                page = HelpPage(
+                    auth_service=mock_auth_service,
+                    firebase_client=mock_firebase_client,
+                )
+                assert page.admin_phone == ""
+                assert page.admin_email == ""
+
+    def test_help_page_without_firebase_client(self, qapp, mock_auth_service):
+        """Test HelpPage works without firebase_client"""
+        with patch("ui.pages.help_page.get_logger") as mock_logger:
+            mock_logger.return_value = Mock()
+            # Should not crash when firebase_client is None
+            page = HelpPage(auth_service=mock_auth_service, firebase_client=None)
+            assert page.admin_phone == ""
+            assert page.admin_email == ""

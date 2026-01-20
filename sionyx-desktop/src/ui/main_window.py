@@ -139,7 +139,9 @@ class MainWindow(BaseKioskWindow):
         self.home_page = HomePage(self.auth_service, self)
         self.packages_page = PackagesPage(self.auth_service, self)
         self.history_page = HistoryPage(self.auth_service, self)
-        self.help_page = HelpPage(self.auth_service, self)
+        # Pass firebase_client to help page for fetching admin contact info
+        firebase_client = getattr(self.auth_service, "firebase", None)
+        self.help_page = HelpPage(self.auth_service, firebase_client, self)
 
         self.content_stack.addWidget(self.home_page)
         self.content_stack.addWidget(self.packages_page)
