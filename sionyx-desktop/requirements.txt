@@ -1,6 +1,8 @@
 pyqt6-sip
 # GUI Framework (will auto-install compatible versions)
 PyQt6
+# WebEngine for payment dialog (embedded browser)
+PyQt6-WebEngine
 
 # HTTP Client
 requests

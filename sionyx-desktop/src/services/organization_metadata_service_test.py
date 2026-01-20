@@ -406,7 +406,7 @@ class TestGetAdminContact:
             },
         }
 
-        result = metadata_service.get_admin_contact("org123")
+        result = metadata_service.get_admin_contact()
 
         assert result["success"] is True
         assert "contact" in result
@@ -422,7 +422,7 @@ class TestGetAdminContact:
             },
         }
 
-        result = metadata_service.get_admin_contact("org123")
+        result = metadata_service.get_admin_contact()
 
         assert result["contact"]["phone"] == "0501234567"
 
@@ -437,7 +437,7 @@ class TestGetAdminContact:
             },
         }
 
-        result = metadata_service.get_admin_contact("org123")
+        result = metadata_service.get_admin_contact()
 
         assert result["contact"]["email"] == "admin@test.com"
 
@@ -452,7 +452,7 @@ class TestGetAdminContact:
             },
         }
 
-        result = metadata_service.get_admin_contact("org123")
+        result = metadata_service.get_admin_contact()
 
         assert result["contact"]["org_name"] == "Test Organization"
 
@@ -466,7 +466,7 @@ class TestGetAdminContact:
             },
         }
 
-        result = metadata_service.get_admin_contact("org123")
+        result = metadata_service.get_admin_contact()
 
         assert result["success"] is True
         assert result["contact"]["phone"] == "0501234567"
@@ -482,7 +482,7 @@ class TestGetAdminContact:
             },
         }
 
-        result = metadata_service.get_admin_contact("org123")
+        result = metadata_service.get_admin_contact()
 
         assert result["success"] is True
         assert result["contact"]["phone"] == ""
@@ -497,7 +497,7 @@ class TestGetAdminContact:
             },
         }
 
-        result = metadata_service.get_admin_contact("org123")
+        result = metadata_service.get_admin_contact()
 
         assert result["success"] is False
         assert "not found" in result["error"]
@@ -509,7 +509,7 @@ class TestGetAdminContact:
             "error": "Connection failed",
         }
 
-        result = metadata_service.get_admin_contact("org123")
+        result = metadata_service.get_admin_contact()
 
         assert result["success"] is False
 
@@ -517,7 +517,7 @@ class TestGetAdminContact:
         """Test handling of missing metadata"""
         mock_firebase.db_get.return_value = {"success": True, "data": None}
 
-        result = metadata_service.get_admin_contact("org123")
+        result = metadata_service.get_admin_contact()
 
         assert result["success"] is False
         assert "not found" in result["error"]
@@ -526,6 +526,6 @@ class TestGetAdminContact:
         """Test exception handling"""
         mock_firebase.db_get.side_effect = Exception("Unexpected error")
 
-        result = metadata_service.get_admin_contact("org123")
+        result = metadata_service.get_admin_contact()
 
         assert result["success"] is False

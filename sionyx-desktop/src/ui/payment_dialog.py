@@ -9,8 +9,6 @@ from pathlib import Path
 import requests
 from PyQt6.QtCore import Qt, QThread, QTimer, QUrl, pyqtSignal
 from PyQt6.QtGui import QFont
-from PyQt6.QtWebChannel import QWebChannel
-from PyQt6.QtWebEngineWidgets import QWebEngineView
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
@@ -19,6 +17,23 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+# WebEngine is optional - handle gracefully if not installed
+try:
+    from PyQt6.QtWebChannel import QWebChannel
+    from PyQt6.QtWebEngineWidgets import QWebEngineView
+    WEBENGINE_AVAILABLE = True
+except ImportError as e:
+    WEBENGINE_AVAILABLE = False
+    QWebChannel = None
+    QWebEngineView = None
+    # Import logger early to log the error
+    from utils.logger import get_logger
+    _logger = get_logger(__name__)
+    _logger.error(
+        f"PyQt6-WebEngine not installed. Payment dialog will not work. "
+        f"Install with: pip install PyQt6-WebEngine. Error: {e}"
+    )
 
 from services.organization_metadata_service import OrganizationMetadataService
 from services.payment_bridge import PaymentBridge
@@ -126,6 +141,17 @@ class PaymentDialog(QDialog):
 
     def __init__(self, package: dict, parent=None):
         super().__init__(parent)
+
+        # Check if WebEngine is available
+        if not WEBENGINE_AVAILABLE:
+            logger.error(
+                "PaymentDialog requires PyQt6-WebEngine but it's not installed",
+                action="payment_init_failed",
+            )
+            raise ImportError(
+                "חלון התשלום דורש PyQt6-WebEngine.\n"
+                "נא להתקין: pip install PyQt6-WebEngine"
+            )
 
         self.package = package
 
