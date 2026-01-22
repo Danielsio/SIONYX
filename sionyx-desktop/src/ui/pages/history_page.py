@@ -16,6 +16,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -52,12 +53,17 @@ class PurchaseCard(QFrame):
         self._build()
 
     def _build(self):
-        self.setFixedHeight(90)
+        self.setMinimumHeight(96)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding
+        )
+        accent = self._get_accent_color(self.data.get("status", "pending"))
         self.setStyleSheet(
             f"""
             QFrame {{
                 background: {Colors.WHITE};
                 border: 1px solid {Colors.BORDER_LIGHT};
+                border-right: 3px solid {accent};
                 border-radius: {BorderRadius.LG}px;
             }}
             QFrame:hover {{
@@ -159,6 +165,14 @@ class PurchaseCard(QFrame):
             border-radius: 22px;
         """
 
+    def _get_accent_color(self, status: str) -> str:
+        colors = {
+            "completed": Colors.SUCCESS,
+            "pending": Colors.WARNING,
+            "failed": Colors.ERROR,
+        }
+        return colors.get(status, Colors.GRAY_300)
+
     def _get_icon(self, status: str) -> str:
         icons = {"completed": "✓", "pending": "⏳", "failed": "✕"}
         return icons.get(status, "?")
@@ -203,19 +217,19 @@ class HistoryPage(QWidget):
         """Build the UI"""
         self.setObjectName("historyPage")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        self.setStyleSheet(f"background: {Colors.BG_PAGE};")
+        self.setStyleSheet(
+            f"""
+            background: qlineargradient(
+                x1:0, y1:0, x2:0, y2:1,
+                stop:0 {Colors.BG_PAGE},
+                stop:1 {Colors.GRAY_100}
+            );
+        """
+        )
 
-        # Center content
-        outer = QHBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-
-        content = QWidget()
-        content.setMaximumWidth(1100)  # Wider to accommodate shadows
-        content.setStyleSheet("background: transparent;")
-
-        layout = QVBoxLayout(content)
-        layout.setContentsMargins(Spacing.XL, Spacing.LG, Spacing.XL, Spacing.LG)
-        layout.setSpacing(Spacing.BASE)  # Reduced spacing
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(Spacing.XL, Spacing.XL, Spacing.XL, Spacing.LG)
+        layout.setSpacing(Spacing.BASE)
 
         # Header
         header = PageHeader(UIStrings.HISTORY_TITLE, UIStrings.HISTORY_SUBTITLE)
@@ -248,6 +262,9 @@ class HistoryPage(QWidget):
         )
 
         self.list_container = QWidget()
+        self.list_container.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding
+        )
         self.list_layout = QVBoxLayout(self.list_container)
         self.list_layout.setContentsMargins(0, Spacing.SM, 0, 0)
         self.list_layout.setSpacing(Spacing.SM)
@@ -256,22 +273,27 @@ class HistoryPage(QWidget):
         scroll.setWidget(self.list_container)
         layout.addWidget(scroll, 1)
 
-        outer.addStretch()
-        outer.addWidget(content)
-        outer.addStretch()
-
     def _build_filters(self) -> QWidget:
         """Build filters section"""
-        container = QWidget()
-        container.setStyleSheet("background: transparent;")
+        container = QFrame()
+        container.setStyleSheet(
+            f"""
+            QFrame {{
+                background: {Colors.WHITE};
+                border: 1px solid {Colors.BORDER_LIGHT};
+                border-radius: {BorderRadius.LG}px;
+            }}
+        """
+        )
+        apply_shadow(container, "sm")
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(Spacing.MD, Spacing.MD, Spacing.MD, Spacing.MD)
         layout.setSpacing(Spacing.SM)
 
         # Search
         self.search_box = QLineEdit()
-        self.search_box.setPlaceholderText("🔍 חיפוש...")
-        self.search_box.setFixedHeight(40)
+        self.search_box.setPlaceholderText("חיפוש...")
+        self.search_box.setMinimumHeight(40)
         self.search_box.setStyleSheet(
             f"""
             QLineEdit {{
@@ -296,7 +318,7 @@ class HistoryPage(QWidget):
         # Status filter
         self.status_filter = QComboBox()
         self.status_filter.addItems(["כל הסטטוסים", "הושלם", "ממתין", "נכשל"])
-        self.status_filter.setFixedHeight(40)
+        self.status_filter.setMinimumHeight(40)
         self.status_filter.setStyleSheet(
             f"""
             QComboBox {{
@@ -306,7 +328,6 @@ class HistoryPage(QWidget):
                 padding: 0 {Spacing.MD}px;
                 font-size: {Typography.SIZE_SM}px;
                 color: {Colors.TEXT_PRIMARY};
-                min-width: 130px;
             }}
             QComboBox:focus {{
                 border-color: {Colors.PRIMARY};
@@ -350,8 +371,8 @@ class HistoryPage(QWidget):
         layout.addWidget(self.status_filter)
 
         # Sort button
-        self.sort_btn = QPushButton("📅 מיון")
-        self.sort_btn.setFixedHeight(40)
+        self.sort_btn = QPushButton("מיון")
+        self.sort_btn.setMinimumHeight(40)
         self.sort_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.sort_btn.setStyleSheet(
             f"""
@@ -389,13 +410,13 @@ class HistoryPage(QWidget):
     def _show_empty(self):
         """Show empty state"""
         self._clear_list()
-        empty = EmptyState("📋", "אין רכישות", "הרכישות שלך יופיעו כאן")
+        empty = EmptyState("■", "אין רכישות", "הרכישות שלך יופיעו כאן")
         self.list_layout.addWidget(empty)
 
     def _show_error(self, message: str):
         """Show error state"""
         self._clear_list()
-        error = EmptyState("⚠️", "שגיאה", message)
+        error = EmptyState("■", "שגיאה", message)
         self.list_layout.addWidget(error)
 
     def _display_purchases(self):

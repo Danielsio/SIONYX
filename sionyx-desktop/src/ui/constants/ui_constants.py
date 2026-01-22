@@ -74,7 +74,7 @@ class Colors:
     TEXT_INVERSE = "#FFFFFF"
 
     # Background Colors
-    BG_PAGE = "#F8FAFC"
+    BG_PAGE = "#F3F5FB"
     BG_CARD = "#FFFFFF"
     BG_SIDEBAR = "#0F172A"
     BG_SIDEBAR_HOVER = "#1E293B"
@@ -114,7 +114,7 @@ class Gradients:
     DANGER = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #EF4444, stop:1 #DC2626)"
 
     # Hero gradient for headers
-    HERO = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #6366F1, stop:0.5 #8B5CF6, stop:1 #A855F7)"
+    HERO = "qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #5B6CFF, stop:0.5 #6F63F2, stop:1 #7C5CE6)"
 
     # Subtle card gradient
     CARD = "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFFFFF, stop:1 #FAFBFC)"

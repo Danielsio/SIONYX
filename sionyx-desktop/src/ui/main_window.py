@@ -4,7 +4,7 @@ Refactored to use centralized constants and base components
 """
 
 from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QFont
+from PyQt6.QtGui import QColor, QFont, QPixmap
 from PyQt6.QtWidgets import (
     QFrame,
     QGraphicsDropShadowEffect,
@@ -13,12 +13,13 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QStackedWidget,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
 from services.session_service import SessionService
-from ui.base_window import BaseKioskWindow
+from ui.base_window import BaseKioskWindow, get_app_icon_path
 from ui.components.base_components import ActionButton
 from ui.components.loading_overlay import LoadingOverlay
 from ui.constants.ui_constants import (
@@ -148,7 +149,7 @@ class MainWindow(BaseKioskWindow):
         self.content_stack.addWidget(self.history_page)
         self.content_stack.addWidget(self.help_page)
 
-        container_layout.addWidget(sidebar)
+        container_layout.addWidget(sidebar, 0)
         container_layout.addWidget(self.content_stack, 1)
 
         main_layout.addWidget(container)
@@ -167,7 +168,9 @@ class MainWindow(BaseKioskWindow):
         """Create modern, clean sidebar using constants and base components"""
         sidebar = QFrame()
         sidebar.setObjectName("modernSidebar")
-        sidebar.setFixedWidth(Dimensions.SIDEBAR_WIDTH)
+        sidebar.setMinimumWidth(int(Dimensions.SIDEBAR_WIDTH * 0.75))
+        sidebar.setMaximumWidth(Dimensions.SIDEBAR_WIDTH + 40)
+        sidebar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
 
         # Apply shadow using constants
         shadow_config = get_shadow("lg")
@@ -205,22 +208,19 @@ class MainWindow(BaseKioskWindow):
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(
             Spacing.LG,
-            Spacing.BASE,
             Spacing.LG,
-            Spacing.BASE,
+            Spacing.LG,
+            Spacing.MD,
         )
         header_layout.setSpacing(Spacing.MD)
 
-        # Menu icon
-        burger = QLabel("≡")
-        burger.setFont(
-            QFont(
-                Typography.FONT_FAMILY, Typography.SIZE_XL, Typography.WEIGHT_EXTRABOLD
-            )
-        )
-        burger.setStyleSheet(
-            f"color: {Colors.GRAY_100}; background-color: transparent; border: none;"
-        )
+        # App logo (optional)
+        icon_path = get_app_icon_path()
+        if icon_path:
+            logo = QLabel()
+            pixmap = QPixmap(icon_path)
+            logo.setPixmap(pixmap.scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio))
+            header_layout.addWidget(logo)
 
         # Brand name
         brand = QLabel(APP_NAME)
@@ -231,7 +231,6 @@ class MainWindow(BaseKioskWindow):
             f"color: {Colors.WHITE}; letter-spacing: 0.5px; background-color: transparent; border: none;"
         )
 
-        header_layout.addWidget(burger)
         header_layout.addWidget(brand)
         header_layout.addStretch()
 
@@ -253,10 +252,10 @@ class MainWindow(BaseKioskWindow):
         self.nav_buttons = []
 
         nav_items = [
-            ("🏠  בית", self.PAGES["HOME"]),
-            ("🧩  חבילות", self.PAGES["PACKAGES"]),
-            ("🕘  היסטוריה", self.PAGES["HISTORY"]),
-            ("❓  עזרה", self.PAGES["HELP"]),
+            (UIStrings.NAV_HOME, self.PAGES["HOME"]),
+            (UIStrings.NAV_PACKAGES, self.PAGES["PACKAGES"]),
+            (UIStrings.NAV_HISTORY, self.PAGES["HISTORY"]),
+            (UIStrings.NAV_HELP, self.PAGES["HELP"]),
         ]
 
         for label, index in nav_items:
@@ -281,8 +280,11 @@ class MainWindow(BaseKioskWindow):
         bottom_layout.setSpacing(0)
 
         # Use base component for logout button
-        btn_logout = ActionButton(UIStrings.LOGOUT, "danger", "sm")
+        btn_logout = ActionButton(UIStrings.LOGOUT, "danger", "md")
         btn_logout.setObjectName("modernLogoutButton")
+        btn_logout.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
         btn_logout.clicked.connect(self.handle_logout)
         bottom_layout.addWidget(btn_logout)
 
@@ -697,7 +699,7 @@ class MainWindow(BaseKioskWindow):
     def on_warning_5min(self):
         """5 minute warning"""
         self.show_notification(
-            "⏰ נותרו 5 דקות! הפעלה שלך תסתיים בקרוב.",
+            "נותרו 5 דקות! הפעלה שלך תסתיים בקרוב.",
             message_type="warning",
             duration=4000,
         )
@@ -705,7 +707,7 @@ class MainWindow(BaseKioskWindow):
     def on_warning_1min(self):
         """1 minute warning"""
         self.show_notification(
-            "🚨 דחוף: נותרה דקה אחת! שמור את העבודה שלך עכשיו!",
+            "דחוף: נותרה דקה אחת! שמור את העבודה שלך עכשיו!",
             message_type="error",
             duration=6000,
         )

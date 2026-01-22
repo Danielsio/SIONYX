@@ -181,12 +181,13 @@ class PageHeader(QFrame):
         self._build()
 
     def _build(self):
+        self.setMinimumHeight(120)
         self.setStyleSheet(
             f"""
             QFrame {{
                 background: {Gradients.HERO};
                 border-radius: {BorderRadius.XL}px;
-                border: none;
+                border: 1px solid rgba(255, 255, 255, 0.18);
             }}
             QLabel {{
                 border: none;
@@ -197,14 +198,14 @@ class PageHeader(QFrame):
         apply_shadow(self, "primary")
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(Spacing.XL, Spacing.LG, Spacing.XL, Spacing.LG)
-        layout.setSpacing(Spacing.XS)
+        layout.setContentsMargins(Spacing.XXL, Spacing.LG, Spacing.XXL, Spacing.LG)
+        layout.setSpacing(Spacing.SM)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Title
         title = QLabel(self.title_text)
         title.setFont(
-            QFont(Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_BOLD)
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_4XL, Typography.WEIGHT_BOLD)
         )
         title.setStyleSheet(f"color: {Colors.WHITE}; background: transparent;")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -216,7 +217,7 @@ class PageHeader(QFrame):
             subtitle.setFont(
                 QFont(
                     Typography.FONT_FAMILY,
-                    Typography.SIZE_BASE,
+                    Typography.SIZE_MD,
                     Typography.WEIGHT_NORMAL,
                 )
             )
@@ -240,7 +241,7 @@ class LoadingSpinner(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(Spacing.MD)
 
-        spinner = QLabel("⏳")
+        spinner = QLabel("●")
         spinner.setFont(QFont(Typography.FONT_FAMILY, 32))
         spinner.setAlignment(Qt.AlignmentFlag.AlignCenter)
         spinner.setStyleSheet(f"color: {Colors.PRIMARY};")

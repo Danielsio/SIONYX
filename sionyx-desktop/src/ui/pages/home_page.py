@@ -8,9 +8,11 @@ from PyQt6.QtGui import QColor, QFont
 from PyQt6.QtWidgets import (
     QFrame,
     QGraphicsDropShadowEffect,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -65,6 +67,10 @@ class HomePage(QWidget):
 
         self.message_modal = None
         self.pending_messages = []
+        self.stat_cards = []
+        self._stats_reflow_timer = QTimer(self)
+        self._stats_reflow_timer.setSingleShot(True)
+        self._stats_reflow_timer.timeout.connect(self._layout_stats_grid)
 
         self.init_ui()
         self.countdown_timer.start(1000)
@@ -79,27 +85,34 @@ class HomePage(QWidget):
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
 
         # Page background
-        self.setStyleSheet(f"background: {Colors.BG_PAGE};")
+        self.setStyleSheet(
+            f"""
+            background: qlineargradient(
+                x1:0, y1:0, x2:0, y2:1,
+                stop:0 {Colors.BG_PAGE},
+                stop:1 {Colors.GRAY_100}
+            );
+        """
+        )
 
-        # Center content
-        outer = QHBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-
-        content = QWidget()
-        content.setMaximumWidth(1100)  # Wider to accommodate shadows
-        content.setStyleSheet("background: transparent;")
-
-        layout = QVBoxLayout(content)
-        layout.setContentsMargins(Spacing.XL, Spacing.LG, Spacing.XL, Spacing.LG)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(Spacing.XL, Spacing.XL, Spacing.XL, Spacing.LG)
         layout.setSpacing(Spacing.LG)
 
         # Header
         header = PageHeader(UIStrings.HOME_TITLE, UIStrings.HOME_SUBTITLE)
+        header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(header)
 
-        # Stats row
-        stats = self._build_stats_row()
-        layout.addWidget(stats)
+        # Stats grid
+        self.stats_container = QWidget()
+        self.stats_container.setStyleSheet("background: transparent;")
+        self.stats_layout = QGridLayout(self.stats_container)
+        self.stats_layout.setContentsMargins(Spacing.SM, Spacing.SM, Spacing.SM, Spacing.SM)
+        self.stats_layout.setHorizontalSpacing(Spacing.LG)
+        self.stats_layout.setVerticalSpacing(Spacing.LG)
+        layout.addWidget(self.stats_container)
+        self._build_stats_row()
 
         # Action card
         action = self._build_action_card()
@@ -107,56 +120,60 @@ class HomePage(QWidget):
 
         layout.addStretch()
 
-        outer.addStretch()
-        outer.addWidget(content)
-        outer.addStretch()
-
         self.update_countdown()
         self.load_messages()
 
     def _build_stats_row(self) -> QWidget:
-        """Build the statistics cards row"""
-        container = QWidget()
-        container.setStyleSheet("background: transparent;")
-        layout = QHBoxLayout(container)
-        # Add padding for shadows to render properly
-        layout.setContentsMargins(Spacing.BASE, Spacing.BASE, Spacing.BASE, Spacing.LG)
-        layout.setSpacing(Spacing.BASE)
+        """Build the statistics cards list"""
+        self.stat_cards = []
 
         # Time card
         self.time_card = self._create_stat_card(
-            "⏱️", UIStrings.TIME_REMAINING, "0:00:00", Colors.PRIMARY
+            "◉", UIStrings.TIME_REMAINING, "0:00:00", Colors.PRIMARY
         )
-        layout.addWidget(self.time_card)
+        self.stat_cards.append(self.time_card)
 
         # Print balance card
         balance = self.current_user.get("printBalance", 0.0)
         self.prints_card = self._create_stat_card(
-            "🖨️", UIStrings.PRINT_BALANCE, f"{balance:.2f}₪", Colors.ACCENT
+            "◉", UIStrings.PRINT_BALANCE, f"{balance:.2f}₪", Colors.ACCENT
         )
-        layout.addWidget(self.prints_card)
+        self.stat_cards.append(self.prints_card)
 
         # Messages card (hidden initially)
         self.message_card = self._create_message_card()
         self.message_card.hide()
-        layout.addWidget(self.message_card)
+        self.stat_cards.append(self.message_card)
 
-        layout.addStretch()
-
-        return container
+        self._layout_stats_grid()
+        return self.stats_container
 
     def _create_stat_card(
         self, icon: str, title: str, value: str, color: str
     ) -> QFrame:
         """Create a statistics card"""
         card = QFrame()
-        card.setFixedSize(260, 120)
+        card.setMaximumWidth(920)
+        card.setMinimumWidth(240)
+        card.setMinimumHeight(110)
+        card.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+        )
         card.setStyleSheet(
             f"""
             QFrame {{
-                background: {Colors.WHITE};
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {Colors.WHITE},
+                    stop:1 {Colors.GRAY_50}
+                );
                 border: 1px solid {Colors.BORDER_LIGHT};
+                border-top: 3px solid {color};
                 border-radius: {BorderRadius.XL}px;
+            }}
+            QFrame:hover {{
+                border-color: {color};
+                background: {Colors.WHITE};
             }}
             QLabel {{
                 border: none;
@@ -167,7 +184,7 @@ class HomePage(QWidget):
         apply_shadow(card, "md")
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(Spacing.LG, Spacing.BASE, Spacing.LG, Spacing.BASE)
+        layout.setContentsMargins(Spacing.LG, Spacing.SM, Spacing.LG, Spacing.SM)
         layout.setSpacing(Spacing.XS)
 
         # Header
@@ -206,13 +223,25 @@ class HomePage(QWidget):
         """Create the messages notification card"""
         card = QFrame()
         card.setObjectName("messageNotificationCard")
-        card.setFixedSize(280, 160)  # Increased size for better visibility
+        card.setMinimumWidth(260)
+        card.setMinimumHeight(160)
+        card.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.MinimumExpanding
+        )
         card.setStyleSheet(
             f"""
             QFrame {{
-                background: {Colors.WHITE};
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {Colors.WHITE},
+                    stop:1 {Colors.WARNING_LIGHT}
+                );
                 border: 2px solid {Colors.WARNING};
                 border-radius: {BorderRadius.XL}px;
+            }}
+            QFrame:hover {{
+                border-color: {Colors.WARNING_DARK};
+                background: {Colors.WHITE};
             }}
             QLabel {{
                 border: none;
@@ -232,7 +261,7 @@ class HomePage(QWidget):
         header_layout.setContentsMargins(0, 0, 0, 0)
         header_layout.setSpacing(Spacing.SM)
 
-        icon_lbl = QLabel("💬")
+        icon_lbl = QLabel("◉")
         icon_lbl.setFont(QFont(Typography.FONT_FAMILY, 22))
         header_layout.addWidget(icon_lbl)
 
@@ -259,7 +288,7 @@ class HomePage(QWidget):
         layout.addWidget(self.message_count_label)
 
         # View button - more prominent
-        self.view_messages_button = QPushButton("📬 צפה בהודעות")
+        self.view_messages_button = QPushButton("צפה בהודעות")
         self.view_messages_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.view_messages_button.clicked.connect(self.show_message_modal)
         self.view_messages_button.setFixedHeight(40)
@@ -288,12 +317,23 @@ class HomePage(QWidget):
     def _build_action_card(self) -> QFrame:
         """Build the main action card"""
         card = QFrame()
+        card.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        card.setMinimumHeight(180)
         card.setStyleSheet(
             f"""
             QFrame {{
-                background: {Colors.WHITE};
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {Colors.WHITE},
+                    stop:1 {Colors.PRIMARY_GHOST}
+                );
                 border: 1px solid {Colors.BORDER_LIGHT};
                 border-radius: {BorderRadius.XXL}px;
+            }}
+            QFrame:hover {{
+                border-color: {Colors.PRIMARY};
             }}
             QLabel {{
                 border: none;
@@ -304,43 +344,89 @@ class HomePage(QWidget):
         apply_shadow(card, "lg")
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(Spacing.XXL, Spacing.XL, Spacing.XXL, Spacing.XL)
-        layout.setSpacing(Spacing.LG)
+        layout.setContentsMargins(Spacing.XL, Spacing.LG, Spacing.XL, Spacing.LG)
+        layout.setSpacing(Spacing.SM)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Welcome text
         name = self.current_user.get("firstName", "משתמש")
-        self.welcome_label = QLabel(f"👋 שלום, {name}!")
+        self.welcome_label = QLabel(f"שלום, {name}")
         self.welcome_label.setFont(
-            QFont(Typography.FONT_FAMILY, Typography.SIZE_2XL, Typography.WEIGHT_BOLD)
+            QFont(Typography.FONT_FAMILY, Typography.SIZE_3XL, Typography.WEIGHT_BOLD)
         )
         self.welcome_label.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
         self.welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.welcome_label)
 
         # Instructions
-        self.instruction = QLabel("מוכן להתחיל? לחץ על הכפתור למטה")
+        self.instruction = QLabel("מוכן להתחיל? לחץ על הכפתור כדי להפעיל את הזמן שלך")
         self.instruction.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_BASE))
         self.instruction.setStyleSheet(
             f"""
             color: {Colors.TEXT_SECONDARY};
-            background: {Colors.GRAY_50};
+            background: rgba(99, 102, 241, 0.08);
+            border: 1px solid rgba(99, 102, 241, 0.18);
             padding: {Spacing.MD}px {Spacing.LG}px;
             border-radius: {BorderRadius.MD}px;
         """
         )
         self.instruction.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.instruction.setWordWrap(True)
+        self.instruction.setMinimumHeight(64)
+        self.instruction.setMinimumWidth(420)
+        self.instruction.setMaximumWidth(520)
         layout.addWidget(self.instruction)
 
-        layout.addSpacing(Spacing.SM)
-
         # Start button
-        self.start_btn = ActionButton(f"🚀  {UIStrings.START_SESSION}", "primary", "xl")
+        self.start_btn = ActionButton(UIStrings.START_SESSION, "primary", "xl")
         self.start_btn.setMinimumWidth(280)
         self.start_btn.clicked.connect(self.handle_start_session)
-        layout.addWidget(self.start_btn, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.start_btn.setSizePolicy(
+            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
+        )
+
+        layout.addWidget(
+            self.start_btn,
+            alignment=Qt.AlignmentFlag.AlignHCenter,
+        )
 
         return card
+
+    def resizeEvent(self, event):
+        """Reflow stats on resize"""
+        super().resizeEvent(event)
+        if self.stat_cards:
+            self._stats_reflow_timer.start(120)
+
+    def _layout_stats_grid(self):
+        """Lay out stats based on available width"""
+        while self.stats_layout.count():
+            item = self.stats_layout.takeAt(0)
+            if item.widget():
+                item.widget().setParent(None)
+
+        if not self.stat_cards:
+            return
+
+        columns = self._calculate_stats_columns()
+        row = 0
+        col = 0
+        for card in self.stat_cards:
+            self.stats_layout.addWidget(card, row, col)
+            col += 1
+            if col >= columns:
+                col = 0
+                row += 1
+
+        for i in range(columns):
+            self.stats_layout.setColumnStretch(i, 1)
+
+    def _calculate_stats_columns(self) -> int:
+        """Determine number of stat columns based on available width"""
+        available_width = max(1, self.stats_container.width() - Spacing.LG)
+        card_min_width = 240
+        max_columns = max(1, available_width // (card_min_width + Spacing.LG))
+        return min(max_columns, max(1, len(self.stat_cards)))
 
     def _is_session_active(self) -> bool:
         """Check if a session is currently active"""
@@ -390,36 +476,39 @@ class HomePage(QWidget):
         if session_active:
             # Session is active - show "Return to session" button
             self.start_btn.setEnabled(True)
-            self.start_btn.setText("🔙  חזור להפעלה")
+            self.start_btn.setText("חזור להפעלה")
             self.instruction.setText("יש לך הפעלה פעילה. לחץ לחזור לטיימר.")
             self.instruction.setStyleSheet(
                 f"""
                 color: {Colors.PRIMARY_DARK};
                 background: {Colors.PRIMARY_LIGHT};
+                border: 1px solid rgba(99, 102, 241, 0.25);
                 padding: {Spacing.MD}px {Spacing.LG}px;
                 border-radius: {BorderRadius.MD}px;
             """
             )
         elif remaining <= 0:
             self.start_btn.setEnabled(False)
-            self.start_btn.setText("⏸  אין זמן זמין")
+            self.start_btn.setText("אין זמן זמין")
             self.instruction.setText("אין לך זמן נותר. רכוש חבילה כדי להמשיך.")
             self.instruction.setStyleSheet(
                 f"""
                 color: {Colors.ERROR_DARK};
                 background: {Colors.ERROR_LIGHT};
+                border: 1px solid rgba(239, 68, 68, 0.25);
                 padding: {Spacing.MD}px {Spacing.LG}px;
                 border-radius: {BorderRadius.MD}px;
             """
             )
         else:
             self.start_btn.setEnabled(True)
-            self.start_btn.setText(f"🚀  {UIStrings.START_SESSION}")
+            self.start_btn.setText(UIStrings.START_SESSION)
             self.instruction.setText("מוכן להתחיל? לחץ על הכפתור למטה")
             self.instruction.setStyleSheet(
                 f"""
                 color: {Colors.TEXT_SECONDARY};
-                background: {Colors.GRAY_50};
+                background: rgba(99, 102, 241, 0.08);
+                border: 1px solid rgba(99, 102, 241, 0.18);
                 padding: {Spacing.MD}px {Spacing.LG}px;
                 border-radius: {BorderRadius.MD}px;
             """
@@ -433,7 +522,7 @@ class HomePage(QWidget):
             self.update_prints_display()
             # Update welcome message with new user's name
             name = self.current_user.get("firstName", "משתמש")
-            self.welcome_label.setText(f"👋 שלום, {name}!")
+            self.welcome_label.setText(f"שלום, {name}")
 
     def update_prints_display(self):
         """Update prints balance display"""
@@ -457,7 +546,7 @@ class HomePage(QWidget):
             print_value.setText("0.00₪")
         # Reset welcome message
         if hasattr(self, "welcome_label"):
-            self.welcome_label.setText("👋 שלום!")
+            self.welcome_label.setText("שלום")
 
     def handle_start_session(self):
         """Start session or return to active session"""
@@ -502,11 +591,13 @@ class HomePage(QWidget):
         """Show message notification"""
         if count <= 0:
             self.message_card.hide()
+            self._layout_stats_grid()
             return
 
         self.message_card.show()
         text = "הודעה חדשה" if count == 1 else f"{count} הודעות"
         self.message_count_label.setText(text)
+        self._layout_stats_grid()
 
     def show_message_modal(self):
         """Show message modal"""

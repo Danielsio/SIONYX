@@ -11,8 +11,8 @@ MAIN_WINDOW_QSS = """
     #modernSidebar {
         background: qlineargradient(
             x1:0, y1:0, x2:0, y2:1,
-            stop:0 #1E293B,
-            stop:1 #0F172A
+            stop:0 #111827,
+            stop:1 #0B1220
         );
         border: none;
     }
@@ -23,7 +23,7 @@ MAIN_WINDOW_QSS = """
     
     #modernNavButton {
         background: transparent;
-        color: #94A3B8;
+        color: #9CA3AF;
         border: none;
         border-radius: 12px;
         text-align: right;
@@ -34,15 +34,15 @@ MAIN_WINDOW_QSS = """
     }
     
     #modernNavButton:hover {
-        background: rgba(99, 102, 241, 0.12);
-        color: #E2E8F0;
+        background: rgba(99, 102, 241, 0.14);
+        color: #F1F5F9;
     }
     
     #modernNavButton:checked {
         background: qlineargradient(
             x1:0, y1:0, x2:1, y2:0,
-            stop:0 rgba(99, 102, 241, 0.25),
-            stop:1 rgba(99, 102, 241, 0.08)
+            stop:0 rgba(99, 102, 241, 0.28),
+            stop:1 rgba(99, 102, 241, 0.10)
         );
         color: #FFFFFF;
         font-weight: 600;
@@ -62,9 +62,9 @@ MAIN_WINDOW_QSS = """
        ───────────────────────────────────────────────────────────────────────── */
     
     #modernLogoutButton {
-        background: rgba(239, 68, 68, 0.08);
-        color: #F87171;
-        border: 1px solid rgba(239, 68, 68, 0.2);
+        background: rgba(239, 68, 68, 0.10);
+        color: #FCA5A5;
+        border: 1px solid rgba(239, 68, 68, 0.28);
         border-radius: 10px;
         padding: 12px 18px;
         margin: 8px 16px;
@@ -83,7 +83,7 @@ MAIN_WINDOW_QSS = """
        ═══════════════════════════════════════════════════════════════════════ */
     
     #contentStack {
-        background: #F8FAFC;
+        background: #F4F6FB;
     }
 
     /* Page backgrounds */
