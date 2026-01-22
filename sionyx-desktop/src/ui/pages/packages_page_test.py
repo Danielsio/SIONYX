@@ -8,6 +8,7 @@ Testing Strategy:
 - Test signals are emitted correctly
 """
 
+from datetime import datetime, timedelta
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -375,6 +376,61 @@ class TestPackagesPage:
                 break
 
         assert prints_label_found
+
+    def test_create_package_card_displays_validity_days(self, packages_page):
+        """Test package card shows validity days when provided"""
+        test_package = {
+            "name": "Test",
+            "minutes": 60,
+            "prints": 10,
+            "price": 10,
+            "validityDays": 30,
+        }
+        card = packages_page._create_package_card(test_package)
+
+        labels = card.findChildren(QLabel)
+        validity_found = any("תוקף: 30 ימים" in label.text() for label in labels)
+        assert validity_found
+
+    def test_create_package_card_displays_validity_date(self, packages_page):
+        """Test package card shows expiry date when provided"""
+        expiry = (datetime.now() + timedelta(days=30)).isoformat()
+        test_package = {
+            "name": "Test",
+            "minutes": 60,
+            "prints": 10,
+            "price": 10,
+            "expiresAt": expiry,
+        }
+        card = packages_page._create_package_card(test_package)
+
+        labels = card.findChildren(QLabel)
+        validity_found = any("תוקף עד:" in label.text() for label in labels)
+        assert validity_found
+
+    def test_get_validity_text_prefers_days(self, packages_page):
+        """Test validity text uses days when provided"""
+        test_package = {"validityDays": 15}
+        assert packages_page._get_validity_text(test_package) == "●  תוקף: 15 ימים"
+
+    def test_get_validity_text_handles_invalid_date(self, packages_page):
+        """Test invalid date returns empty validity text"""
+        test_package = {"expiresAt": "not-a-date"}
+        assert packages_page._get_validity_text(test_package) == ""
+
+    def test_select_featured_package_id_by_discount(self, packages_page):
+        """Test featured package selection uses highest discount"""
+        packages_page.packages = [
+            {"id": "a", "discountPercent": 0, "price": 10},
+            {"id": "b", "discountPercent": 25, "price": 10},
+            {"id": "c", "discountPercent": 10, "price": 10},
+        ]
+        assert packages_page._select_featured_package_id() == "b"
+
+    def test_is_featured_true_for_selected(self, packages_page):
+        """Test _is_featured returns True for selected package"""
+        packages_page._featured_package_id = "pkg-basic"
+        assert packages_page._is_featured({"id": "pkg-basic"}) is True
 
     # =========================================================================
     # ZERO-VALUE FEATURE DISPLAY TESTS (Bug Fix)

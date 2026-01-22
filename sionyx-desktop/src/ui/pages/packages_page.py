@@ -3,7 +3,8 @@ Packages Page - FROST Design System
 Modern package cards with clean grid layout.
 """
 
-from typing import Dict
+from typing import Dict, Optional
+from datetime import datetime
 
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QFont
@@ -13,7 +14,9 @@ from PyQt6.QtWidgets import (
     QGraphicsDropShadowEffect,
     QHBoxLayout,
     QLabel,
+    QGridLayout,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -50,6 +53,12 @@ class PackagesPage(QWidget):
         self.current_user = None
         self.package_service = PackageService(auth_service.firebase)
         self.packages = []
+        self._featured_package_id = None
+        self.package_cards = []
+        self._state_widget = None
+        self._reflow_timer = QTimer(self)
+        self._reflow_timer.setSingleShot(True)
+        self._reflow_timer.timeout.connect(self._layout_packages)
 
         self.init_ui()
         self.load_packages()
@@ -58,25 +67,25 @@ class PackagesPage(QWidget):
         """Build the UI"""
         self.setObjectName("packagesPage")
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        self.setStyleSheet(f"background: {Colors.BG_PAGE};")
+        self.setStyleSheet(
+            f"""
+            background: qlineargradient(
+                x1:0, y1:0, x2:0, y2:1,
+                stop:0 {Colors.BG_PAGE},
+                stop:1 {Colors.GRAY_100}
+            );
+        """
+        )
 
         # Main layout - full width
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(Spacing.XL, Spacing.LG, Spacing.XL, Spacing.LG)
+        main_layout.setContentsMargins(Spacing.XL, Spacing.XL, Spacing.XL, Spacing.LG)
         main_layout.setSpacing(Spacing.LG)
 
-        # Header - centered with room for shadow
-        header_container = QWidget()
-        header_container.setStyleSheet("background: transparent;")
-        header_layout = QHBoxLayout(header_container)
-        # Add padding for shadow to render properly (shadow extends ~20px)
-        header_layout.setContentsMargins(Spacing.LG, Spacing.SM, Spacing.LG, Spacing.LG)
+        # Header - full width hero
         header = PageHeader(UIStrings.PACKAGES_TITLE, UIStrings.PACKAGES_SUBTITLE)
-        header.setMaximumWidth(1000)
-        header_layout.addStretch()
-        header_layout.addWidget(header)
-        header_layout.addStretch()
-        main_layout.addWidget(header_container)
+        header.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        main_layout.addWidget(header)
 
         # Loading spinner
         self.loading_spinner = LoadingSpinner("טוען חבילות...")
@@ -84,26 +93,26 @@ class PackagesPage(QWidget):
             self.loading_spinner, alignment=Qt.AlignmentFlag.AlignCenter
         )
 
-        # Packages container - uses HBoxLayout for proper centering
+        # Packages container - responsive grid
         self.packages_container = QWidget()
         self.packages_container.setStyleSheet("background: transparent;")
-        self.packages_layout = QHBoxLayout(self.packages_container)
-        self.packages_layout.setSpacing(Spacing.LG)
+        self.packages_layout = QGridLayout(self.packages_container)
+        self.packages_layout.setHorizontalSpacing(Spacing.LG)
+        self.packages_layout.setVerticalSpacing(Spacing.LG)
         self.packages_layout.setContentsMargins(
-            Spacing.XL, Spacing.LG, Spacing.XL, Spacing.XL
+            Spacing.SM, Spacing.SM, Spacing.SM, Spacing.XXL
         )
-        self.packages_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.packages_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Scroll area - with room for shadows
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setWidget(self.packages_container)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setMinimumHeight(480)
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setWidget(self.packages_container)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         # Important: Don't clip shadows
-        scroll.viewport().setStyleSheet("background: transparent;")
-        scroll.setStyleSheet(
+        self.scroll.viewport().setStyleSheet("background: transparent;")
+        self.scroll.setStyleSheet(
             f"""
             QScrollArea {{
                 border: none;
@@ -127,26 +136,17 @@ class PackagesPage(QWidget):
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
                 height: 0;
             }}
-            QScrollBar:horizontal {{
-                background: transparent;
-                height: 8px;
-            }}
-            QScrollBar::handle:horizontal {{
-                background: {Colors.GRAY_300};
-                border-radius: 4px;
-                min-width: 40px;
-            }}
-            QScrollBar::handle:horizontal:hover {{
-                background: {Colors.GRAY_400};
-            }}
-            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
-                width: 0;
-            }}
         """
         )
 
         main_layout.addSpacing(Spacing.SM)
-        main_layout.addWidget(scroll, 1)
+        main_layout.addWidget(self.scroll, 1)
+
+    def resizeEvent(self, event):
+        """Reflow cards on resize for responsive grid"""
+        super().resizeEvent(event)
+        if self.package_cards:
+            self._reflow_timer.start(120)
 
     def load_packages(self):
         """Load packages from Firebase"""
@@ -168,14 +168,20 @@ class PackagesPage(QWidget):
         if not result.get("success"):
             logger.error(f"Failed to fetch packages: {result.get('error')}")
             if spinner_valid:
-                self.loading_spinner.hide()
+                try:
+                    self.loading_spinner.hide()
+                except RuntimeError:
+                    spinner_valid = False
             self._show_error()
             return
 
         self.packages = result.get("data", [])
         logger.info(f"PackagesPage: Received {len(self.packages)} packages to display")
         if spinner_valid:
-            self.loading_spinner.hide()
+            try:
+                self.loading_spinner.hide()
+            except RuntimeError:
+                spinner_valid = False
 
         if not self.packages:
             logger.warning("No packages to display - showing empty state")
@@ -187,40 +193,91 @@ class PackagesPage(QWidget):
 
     def _show_error(self):
         """Show error state"""
-        self._clear_grid()
-        error = EmptyState("❌", "שגיאה בטעינה", "לא הצלחנו לטעון את החבילות")
-        self.packages_layout.addWidget(error, Qt.AlignmentFlag.AlignCenter)
+        self._show_state(EmptyState("■", "שגיאה בטעינה", "לא הצלחנו לטעון את החבילות"))
 
     def _show_empty(self):
         """Show empty state"""
-        self._clear_grid()
-        empty = EmptyState("📦", "אין חבילות זמינות", "נסה שוב מאוחר יותר")
-        self.packages_layout.addWidget(empty, Qt.AlignmentFlag.AlignCenter)
+        self._show_state(EmptyState("■", "אין חבילות זמינות", "נסה שוב מאוחר יותר"))
 
-    def _clear_grid(self):
+    def _show_state(self, widget: QWidget):
+        """Show a single centered state widget"""
+        self._clear_grid(delete_widgets=True)
+        self._state_widget = widget
+        self._layout_packages()
+
+    def _clear_grid(self, delete_widgets: bool = True):
         """Clear the packages grid"""
-        for i in reversed(range(self.packages_layout.count())):
-            widget = self.packages_layout.itemAt(i).widget()
-            if widget:
+        while self.packages_layout.count():
+            item = self.packages_layout.takeAt(0)
+            widget = item.widget()
+            if widget and delete_widgets:
                 widget.setParent(None)
 
     def _display_packages(self):
-        """Display packages in a centered horizontal row"""
-        self._clear_grid()
-
+        """Display packages in a responsive grid"""
+        self._clear_grid(delete_widgets=True)
+        self._state_widget = None
+        self.package_cards = []
+        self._featured_package_id = self._select_featured_package_id()
         for package in self.packages:
             if isinstance(package, dict) and "name" in package:
-                card = self._create_package_card(package)
-                self.packages_layout.addWidget(card, Qt.AlignmentFlag.AlignCenter)
+                card = self._create_package_card(
+                    package, is_featured=self._is_featured(package)
+                )
+                self.package_cards.append(card)
 
-    def _create_package_card(self, package: Dict) -> QFrame:
+        self._layout_packages()
+
+    def _layout_packages(self):
+        """Lay out cards based on available width"""
+        self._clear_grid(delete_widgets=False)
+        if self._state_widget:
+            columns = self._calculate_columns()
+            self.packages_layout.addWidget(
+                self._state_widget, 0, 0, 1, columns, Qt.AlignmentFlag.AlignCenter
+            )
+            return
+
+        if not self.package_cards:
+            return
+
+        columns = self._calculate_columns()
+        row = 0
+        col = 0
+        for card in self.package_cards:
+            self.packages_layout.addWidget(card, row, col)
+            col += 1
+            if col >= columns:
+                col = 0
+                row += 1
+
+        for i in range(columns):
+            self.packages_layout.setColumnStretch(i, 1)
+
+    def _calculate_columns(self) -> int:
+        """Determine number of columns based on available width"""
+        available_width = max(1, self.scroll.viewport().width() - Spacing.LG)
+        card_min_width = 280
+        max_columns = max(1, available_width // (card_min_width + Spacing.LG))
+        return min(max_columns, max(1, len(self.package_cards)))
+
+    def _create_package_card(self, package: Dict, is_featured: bool = False) -> QFrame:
         """Create a modern package card"""
         card = QFrame()
-        card.setFixedSize(Dimensions.PACKAGE_CARD_WIDTH, Dimensions.PACKAGE_CARD_HEIGHT)
+        card.setMinimumWidth(260)
+        card.setMinimumHeight(320)
+        card.setMaximumHeight(420)
+        card.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
         card.setStyleSheet(
             f"""
             QFrame {{
-                background: {Colors.WHITE};
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {Colors.WHITE},
+                    stop:1 {Colors.GRAY_50}
+                );
                 border: 1px solid {Colors.BORDER_LIGHT};
                 border-radius: {BorderRadius.XL}px;
             }}
@@ -236,8 +293,26 @@ class PackagesPage(QWidget):
         apply_shadow(card, "md")
 
         layout = QVBoxLayout(card)
-        layout.setContentsMargins(Spacing.LG, Spacing.LG, Spacing.LG, Spacing.LG)
-        layout.setSpacing(Spacing.MD)
+        layout.setContentsMargins(Spacing.LG, Spacing.MD, Spacing.LG, Spacing.MD)
+        layout.setSpacing(Spacing.XS)
+
+        if is_featured:
+            badge = QLabel("מומלץ")
+            badge.setFont(
+                QFont(
+                    Typography.FONT_FAMILY, Typography.SIZE_SM, Typography.WEIGHT_BOLD
+                )
+            )
+            badge.setStyleSheet(
+                f"""
+                color: {Colors.WHITE};
+                background: {Gradients.PRIMARY};
+                padding: {Spacing.XS}px {Spacing.MD}px;
+                border-radius: {BorderRadius.FULL}px;
+            """
+            )
+            badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(badge, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # Package name
         name = QLabel(package.get("name", "חבילה"))
@@ -255,7 +330,7 @@ class PackagesPage(QWidget):
         desc.setStyleSheet(f"color: {Colors.TEXT_SECONDARY};")
         desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
         desc.setWordWrap(True)
-        desc.setMaximumHeight(40)
+        desc.setMaximumHeight(28)
         layout.addWidget(desc)
 
         # Divider
@@ -268,26 +343,30 @@ class PackagesPage(QWidget):
         features = QWidget()
         features_layout = QVBoxLayout(features)
         features_layout.setContentsMargins(0, 0, 0, 0)
-        features_layout.setSpacing(Spacing.SM)
+        features_layout.setSpacing(Spacing.XS)
 
         # Time - only show if package includes time
         minutes = package.get("minutes", 0)
         if minutes > 0:
             hours = minutes // 60
             mins = minutes % 60
-            time_text = f"⏱️  {hours}:{mins:02d} שעות"
+            time_text = f"●  {hours}:{mins:02d} שעות"
             time_lbl = self._create_feature_label(time_text, Colors.PRIMARY)
             features_layout.addWidget(time_lbl)
 
         # Prints - only show if package includes print balance
         prints = package.get("prints", 0)
         if prints > 0:
-            prints_text = f"🖨️  {prints}₪ יתרת הדפסות"
+            prints_text = f"●  {prints}₪ יתרת הדפסות"
             prints_lbl = self._create_feature_label(prints_text, Colors.ACCENT)
             features_layout.addWidget(prints_lbl)
 
+        validity_text = self._get_validity_text(package)
+        if validity_text:
+            validity_lbl = self._create_feature_label(validity_text, Colors.WARNING)
+            features_layout.addWidget(validity_lbl)
+
         layout.addWidget(features)
-        layout.addStretch(1)
 
         # Price (with discount if applicable)
         pricing = PackageService.calculate_final_price(package)
@@ -297,7 +376,7 @@ class PackagesPage(QWidget):
 
         # Price container - give it minimum height to prevent cutoff
         price_container = QWidget()
-        price_container.setMinimumHeight(80 if discount_percent > 0 else 50)
+        price_container.setMinimumHeight(54 if discount_percent > 0 else 40)
         price_layout = QVBoxLayout(price_container)
         price_layout.setContentsMargins(0, Spacing.SM, 0, Spacing.SM)
         price_layout.setSpacing(Spacing.XS)
@@ -334,6 +413,7 @@ class PackagesPage(QWidget):
             final_price_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             price_layout.addWidget(final_price_lbl)
 
+
             # Show discount badge
             discount_badge = QLabel(f"חסכון {int(discount_percent)}%")
             discount_badge.setFont(
@@ -365,6 +445,7 @@ class PackagesPage(QWidget):
             price_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             price_layout.addWidget(price_lbl)
 
+
         layout.addWidget(price_container)
 
         # Buy button
@@ -382,15 +463,56 @@ class PackagesPage(QWidget):
         )
         label.setStyleSheet(
             f"""
-            background: {color}15;
+            background: {color}10;
             color: {color};
-            padding: {Spacing.SM}px {Spacing.MD}px;
+            padding: {Spacing.XS}px {Spacing.MD}px;
             border-radius: {BorderRadius.SM}px;
             border-right: 3px solid {color};
         """
         )
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         return label
+
+    def _get_validity_text(self, package: Dict) -> str:
+        """Return validity display text for a package"""
+        validity_days = package.get("validityDays", 0)
+        if isinstance(validity_days, (int, float)) and validity_days > 0:
+            return f"●  תוקף: {int(validity_days)} ימים"
+
+        for key in ("validUntil", "expiresAt", "expiryDate"):
+            date_str = package.get(key)
+            if not date_str:
+                continue
+            try:
+                dt = datetime.fromisoformat(str(date_str).replace("Z", "+00:00"))
+                return f"●  תוקף עד: {dt.strftime('%d/%m/%Y')}"
+            except Exception:
+                continue
+
+        return ""
+
+    def _select_featured_package_id(self) -> Optional[str]:
+        """Select featured package based on highest discount"""
+        best = None
+        best_discount = 0
+        for package in self.packages:
+            pricing = PackageService.calculate_final_price(package)
+            discount = pricing.get("discount_percent", 0)
+            if discount > best_discount:
+                best_discount = discount
+                best = package
+        if best:
+            return best.get("id") or best.get("name")
+        return None
+
+    def _is_featured(self, package: Dict) -> bool:
+        """Check if package should be highlighted"""
+        if not self._featured_package_id:
+            return False
+        return self._featured_package_id in (
+            package.get("id"),
+            package.get("name"),
+        )
 
     def _handle_purchase(self, package: Dict):
         """Handle package purchase"""
