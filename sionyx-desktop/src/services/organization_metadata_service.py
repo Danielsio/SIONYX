@@ -229,6 +229,12 @@ class OrganizationMetadataService:
                     "error": "Admin contact info not found in organization metadata",
                 }
 
+            # Normalize types to strings to avoid UI crashes
+            if admin_phone is not None:
+                admin_phone = str(admin_phone)
+            if admin_email is not None:
+                admin_email = str(admin_email)
+
             return {
                 "success": True,
                 "contact": {
