@@ -100,7 +100,7 @@ class TestContactCard:
     def test_contact_card_fixed_height(self, qapp):
         """Test ContactCard has fixed height"""
         card = ContactCard(icon="📧", title="Email", value="test@test.com")
-        assert card.height() == 100
+        assert card.height() == 120
 
     def test_contact_card_with_hebrew(self, qapp):
         """Test ContactCard with Hebrew content"""

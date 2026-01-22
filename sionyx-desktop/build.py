@@ -346,6 +346,15 @@ def check_dependencies() -> bool:
         except Exception as e:
             print_error(f"{desc} - {e}")
             all_ok = False
+
+    # Verify PyQt6-WebEngine is installed so it gets bundled
+    try:
+        import PyQt6.QtWebEngineWidgets  # noqa: F401
+        print_success("PyQt6-WebEngine - OK")
+    except Exception as e:
+        print_error(f"PyQt6-WebEngine - {e}")
+        print_error("Install: pip install PyQt6-WebEngine")
+        all_ok = False
     
     return all_ok
 

@@ -5,6 +5,10 @@
 # Core build tools
 pyinstaller>=5.0.0
 
+# Runtime deps required for packaging
+PyQt6
+PyQt6-WebEngine
+
 # Firebase Storage upload (optional)
 firebase-admin>=6.0.0
 

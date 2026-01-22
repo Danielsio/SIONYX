@@ -6,6 +6,7 @@ Modern help center with FAQ cards and contact info.
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import (
+    QApplication,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -110,7 +111,7 @@ class ContactCard(QFrame):
         self._build()
 
     def _build(self):
-        self.setFixedHeight(100)
+        self.setFixedHeight(120)
         self.setStyleSheet(
             f"""
             QFrame {{
@@ -122,19 +123,31 @@ class ContactCard(QFrame):
                 border: none;
                 background: transparent;
             }}
+            QFrame:hover {{
+                border: 1px solid {Colors.BORDER};
+            }}
         """
         )
-        apply_shadow(self, "sm")
+        apply_shadow(self, "md")
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(Spacing.LG, Spacing.BASE, Spacing.LG, Spacing.BASE)
-        layout.setSpacing(Spacing.XS)
+        layout.setContentsMargins(Spacing.LG, Spacing.MD, Spacing.LG, Spacing.MD)
+        layout.setSpacing(Spacing.SM)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Icon
         icon = QLabel(self.icon)
-        icon.setFont(QFont(Typography.FONT_FAMILY, 24))
+        icon.setFont(QFont(Typography.FONT_FAMILY, 22))
         icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        icon.setStyleSheet(
+            f"""
+            color: {Colors.TEXT_PRIMARY};
+            background: {Colors.GRAY_50};
+            border: 1px solid {Colors.BORDER_LIGHT};
+            border-radius: {BorderRadius.SM}px;
+            padding: 6px 10px;
+        """
+        )
         layout.addWidget(icon)
 
         # Title
@@ -148,7 +161,7 @@ class ContactCard(QFrame):
         value = QLabel(self.value)
         value.setFont(
             QFont(
-                Typography.FONT_FAMILY, Typography.SIZE_BASE, Typography.WEIGHT_SEMIBOLD
+                Typography.FONT_FAMILY, Typography.SIZE_MD, Typography.WEIGHT_SEMIBOLD
             )
         )
         value.setStyleSheet(f"color: {Colors.TEXT_PRIMARY}; background: transparent;")
@@ -172,6 +185,18 @@ class HelpPage(QWidget):
         self._fetch_admin_contact()
         
         self.init_ui()
+
+    def _copy_to_clipboard(self, text: str):
+        """Copy text to clipboard."""
+        clipboard = QApplication.instance().clipboard()
+        clipboard.setText(text or "")
+
+    def _clear_layout(self, layout: QHBoxLayout | QVBoxLayout):
+        """Remove all widgets/items from a layout."""
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
     def _fetch_admin_contact(self):
         """Fetch admin contact info from organization metadata"""
@@ -235,41 +260,34 @@ class HelpPage(QWidget):
         scroll_layout.setSpacing(Spacing.LG)
 
         # Contact section
-        contact_title_text = "📞 יצירת קשר"
-        if self.org_name:
-            contact_title_text += f" - {self.org_name}"
-        contact_title = QLabel(contact_title_text)
-        contact_title.setFont(
+        self.contact_title = QLabel("📞 יצירת קשר")
+        self.contact_title.setFont(
             QFont(
                 Typography.FONT_FAMILY, Typography.SIZE_LG, Typography.WEIGHT_SEMIBOLD
             )
         )
-        contact_title.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
-        scroll_layout.addWidget(contact_title)
+        self.contact_title.setStyleSheet(f"color: {Colors.TEXT_PRIMARY};")
+        scroll_layout.addWidget(self.contact_title)
 
         contact_row = QWidget()
-        contact_layout = QHBoxLayout(contact_row)
-        contact_layout.setContentsMargins(0, 0, 0, 0)
-        contact_layout.setSpacing(Spacing.BASE)
-
-        # Show admin contact info from organization metadata
-        if self.admin_email:
-            contact_layout.addWidget(ContactCard("📧", "אימייל מנהל", self.admin_email))
-        
-        if self.admin_phone:
-            contact_layout.addWidget(ContactCard("📱", "טלפון מנהל", self.admin_phone))
-            # Also show WhatsApp with the same phone number
-            contact_layout.addWidget(ContactCard("💬", "וואטסאפ", self.admin_phone))
-        
-        # If no admin contact info available, show placeholder
-        if not self.admin_email and not self.admin_phone:
-            contact_layout.addWidget(
-                ContactCard("ℹ️", "מידע", "פנה למנהל המערכת")
-            )
-        
-        contact_layout.addStretch()
+        self.contact_layout = QHBoxLayout(contact_row)
+        self.contact_layout.setContentsMargins(0, 0, 0, 0)
+        self.contact_layout.setSpacing(Spacing.BASE)
 
         scroll_layout.addWidget(contact_row)
+
+        # Help text for users
+        self.help_text = QLabel(
+            "אם משהו לא עובד או אם תשלום לא עבר - ניתן ליצור קשר עם מנהל המערכת "
+            "באימייל או בטלפון."
+        )
+        self.help_text.setFont(QFont(Typography.FONT_FAMILY, Typography.SIZE_SM))
+        self.help_text.setStyleSheet(f"color: {Colors.TEXT_SECONDARY};")
+        self.help_text.setWordWrap(True)
+        scroll_layout.addWidget(self.help_text)
+
+        # Render contact widgets
+        self._render_contact_section()
 
         # FAQ section
         faq_title = QLabel("❓ שאלות נפוצות")
@@ -326,5 +344,59 @@ class HelpPage(QWidget):
         logger.debug("Help page initialized")
 
     def refresh_user_data(self):
-        """Refresh user data (not needed for help page)"""
-        pass
+        """Refresh admin contact info for help page."""
+        self._fetch_admin_contact()
+        self._render_contact_section()
+
+    def _render_contact_section(self):
+        """Render contact cards and action buttons."""
+        # Title with org name
+        contact_title_text = "📞 יצירת קשר"
+        if self.org_name:
+            contact_title_text += f" - {self.org_name}"
+        self.contact_title.setText(contact_title_text)
+
+        # Clear layouts
+        self._clear_layout(self.contact_layout)
+
+        # Show admin contact info from organization metadata
+        if self.admin_email:
+            self.contact_layout.addWidget(
+                ContactCard(
+                    "📧",
+                    "אימייל מנהל",
+                    self.admin_email,
+                )
+            )
+
+        if self.admin_phone:
+            phone_text = str(self.admin_phone)
+            phone_digits = "".join(
+                ch for ch in phone_text if ch.isdigit() or ch == "+"
+            )
+            wa_phone = phone_digits.lstrip("+") if phone_digits else self.admin_phone
+            self.contact_layout.addWidget(
+                ContactCard(
+                    "📱",
+                    "טלפון מנהל",
+                    phone_text,
+                )
+            )
+            # Also show WhatsApp with the same phone number
+            self.contact_layout.addWidget(
+                ContactCard(
+                    "💬",
+                    "וואטסאפ",
+                    phone_text,
+                )
+            )
+
+        # If no admin contact info available, show placeholder
+        if not self.admin_email and not self.admin_phone:
+            self.contact_layout.addWidget(
+                ContactCard("ℹ️", "מידע", "פנה למנהל המערכת")
+            )
+
+        self.contact_layout.addStretch()
+
+        # No action buttons; contact cards are clickable via link
