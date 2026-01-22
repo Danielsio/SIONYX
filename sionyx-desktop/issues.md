@@ -51,10 +51,11 @@ The `get_admin_contact(org_id)` method was using the full path `organizations/{o
 ---
 
 ### ISSUE-003: Import Errors Not Logged
-**Status:** Open - Design Improvement Needed  
-**Severity:** Low  
+**Status:** FIXED  
+**Severity:** Medium  
 **Date Found:** 2026-01-21  
-**Component:** Logging System
+**Date Fixed:** 2026-01-21  
+**Component:** `main.py`
 
 **Description:**  
 When a module fails to import (like PyQt6-WebEngine), the error is not captured in the log files because:
@@ -62,8 +63,21 @@ When a module fails to import (like PyQt6-WebEngine), the error is not captured 
 2. Logging is not yet configured when the import fails
 3. Python exits before any logging can occur
 
-**Recommendation:**  
-Consider wrapping critical imports in try-except blocks with early logging initialization, as done for `payment_dialog.py`.
+**Fix Applied:**
+1. Added `_get_crash_log_path()` and `_write_crash_log()` functions at the top of `main.py`
+2. Wrapped all imports in try-except block that catches ImportError and other exceptions
+3. On crash, writes to `logs/crash.log` with:
+   - Timestamp
+   - Error type and message
+   - Python version
+   - Command line arguments
+   - Full stack trace
+4. Also prints to stderr so user sees feedback
+5. Final exception handler also writes to crash log for consistency
+
+**Crash log location:**
+- Development: `sionyx-desktop/logs/crash.log`
+- Production: `%LOCALAPPDATA%\SIONYX\logs\crash.log`
 
 ---
 

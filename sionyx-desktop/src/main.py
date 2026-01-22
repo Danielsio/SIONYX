@@ -3,10 +3,43 @@ SIONYX Desktop Application
 Main entry point - Refactored for better error handling and constants usage
 """
 
-import argparse
-import logging
 import sys
+import traceback
+from datetime import datetime
 from pathlib import Path
+
+
+def _get_crash_log_path():
+    """Get path for crash log file (before logging is configured)."""
+    if getattr(sys, "frozen", False):
+        # Running as PyInstaller executable - use AppData
+        log_dir = Path.home() / "AppData" / "Local" / "SIONYX" / "logs"
+    else:
+        # Running as script - use project root
+        log_dir = Path(__file__).parent.parent / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    return log_dir / "crash.log"
+
+
+def _write_crash_log(error_type: str, error_msg: str, tb: str):
+    """Write crash info to log file (works before logging is configured)."""
+    try:
+        crash_log = _get_crash_log_path()
+        timestamp = datetime.now().isoformat()
+        with open(crash_log, "a", encoding="utf-8") as f:
+            f.write(f"\n{'='*60}\n")
+            f.write(f"CRASH REPORT - {timestamp}\n")
+            f.write(f"{'='*60}\n")
+            f.write(f"Error Type: {error_type}\n")
+            f.write(f"Error Message: {error_msg}\n")
+            f.write(f"Python Version: {sys.version}\n")
+            f.write(f"Arguments: {sys.argv}\n")
+            f.write(f"\nStack Trace:\n{tb}\n")
+        # Also print to stderr so user sees something
+        print(f"[SIONYX CRASH] {error_type}: {error_msg}", file=sys.stderr)
+        print(f"[SIONYX CRASH] Details logged to: {crash_log}", file=sys.stderr)
+    except Exception as e:
+        print(f"[SIONYX] Failed to write crash log: {e}", file=sys.stderr)
 
 
 # Add project root to Python path BEFORE any imports
@@ -17,23 +50,44 @@ if __name__ == "__main__":
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
-from PyQt6.QtCore import QCoreApplication, Qt
-from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
+# Wrap all imports in try-except to catch import errors BEFORE logging is configured
+try:
+    import argparse
+    import logging
 
-from services.auth_service import AuthService
-from services.global_hotkey_service import GlobalHotkeyService
-from services.keyboard_restriction_service import KeyboardRestrictionService
-from services.process_restriction_service import ProcessRestrictionService
-from ui.auth_window import AuthWindow
-from ui.main_window import MainWindow
-from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
-from utils.firebase_config import get_firebase_config
-from utils.logger import (
-    SionyxLogger,
-    generate_request_id,
-    get_logger,
-    set_context,
-)
+    from PyQt6.QtCore import QCoreApplication, Qt
+    from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
+
+    from services.auth_service import AuthService
+    from services.global_hotkey_service import GlobalHotkeyService
+    from services.keyboard_restriction_service import KeyboardRestrictionService
+    from services.process_restriction_service import ProcessRestrictionService
+    from ui.auth_window import AuthWindow
+    from ui.main_window import MainWindow
+    from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
+    from utils.firebase_config import get_firebase_config
+    from utils.logger import (
+        SionyxLogger,
+        generate_request_id,
+        get_logger,
+        set_context,
+    )
+except ImportError as e:
+    # Critical import failed - log to crash file and exit
+    _write_crash_log(
+        error_type="ImportError",
+        error_msg=str(e),
+        tb=traceback.format_exc(),
+    )
+    sys.exit(1)
+except Exception as e:
+    # Any other error during imports
+    _write_crash_log(
+        error_type=type(e).__name__,
+        error_msg=str(e),
+        tb=traceback.format_exc(),
+    )
+    sys.exit(1)
 
 
 # CRITICAL: Import and configure WebEngine BEFORE QApplication
@@ -494,8 +548,16 @@ if __name__ == "__main__":
         sys.exit(0)
 
     except Exception as e:
+        # Log to structured logger
         logger.critical(
             "Fatal error - application crashed", error=str(e), action="fatal_error"
         )
         logger.exception("Fatal error details")
+        
+        # Also write to crash log for consistency
+        _write_crash_log(
+            error_type=type(e).__name__,
+            error_msg=str(e),
+            tb=traceback.format_exc(),
+        )
         sys.exit(1)
