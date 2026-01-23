@@ -155,6 +155,11 @@ class PackagesPage(QWidget):
     def _fetch_packages(self):
         """Fetch packages from service"""
         logger.debug("PackagesPage._fetch_packages called")
+        # Safety check: widget may be deleted during test teardown
+        try:
+            spinner_valid = self.loading_spinner is not None
+        except RuntimeError:
+            spinner_valid = False
         try:
             result = self.package_service.get_all_packages()
         except Exception as e:
@@ -168,12 +173,6 @@ class PackagesPage(QWidget):
             return
 
         logger.debug(f"Package fetch result: success={result.get('success')}")
-
-        # Safety check: widget may be deleted during test teardown
-        try:
-            spinner_valid = self.loading_spinner is not None
-        except RuntimeError:
-            spinner_valid = False
 
         if not result.get("success"):
             logger.error(f"Failed to fetch packages: {result.get('error')}")

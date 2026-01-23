@@ -408,10 +408,38 @@ class TestPackagesPage:
         validity_found = any("תוקף עד:" in label.text() for label in labels)
         assert validity_found
 
+    def test_fetch_packages_handles_exception(self, packages_page):
+        """Test fetch handles service exception gracefully"""
+        with patch.object(
+            packages_page.package_service, "get_all_packages", side_effect=Exception("boom")
+        ):
+            packages_page._fetch_packages()
+            assert packages_page._state_widget is not None
+
+    def test_fetch_packages_handles_failure(self, packages_page):
+        """Test fetch handles failure response"""
+        with patch.object(
+            packages_page.package_service,
+            "get_all_packages",
+            return_value={"success": False, "error": "fail"},
+        ):
+            packages_page._fetch_packages()
+            assert packages_page._state_widget is not None
+
     def test_get_validity_text_prefers_days(self, packages_page):
         """Test validity text uses days when provided"""
         test_package = {"validityDays": 15}
         assert packages_page._get_validity_text(test_package) == "●  תוקף: 15 ימים"
+
+    def test_get_validity_text_returns_empty_when_missing(self, packages_page):
+        """Test validity text empty when no data provided"""
+        assert packages_page._get_validity_text({}) == ""
+
+    def test_get_validity_text_handles_valid_until(self, packages_page):
+        """Test validity text reads validUntil with Z suffix"""
+        expiry = (datetime.now() + timedelta(days=5)).isoformat() + "Z"
+        text = packages_page._get_validity_text({"validUntil": expiry})
+        assert "תוקף עד:" in text
 
     def test_get_validity_text_handles_invalid_date(self, packages_page):
         """Test invalid date returns empty validity text"""
