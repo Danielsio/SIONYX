@@ -24,8 +24,6 @@ class GlobalHotkeyService(QObject):
         super().__init__()
         self.is_running = False
         self.hotkey_thread = None
-        self._hotkey_ids = []
-        self._hotkeys = ["ctrl+alt+q", "ctrl+alt+shift+q"]
 
     def start(self):
         """Start listening for global hotkeys"""
@@ -52,20 +50,15 @@ class GlobalHotkeyService(QObject):
 
         # Unhook all hotkeys
         try:
-            for hotkey_id in self._hotkey_ids:
-                keyboard.remove_hotkey(hotkey_id)
-            self._hotkey_ids = []
+            keyboard.unhook_all()
         except Exception as e:
             logger.warning(f"Error unhooking hotkeys: {e}")
 
     def _listen_for_hotkeys(self):
         """Listen for global hotkeys in a separate thread"""
         try:
-            # Register global hotkeys for admin exit
-            self._hotkey_ids = [
-                keyboard.add_hotkey(combo, self._on_admin_exit_hotkey)
-                for combo in self._hotkeys
-            ]
+            # Register global hotkey for admin exit (Ctrl+Alt+Q)
+            keyboard.add_hotkey("ctrl+alt+q", self._on_admin_exit_hotkey)
 
             # Keep the thread alive
             while self.is_running:
