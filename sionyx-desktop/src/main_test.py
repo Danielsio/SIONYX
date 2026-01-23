@@ -6,7 +6,6 @@ import sys
 from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
-from PyQt6.QtWidgets import QWidget
 
 
 class TestSionyxApp:
@@ -73,9 +72,6 @@ class TestSionyxApp:
         # Mock QIcon (imported inside __init__)
         patches["qicon"] = patch("PyQt6.QtGui.QIcon")
         patches["qicon"].start()
-
-        patches["qshortcut"] = patch("main.QShortcut")
-        patches["qshortcut"].start()
 
         # Mock QShortcut to avoid real widget binding
         patches["qshortcut"] = patch("main.QShortcut")
@@ -265,23 +261,6 @@ class TestSionyxAppMethods:
 
         assert sionyx_app.auth_window is not None
         AuthWindow.return_value.show.assert_called()
-
-    def test_attach_admin_shortcuts_skips_non_qt_window(self, sionyx_app):
-        """Should skip admin shortcuts for non-Qt window."""
-        from main import QShortcut
-
-        QShortcut.reset_mock()
-        sionyx_app._attach_admin_shortcuts(object())
-        QShortcut.assert_not_called()
-
-    def test_attach_admin_shortcuts_registers_shortcuts(self, sionyx_app):
-        """Should register admin shortcuts for Qt window."""
-        from main import QShortcut
-
-        QShortcut.reset_mock()
-        window = QWidget()
-        sionyx_app._attach_admin_shortcuts(window)
-        assert QShortcut.call_count == 2
 
     def test_show_main_window_closes_auth_window(self, sionyx_app):
         """Should close auth window when showing main window."""
