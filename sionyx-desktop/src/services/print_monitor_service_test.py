@@ -1416,6 +1416,44 @@ class TestHandleNewJobSpooling:
         assert pages == 10  # 5 pages × 2 copies
         assert cost == 10.0  # 10 pages × 1.0
 
+    def test_get_copies_from_job_data(self, print_monitor):
+        """Test copies extraction from job data"""
+        assert print_monitor._get_copies_from_job_data({"Copies": 4}) == 4
+        assert print_monitor._get_copies_from_job_data({"copies": 3}) == 3
+
+    def test_get_copies_from_job_data_invalid(self, print_monitor):
+        """Test invalid copies return 1"""
+        assert print_monitor._get_copies_from_job_data({"Copies": "bad"}) == 1
+
+    def test_handle_new_job_uses_job_data_copies(self, print_monitor, mock_firebase):
+        """Test job handling uses copies from job data when devmode missing"""
+        print_monitor._bw_price = 1.0
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {"printBalance": 50.0},
+        }
+        mock_firebase.db_update.return_value = {"success": True}
+
+        job_data = {
+            "JobId": 2,
+            "pDocument": "Test Doc",
+            "TotalPages": 2,
+            "Copies": 3,
+            "Status": 0,  # Not spooling
+        }
+
+        allowed_signals = []
+        print_monitor.job_allowed.connect(lambda *args: allowed_signals.append(args))
+
+        with patch.object(print_monitor, "_pause_job", return_value=True):
+            with patch.object(print_monitor, "_resume_job", return_value=True):
+                print_monitor._handle_new_job("Printer1", job_data)
+
+        assert len(allowed_signals) == 1
+        _, pages, cost, _ = allowed_signals[0]
+        assert pages == 6  # 2 pages × 3 copies
+        assert cost == 6.0
+
     def test_handle_new_job_color_job(self, print_monitor, mock_firebase):
         """Test job handling for color jobs"""
         print_monitor._bw_price = 1.0
