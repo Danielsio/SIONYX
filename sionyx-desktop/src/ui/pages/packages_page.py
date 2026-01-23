@@ -155,8 +155,18 @@ class PackagesPage(QWidget):
     def _fetch_packages(self):
         """Fetch packages from service"""
         logger.debug("PackagesPage._fetch_packages called")
-        result = self.package_service.get_all_packages()
-        
+        try:
+            result = self.package_service.get_all_packages()
+        except Exception as e:
+            logger.error(f"Failed to fetch packages: {e}")
+            if spinner_valid:
+                try:
+                    self.loading_spinner.hide()
+                except RuntimeError:
+                    spinner_valid = False
+            self._show_error()
+            return
+
         logger.debug(f"Package fetch result: success={result.get('success')}")
 
         # Safety check: widget may be deleted during test teardown
