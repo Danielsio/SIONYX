@@ -725,6 +725,18 @@ class PrintMonitorService(QObject):
             logger.debug(f"Could not get copies from devmode: {e}")
             return 1
 
+    def _get_copies_from_job_data(self, job_data: dict) -> int:
+        """Extract number of copies from job data when available."""
+        try:
+            copies = job_data.get("Copies") or job_data.get("copies")
+            if copies is None:
+                return 1
+            copies = int(copies)
+            return copies if copies > 0 else 1
+        except Exception as e:
+            logger.debug(f"Could not get copies from job data: {e}")
+            return 1
+
     def _is_color_job_from_devmode(self, devmode) -> bool:
         """
         Detect if print job is color from DEVMODE structure.
@@ -757,9 +769,12 @@ class PrintMonitorService(QObject):
         job_id = job_data.get("JobId", 0)
         doc_name = job_data.get("pDocument", "Unknown")
 
-        # Get number of copies from DEVMODE
+        # Get number of copies from job data and DEVMODE
         devmode = job_data.get("pDevMode")
-        copies = self._get_copies_from_devmode(devmode)
+        copies = max(
+            self._get_copies_from_job_data(job_data),
+            self._get_copies_from_devmode(devmode),
+        )
         logger.info(f"Copies requested: {copies}")
 
         # Status 8 = JOB_STATUS_SPOOLING - document still being processed
@@ -795,7 +810,11 @@ class PrintMonitorService(QObject):
                 # Also update copies and devmode if available
                 if job_info.get("pDevMode"):
                     devmode = job_info.get("pDevMode")
-                    copies = self._get_copies_from_devmode(devmode)
+                copies = max(
+                    copies,
+                    self._get_copies_from_job_data(job_info),
+                    self._get_copies_from_devmode(devmode),
+                )
 
                 logger.debug(
                     f"Attempt {attempt + 1}: pages={current_pages}, "

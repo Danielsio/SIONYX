@@ -56,7 +56,8 @@ try:
     import logging
 
     from PyQt6.QtCore import QCoreApplication, Qt
-    from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
+    from PyQt6.QtGui import QKeySequence
+    from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox, QShortcut
 
     from services.auth_service import AuthService
     from services.global_hotkey_service import GlobalHotkeyService
@@ -139,6 +140,7 @@ class SionyxApp:
         self.global_hotkey_service = None
         self.keyboard_restriction_service = None
         self.process_restriction_service = None
+        self._admin_shortcuts = []
 
         try:
             # Enable high DPI scaling BEFORE creating QApplication
@@ -246,6 +248,7 @@ class SionyxApp:
         self.auth_window = AuthWindow(self.auth_service)
         self.auth_window.login_success.connect(self.show_main_window)
         self.auth_window.show()
+        self._attach_admin_shortcuts(self.auth_window)
 
     def show_main_window(self):
         """Display main dashboard"""
@@ -259,6 +262,16 @@ class SionyxApp:
             self.auth_service, self.config, kiosk_mode=self.kiosk_mode
         )
         self.main_window.show()
+        self._attach_admin_shortcuts(self.main_window)
+
+    def _attach_admin_shortcuts(self, window):
+        """Attach in-app admin exit shortcuts as fallback."""
+        self._admin_shortcuts.clear()
+        for combo in ("Ctrl+Alt+Q", "Ctrl+Alt+Shift+Q"):
+            shortcut = QShortcut(QKeySequence(combo), window)
+            shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
+            shortcut.activated.connect(self.handle_admin_exit)
+            self._admin_shortcuts.append(shortcut)
 
     def handle_admin_exit(self):
         """Handle global admin exit hotkey (Ctrl+Alt+Q)"""
