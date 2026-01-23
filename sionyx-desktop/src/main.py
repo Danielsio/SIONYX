@@ -219,7 +219,11 @@ class SionyxApp:
                 self.handle_admin_exit, Qt.ConnectionType.QueuedConnection
             )
             self.global_hotkey_service.start()
-            logger.info("Global hotkey service started (Ctrl+Alt+Q for admin exit)")
+            logger.info(
+                "Global hotkey service started",
+                hotkeys=self.global_hotkey_service._get_admin_exit_hotkeys(),
+                action="admin_exit_hotkey_ready",
+            )
 
             # Initialize kiosk security services if in kiosk mode
             if self.kiosk_mode:
@@ -261,7 +265,7 @@ class SionyxApp:
         self.main_window.show()
 
     def handle_admin_exit(self):
-        """Handle global admin exit hotkey (Ctrl+Alt+Q)"""
+        """Handle global admin exit hotkey"""
         logger.warning(
             "Admin exit hotkey triggered on main thread",
             action="admin_exit_attempt",

@@ -184,13 +184,14 @@ class TestOnAdminExitHotkey:
 class TestListenForHotkeys:
     """Tests for _listen_for_hotkeys method"""
 
-    def test_registers_ctrl_alt_q_hotkey(self, qapp):
-        """Test listener registers Ctrl+Alt+Q hotkey"""
+    def test_registers_admin_exit_hotkeys(self, qapp):
+        """Test listener registers configured + legacy admin exit hotkeys"""
         with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
             # Make wait() exit immediately
             mock_keyboard.wait.side_effect = Exception("Exit loop")
 
             from services.global_hotkey_service import GlobalHotkeyService
+            from utils.const import ADMIN_EXIT_HOTKEY_DEFAULT
 
             service = GlobalHotkeyService()
             service.is_running = True
@@ -198,10 +199,30 @@ class TestListenForHotkeys:
             # Call listener directly (will exit on exception)
             service._listen_for_hotkeys()
 
-            # Check hotkey was registered
-            mock_keyboard.add_hotkey.assert_called_once()
-            call_args = mock_keyboard.add_hotkey.call_args
-            assert call_args[0][0] == "ctrl+alt+q"
+            # Check hotkeys were registered
+            hotkeys = [call[0][0] for call in mock_keyboard.add_hotkey.call_args_list]
+            assert ADMIN_EXIT_HOTKEY_DEFAULT in hotkeys
+            assert "ctrl+alt+q" in hotkeys
+
+    def test_env_hotkey_override(self, qapp):
+        """Test listener uses env override for admin exit hotkey"""
+        with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
+            # Make wait() exit immediately
+            mock_keyboard.wait.side_effect = Exception("Exit loop")
+
+            with patch.dict("os.environ", {"ADMIN_EXIT_HOTKEY": "ctrl+alt+shift+x"}):
+                from services.global_hotkey_service import GlobalHotkeyService
+
+                service = GlobalHotkeyService()
+                service.is_running = True
+
+                service._listen_for_hotkeys()
+
+                hotkeys = [
+                    call[0][0] for call in mock_keyboard.add_hotkey.call_args_list
+                ]
+                assert "ctrl+alt+shift+x" in hotkeys
+                assert "ctrl+alt+q" in hotkeys
 
     def test_handles_exception_in_listener(self, qapp):
         """Test listener handles exceptions gracefully"""
