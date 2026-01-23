@@ -1,15 +1,15 @@
 {
-  "version": "1.10.8",
-  "major": 1,
-  "minor": 10,
-  "patch": 8,
-  "buildNumber": 58,
-  "lastBuildDate": "2026-01-22T20:24:38.738881",
+  "version": "2.0.0",
+  "major": 2,
+  "minor": 0,
+  "patch": 0,
+  "buildNumber": 59,
+  "lastBuildDate": "2026-01-23T10:35:31.807908",
   "changelog": [
     "feat: Remove redundant account button from floating timer",
     "feat: Clear browser cookies on session end",
     "feat: Close user programs on session start",
     "feat: Package expiration/deadline support"
   ],
-  "coverage": 94.91
+  "coverage": 94.84
 }
