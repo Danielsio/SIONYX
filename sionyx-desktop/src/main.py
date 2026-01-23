@@ -55,9 +55,9 @@ try:
     import argparse
     import logging
 
-    from PyQt6.QtCore import QCoreApplication, QObject, Qt
-    from PyQt6.QtGui import QKeySequence, QShortcut
-    from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox
+    from PyQt6.QtCore import QCoreApplication, Qt
+    from PyQt6.QtGui import QKeySequence
+    from PyQt6.QtWidgets import QApplication, QLineEdit, QMessageBox, QShortcut
 
     from services.auth_service import AuthService
     from services.global_hotkey_service import GlobalHotkeyService
@@ -266,9 +266,6 @@ class SionyxApp:
 
     def _attach_admin_shortcuts(self, window):
         """Attach in-app admin exit shortcuts as fallback."""
-        if not isinstance(window, QObject):
-            logger.debug("Skipping admin shortcuts for non-Qt window")
-            return
         self._admin_shortcuts.clear()
         for combo in ("Ctrl+Alt+Q", "Ctrl+Alt+Shift+Q"):
             shortcut = QShortcut(QKeySequence(combo), window)

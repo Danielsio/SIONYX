@@ -117,17 +117,16 @@ class TestGlobalHotkeyServiceStop:
             assert service.is_running is False
 
     def test_stop_calls_unhook_all(self, qapp):
-        """Test stop removes registered hotkeys"""
+        """Test stop calls keyboard.unhook_all"""
         with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
             from services.global_hotkey_service import GlobalHotkeyService
 
             service = GlobalHotkeyService()
             service.is_running = True
-            service._hotkey_ids = [1, 2]
 
             service.stop()
 
-            assert mock_keyboard.remove_hotkey.call_count == 2
+            mock_keyboard.unhook_all.assert_called_once()
 
     def test_stop_when_not_running_returns_early(self, qapp):
         """Test stop returns early if not running"""
@@ -139,13 +138,13 @@ class TestGlobalHotkeyServiceStop:
 
             service.stop()
 
-            # remove_hotkey should not be called
-            mock_keyboard.remove_hotkey.assert_not_called()
+            # unhook_all should not be called
+            mock_keyboard.unhook_all.assert_not_called()
 
     def test_stop_handles_unhook_exception(self, qapp):
-        """Test stop handles exception from remove_hotkey"""
+        """Test stop handles exception from unhook_all"""
         with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
-            mock_keyboard.remove_hotkey.side_effect = Exception("Unhook error")
+            mock_keyboard.unhook_all.side_effect = Exception("Unhook error")
 
             from services.global_hotkey_service import GlobalHotkeyService
 
@@ -200,10 +199,9 @@ class TestListenForHotkeys:
             service._listen_for_hotkeys()
 
             # Check hotkey was registered
-            assert mock_keyboard.add_hotkey.call_count == 2
-            calls = [call_args[0][0] for call_args in mock_keyboard.add_hotkey.call_args_list]
-            assert "ctrl+alt+q" in calls
-            assert "ctrl+alt+shift+q" in calls
+            mock_keyboard.add_hotkey.assert_called_once()
+            call_args = mock_keyboard.add_hotkey.call_args
+            assert call_args[0][0] == "ctrl+alt+q"
 
     def test_handles_exception_in_listener(self, qapp):
         """Test listener handles exceptions gracefully"""
