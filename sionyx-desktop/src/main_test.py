@@ -73,10 +73,6 @@ class TestSionyxApp:
         patches["qicon"] = patch("PyQt6.QtGui.QIcon")
         patches["qicon"].start()
 
-        # Mock QShortcut to avoid real widget binding
-        patches["qshortcut"] = patch("main.QShortcut")
-        patches["qshortcut"].start()
-
         yield patches
 
         # Stop all patches
