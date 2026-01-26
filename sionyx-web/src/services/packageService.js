@@ -1,6 +1,14 @@
 import { ref, get, set, update, remove, push } from 'firebase/database';
 import { database } from '../config/firebase';
 
+const normalizePackageData = packageData => ({
+  ...packageData,
+  discountPercent: packageData.discountPercent ?? 0,
+  minutes: packageData.minutes ?? 0,
+  prints: packageData.prints ?? 0,
+  validityDays: packageData.validityDays ?? 0,
+});
+
 /**
  * Get all packages in an organization
  */
@@ -52,7 +60,7 @@ export const createPackage = async (orgId, packageData) => {
     const newPackageRef = push(packagesRef);
 
     const newPackage = {
-      ...packageData,
+      ...normalizePackageData(packageData),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -81,7 +89,7 @@ export const updatePackage = async (orgId, packageId, updates) => {
     const packageRef = ref(database, `organizations/${orgId}/packages/${packageId}`);
 
     const updateData = {
-      ...updates,
+      ...normalizePackageData(updates),
       updatedAt: new Date().toISOString(),
     };
 

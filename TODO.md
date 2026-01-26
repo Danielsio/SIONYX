@@ -21,6 +21,12 @@
   - ✅ Block UI interactions while loading
   - ✅ Modern animated spinner with fade effects
 
+## 🧭 Web Admin Findings (2026-01-26)
+
+- [x] **Packages: Admin Delete Option** - Added admin-only delete action on cards and in view modal
+- [x] **Packages: Optional Field Defaults** - Defaulted `discountPercent`, `minutes`, `prints`, `validityDays` to 0 in form + service normalization
+- [x] **Packages: Required Fields Clarified** - Name, description, price remain required; optional numeric fields now show 0 by default
+
 - [x] **Session Return Flow** - Improve handling when returning to app during session
   - ✅ `return_from_session()` handles smooth transition from floating timer
   - ✅ Session state properly managed via SessionService

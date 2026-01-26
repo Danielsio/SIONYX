@@ -53,6 +53,7 @@ const PackagesPage = () => {
   const [form] = Form.useForm();
 
   const user = useAuthStore(state => state.user);
+  const isAdmin = user?.isAdmin;
   const { message } = App.useApp();
   const {
     packages,
@@ -124,9 +125,17 @@ const PackagesPage = () => {
     }
   };
 
+  const normalizePackageValues = values => ({
+    ...values,
+    discountPercent: values.discountPercent ?? 0,
+    minutes: values.minutes ?? 0,
+    prints: values.prints ?? 0,
+    validityDays: values.validityDays ?? 0,
+  });
+
   const handleModalOk = async () => {
     try {
-      const values = await form.validateFields();
+      const values = normalizePackageValues(await form.validateFields());
 
       if (!orgId) {
         message.error('מזהה ארגון לא נמצא.');
@@ -174,22 +183,26 @@ const PackagesPage = () => {
     const menuItems = [
       { key: 'edit', icon: <EditOutlined />, label: 'ערוך', onClick: () => handleEdit(pkg) },
       { type: 'divider' },
-      {
-        key: 'delete',
-        icon: <DeleteOutlined />,
-        label: 'מחק',
-        danger: true,
-        onClick: () => {
-          Modal.confirm({
-            title: 'מחק חבילה',
-            content: `האם אתה בטוח שברצונך למחוק את "${pkg.name}"?`,
-            okText: 'מחק',
-            cancelText: 'ביטול',
-            okType: 'danger',
-            onOk: () => handleDelete(pkg),
-          });
-        },
-      },
+      ...(isAdmin
+        ? [
+            {
+              key: 'delete',
+              icon: <DeleteOutlined />,
+              label: 'מחק',
+              danger: true,
+              onClick: () => {
+                Modal.confirm({
+                  title: 'מחק חבילה',
+                  content: `האם אתה בטוח שברצונך למחוק את "${pkg.name}"?`,
+                  okText: 'מחק',
+                  cancelText: 'ביטול',
+                  okType: 'danger',
+                  onOk: () => handleDelete(pkg),
+                });
+              },
+            },
+          ]
+        : []),
     ];
 
     return (
@@ -411,7 +424,17 @@ const PackagesPage = () => {
         okText={editingPackage ? 'עדכן' : 'צור'}
         cancelText='ביטול'
       >
-        <Form form={form} layout='vertical' style={{ marginTop: 24 }}>
+        <Form
+          form={form}
+          layout='vertical'
+          style={{ marginTop: 24 }}
+          initialValues={{
+            discountPercent: 0,
+            minutes: 0,
+            prints: 0,
+            validityDays: 0,
+          }}
+        >
           <Form.Item
             name='name'
             label='שם החבילה'
@@ -511,6 +534,31 @@ const PackagesPage = () => {
           >
             ערוך
           </Button>,
+          ...(isAdmin
+            ? [
+                <Button
+                  key='delete'
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={() => {
+                    if (!viewingPackage) return;
+                    Modal.confirm({
+                      title: 'מחק חבילה',
+                      content: `האם אתה בטוח שברצונך למחוק את "${viewingPackage.name}"?`,
+                      okText: 'מחק',
+                      cancelText: 'ביטול',
+                      okType: 'danger',
+                      onOk: async () => {
+                        await handleDelete(viewingPackage);
+                        setViewModalVisible(false);
+                      },
+                    });
+                  }}
+                >
+                  מחק
+                </Button>,
+              ]
+            : []),
         ]}
         width={Math.min(600, window.innerWidth - 32)}
       >

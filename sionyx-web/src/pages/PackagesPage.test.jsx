@@ -49,13 +49,16 @@ const mockPackages = [
   },
 ];
 
-const renderPackagesPage = (packagesOverride = mockPackages) => {
+const renderPackagesPage = ({
+  packagesOverride = mockPackages,
+  userOverride = { orgId: 'my-org', uid: 'admin-123', isAdmin: true },
+} = {}) => {
   const mockSetPackages = vi.fn();
   const mockUpdateStorePackage = vi.fn();
   const mockRemovePackage = vi.fn();
 
   useAuthStore.mockImplementation((selector) => {
-    const state = { user: { orgId: 'my-org', uid: 'admin-123' } };
+    const state = { user: userOverride };
     return selector(state);
   });
 
@@ -162,7 +165,7 @@ describe('PackagesPage', () => {
   });
 
   it('shows empty state when no packages', async () => {
-    renderPackagesPage([]);
+    renderPackagesPage({ packagesOverride: [] });
 
     await waitFor(() => {
       expect(getAllPackages).toHaveBeenCalled();
@@ -241,6 +244,73 @@ describe('PackagesPage', () => {
 
     // Time should be displayed
     expect(document.body).toBeInTheDocument();
+  });
+
+  it('defaults optional fields to 0 on create', async () => {
+    const user = userEvent.setup();
+    renderPackagesPage();
+
+    await waitFor(() => {
+      expect(getAllPackages).toHaveBeenCalled();
+    });
+
+    await user.click(screen.getByText(/צור חבילה|הוסף חבילה/));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/שם/)).toBeInTheDocument();
+    });
+
+    await user.type(screen.getByPlaceholderText('למשל, חבילת בסיס'), 'חבילת בדיקה');
+    await user.type(screen.getByPlaceholderText('תאר מה החבילה כוללת...'), 'תיאור בדיקה');
+    await user.type(screen.getByPlaceholderText('0.00'), '25');
+
+    await user.click(screen.getByText('צור'));
+
+    await waitFor(() => {
+      expect(createPackage).toHaveBeenCalled();
+    });
+
+    const [, createdValues] = createPackage.mock.calls[0];
+    expect(createdValues).toMatchObject({
+      discountPercent: 0,
+      minutes: 0,
+      prints: 0,
+      validityDays: 0,
+    });
+  });
+
+  it('shows delete action in view modal for admins', async () => {
+    const user = userEvent.setup();
+    renderPackagesPage({ userOverride: { orgId: 'my-org', uid: 'admin-123', isAdmin: true } });
+
+    await waitFor(() => {
+      expect(getAllPackages).toHaveBeenCalled();
+    });
+
+    await user.click(screen.getByText('חבילה בסיסית'));
+
+    await waitFor(() => {
+      expect(screen.getByText('פרטי חבילה')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('מחק')).toBeInTheDocument();
+  });
+
+  it('hides delete action in view modal for non-admins', async () => {
+    const user = userEvent.setup();
+    renderPackagesPage({ userOverride: { orgId: 'my-org', uid: 'user-1', isAdmin: false } });
+
+    await waitFor(() => {
+      expect(getAllPackages).toHaveBeenCalled();
+    });
+
+    await user.click(screen.getByText('חבילה בסיסית'));
+
+    await waitFor(() => {
+      expect(screen.getByText('פרטי חבילה')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('מחק')).not.toBeInTheDocument();
   });
 });
 
