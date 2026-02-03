@@ -461,7 +461,7 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
     try:
         # Initialize Firebase
         if not firebase_admin._apps:
-            # Look for serviceAccountKey.json at repo root (parent of sionyx-desktop)
+            # Look for serviceAccountKey.json at repo root (parent of sionyx-kiosk)
             repo_root = Path(__file__).parent.parent
             service_key_path = repo_root / "serviceAccountKey.json"
             if not service_key_path.exists():

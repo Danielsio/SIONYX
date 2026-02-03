@@ -32,7 +32,7 @@ from pathlib import Path
 # Force UTF-8 encoding for Windows console
 sys.stdout.reconfigure(encoding='utf-8')
 
-VERSION_FILE = Path("sionyx-desktop/version.json")
+VERSION_FILE = Path("sionyx-kiosk/version.json")
 
 
 def run_cmd(cmd: list[str], check: bool = True, capture: bool = True) -> subprocess.CompletedProcess:
@@ -224,11 +224,11 @@ def main():
     
     print_step(2, total_steps, f"Building installer v{new_version}")
     
-    # Run build from sionyx-desktop directory
+    # Run build from sionyx-kiosk directory
     # Use --version to set specific version without auto-bump
     import os
     original_dir = os.getcwd()
-    os.chdir("sionyx-desktop")
+    os.chdir("sionyx-kiosk")
     
     # Build with specific version - this will update version.json if successful
     build_cmd = ["python", "build.py", "--version", new_version]

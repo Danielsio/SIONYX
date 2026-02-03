@@ -136,7 +136,7 @@ class LocalDatabase:
         """Generate encryption key from machine-specific data"""
         # Use a consistent key based on machine
         # In production, use hardware ID or similar
-        machine_id = "sionyx-desktop-app"  # Simple for now
+        machine_id = "sionyx-kiosk-app"  # Simple for now
 
         # Derive key
         key_material = hashlib.sha256(machine_id.encode()).digest()

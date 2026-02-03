@@ -2,7 +2,7 @@
 # ║                          SIONYX MONOREPO                                  ║
 # ║                                                                           ║
 # ║  Two apps, one repo:                                                      ║
-# ║    • sionyx-desktop  →  Windows kiosk client (Python/PyQt6)               ║
+# ║    • sionyx-kiosk  →  Windows kiosk client (Python/PyQt6)               ║
 # ║    • sionyx-web      →  Admin dashboard (React/Vite)                      ║
 # ║                                                                           ║
 # ║  Naming convention:                                                       ║
@@ -92,7 +92,7 @@ help-full:
 	@echo "  NOTE: Build fails if test coverage drops."
 	@echo "        Override with: make build SKIP_COV=true"
 	@echo ""
-	@echo "DESKTOP APP (sionyx-desktop)"
+	@echo "DESKTOP APP (sionyx-kiosk)"
 	@echo "  dev                Run app"
 	@echo "  dev-debug          Run app with DEBUG logging"
 	@echo "  test               Run all tests"
@@ -174,29 +174,29 @@ merge-release:
 SKIP_COV_FLAG := $(if $(SKIP_COV),--skip-coverage-check,)
 
 version:
-	@$(PYTHON) -c "import json; v=json.load(open('sionyx-desktop/version.json')); print(f\"SIONYX v{v['version']} (Build #{v.get('buildNumber', 1)})\")"
+	@$(PYTHON) -c "import json; v=json.load(open('sionyx-kiosk/version.json')); print(f\"SIONYX v{v['version']} (Build #{v.get('buildNumber', 1)})\")"
 
 build: build-patch
 
 build-patch:
 	@echo "Building installer (patch version)..."
-	cd sionyx-desktop && $(PYTHON) build.py --patch $(SKIP_COV_FLAG)
+	cd sionyx-kiosk && $(PYTHON) build.py --patch $(SKIP_COV_FLAG)
 
 build-minor:
 	@echo "Building installer (minor version)..."
-	cd sionyx-desktop && $(PYTHON) build.py --minor $(SKIP_COV_FLAG)
+	cd sionyx-kiosk && $(PYTHON) build.py --minor $(SKIP_COV_FLAG)
 
 build-major:
 	@echo "Building installer (major version)..."
-	cd sionyx-desktop && $(PYTHON) build.py --major $(SKIP_COV_FLAG)
+	cd sionyx-kiosk && $(PYTHON) build.py --major $(SKIP_COV_FLAG)
 
 build-local:
 	@echo "Building installer locally (no upload)..."
-	cd sionyx-desktop && $(PYTHON) build.py --no-upload --keep-local $(SKIP_COV_FLAG)
+	cd sionyx-kiosk && $(PYTHON) build.py --no-upload --keep-local $(SKIP_COV_FLAG)
 
 build-dry:
 	@echo "Dry run - previewing version changes..."
-	cd sionyx-desktop && $(PYTHON) build.py --dry-run
+	cd sionyx-kiosk && $(PYTHON) build.py --dry-run
 
 # ════════════════════════════════════════════════════════════════════════════
 #  DESKTOP APP - Development
@@ -204,13 +204,13 @@ build-dry:
 
 dev:
 	@echo "Starting desktop app..."
-	cd sionyx-desktop && $(PYTHON) src/main.py
+	cd sionyx-kiosk && $(PYTHON) src/main.py
 
 run: dev
 
 dev-debug:
 	@echo "Starting desktop app (DEBUG mode)..."
-	cd sionyx-desktop && $(PYTHON) src/main.py --verbose
+	cd sionyx-kiosk && $(PYTHON) src/main.py --verbose
 
 run-debug: dev-debug
 
@@ -220,39 +220,39 @@ run-debug: dev-debug
 
 test:
 	@echo "Running tests..."
-	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v
+	cd sionyx-kiosk && $(PYTHON) -m pytest src/ -v
 
 test-cov:
 	@echo "Running tests with coverage..."
-	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v --cov=src --cov-report=term-missing
+	cd sionyx-kiosk && $(PYTHON) -m pytest src/ -v --cov=src --cov-report=term-missing
 
 test-fast:
 	@echo "Running fast tests (utils + services)..."
-	cd sionyx-desktop && $(PYTHON) -m pytest src/utils/ src/services/ -v
+	cd sionyx-kiosk && $(PYTHON) -m pytest src/utils/ src/services/ -v
 
 test-fail:
 	@echo "Running tests (stop on first failure)..."
-	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v -x
+	cd sionyx-kiosk && $(PYTHON) -m pytest src/ -v -x
 
 test-int:
 	@echo "Running integration tests..."
-	cd sionyx-desktop && $(PYTHON) -m pytest src/tests/integration/ -v
+	cd sionyx-kiosk && $(PYTHON) -m pytest src/tests/integration/ -v
 
 test-int-cov:
 	@echo "Running integration tests with coverage..."
-	cd sionyx-desktop && $(PYTHON) -m pytest src/tests/integration/ -v --cov=src --cov-report=term-missing
+	cd sionyx-kiosk && $(PYTHON) -m pytest src/tests/integration/ -v --cov=src --cov-report=term-missing
 
 test-unit:
 	@echo "Running unit tests only (excluding integration)..."
-	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v --ignore=src/tests/integration/
+	cd sionyx-kiosk && $(PYTHON) -m pytest src/ -v --ignore=src/tests/integration/
 
 # Run specific test file: make test-file FILE=src/services/auth_service_test.py
 test-file:
-	cd sionyx-desktop && $(PYTHON) -m pytest $(FILE) -v
+	cd sionyx-kiosk && $(PYTHON) -m pytest $(FILE) -v
 
 # Run tests matching pattern: make test-match PATTERN=test_login
 test-match:
-	cd sionyx-desktop && $(PYTHON) -m pytest src/ -v -k "$(PATTERN)"
+	cd sionyx-kiosk && $(PYTHON) -m pytest src/ -v -k "$(PATTERN)"
 
 # ════════════════════════════════════════════════════════════════════════════
 #  DESKTOP APP - Code Quality
@@ -260,29 +260,29 @@ test-match:
 
 lint:
 	@echo "Checking code style..."
-	@cd sionyx-desktop && $(PYTHON) -m black --check src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
-	@cd sionyx-desktop && $(PYTHON) -m isort --check-only src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
-	@cd sionyx-desktop && $(PYTHON) -m flake8 src/ --config=.flake8 || (echo "flake8 errors - fix manually." && exit 1)
+	@cd sionyx-kiosk && $(PYTHON) -m black --check src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
+	@cd sionyx-kiosk && $(PYTHON) -m isort --check-only src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
+	@cd sionyx-kiosk && $(PYTHON) -m flake8 src/ --config=.flake8 || (echo "flake8 errors - fix manually." && exit 1)
 	@echo "OK!"
 
 lint-fix:
 	@echo "Fixing code style..."
-	@cd sionyx-desktop && $(PYTHON) -m black src/
-	@cd sionyx-desktop && $(PYTHON) -m isort src/
+	@cd sionyx-kiosk && $(PYTHON) -m black src/
+	@cd sionyx-kiosk && $(PYTHON) -m isort src/
 	@echo "Done!"
 
 format:
 	@echo "Full formatting..."
-	@cd sionyx-desktop && $(PYTHON) format.py src/
-	@cd sionyx-desktop && $(PYTHON) -m black src/
-	@cd sionyx-desktop && $(PYTHON) -m isort src/
+	@cd sionyx-kiosk && $(PYTHON) format.py src/
+	@cd sionyx-kiosk && $(PYTHON) -m black src/
+	@cd sionyx-kiosk && $(PYTHON) -m isort src/
 	@echo "Done!"
 
 format-check:
 	@echo "Checking formatting..."
-	@cd sionyx-desktop && $(PYTHON) format.py --check src/
-	@cd sionyx-desktop && $(PYTHON) -m black --check src/
-	@cd sionyx-desktop && $(PYTHON) -m isort --check-only src/
+	@cd sionyx-kiosk && $(PYTHON) format.py --check src/
+	@cd sionyx-kiosk && $(PYTHON) -m black --check src/
+	@cd sionyx-kiosk && $(PYTHON) -m isort --check-only src/
 	@echo "OK!"
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -356,6 +356,6 @@ lint-all: lint web-lint
 
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -rf sionyx-desktop/build sionyx-desktop/dist
+	rm -rf sionyx-kiosk/build sionyx-kiosk/dist
 	rm -rf sionyx-web/dist sionyx-web/node_modules/.vite
 	@echo "Done!"

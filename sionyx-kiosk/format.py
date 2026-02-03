@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-File formatter for sionyx-desktop.
+File formatter for sionyx-kiosk.
 Fixes line endings and trailing newlines for all Python files.
 """
 

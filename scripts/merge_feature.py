@@ -37,7 +37,7 @@ def get_main_coverage() -> float:
     """Get coverage baseline from main branch version.json."""
     try:
         result = run_cmd(
-            ["git", "show", "main:sionyx-desktop/version.json"],
+            ["git", "show", "main:sionyx-kiosk/version.json"],
             capture=True
         )
         if result.returncode == 0:
@@ -55,7 +55,7 @@ def run_tests_with_coverage() -> float | None:
     
     result = run_cmd(
         ["pytest", "src/", "-v", "--cov=src", "--cov-report=term", "--cov-report=json"],
-        cwd="sionyx-desktop"
+        cwd="sionyx-kiosk"
     )
     
     if result.returncode != 0:
@@ -64,7 +64,7 @@ def run_tests_with_coverage() -> float | None:
         return None
     
     # Parse coverage from coverage.json
-    coverage_file = Path("sionyx-desktop/coverage.json")
+    coverage_file = Path("sionyx-kiosk/coverage.json")
     if coverage_file.exists():
         with open(coverage_file) as f:
             data = json.load(f)
@@ -72,7 +72,7 @@ def run_tests_with_coverage() -> float | None:
         
         # Cleanup
         coverage_file.unlink()
-        coverage_path = Path("sionyx-desktop/.coverage")
+        coverage_path = Path("sionyx-kiosk/.coverage")
         if coverage_path.exists():
             coverage_path.unlink()
         

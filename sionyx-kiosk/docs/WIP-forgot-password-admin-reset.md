@@ -68,7 +68,7 @@ Admin-assisted password reset:
 
 ## Files Modified
 
-### Desktop (sionyx-desktop)
+### Desktop (sionyx-kiosk)
 - `src/ui/auth_window.py` - Update forgot password click handler
 - `src/services/organization_metadata_service.py` - Add admin contact method
 
