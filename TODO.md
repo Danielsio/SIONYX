@@ -178,7 +178,7 @@
 ## 🧪 Testing
 
 - [x] **Integration Tests** - Complete user flow testing ✅
-  - 📄 See: `sionyx-desktop/docs/WIP-integration-tests.md`
+  - 📄 See: `sionyx-kiosk/docs/WIP-integration-tests.md`
   - ✅ Created test structure: `src/tests/integration/`
   - ✅ Service integration tests: 9/9 passing (registration, login, session, logout flows)
   - ✅ UI integration tests: 16/16 passing (auth window, navigation, floating timer)

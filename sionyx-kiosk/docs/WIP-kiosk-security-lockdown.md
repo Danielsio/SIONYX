@@ -229,7 +229,7 @@ Removes:
 ## Files
 
 ```
-sionyx-desktop/
+sionyx-kiosk/
 ├── docs/
 │   └── WIP-kiosk-security-lockdown.md  # This file
 ├── scripts/

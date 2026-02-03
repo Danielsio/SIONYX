@@ -100,7 +100,7 @@ Example: `C:\Users\KioskUser\AppData\Local\SIONYX\logs\`
 
 ### Development (Running as Script)
 ```
-sionyx-desktop/logs/
+sionyx-kiosk/logs/
 ```
 
 ### Log Files

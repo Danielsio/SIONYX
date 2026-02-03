@@ -39,8 +39,8 @@ class FirebaseConfig:
 
     def _load_from_env(self):
         """Load config from .env file (development mode)"""
-        # sionyx-desktop/src/utils/firebase_config.py -> go up to repo root
-        app_root = Path(__file__).parent.parent.parent  # sionyx-desktop/
+        # sionyx-kiosk/src/utils/firebase_config.py -> go up to repo root
+        app_root = Path(__file__).parent.parent.parent  # sionyx-kiosk/
         repo_root = app_root.parent  # repo root
 
         # Try repo root first, then app root for backwards compatibility

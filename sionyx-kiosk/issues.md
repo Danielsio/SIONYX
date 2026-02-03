@@ -76,7 +76,7 @@ When a module fails to import (like PyQt6-WebEngine), the error is not captured 
 5. Final exception handler also writes to crash log for consistency
 
 **Crash log location:**
-- Development: `sionyx-desktop/logs/crash.log`
+- Development: `sionyx-kiosk/logs/crash.log`
 - Production: `%LOCALAPPDATA%\SIONYX\logs\crash.log`
 
 ---
