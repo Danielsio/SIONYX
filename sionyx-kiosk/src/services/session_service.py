@@ -12,6 +12,7 @@ from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 from services.browser_cleanup_service import BrowserCleanupService
 from services.computer_service import ComputerService
 from services.firebase_client import FirebaseClient
+from services.operating_hours_service import OperatingHoursService
 from services.print_monitor_service import PrintMonitorService
 from services.process_cleanup_service import ProcessCleanupService
 from utils.logger import get_logger
@@ -25,11 +26,13 @@ class SessionService(QObject):
 
     # Signals
     time_updated = pyqtSignal(int)  # Emits remaining seconds
-    session_ended = pyqtSignal(str)  # Emits reason: 'expired', 'user', 'error'
+    session_ended = pyqtSignal(str)  # Emits reason: 'expired', 'user', 'error', 'hours'
     warning_5min = pyqtSignal()
     warning_1min = pyqtSignal()
     sync_failed = pyqtSignal(str)  # Emits error message
     sync_restored = pyqtSignal()
+    operating_hours_warning = pyqtSignal(int)  # Emits minutes until closing
+    operating_hours_ended = pyqtSignal(str)  # Emits grace behavior
 
     def __init__(self, firebase_client: FirebaseClient, user_id: str, org_id: str):
         super().__init__()
@@ -40,6 +43,11 @@ class SessionService(QObject):
 
         # Print monitoring
         self.print_monitor = PrintMonitorService(firebase_client, user_id, org_id)
+
+        # Operating hours monitoring
+        self.operating_hours = OperatingHoursService(firebase_client)
+        self.operating_hours.hours_ending_soon.connect(self._on_hours_ending_soon)
+        self.operating_hours.hours_ended.connect(self._on_hours_ended)
 
         # Session state
         self.session_id: Optional[str] = None
@@ -142,6 +150,9 @@ class SessionService(QObject):
         # Start print monitoring
         self.print_monitor.start_monitoring()
 
+        # Start operating hours monitoring
+        self.operating_hours.start_monitoring()
+
         logger.info(
             "Session started successfully",
             remaining_time=initial_remaining_time,
@@ -172,6 +183,9 @@ class SessionService(QObject):
 
         # Stop print monitoring
         self.print_monitor.stop_monitoring()
+
+        # Stop operating hours monitoring
+        self.operating_hours.stop_monitoring()
 
         # NOTE: We do NOT disassociate user from computer here.
         # The user is still logged in, just not in an active session.
@@ -433,3 +447,21 @@ class SessionService(QObject):
     def is_session_active(self) -> bool:
         """Check if session is active"""
         return self.is_active
+
+    def _on_hours_ending_soon(self, minutes: int):
+        """Handle operating hours ending soon warning"""
+        logger.warning(f"Operating hours ending in {minutes} minutes")
+        self.operating_hours_warning.emit(minutes)
+
+    def _on_hours_ended(self, grace_behavior: str):
+        """Handle operating hours ended"""
+        logger.warning(f"Operating hours ended, behavior: {grace_behavior}")
+        self.operating_hours_ended.emit(grace_behavior)
+
+        # End session due to operating hours
+        if grace_behavior == "force":
+            # Force immediate end
+            self.end_session("hours_force")
+        else:
+            # Graceful end - let user save work
+            self.end_session("hours")

@@ -16,7 +16,7 @@ const UsersPage = lazy(() => import('./pages/UsersPage'));
 const PackagesPage = lazy(() => import('./pages/PackagesPage'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const ComputersPage = lazy(() => import('./pages/ComputersPage'));
-const PricingPage = lazy(() => import('./pages/PricingPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function App() {
   const { setUser, setLoading, isAuthenticated } = useAuthStore();
@@ -95,7 +95,7 @@ function App() {
                 <Route path='packages' element={<PackagesPage />} />
                 <Route path='messages' element={<MessagesPage />} />
                 <Route path='computers' element={<ComputersPage />} />
-                <Route path='pricing' element={<PricingPage />} />
+                <Route path='settings' element={<SettingsPage />} />
               </Route>
 
               {/* Catch all - redirect to home */}

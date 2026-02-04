@@ -59,8 +59,8 @@ vi.mock('../pages/ComputersPage', () => ({
   default: () => <div data-testid="computers-page">Computers Page</div>,
 }));
 
-vi.mock('../pages/PricingPage', () => ({
-  default: () => <div data-testid="pricing-page">Pricing Page</div>,
+vi.mock('../pages/SettingsPage', () => ({
+  default: () => <div data-testid="settings-page">Settings Page</div>,
 }));
 
 describe('App', () => {

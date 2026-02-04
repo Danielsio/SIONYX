@@ -390,6 +390,102 @@ class TestSetPrintPricing:
 
 
 # =============================================================================
+# get_operating_hours tests
+# =============================================================================
+class TestGetOperatingHours:
+    """Tests for get_operating_hours method"""
+
+    def test_get_operating_hours_success(self, metadata_service, mock_firebase):
+        """Test successful operating hours retrieval"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {
+                "enabled": True,
+                "startTime": "08:00",
+                "endTime": "22:00",
+                "gracePeriodMinutes": 10,
+                "graceBehavior": "force",
+            },
+        }
+
+        result = metadata_service.get_operating_hours()
+
+        assert result["success"] is True
+        assert "operatingHours" in result
+
+    def test_get_operating_hours_values(self, metadata_service, mock_firebase):
+        """Test operating hours values are returned correctly"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {
+                "enabled": True,
+                "startTime": "08:00",
+                "endTime": "22:00",
+                "gracePeriodMinutes": 10,
+                "graceBehavior": "force",
+            },
+        }
+
+        result = metadata_service.get_operating_hours()
+
+        assert result["operatingHours"]["enabled"] is True
+        assert result["operatingHours"]["startTime"] == "08:00"
+        assert result["operatingHours"]["endTime"] == "22:00"
+        assert result["operatingHours"]["gracePeriodMinutes"] == 10
+        assert result["operatingHours"]["graceBehavior"] == "force"
+
+    def test_get_operating_hours_defaults_on_failure(self, metadata_service, mock_firebase):
+        """Test default values when Firebase fails"""
+        mock_firebase.db_get.return_value = {
+            "success": False,
+            "error": "Connection failed",
+        }
+
+        result = metadata_service.get_operating_hours()
+
+        assert result["success"] is True
+        assert result.get("is_default") is True
+        assert result["operatingHours"]["enabled"] is False
+        assert result["operatingHours"]["startTime"] == "06:00"
+        assert result["operatingHours"]["endTime"] == "00:00"
+
+    def test_get_operating_hours_defaults_on_no_data(self, metadata_service, mock_firebase):
+        """Test default values when no data exists"""
+        mock_firebase.db_get.return_value = {"success": True, "data": None}
+
+        result = metadata_service.get_operating_hours()
+
+        assert result["success"] is True
+        assert result.get("is_default") is True
+
+    def test_get_operating_hours_partial_data(self, metadata_service, mock_firebase):
+        """Test default values fill in missing fields"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {"enabled": True, "startTime": "09:00"},
+        }
+
+        result = metadata_service.get_operating_hours()
+
+        assert result["success"] is True
+        assert result["operatingHours"]["enabled"] is True
+        assert result["operatingHours"]["startTime"] == "09:00"
+        # Should use defaults for missing fields
+        assert result["operatingHours"]["endTime"] == "00:00"
+        assert result["operatingHours"]["gracePeriodMinutes"] == 5
+        assert result["operatingHours"]["graceBehavior"] == "graceful"
+
+    def test_get_operating_hours_exception_handling(self, metadata_service, mock_firebase):
+        """Test exception handling"""
+        mock_firebase.db_get.side_effect = Exception("Unexpected error")
+
+        result = metadata_service.get_operating_hours()
+
+        assert result["success"] is False
+        assert "error" in result
+
+
+# =============================================================================
 # get_admin_contact tests
 # =============================================================================
 class TestGetAdminContact:

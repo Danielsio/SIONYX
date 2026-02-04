@@ -5,6 +5,7 @@ import {
 } from 'firebase/auth';
 import { ref, get, set } from 'firebase/database';
 import { auth, database } from '../config/firebase';
+import { isAdminOrAbove, getUserRole } from '../utils/roles';
 
 /**
  * Convert phone number to email format for Firebase Auth
@@ -65,8 +66,8 @@ export const signInAdmin = async (phone, password, orgId) => {
 
     const userData = userSnapshot.val();
 
-    // Check if user is an admin
-    if (!userData.isAdmin) {
+    // Check if user is an admin or above (supports both role field and legacy isAdmin)
+    if (!isAdminOrAbove(userData)) {
       // Not an admin - sign out
       await firebaseSignOut(auth);
       return {
@@ -78,6 +79,9 @@ export const signInAdmin = async (phone, password, orgId) => {
     // Store orgId in localStorage for future use
     localStorage.setItem('adminOrgId', cleanOrgId);
 
+    // Ensure role is set (for backwards compatibility)
+    const effectiveRole = getUserRole(userData);
+
     return {
       success: true,
       user: {
@@ -85,6 +89,7 @@ export const signInAdmin = async (phone, password, orgId) => {
         phone: phone,
         orgId: cleanOrgId,
         ...userData,
+        role: effectiveRole,
       },
     };
   } catch (error) {
@@ -157,13 +162,16 @@ export const getCurrentAdminData = async () => {
 
     const userData = snapshot.val();
 
-    // Verify still an admin
-    if (!userData.isAdmin) {
+    // Verify still an admin or above (supports both role field and legacy isAdmin)
+    if (!isAdminOrAbove(userData)) {
       return {
         success: false,
         error: 'Admin privileges revoked. Please contact your administrator.',
       };
     }
+
+    // Ensure role is set (for backwards compatibility)
+    const effectiveRole = getUserRole(userData);
 
     return {
       success: true,
@@ -171,6 +179,7 @@ export const getCurrentAdminData = async () => {
         uid: user.uid,
         orgId: orgId,
         ...userData,
+        role: effectiveRole,
       },
     };
   } catch (error) {

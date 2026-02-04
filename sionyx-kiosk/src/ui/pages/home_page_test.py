@@ -11,7 +11,7 @@ Testing Strategy:
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from PyQt6.QtWidgets import QFrame, QLabel, QPushButton
+from PyQt6.QtWidgets import QFrame, QLabel, QPushButton, QMessageBox
 
 from ui.pages.home_page import HomePage
 
@@ -77,16 +77,26 @@ class TestHomePage:
         return chat_service
 
     @pytest.fixture
-    def home_page(self, mock_auth_service, mock_chat_service, qapp):
-        """Create HomePage with mocked dependencies"""
-        with patch("ui.pages.home_page.ChatService", return_value=mock_chat_service):
-            page = HomePage(mock_auth_service)
-            yield page
-            # Cleanup
-            page.countdown_timer.stop()
+    def mock_operating_hours_service(self):
+        """Create mock operating hours service"""
+        service = Mock()
+        service.load_settings = Mock(return_value={"success": True})
+        service.is_within_operating_hours = Mock(return_value=(True, None))
+        service.get_settings = Mock(return_value={"enabled": False})
+        return service
 
     @pytest.fixture
-    def home_page_no_time(self, mock_firebase_client, mock_chat_service, qapp):
+    def home_page(self, mock_auth_service, mock_chat_service, mock_operating_hours_service, qapp):
+        """Create HomePage with mocked dependencies"""
+        with patch("ui.pages.home_page.ChatService", return_value=mock_chat_service):
+            with patch("ui.pages.home_page.OperatingHoursService", return_value=mock_operating_hours_service):
+                page = HomePage(mock_auth_service)
+                yield page
+                # Cleanup
+                page.countdown_timer.stop()
+
+    @pytest.fixture
+    def home_page_no_time(self, mock_firebase_client, mock_chat_service, mock_operating_hours_service, qapp):
         """Create HomePage for user with no time"""
         auth_service = Mock()
         auth_service.firebase = mock_firebase_client
@@ -94,12 +104,13 @@ class TestHomePage:
         auth_service.get_current_user.return_value = MOCK_USER_NO_TIME.copy()
 
         with patch("ui.pages.home_page.ChatService", return_value=mock_chat_service):
-            page = HomePage(auth_service)
-            yield page
-            page.countdown_timer.stop()
+            with patch("ui.pages.home_page.OperatingHoursService", return_value=mock_operating_hours_service):
+                page = HomePage(auth_service)
+                yield page
+                page.countdown_timer.stop()
 
     @pytest.fixture
-    def home_page_with_messages(self, mock_auth_service, qapp):
+    def home_page_with_messages(self, mock_auth_service, mock_operating_hours_service, qapp):
         """Create HomePage with pending messages"""
         mock_chat = Mock()
         mock_chat.is_listening = False
@@ -112,9 +123,10 @@ class TestHomePage:
         mock_chat.messages_received.connect = Mock()
 
         with patch("ui.pages.home_page.ChatService", return_value=mock_chat):
-            page = HomePage(mock_auth_service)
-            yield page
-            page.countdown_timer.stop()
+            with patch("ui.pages.home_page.OperatingHoursService", return_value=mock_operating_hours_service):
+                page = HomePage(mock_auth_service)
+                yield page
+                page.countdown_timer.stop()
 
     # =========================================================================
     # INITIALIZATION TESTS
@@ -649,3 +661,61 @@ class TestHomePage:
 
         # Should not raise
         home_page._focus_modal()
+
+    # =========================================================================
+    # OPERATING HOURS TESTS
+    # =========================================================================
+
+    def test_operating_hours_service_initialized(self, home_page):
+        """Test operating hours service is initialized"""
+        assert home_page.operating_hours_service is not None
+
+    def test_handle_start_session_checks_operating_hours(self, home_page):
+        """Test handle_start_session checks operating hours before starting"""
+        # Setup: operating hours allow access
+        home_page.operating_hours_service.is_within_operating_hours.return_value = (True, None)
+        
+        mock_main_window = Mock()
+        mock_main_window.session_service = Mock()
+        mock_main_window.session_service.is_session_active = Mock(return_value=False)
+        mock_main_window.start_user_session = Mock()
+        
+        mock_stacked = Mock()
+        mock_stacked.parent.return_value = mock_main_window
+        
+        with patch.object(home_page, "parent", return_value=mock_stacked):
+            with patch.object(home_page, "_is_session_active", return_value=False):
+                home_page.handle_start_session()
+        
+        # Should check operating hours
+        home_page.operating_hours_service.is_within_operating_hours.assert_called_once()
+
+    def test_handle_start_session_blocked_by_operating_hours(self, home_page):
+        """Test handle_start_session blocks when outside operating hours"""
+        # Setup: operating hours deny access
+        home_page.operating_hours_service.is_within_operating_hours.return_value = (
+            False, "שעות הפעילות הן בין 06:00 ל-22:00"
+        )
+        
+        mock_main_window = Mock()
+        mock_main_window.session_service = Mock()
+        mock_main_window.session_service.is_session_active = Mock(return_value=False)
+        mock_main_window.start_user_session = Mock()
+        
+        mock_stacked = Mock()
+        mock_stacked.parent.return_value = mock_main_window
+        
+        with patch.object(home_page, "parent", return_value=mock_stacked):
+            with patch.object(home_page, "_is_session_active", return_value=False):
+                with patch.object(home_page, "_show_operating_hours_error") as mock_error:
+                    home_page.handle_start_session()
+                    
+                    # Should show error and NOT start session
+                    mock_error.assert_called_once()
+                    mock_main_window.start_user_session.assert_not_called()
+
+    def test_show_operating_hours_error_creates_dialog(self, home_page, qapp):
+        """Test _show_operating_hours_error creates a message box"""
+        with patch.object(QMessageBox, "exec"):
+            # Should not raise
+            home_page._show_operating_hours_error("שעות הפעילות הן בין 06:00 ל-22:00")

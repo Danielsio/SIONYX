@@ -89,7 +89,39 @@
   - Single persistent connection instead of repeated HTTP requests
   - Auto-reconnect with exponential backoff on connection errors
 
-## ✅ Recently Completed (v1.7.0)
+## ✅ Recently Completed (v1.11.0)
+
+- [x] **Settings Page + Operating Hours** - Centralized settings with operating hours enforcement
+  - **Role-Based Access Control (RBAC)**: New `role` field (user/admin/supervisor) with backwards-compat for `isAdmin`
+  - **Web Settings Page**: Replaces standalone Pricing page, combines all org settings
+  - **Operating Hours**: Supervisors can set when users are allowed to start sessions
+  - **Kiosk Enforcement**: Desktop app checks hours before session start + monitors during session
+  
+  ### Implementation:
+  - [x] Web: Created `RoleGuard` component and `roles.js` utilities
+  - [x] Web: Created `SettingsPage` with tabs for Pricing and Operating Hours
+  - [x] Web: Updated `MainLayout` sidebar (Pricing → Settings)
+  - [x] Web: Updated `authService` and `authStore` with role helpers
+  - [x] Kiosk: Created `OperatingHoursService` for checking/enforcing hours
+  - [x] Kiosk: Updated `HomePage` to check hours before starting session
+  - [x] Kiosk: Updated `SessionService` to monitor hours during active sessions
+  - [x] Migration: Created `scripts/migrate_roles.py` for isAdmin→role migration
+  - [x] Tests: All web and kiosk tests passing
+  
+  ### Database Schema:
+  ```
+  organizations/{orgId}/metadata/settings/operatingHours/
+    enabled: boolean
+    startTime: "HH:mm"
+    endTime: "HH:mm"
+    gracePeriodMinutes: number
+    graceBehavior: "graceful" | "force"
+  
+  organizations/{orgId}/users/{userId}/
+    role: "user" | "admin" | "supervisor"
+  ```
+
+## ✅ Previously Completed (v1.7.0)
 
 - [x] **Admin-Assisted Password Reset** - Users can request password reset through admin
   - **Problem**: Users have fake phone-to-email (e.g., `0501234567@sionyx.app`), can't use standard Firebase reset
