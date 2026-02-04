@@ -578,16 +578,18 @@ class HomePage(QWidget):
 
     def _show_operating_hours_error(self, reason: str):
         """Show error dialog for operating hours restriction"""
-        from PyQt6.QtWidgets import QMessageBox
+        from ui.components.alert_modal import AlertModal
 
-        msg = QMessageBox(self)
-        msg.setIcon(QMessageBox.Icon.Warning)
-        msg.setWindowTitle("שעות פעילות")
-        msg.setText("לא ניתן להתחיל הפעלה כרגע")
-        msg.setInformativeText(reason)
-        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
-        msg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        msg.exec()
+        modal = AlertModal(
+            title="שעות פעילות",
+            message="לא ניתן להתחיל הפעלה כרגע",
+            detail=reason,
+            alert_type="warning",
+            button_text="הבנתי",
+            parent=self,
+        )
+        modal.show_animated()
+        modal.exec()
 
     def start_message_listening(self):
         """Start listening for messages"""
