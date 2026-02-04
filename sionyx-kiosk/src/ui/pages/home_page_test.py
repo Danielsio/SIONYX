@@ -11,7 +11,7 @@ Testing Strategy:
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from PyQt6.QtWidgets import QFrame, QLabel, QPushButton, QMessageBox
+from PyQt6.QtWidgets import QFrame, QLabel, QPushButton
 
 from ui.pages.home_page import HomePage
 
@@ -715,7 +715,20 @@ class TestHomePage:
                     mock_main_window.start_user_session.assert_not_called()
 
     def test_show_operating_hours_error_creates_dialog(self, home_page, qapp):
-        """Test _show_operating_hours_error creates a message box"""
-        with patch.object(QMessageBox, "exec"):
-            # Should not raise
+        """Test _show_operating_hours_error creates an AlertModal"""
+        with patch("ui.components.alert_modal.AlertModal") as MockAlertModal:
+            mock_modal = Mock()
+            MockAlertModal.return_value = mock_modal
+            
             home_page._show_operating_hours_error("שעות הפעילות הן בין 06:00 ל-22:00")
+            
+            # Verify AlertModal was created with correct params
+            MockAlertModal.assert_called_once()
+            call_kwargs = MockAlertModal.call_args[1]
+            assert call_kwargs["title"] == "שעות פעילות"
+            assert call_kwargs["message"] == "לא ניתן להתחיל הפעלה כרגע"
+            assert call_kwargs["alert_type"] == "warning"
+            
+            # Verify modal was shown and exec'd
+            mock_modal.show_animated.assert_called_once()
+            mock_modal.exec.assert_called_once()
