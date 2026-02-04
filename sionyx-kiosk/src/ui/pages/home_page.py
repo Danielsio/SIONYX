@@ -18,6 +18,7 @@ from PyQt6.QtWidgets import (
 )
 
 from services.chat_service import ChatService
+from services.operating_hours_service import OperatingHoursService
 from ui.components.base_components import (
     ActionButton,
     FrostCard,
@@ -64,6 +65,10 @@ class HomePage(QWidget):
             self.current_user["uid"],
             auth_service.firebase.org_id,
         )
+
+        # Operating hours service
+        self.operating_hours_service = OperatingHoursService(auth_service.firebase)
+        self.operating_hours_service.load_settings()
 
         self.message_modal = None
         self.pending_messages = []
@@ -558,11 +563,31 @@ class HomePage(QWidget):
             main_window.showMinimized()
             return
 
+        # Check operating hours before starting new session
+        is_within, reason = self.operating_hours_service.is_within_operating_hours()
+        if not is_within:
+            logger.warning(f"Cannot start session: outside operating hours - {reason}")
+            self._show_operating_hours_error(reason)
+            return
+
         # Otherwise, start a new session
         remaining = self.current_user.get("remainingTime", 0)
         if remaining <= 0:
             return
         main_window.start_user_session(remaining)
+
+    def _show_operating_hours_error(self, reason: str):
+        """Show error dialog for operating hours restriction"""
+        from PyQt6.QtWidgets import QMessageBox
+
+        msg = QMessageBox(self)
+        msg.setIcon(QMessageBox.Icon.Warning)
+        msg.setWindowTitle("שעות פעילות")
+        msg.setText("לא ניתן להתחיל הפעלה כרגע")
+        msg.setInformativeText(reason)
+        msg.setStandardButtons(QMessageBox.StandardButton.Ok)
+        msg.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
+        msg.exec()
 
     def start_message_listening(self):
         """Start listening for messages"""

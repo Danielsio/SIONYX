@@ -192,6 +192,66 @@ class OrganizationMetadataService:
             logger.error(f"Error setting print pricing: {e}")
             return {"success": False, "error": f"Error setting print pricing: {str(e)}"}
 
+    def get_operating_hours(self) -> Dict[str, Any]:
+        """
+        Get organization operating hours settings.
+        
+        Returns:
+            Dict with success status and operating hours settings
+        """
+        try:
+            result = self.firebase.db_get("metadata/settings/operatingHours")
+
+            if not result["success"]:
+                logger.warning(
+                    f"Failed to fetch operating hours: {result.get('error')}"
+                )
+                # Return defaults if not configured
+                return {
+                    "success": True,
+                    "operatingHours": {
+                        "enabled": False,
+                        "startTime": "06:00",
+                        "endTime": "00:00",
+                        "gracePeriodMinutes": 5,
+                        "graceBehavior": "graceful",
+                    },
+                    "is_default": True,
+                }
+
+            data = result.get("data")
+            if not data:
+                # Return defaults if no data
+                return {
+                    "success": True,
+                    "operatingHours": {
+                        "enabled": False,
+                        "startTime": "06:00",
+                        "endTime": "00:00",
+                        "gracePeriodMinutes": 5,
+                        "graceBehavior": "graceful",
+                    },
+                    "is_default": True,
+                }
+
+            return {
+                "success": True,
+                "operatingHours": {
+                    "enabled": data.get("enabled", False),
+                    "startTime": data.get("startTime", "06:00"),
+                    "endTime": data.get("endTime", "00:00"),
+                    "gracePeriodMinutes": data.get("gracePeriodMinutes", 5),
+                    "graceBehavior": data.get("graceBehavior", "graceful"),
+                },
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting operating hours: {e}")
+            return {
+                "success": False,
+                "error": f"Error getting operating hours: {str(e)}",
+            }
+
     def get_admin_contact(self) -> Dict[str, Any]:
         """
         Get organization admin contact info for password reset flow.

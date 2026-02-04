@@ -85,7 +85,7 @@ describe('MainLayout', () => {
     expect(screen.getByText('חבילות')).toBeInTheDocument();
     expect(screen.getByText('הודעות')).toBeInTheDocument();
     expect(screen.getByText('מחשבים')).toBeInTheDocument();
-    expect(screen.getByText('מחירי הדפסה')).toBeInTheDocument();
+    expect(screen.getByText('הגדרות')).toBeInTheDocument();
   });
 
   it('renders page content via Outlet', () => {

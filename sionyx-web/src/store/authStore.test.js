@@ -187,6 +187,93 @@ describe('authStore', () => {
       expect(user.uid).toBe('user-123');
     });
   });
+
+  describe('role helpers', () => {
+    describe('getRole', () => {
+      it('returns user role from role field', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'admin' });
+        expect(useAuthStore.getState().getRole()).toBe('admin');
+      });
+
+      it('returns supervisor role', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'supervisor' });
+        expect(useAuthStore.getState().getRole()).toBe('supervisor');
+      });
+
+      it('falls back to isAdmin when no role field', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', isAdmin: true });
+        expect(useAuthStore.getState().getRole()).toBe('admin');
+      });
+
+      it('returns user when no role and not admin', () => {
+        useAuthStore.getState().setUser({ uid: 'u1' });
+        expect(useAuthStore.getState().getRole()).toBe('user');
+      });
+
+      it('returns user when user is null', () => {
+        expect(useAuthStore.getState().getRole()).toBe('user');
+      });
+    });
+
+    describe('hasRole', () => {
+      it('returns true when user has required role', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'admin' });
+        expect(useAuthStore.getState().hasRole('admin')).toBe(true);
+        expect(useAuthStore.getState().hasRole('user')).toBe(true);
+      });
+
+      it('returns false when user lacks required role', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'user' });
+        expect(useAuthStore.getState().hasRole('admin')).toBe(false);
+      });
+
+      it('supervisor has all roles', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'supervisor' });
+        expect(useAuthStore.getState().hasRole('supervisor')).toBe(true);
+        expect(useAuthStore.getState().hasRole('admin')).toBe(true);
+        expect(useAuthStore.getState().hasRole('user')).toBe(true);
+      });
+    });
+
+    describe('isAdminOrAbove', () => {
+      it('returns true for admin', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'admin' });
+        expect(useAuthStore.getState().isAdminOrAbove()).toBe(true);
+      });
+
+      it('returns true for supervisor', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'supervisor' });
+        expect(useAuthStore.getState().isAdminOrAbove()).toBe(true);
+      });
+
+      it('returns false for regular user', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'user' });
+        expect(useAuthStore.getState().isAdminOrAbove()).toBe(false);
+      });
+
+      it('works with legacy isAdmin field', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', isAdmin: true });
+        expect(useAuthStore.getState().isAdminOrAbove()).toBe(true);
+      });
+    });
+
+    describe('isSupervisor', () => {
+      it('returns true for supervisor', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'supervisor' });
+        expect(useAuthStore.getState().isSupervisor()).toBe(true);
+      });
+
+      it('returns false for admin', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'admin' });
+        expect(useAuthStore.getState().isSupervisor()).toBe(false);
+      });
+
+      it('returns false for regular user', () => {
+        useAuthStore.getState().setUser({ uid: 'u1', role: 'user' });
+        expect(useAuthStore.getState().isSupervisor()).toBe(false);
+      });
+    });
+  });
 });
 
 

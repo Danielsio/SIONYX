@@ -12,7 +12,6 @@ import {
   PhoneOutlined,
   MessageOutlined,
   DesktopOutlined,
-  DollarOutlined,
   HomeOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
@@ -101,9 +100,9 @@ const MainLayout = () => {
       label: 'מחשבים',
     },
     {
-      key: '/admin/pricing',
-      icon: <DollarOutlined />,
-      label: 'מחירי הדפסה',
+      key: '/admin/settings',
+      icon: <SettingOutlined />,
+      label: 'הגדרות',
     },
   ];
 

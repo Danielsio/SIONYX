@@ -108,7 +108,7 @@ describe('authService', () => {
       expect(firebaseSignOut).toHaveBeenCalled();
     });
 
-    it('returns success for valid admin user', async () => {
+    it('returns success for valid admin user (legacy isAdmin)', async () => {
       signInWithEmailAndPassword.mockResolvedValue({
         user: { uid: 'user-123' },
       });
@@ -124,7 +124,56 @@ describe('authService', () => {
       expect(result.user).toBeDefined();
       expect(result.user.uid).toBe('user-123');
       expect(result.user.orgId).toBe('my-org');
+      expect(result.user.role).toBe('admin'); // Should have effective role set
       expect(localStorage.getItem('adminOrgId')).toBe('my-org');
+    });
+
+    it('returns success for admin with role field', async () => {
+      signInWithEmailAndPassword.mockResolvedValue({
+        user: { uid: 'user-123' },
+      });
+      get.mockResolvedValue({
+        exists: () => true,
+        val: () => ({ role: 'admin', firstName: 'Admin', lastName: 'User' }),
+      });
+      set.mockResolvedValue();
+
+      const result = await signInAdmin('1234567890', 'password', 'my-org');
+
+      expect(result.success).toBe(true);
+      expect(result.user.role).toBe('admin');
+    });
+
+    it('returns success for supervisor', async () => {
+      signInWithEmailAndPassword.mockResolvedValue({
+        user: { uid: 'user-123' },
+      });
+      get.mockResolvedValue({
+        exists: () => true,
+        val: () => ({ role: 'supervisor', firstName: 'Super', lastName: 'Visor' }),
+      });
+      set.mockResolvedValue();
+
+      const result = await signInAdmin('1234567890', 'password', 'my-org');
+
+      expect(result.success).toBe(true);
+      expect(result.user.role).toBe('supervisor');
+    });
+
+    it('rejects login for user with role field set to user', async () => {
+      signInWithEmailAndPassword.mockResolvedValue({
+        user: { uid: 'user-123' },
+      });
+      get.mockResolvedValue({
+        exists: () => true,
+        val: () => ({ role: 'user', firstName: 'Regular', lastName: 'User' }),
+      });
+      firebaseSignOut.mockResolvedValue();
+
+      const result = await signInAdmin('1234567890', 'password', 'my-org');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('do not have administrator privileges');
     });
 
     it('handles auth/invalid-credential error', async () => {
@@ -241,7 +290,7 @@ describe('authService', () => {
       expect(result.error).toContain('Admin privileges revoked');
     });
 
-    it('returns admin data successfully', async () => {
+    it('returns admin data successfully (legacy isAdmin)', async () => {
       auth.currentUser = { uid: 'user-123' };
       localStorage.setItem('adminOrgId', 'my-org');
       get.mockResolvedValue({
@@ -255,7 +304,35 @@ describe('authService', () => {
       expect(result.admin).toBeDefined();
       expect(result.admin.uid).toBe('user-123');
       expect(result.admin.orgId).toBe('my-org');
-      expect(result.admin.isAdmin).toBe(true);
+      expect(result.admin.role).toBe('admin'); // Should have effective role set
+    });
+
+    it('returns admin data with role field', async () => {
+      auth.currentUser = { uid: 'user-123' };
+      localStorage.setItem('adminOrgId', 'my-org');
+      get.mockResolvedValue({
+        exists: () => true,
+        val: () => ({ role: 'admin', firstName: 'Admin', lastName: 'User' }),
+      });
+
+      const result = await getCurrentAdminData();
+
+      expect(result.success).toBe(true);
+      expect(result.admin.role).toBe('admin');
+    });
+
+    it('returns supervisor data', async () => {
+      auth.currentUser = { uid: 'user-123' };
+      localStorage.setItem('adminOrgId', 'my-org');
+      get.mockResolvedValue({
+        exists: () => true,
+        val: () => ({ role: 'supervisor', firstName: 'Super', lastName: 'Visor' }),
+      });
+
+      const result = await getCurrentAdminData();
+
+      expect(result.success).toBe(true);
+      expect(result.admin.role).toBe('supervisor');
     });
   });
 

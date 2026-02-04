@@ -147,10 +147,32 @@ Admin -> Web -> DB(messages)
 ### Admin Login (Web)
 1. Admin enters phone, password, org ID.
 2. Phone is transformed to `{phone}@sionyx.app`.
-3. User is verified as `isAdmin`.
+3. User is verified as admin or above (via `role` field or legacy `isAdmin`).
 4. `adminOrgId` is stored in local storage.
 
-Code: `sionyx-web/src/services/authService.js`
+Code: `sionyx-web/src/services/authService.js`, `sionyx-web/src/utils/roles.js`
+
+### Role-Based Access Control (RBAC)
+The system supports three roles in ascending privilege order:
+- **user** - Regular users who can log in to kiosk and use their time
+- **admin** - Organization admins with access to web dashboard
+- **supervisor** - Super-admins with access to all settings including operating hours
+
+Role is stored in user record:
+```
+organizations/{orgId}/users/{userId}/
+  role: "user" | "admin" | "supervisor"
+  isAdmin: true/false  // Legacy field, still supported for backwards compat
+```
+
+The web dashboard uses `RoleGuard` component to restrict access:
+- Settings page requires admin or above
+- Operating hours settings require supervisor
+
+Code: 
+- Role utilities: `sionyx-web/src/utils/roles.js`
+- Role guard: `sionyx-web/src/components/RoleGuard.jsx`
+- Auth store: `sionyx-web/src/store/authStore.js`
 
 ### User Login + Session Start (Desktop)
 1. User enters phone + password.
@@ -189,6 +211,30 @@ Code:
 Code:
 - Web: `sionyx-web/src/services/chatService.js`
 - Desktop: `sionyx-kiosk/src/services/chat_service.py`
+
+### Operating Hours Enforcement
+Supervisors can configure operating hours to restrict when users can start sessions:
+
+1. Settings are stored at `organizations/{orgId}/metadata/settings/operatingHours`
+2. When user tries to start session, kiosk checks if within operating hours
+3. During active sessions, kiosk monitors and warns before closing time
+4. Sessions can end gracefully (save work) or forcefully based on configuration
+
+Settings schema:
+```
+operatingHours/
+  enabled: boolean
+  startTime: "HH:mm"
+  endTime: "HH:mm"
+  gracePeriodMinutes: number
+  graceBehavior: "graceful" | "force"
+```
+
+Code:
+- Web settings: `sionyx-web/src/components/settings/OperatingHoursSettings.jsx`
+- Web service: `sionyx-web/src/services/settingsService.js`
+- Kiosk service: `sionyx-kiosk/src/services/operating_hours_service.py`
+- Session integration: `sionyx-kiosk/src/services/session_service.py`
 
 ## Security and Kiosk Controls (Desktop)
 

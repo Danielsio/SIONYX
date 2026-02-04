@@ -633,3 +633,135 @@ class TestTimeExpiration:
 
         assert result["success"] is False
         assert result.get("expired") is True
+
+
+
+# =============================================================================
+# Operating Hours Tests
+# =============================================================================
+
+
+class TestOperatingHours:
+    """Tests for operating hours enforcement during sessions."""
+
+    @pytest.fixture
+    def mock_operating_hours(self):
+        """Create mock operating hours service"""
+        service = Mock()
+        service.start_monitoring = Mock()
+        service.stop_monitoring = Mock()
+        service.hours_ending_soon = Mock()
+        service.hours_ending_soon.connect = Mock()
+        service.hours_ended = Mock()
+        service.hours_ended.connect = Mock()
+        return service
+
+    @pytest.fixture
+    def session_service(self, mock_firebase_client, mock_operating_hours, qtbot):
+        """Create SessionService instance with mocked dependencies"""
+        with patch("services.session_service.ComputerService"):
+            with patch("services.session_service.PrintMonitorService"):
+                with patch("services.session_service.BrowserCleanupService"):
+                    with patch("services.session_service.ProcessCleanupService"):
+                        with patch(
+                            "services.session_service.OperatingHoursService",
+                            return_value=mock_operating_hours
+                        ):
+                            yield SessionService(
+                                mock_firebase_client, "test-user-id", "org"
+                            )
+
+    def test_operating_hours_service_initialized(self, session_service):
+        """Test operating hours service is initialized"""
+        assert session_service.operating_hours is not None
+
+    def test_start_session_starts_operating_hours_monitoring(
+        self, session_service, mock_firebase_client, qtbot
+    ):
+        """Test session start enables operating hours monitoring"""
+        mock_firebase_client.db_update.return_value = {"success": True}
+        session_service.computer_service.get_computer_info.return_value = {
+            "success": True,
+            "data": {"computerName": "Test PC"},
+        }
+
+        with patch.object(
+            session_service, "_get_current_computer_id", return_value="test-computer-id"
+        ):
+            result = session_service.start_session(3600)
+
+        assert result["success"] is True
+        session_service.operating_hours.start_monitoring.assert_called_once()
+
+    def test_end_session_stops_operating_hours_monitoring(
+        self, session_service, mock_firebase_client, qtbot
+    ):
+        """Test session end stops operating hours monitoring"""
+        session_service.is_active = True
+        session_service.session_id = "test-session-id"
+        session_service.remaining_time = 1800
+        session_service.start_time = datetime.now()
+        mock_firebase_client.db_update.return_value = {"success": True}
+
+        session_service.end_session("user")
+
+        session_service.operating_hours.stop_monitoring.assert_called_once()
+
+    def test_on_hours_ending_soon_emits_signal(self, session_service, qapp):
+        """Test hours ending soon emits warning signal"""
+        # Use signal spy to capture emissions
+        signal_received = []
+        session_service.operating_hours_warning.connect(lambda mins: signal_received.append(mins))
+        
+        session_service._on_hours_ending_soon(5)
+        qapp.processEvents()
+        
+        assert len(signal_received) == 1
+        assert signal_received[0] == 5
+
+    def test_on_hours_ended_graceful(self, session_service, mock_firebase_client, qapp):
+        """Test hours ended with graceful behavior"""
+        session_service.is_active = True
+        session_service.session_id = "test-session-id"
+        session_service.remaining_time = 1800
+        session_service.start_time = datetime.now()
+        mock_firebase_client.db_update.return_value = {"success": True}
+
+        # Use signal spy to capture emissions
+        signal_received = []
+        session_service.operating_hours_ended.connect(lambda behavior: signal_received.append(behavior))
+        
+        session_service._on_hours_ended("graceful")
+        qapp.processEvents()
+        
+        assert len(signal_received) == 1
+        assert signal_received[0] == "graceful"
+        # Session should be ended
+        assert session_service.is_active is False
+
+    def test_on_hours_ended_force(self, session_service, mock_firebase_client, qapp):
+        """Test hours ended with force behavior"""
+        session_service.is_active = True
+        session_service.session_id = "test-session-id"
+        session_service.remaining_time = 1800
+        session_service.start_time = datetime.now()
+        mock_firebase_client.db_update.return_value = {"success": True}
+
+        # Use signal spy to capture emissions
+        session_ended_signals = []
+        session_service.session_ended.connect(lambda reason: session_ended_signals.append(reason))
+        
+        session_service._on_hours_ended("force")
+        qapp.processEvents()
+        
+        # Session should be ended with hours_force reason
+        assert len(session_ended_signals) >= 1
+        assert "hours" in session_ended_signals[0]
+
+    def test_has_operating_hours_warning_signal(self, session_service):
+        """Test session service has operating hours warning signal"""
+        assert hasattr(session_service, "operating_hours_warning")
+
+    def test_has_operating_hours_ended_signal(self, session_service):
+        """Test session service has operating hours ended signal"""
+        assert hasattr(session_service, "operating_hours_ended")
