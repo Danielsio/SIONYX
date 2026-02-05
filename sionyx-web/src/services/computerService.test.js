@@ -15,6 +15,21 @@ vi.mock('../config/firebase', () => ({
   database: {},
 }));
 
+// Mock auth store with admin user for access checks
+vi.mock('../store/authStore', () => ({
+  useAuthStore: {
+    getState: () => ({
+      user: { role: 'admin', isAdmin: true },
+    }),
+  },
+}));
+
+// Mock useOrgId hook to prevent auth store conflicts
+vi.mock('../hooks/useOrgId', () => ({
+  useOrgId: () => 'my-org',
+  getOrgId: () => 'my-org',
+}));
+
 describe('computerService', () => {
   beforeEach(() => {
     vi.clearAllMocks();

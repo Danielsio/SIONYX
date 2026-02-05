@@ -70,7 +70,7 @@ const renderUsersPage = (usersOverride = mockUsers) => {
   const mockUpdateUser = vi.fn();
 
   useAuthStore.mockImplementation((selector) => {
-    const state = { user: { orgId: 'my-org', uid: 'admin-123' } };
+    const state = { user: { orgId: 'my-org', uid: 'admin-123', role: 'admin', isAdmin: true } };
     return selector(state);
   });
 
@@ -363,7 +363,7 @@ describe('UsersPage - Admin Self-Revoke Prevention', () => {
     const mockUpdateUser = vi.fn();
 
     useAuthStore.mockImplementation((selector) => {
-      const state = { user: { orgId: 'my-org', uid: currentUserId } };
+      const state = { user: { orgId: 'my-org', uid: currentUserId, role: 'admin', isAdmin: true } };
       return selector(state);
     });
 
@@ -495,7 +495,7 @@ describe('UsersPage - Password Reset', () => {
     const mockUpdateUser = vi.fn();
 
     useAuthStore.mockImplementation((selector) => {
-      const state = { user: { orgId: 'my-org', uid: 'admin-123' } };
+      const state = { user: { orgId: 'my-org', uid: 'admin-123', role: 'admin', isAdmin: true } };
       return selector(state);
     });
 

@@ -6,15 +6,15 @@
       
       "$orgId": {
         "users": {
-          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists() && root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() !== 'supervisor'",
           ".indexOn": ["isActive", "createdAt", "lastSeen"],
           
           "$userId": {
-            ".read": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
-            ".write": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+            ".read": "auth.uid == $userId || (root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true && root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() !== 'supervisor')",
+            ".write": "auth.uid == $userId || (root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true && root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() !== 'supervisor')",
             
             "isAdmin": {
-              ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true"
+              ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true && root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() !== 'supervisor'"
             },
             
             "remainingTime": {
@@ -122,12 +122,12 @@
         },
         
         "computers": {
-          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists() && root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() !== 'supervisor'",
           ".indexOn": ["isActive", "lastSeen", "computerName"],
           
           "$computerId": {
-            ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
-            ".write": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+            ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists() && root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() !== 'supervisor'",
+            ".write": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists() && root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() !== 'supervisor'",
             
             "userId": {
               ".validate": "newData.isString()"

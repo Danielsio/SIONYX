@@ -18,6 +18,15 @@ vi.mock('../config/firebase', () => ({
   functions: {},
 }));
 
+// Mock auth store with admin user for access checks
+vi.mock('../store/authStore', () => ({
+  useAuthStore: {
+    getState: () => ({
+      user: { role: 'admin', isAdmin: true },
+    }),
+  },
+}));
+
 describe('userService', () => {
   beforeEach(() => {
     vi.clearAllMocks();

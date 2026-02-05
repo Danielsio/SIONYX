@@ -11,6 +11,12 @@ import {
 
 // Mock dependencies
 vi.mock('../services/computerService');
+vi.mock('../store/authStore', () => ({
+  useAuthStore: vi.fn((selector) => {
+    const state = { user: { orgId: 'my-org', uid: 'admin-123', role: 'admin', isAdmin: true } };
+    return selector(state);
+  }),
+}));
 
 const mockComputers = [
   {

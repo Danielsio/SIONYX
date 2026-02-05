@@ -1,11 +1,33 @@
 import { ref, get, update } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
 import { database, functions } from '../config/firebase';
+import { useAuthStore } from '../store/authStore';
+import { canAccessUserManagement, getUserRole, ROLES } from '../utils/roles';
+
+/**
+ * Check if current user can access user management
+ * Returns error response if supervisor tries to access
+ */
+const checkUserManagementAccess = () => {
+  const currentUser = useAuthStore.getState().user;
+  if (!canAccessUserManagement(currentUser)) {
+    return {
+      success: false,
+      error: 'אין לך הרשאות לגשת לניהול משתמשים',
+      accessDenied: true,
+    };
+  }
+  return null;
+};
 
 /**
  * Get all users in an organization
  */
 export const getAllUsers = async orgId => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkUserManagementAccess();
+  if (accessCheck) return { ...accessCheck, users: [] };
+
   try {
     const usersRef = ref(database, `organizations/${orgId}/users`);
     const snapshot = await get(usersRef);
@@ -92,6 +114,10 @@ export const getUserPurchaseHistory = async (orgId, userId) => {
  * Adjust user's balance (time and prints)
  */
 export const adjustUserBalance = async (orgId, userId, adjustments) => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkUserManagementAccess();
+  if (accessCheck) return accessCheck;
+
   try {
     // First get the current user data
     const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
@@ -146,6 +172,10 @@ export const adjustUserBalance = async (orgId, userId, adjustments) => {
  * Grant admin permission to a user
  */
 export const grantAdminPermission = async (orgId, userId) => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkUserManagementAccess();
+  if (accessCheck) return accessCheck;
+
   try {
     const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
     const snapshot = await get(userRef);
@@ -181,6 +211,10 @@ export const grantAdminPermission = async (orgId, userId) => {
  * Revoke admin permission from a user
  */
 export const revokeAdminPermission = async (orgId, userId) => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkUserManagementAccess();
+  if (accessCheck) return accessCheck;
+
   try {
     const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
     const snapshot = await get(userRef);
@@ -217,6 +251,10 @@ export const revokeAdminPermission = async (orgId, userId) => {
  * Calls Firebase Cloud Function to update user's password
  */
 export const resetUserPassword = async (orgId, userId, newPassword) => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkUserManagementAccess();
+  if (accessCheck) return accessCheck;
+
   try {
     const resetPasswordFn = httpsCallable(functions, 'resetUserPassword');
     const result = await resetPasswordFn({ orgId, userId, newPassword });
@@ -242,6 +280,10 @@ export const resetUserPassword = async (orgId, userId, newPassword) => {
  * Kick a user (force logout)
  */
 export const kickUser = async (orgId, userId) => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkUserManagementAccess();
+  if (accessCheck) return accessCheck;
+
   try {
     const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
     const snapshot = await get(userRef);
