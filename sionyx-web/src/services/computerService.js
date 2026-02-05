@@ -6,11 +6,33 @@
 import { ref, get, set, update, remove, query, orderByChild, equalTo } from 'firebase/database';
 import { database } from '../config/firebase';
 import { getOrgId } from '../hooks/useOrgId';
+import { useAuthStore } from '../store/authStore';
+import { canAccessComputerManagement } from '../utils/roles';
+
+/**
+ * Check if current user can access computer management
+ * Returns error response if supervisor tries to access
+ */
+const checkComputerManagementAccess = () => {
+  const currentUser = useAuthStore.getState().user;
+  if (!canAccessComputerManagement(currentUser)) {
+    return {
+      success: false,
+      error: 'אין לך הרשאות לגשת לניהול מחשבים',
+      accessDenied: true,
+    };
+  }
+  return null;
+};
 
 /**
  * Get all computers in the organization
  */
 export const getAllComputers = async () => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkComputerManagementAccess();
+  if (accessCheck) return { ...accessCheck, data: [] };
+
   try {
     // Get organization ID from localStorage or user data
     const orgId = getOrgId();
@@ -47,6 +69,10 @@ export const getAllComputers = async () => {
  * Get computer usage statistics
  */
 export const getComputerUsageStats = async () => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkComputerManagementAccess();
+  if (accessCheck) return { ...accessCheck, data: null };
+
   try {
     // Get all computers
     const computersResult = await getAllComputers();
@@ -147,6 +173,10 @@ export const getComputerUsageStats = async () => {
  * Get computer by ID
  */
 export const getComputerById = async computerId => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkComputerManagementAccess();
+  if (accessCheck) return accessCheck;
+
   try {
     const orgId = getOrgId();
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
@@ -179,6 +209,10 @@ export const getComputerById = async computerId => {
  * Update computer information
  */
 export const updateComputer = async (computerId, updates) => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkComputerManagementAccess();
+  if (accessCheck) return accessCheck;
+
   try {
     const orgId = getOrgId();
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
@@ -207,6 +241,10 @@ export const updateComputer = async (computerId, updates) => {
  * Delete computer
  */
 export const deleteComputer = async computerId => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkComputerManagementAccess();
+  if (accessCheck) return accessCheck;
+
   try {
     const orgId = getOrgId();
     const computerRef = ref(database, `organizations/${orgId}/computers/${computerId}`);
@@ -228,6 +266,10 @@ export const deleteComputer = async computerId => {
  * Get users currently using computers
  */
 export const getActiveComputerUsers = async () => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkComputerManagementAccess();
+  if (accessCheck) return { ...accessCheck, data: [] };
+
   try {
     const computersResult = await getAllComputers();
     if (!computersResult.success) {
@@ -282,6 +324,10 @@ export const getActiveComputerUsers = async () => {
  * This is a full logout - clears session, computer association, AND login status
  */
 export const forceLogoutUser = async (userId, computerId) => {
+  // Check if supervisor is trying to access
+  const accessCheck = checkComputerManagementAccess();
+  if (accessCheck) return accessCheck;
+
   try {
     // Clear user's current computer and mark as logged out
     const orgId = getOrgId();

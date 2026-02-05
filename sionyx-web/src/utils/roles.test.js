@@ -6,6 +6,9 @@ import {
   hasRole,
   isAdminOrAbove,
   isSupervisor,
+  isAdminOnly,
+  canAccessUserManagement,
+  canAccessComputerManagement,
   getRoleDisplayName,
 } from './roles';
 
@@ -115,6 +118,57 @@ describe('roles utility', () => {
     it('returns user for unknown roles', () => {
       expect(getRoleDisplayName('unknown')).toBe('משתמש');
       expect(getRoleDisplayName(null)).toBe('משתמש');
+    });
+  });
+
+  describe('isAdminOnly', () => {
+    it('returns true only for admin role', () => {
+      expect(isAdminOnly({ role: 'admin' })).toBe(true);
+    });
+
+    it('returns false for supervisor', () => {
+      expect(isAdminOnly({ role: 'supervisor' })).toBe(false);
+    });
+
+    it('returns false for user', () => {
+      expect(isAdminOnly({ role: 'user' })).toBe(false);
+      expect(isAdminOnly(null)).toBe(false);
+    });
+
+    it('returns true for legacy isAdmin users (mapped to admin role)', () => {
+      expect(isAdminOnly({ isAdmin: true })).toBe(true);
+    });
+  });
+
+  describe('canAccessUserManagement', () => {
+    it('returns true for admin', () => {
+      expect(canAccessUserManagement({ role: 'admin' })).toBe(true);
+      expect(canAccessUserManagement({ isAdmin: true })).toBe(true);
+    });
+
+    it('returns false for supervisor', () => {
+      expect(canAccessUserManagement({ role: 'supervisor' })).toBe(false);
+    });
+
+    it('returns false for regular user', () => {
+      expect(canAccessUserManagement({ role: 'user' })).toBe(false);
+      expect(canAccessUserManagement(null)).toBe(false);
+    });
+  });
+
+  describe('canAccessComputerManagement', () => {
+    it('returns true for admin', () => {
+      expect(canAccessComputerManagement({ role: 'admin' })).toBe(true);
+      expect(canAccessComputerManagement({ isAdmin: true })).toBe(true);
+    });
+
+    it('returns false for supervisor', () => {
+      expect(canAccessComputerManagement({ role: 'supervisor' })).toBe(false);
+    });
+
+    it('returns false for regular user', () => {
+      expect(canAccessComputerManagement({ role: 'user' })).toBe(false);
+      expect(canAccessComputerManagement(null)).toBe(false);
     });
   });
 });

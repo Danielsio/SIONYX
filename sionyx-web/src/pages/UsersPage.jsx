@@ -20,6 +20,7 @@ import {
   Empty,
   Avatar,
   Table,
+  Result,
 } from 'antd';
 import { getStatusLabel as getPurchaseStatusLabel, getStatusColor as getPurchaseStatusColor } from '../constants/purchaseStatus';
 import { getUserStatus, getStatusLabel as getUserStatusLabel, getStatusColor as getUserStatusColor } from '../constants/userStatus';
@@ -40,10 +41,12 @@ import {
   MailOutlined,
   LockOutlined,
   CalendarOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
 import { useOrgId } from '../hooks/useOrgId';
+import { canAccessUserManagement } from '../utils/roles';
 import {
   getAllUsers,
   getUserPurchaseHistory,
@@ -91,9 +94,14 @@ const UsersPage = () => {
   const { message } = App.useApp();
   const orgId = useOrgId();
 
+  // Check if supervisor is trying to access
+  const hasAccess = canAccessUserManagement(user);
+
   useEffect(() => {
-    loadUsers();
-  }, []);
+    if (hasAccess) {
+      loadUsers();
+    }
+  }, [hasAccess]);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -734,6 +742,24 @@ const UsersPage = () => {
       (u.email?.toLowerCase() || '').includes(search)
     );
   });
+
+  // Access denied for supervisors
+  if (!hasAccess) {
+    return (
+      <div style={{ direction: 'rtl', padding: '50px 0' }}>
+        <Result
+          icon={<StopOutlined style={{ color: '#ff4d4f' }} />}
+          title="אין גישה"
+          subTitle="אין לך הרשאות לגשת לניהול משתמשים. פנה למנהל המערכת לקבלת גישה."
+          extra={
+            <Button type="primary" href="/admin">
+              חזור לדף הבית
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={{ direction: 'rtl' }}>

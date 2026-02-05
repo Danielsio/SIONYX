@@ -57,6 +57,33 @@ export const isAdminOrAbove = user => hasRole(user, ROLES.ADMIN);
 export const isSupervisor = user => hasRole(user, ROLES.SUPERVISOR);
 
 /**
+ * Check if user is admin only (not supervisor)
+ * Used to restrict certain features to admins that supervisors should not access
+ */
+export const isAdminOnly = user => {
+  const userRole = getUserRole(user);
+  return userRole === ROLES.ADMIN;
+};
+
+/**
+ * Check if user can access users/computers management
+ * Only admins can access, supervisors are explicitly blocked
+ */
+export const canAccessUserManagement = user => {
+  const userRole = getUserRole(user);
+  return userRole === ROLES.ADMIN;
+};
+
+/**
+ * Check if user can access computer management
+ * Only admins can access, supervisors are explicitly blocked
+ */
+export const canAccessComputerManagement = user => {
+  const userRole = getUserRole(user);
+  return userRole === ROLES.ADMIN;
+};
+
+/**
  * Get display name for role in Hebrew
  */
 export const getRoleDisplayName = role => {

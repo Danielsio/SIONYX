@@ -13,6 +13,7 @@ import {
   Modal,
   message,
   Badge,
+  Result,
 } from 'antd';
 import {
   DesktopOutlined,
@@ -25,6 +26,7 @@ import {
   PhoneOutlined,
   DownOutlined,
   UpOutlined,
+  StopOutlined,
 } from '@ant-design/icons';
 import {
   getAllComputers,
@@ -38,6 +40,8 @@ import {
   getStatusLabel,
   getStatusColor,
 } from '../constants/userStatus';
+import { useAuthStore } from '../store/authStore';
+import { canAccessComputerManagement } from '../utils/roles';
 
 const { Title, Text } = Typography;
 
@@ -48,10 +52,19 @@ const ComputersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  
+  const user = useAuthStore(state => state.user);
+  
+  // Check if supervisor is trying to access
+  const hasAccess = canAccessComputerManagement(user);
 
   useEffect(() => {
-    loadData();
-  }, []);
+    if (hasAccess) {
+      loadData();
+    } else {
+      setLoading(false);
+    }
+  }, [hasAccess]);
 
   const loadData = async () => {
     try {
@@ -468,6 +481,24 @@ const ComputersPage = () => {
       ),
     },
   ];
+
+  // Access denied for supervisors
+  if (!hasAccess) {
+    return (
+      <div style={{ direction: 'rtl', padding: '50px 0' }}>
+        <Result
+          icon={<StopOutlined style={{ color: '#ff4d4f' }} />}
+          title="אין גישה"
+          subTitle="אין לך הרשאות לגשת לניהול מחשבים. פנה למנהל המערכת לקבלת גישה."
+          extra={
+            <Button type="primary" href="/admin">
+              חזור לדף הבית
+            </Button>
+          }
+        />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
