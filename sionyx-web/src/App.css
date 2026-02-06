@@ -110,6 +110,208 @@
 }
 
 /* ==========================================
+   PREMIUM LANDING PAGE v2.0 STYLES
+   ========================================== */
+
+/* Enhanced feature cards */
+.feature-card-premium {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 32px 28px;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.feature-card-premium:hover {
+  background: rgba(255, 255, 255, 0.06);
+  transform: translateY(-8px);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+}
+
+/* Icon container styles */
+.icon-container-premium {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.icon-container-premium:hover {
+  transform: scale(1.1) rotate(5deg);
+}
+
+/* Stats counter animation */
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stat-value-animated {
+  animation: countUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Premium CTA card */
+.cta-card-premium {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 24px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.35s ease;
+}
+
+.cta-card-premium:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 25px 60px rgba(102, 126, 234, 0.4);
+}
+
+.cta-card-premium::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.cta-card-premium:hover::before {
+  opacity: 1;
+}
+
+/* Enhanced scroll indicator */
+.scroll-indicator {
+  width: 28px;
+  height: 44px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.scroll-dot {
+  width: 4px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+  animation: scrollDot 1.5s ease-in-out infinite;
+}
+
+@keyframes scrollDot {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(12px);
+    opacity: 0.2;
+  }
+}
+
+/* Trust badges */
+.trust-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.trust-badge:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Version tag animation */
+@keyframes tagPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(102, 126, 234, 0);
+  }
+}
+
+.version-tag-animated {
+  animation: tagPulse 2s ease-in-out infinite;
+}
+
+/* Registration modal premium styles */
+.registration-modal .ant-modal-content {
+  border-radius: 24px !important;
+  overflow: hidden;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.25) !important;
+}
+
+.registration-modal .ant-modal-close {
+  display: none;
+}
+
+.registration-modal .ant-form-item-label > label {
+  font-weight: 600;
+  color: #444;
+}
+
+.registration-modal .ant-input,
+.registration-modal .ant-input-password {
+  border-radius: 12px !important;
+  height: 50px !important;
+  border: 1.5px solid #e8e8e8 !important;
+  transition: all 0.2s ease !important;
+}
+
+.registration-modal .ant-input:hover,
+.registration-modal .ant-input-password:hover {
+  border-color: #667eea !important;
+}
+
+.registration-modal .ant-input:focus,
+.registration-modal .ant-input-password:focus,
+.registration-modal .ant-input-affix-wrapper-focused {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
+}
+
+/* Footer links */
+.footer-link {
+  color: rgba(255, 255, 255, 0.5);
+  transition: color 0.2s ease;
+  cursor: pointer;
+}
+
+.footer-link:hover {
+  color: #8b9df0;
+}
+
+/* Responsive enhancements for landing */
+@media (max-width: 768px) {
+  .cta-card-premium {
+    border-radius: 20px;
+  }
+  
+  .feature-card-premium {
+    padding: 24px 20px;
+  }
+  
+  .registration-modal .ant-modal-content {
+    border-radius: 20px !important;
+  }
+}
+
+/* ==========================================
    GLASS MORPHISM EFFECTS
    ========================================== */
 

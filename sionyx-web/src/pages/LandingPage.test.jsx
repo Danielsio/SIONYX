@@ -70,10 +70,11 @@ describe('LandingPage', () => {
   it('displays SIONYX branding', async () => {
     renderLandingPage();
 
-    // SIONYX is rendered as individual animated letters, so check for each
+    // SIONYX is rendered as individual animated letters - there may be multiple S's (logo + title)
     const letters = ['S', 'I', 'O', 'N', 'Y', 'X'];
     letters.forEach((letter) => {
-      expect(screen.getByText(letter)).toBeInTheDocument();
+      const elements = screen.getAllByText(letter);
+      expect(elements.length).toBeGreaterThan(0);
     });
   });
 
@@ -110,7 +111,8 @@ describe('LandingPage', () => {
   it('has admin login button', async () => {
     renderLandingPage();
 
-    expect(screen.getByText(/כניסת מנהל/)).toBeInTheDocument();
+    // There might be multiple admin login buttons (header and footer)
+    expect(screen.getAllByText(/כניסת מנהל/).length).toBeGreaterThan(0);
   });
 
   it('navigates to admin login when button clicked', async () => {
@@ -121,8 +123,9 @@ describe('LandingPage', () => {
       expect(getLatestRelease).toHaveBeenCalled();
     });
 
-    const adminButton = screen.getByText(/כניסת מנהל/);
-    await user.click(adminButton);
+    // Get the first admin button (in the header)
+    const adminButtons = screen.getAllByText(/כניסת מנהל/);
+    await user.click(adminButtons[0]);
 
     expect(mockNavigate).toHaveBeenCalledWith('/admin/login');
   });
@@ -130,16 +133,16 @@ describe('LandingPage', () => {
   it('has welcome card for admin registration', async () => {
     renderLandingPage();
 
-    // The welcome message on the registration card
-    expect(screen.getByText(/שלום לך מנהל יקר/)).toBeInTheDocument();
+    // The main CTA card for registration
+    expect(screen.getByText(/רישום ארגון חדש/)).toBeInTheDocument();
   });
 
   it('opens registration modal when welcome card clicked', async () => {
     const user = userEvent.setup();
     renderLandingPage();
 
-    // Click the "התחל הרשמה" button on the welcome card
-    const registerButton = screen.getByText(/התחל הרשמה/);
+    // Click the "התחל עכשיו - חינם" button on the hero or CTA card
+    const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
     await user.click(registerButton);
 
     // Modal should open with the form title
@@ -153,7 +156,7 @@ describe('LandingPage', () => {
     renderLandingPage();
 
     // Open the modal
-    const registerButton = screen.getByText(/התחל הרשמה/);
+    const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
     await user.click(registerButton);
 
     await waitFor(() => {
@@ -170,7 +173,7 @@ describe('LandingPage', () => {
     renderLandingPage();
 
     // Open the modal
-    const registerButton = screen.getByText(/התחל הרשמה/);
+    const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
     await user.click(registerButton);
 
     await waitFor(() => {
@@ -208,7 +211,7 @@ describe('LandingPage', () => {
     const { mockNavigate } = renderLandingPage();
 
     // Open the modal
-    const registerButton = screen.getByText(/התחל הרשמה/);
+    const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
     await user.click(registerButton);
 
     await waitFor(() => {
@@ -227,7 +230,7 @@ describe('LandingPage', () => {
     await user.type(screen.getByLabelText(/סיסמה/), 'password123');
 
     // Submit form
-    const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+    const submitButton = screen.getByRole('button', { name: /צור ארגון חדש/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -242,7 +245,7 @@ describe('LandingPage', () => {
     registerOrganization.mockResolvedValue({ success: true, orgId: 'new-org' });
 
     // Open the modal
-    const registerButton = screen.getByText(/התחל הרשמה/);
+    const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
     await user.click(registerButton);
 
     await waitFor(() => {
@@ -258,7 +261,7 @@ describe('LandingPage', () => {
     await user.type(screen.getByLabelText(/מספר טלפון/), '0501234567');
     await user.type(screen.getByLabelText(/סיסמה/), 'password123');
 
-    const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+    const submitButton = screen.getByRole('button', { name: /צור ארגון חדש/i });
     await user.click(submitButton);
 
     await waitFor(() => {
@@ -273,7 +276,7 @@ describe('LandingPage', () => {
     registerOrganization.mockResolvedValue({ success: false, error: 'Registration failed' });
 
     // Open the modal
-    const registerButton = screen.getByText(/התחל הרשמה/);
+    const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
     await user.click(registerButton);
 
     await waitFor(() => {
@@ -289,7 +292,7 @@ describe('LandingPage', () => {
     await user.type(screen.getByLabelText(/מספר טלפון/), '0501234567');
     await user.type(screen.getByLabelText(/סיסמה/), 'password123');
 
-    const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+    const submitButton = screen.getByRole('button', { name: /צור ארגון חדש/i });
     await user.click(submitButton);
 
     // Should show error message (not crash)
@@ -310,11 +313,11 @@ describe('LandingPage', () => {
     renderLandingPage();
 
     // Open the modal
-    const registerButton = screen.getByText(/התחל הרשמה/);
+    const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
     await user.click(registerButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+      expect(screen.getAllByText(/הרשמת ארגון חדש/).length).toBeGreaterThan(0);
     });
 
     // Cancel button should be present
@@ -326,20 +329,20 @@ describe('LandingPage', () => {
     renderLandingPage();
 
     // Open the modal
-    const registerButton = screen.getByText(/התחל הרשמה/);
+    const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
     await user.click(registerButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+      expect(screen.getAllByText(/הרשמת ארגון חדש/).length).toBeGreaterThan(0);
     });
 
     // Click cancel button
     const cancelButton = screen.getByRole('button', { name: /ביטול/i });
     await user.click(cancelButton);
 
-    // Modal should close
+    // Modal should close - check by looking for modal form elements
     await waitFor(() => {
-      expect(screen.queryByText(/הרשמת ארגון חדש/)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/שם הארגון/)).not.toBeInTheDocument();
     });
   });
 
@@ -349,11 +352,11 @@ describe('LandingPage', () => {
       renderLandingPage();
 
       // Open the modal
-      const registerButton = screen.getByText(/התחל הרשמה/);
+      const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
       await user.click(registerButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+        expect(screen.getAllByText(/הרשמת ארגון חדש/).length).toBeGreaterThan(0);
       });
 
       // Find the modal wrapper with registration-modal class
@@ -366,11 +369,11 @@ describe('LandingPage', () => {
       renderLandingPage();
 
       // Open the modal
-      const registerButton = screen.getByText(/התחל הרשמה/);
+      const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
       await user.click(registerButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+        expect(screen.getAllByText(/הרשמת ארגון חדש/).length).toBeGreaterThan(0);
       });
 
       // The ant-modal should have responsive width
@@ -386,11 +389,11 @@ describe('LandingPage', () => {
       renderLandingPage();
 
       // Open the modal
-      const registerButton = screen.getByText(/התחל הרשמה/);
+      const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
       await user.click(registerButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+        expect(screen.getAllByText(/הרשמת ארגון חדש/).length).toBeGreaterThan(0);
       });
 
       // Modal body should have overflow-y auto for scrolling on small screens
@@ -403,11 +406,11 @@ describe('LandingPage', () => {
       renderLandingPage();
 
       // Open the modal
-      const registerButton = screen.getByText(/התחל הרשמה/);
+      const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
       await user.click(registerButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+        expect(screen.getAllByText(/הרשמת ארגון חדש/).length).toBeGreaterThan(0);
       });
 
       // Both organization and admin sections should be visible
@@ -420,7 +423,7 @@ describe('LandingPage', () => {
       renderLandingPage();
 
       // Open the modal
-      const registerButton = screen.getByText(/התחל הרשמה/);
+      const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
       await user.click(registerButton);
 
       await waitFor(() => {
@@ -437,21 +440,21 @@ describe('LandingPage', () => {
       expect(modalBody).toContainElement(orgNameInput);
     });
 
-    it('buttons wrap properly with Space component', async () => {
+    it('buttons wrap properly in modal', async () => {
       const user = userEvent.setup();
       renderLandingPage();
 
       // Open the modal
-      const registerButton = screen.getByText(/התחל הרשמה/);
+      const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
       await user.click(registerButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+        expect(screen.getAllByText(/הרשמת ארגון חדש/).length).toBeGreaterThan(0);
       });
 
       // Both buttons should be present
       expect(screen.getByRole('button', { name: /ביטול/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /צור ארגון חדש/i })).toBeInTheDocument();
     });
 
     it('validates form fields before submission', async () => {
@@ -459,15 +462,15 @@ describe('LandingPage', () => {
       renderLandingPage();
 
       // Open the modal
-      const registerButton = screen.getByText(/התחל הרשמה/);
+      const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
       await user.click(registerButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/הרשמת ארגון חדש/)).toBeInTheDocument();
+        expect(screen.getAllByText(/הרשמת ארגון חדש/).length).toBeGreaterThan(0);
       });
 
       // Try to submit without filling fields
-      const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+      const submitButton = screen.getByRole('button', { name: /צור ארגון חדש/i });
       await user.click(submitButton);
 
       // Validation should prevent submission
@@ -481,7 +484,7 @@ describe('LandingPage', () => {
       renderLandingPage();
 
       // Open the modal
-      const registerButton = screen.getByText(/התחל הרשמה/);
+      const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
       await user.click(registerButton);
 
       await waitFor(() => {
@@ -496,7 +499,7 @@ describe('LandingPage', () => {
       await user.tab();
 
       // Try to submit
-      const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+      const submitButton = screen.getByRole('button', { name: /צור ארגון חדש/i });
       await user.click(submitButton);
 
       // Should show validation error
@@ -510,7 +513,7 @@ describe('LandingPage', () => {
       renderLandingPage();
 
       // Open the modal
-      const registerButton = screen.getByText(/התחל הרשמה/);
+      const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
       await user.click(registerButton);
 
       await waitFor(() => {
@@ -522,7 +525,7 @@ describe('LandingPage', () => {
       await user.type(passwordInput, '123');
 
       // Try to submit
-      const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+      const submitButton = screen.getByRole('button', { name: /צור ארגון חדש/i });
       await user.click(submitButton);
 
       // Should show validation error
@@ -536,7 +539,7 @@ describe('LandingPage', () => {
       renderLandingPage();
 
       // Open the modal
-      const registerButton = screen.getByText(/התחל הרשמה/);
+      const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
       await user.click(registerButton);
 
       await waitFor(() => {
@@ -548,7 +551,7 @@ describe('LandingPage', () => {
       await user.type(emailInput, 'invalid-email');
 
       // Try to submit
-      const submitButton = screen.getByRole('button', { name: /צור ארגון וחשבון מנהל/i });
+      const submitButton = screen.getByRole('button', { name: /צור ארגון חדש/i });
       await user.click(submitButton);
 
       // Should show validation error
