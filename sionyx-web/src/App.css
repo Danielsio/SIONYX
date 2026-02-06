@@ -1,24 +1,29 @@
-/* Additional app-specific styles can go here */
+/* ============================================
+   SIONYX App-Specific Styles v2.0
+   Enhanced animations and premium aesthetics
+   ============================================ */
 
 .app {
   min-height: 100vh;
 }
 
-/* Landing page animations */
+/* ==========================================
+   LANDING PAGE ANIMATIONS
+   ========================================== */
+
 @keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px) rotate(0deg);
+  0%, 100% {
+    transform: translateY(0px);
   }
   50% {
-    transform: translateY(-20px) rotate(5deg);
+    transform: translateY(-16px);
   }
 }
 
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(24px);
   }
   to {
     opacity: 1;
@@ -29,7 +34,7 @@
 @keyframes fadeInLeft {
   from {
     opacity: 0;
-    transform: translateX(-50px);
+    transform: translateX(-24px);
   }
   to {
     opacity: 1;
@@ -40,7 +45,7 @@
 @keyframes fadeInRight {
   from {
     opacity: 0;
-    transform: translateX(50px);
+    transform: translateX(24px);
   }
   to {
     opacity: 1;
@@ -48,70 +53,21 @@
   }
 }
 
-/* Smooth transitions for interactive elements */
-.landing-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.landing-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.2) !important;
-}
-
-.landing-button {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.landing-button:hover {
-  transform: translateY(-2px);
-}
-
-.landing-input {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.landing-input:focus {
-  border-color: #667eea !important;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1) !important;
-}
-
-/* Glass morphism effect */
-.glass-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-/* Card hover effects */
-.ant-card-hoverable {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-.ant-card-hoverable:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12) !important;
-}
-
-/* Better tag styling */
-.ant-tag {
-  border-radius: 6px;
-}
-
-/* Improved avatar styling */
-.ant-avatar {
-  font-weight: 500;
-}
-
-/* Better drawer styling */
-.ant-drawer-header {
-  border-bottom: 1px solid #f0f0f0;
-}
-
-/* Message bubble animations */
-@keyframes messageSlideIn {
+@keyframes scaleIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -119,65 +75,352 @@
   }
 }
 
-/* Gradient text effect */
+/* ==========================================
+   LANDING PAGE COMPONENTS
+   ========================================== */
+
+.landing-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 20px;
+}
+
+.landing-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15) !important;
+}
+
+.landing-button {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+}
+
+.landing-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+}
+
+.landing-input {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px !important;
+}
+
+.landing-input:focus {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.12) !important;
+}
+
+/* ==========================================
+   GLASS MORPHISM EFFECTS
+   ========================================== */
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+
+.glass-card-dark {
+  background: rgba(26, 31, 54, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================
+   ENHANCED CARD HOVER EFFECTS
+   ========================================== */
+
+.ant-card-hoverable {
+  transition: 
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.2s !important;
+}
+
+.ant-card-hoverable:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08) !important;
+  border-color: #d1d5db !important;
+}
+
+/* ==========================================
+   GRADIENT TEXT EFFECT
+   ========================================== */
+
 .gradient-text {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Loading states */
-.loading-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
+.gradient-text-animated {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 4s ease infinite;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 /* ==========================================
-   Responsive Table Styles
+   LOADING STATES
    ========================================== */
 
-/* Base table improvements */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  gap: 20px;
+}
+
+.loading-skeleton {
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ==========================================
+   SIDEBAR MENU ENHANCEMENTS
+   ========================================== */
+
+.ant-menu-dark {
+  background: transparent !important;
+}
+
+.ant-menu-dark .ant-menu-item {
+  margin: 4px 8px !important;
+  border-radius: 10px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-menu-dark .ant-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%) !important;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.ant-menu-dark .ant-menu-item-selected:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 1) 0%, rgba(118, 75, 162, 1) 100%) !important;
+}
+
+.ant-menu-dark .ant-menu-item .anticon {
+  font-size: 18px !important;
+}
+
+/* ==========================================
+   MESSAGE ANIMATIONS
+   ========================================== */
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-bubble {
+  animation: messageSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ==========================================
+   NOTIFICATION ENHANCEMENTS
+   ========================================== */
+
+.ant-notification-notice {
+  border-radius: 14px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+.ant-message-notice-content {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ==========================================
+   POPOVER & TOOLTIP ENHANCEMENTS
+   ========================================== */
+
+.ant-popover-inner {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+}
+
+.ant-tooltip-inner {
+  border-radius: 8px !important;
+}
+
+/* ==========================================
+   DROPDOWN MENU ENHANCEMENTS
+   ========================================== */
+
+.ant-dropdown-menu {
+  border-radius: 12px !important;
+  padding: 6px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12) !important;
+  border: 1px solid #e8eaed;
+}
+
+.ant-dropdown-menu-item {
+  border-radius: 8px !important;
+  margin: 2px 0 !important;
+  padding: 10px 14px !important;
+  transition: all 0.15s !important;
+}
+
+.ant-dropdown-menu-item:hover {
+  background: #f4f5f7 !important;
+}
+
+.ant-dropdown-menu-item-danger:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+/* ==========================================
+   SEARCH INPUT ENHANCEMENTS
+   ========================================== */
+
+.ant-input-search .ant-input-affix-wrapper {
+  border-radius: 12px !important;
+  padding: 10px 16px !important;
+  border: 1px solid #e8eaed !important;
+  transition: all 0.2s !important;
+}
+
+.ant-input-search .ant-input-affix-wrapper:hover {
+  border-color: #667eea !important;
+}
+
+.ant-input-search .ant-input-affix-wrapper-focused {
+  border-color: #667eea !important;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1) !important;
+}
+
+.ant-input-search .ant-input-group-addon {
+  display: none;
+}
+
+/* ==========================================
+   MODAL ENHANCEMENTS
+   ========================================== */
+
+.ant-modal-content {
+  border-radius: 18px !important;
+  overflow: hidden;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15) !important;
+}
+
+.ant-modal-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 20px 24px !important;
+}
+
+.ant-modal-body {
+  padding: 24px !important;
+}
+
+.ant-modal-footer {
+  border-top: 1px solid #f0f0f0;
+  padding: 16px 24px !important;
+}
+
+/* ==========================================
+   DRAWER ENHANCEMENTS
+   ========================================== */
+
+.ant-drawer-content {
+  border-radius: 0;
+}
+
+.ant-drawer-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding: 18px 24px !important;
+}
+
+.ant-drawer-body {
+  padding: 24px !important;
+}
+
+.ant-drawer-title {
+  font-weight: 600 !important;
+  font-size: 18px !important;
+}
+
+/* ==========================================
+   STATUS PULSE ANIMATION
+   ========================================== */
+
+@keyframes statusPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
+/* ==========================================
+   RESPONSIVE TABLE STYLES
+   ========================================== */
+
 .ant-table-wrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  border-radius: 14px;
 }
 
 .ant-table {
   font-size: 14px;
 }
 
-/* RTL table scroll indicator */
-.ant-table-wrapper::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 20px;
-  pointer-events: none;
-  background: linear-gradient(to left, transparent, rgba(0,0,0,0.05));
-  opacity: 0;
-  transition: opacity 0.3s;
+.ant-table-thead > tr > th {
+  background: #fafbfc !important;
+  font-weight: 600;
+  color: #4b5563;
+  border-bottom: 1px solid #e8eaed !important;
 }
 
-.ant-table-wrapper:hover::after {
-  opacity: 1;
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.ant-table-tbody > tr:last-child > td {
+  border-bottom: none !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: rgba(102, 126, 234, 0.04) !important;
 }
 
 /* Fixed columns for RTL */
-.ant-table-cell-fix-right {
-  background: #fff !important;
-}
-
+.ant-table-cell-fix-right,
 .ant-table-cell-fix-left {
   background: #fff !important;
 }
 
 /* ==========================================
-   Responsive Breakpoints
+   RESPONSIVE BREAKPOINTS
    ========================================== */
 
 /* Tablet and below */
@@ -188,12 +431,12 @@
   
   .ant-table-thead > tr > th,
   .ant-table-tbody > tr > td {
-    padding: 10px 8px !important;
+    padding: 12px 10px !important;
   }
   
-  .ant-tag {
-    font-size: 11px;
-    padding: 0 6px;
+  .ant-menu-dark .ant-menu-item {
+    height: 42px !important;
+    line-height: 42px !important;
   }
 }
 
@@ -205,13 +448,13 @@
   }
 
   .ant-layout-content {
-    margin: 12px !important;
-    padding: 12px !important;
+    margin: 16px !important;
+    padding: 16px !important;
   }
 
-  /* Mobile header adjustments */
   .ant-layout-header {
-    padding: 0 12px !important;
+    padding: 0 16px !important;
+    min-height: 60px !important;
   }
 
   /* Mobile table responsiveness */
@@ -221,211 +464,188 @@
   
   .ant-table-thead > tr > th,
   .ant-table-tbody > tr > td {
-    padding: 8px 6px !important;
-    white-space: nowrap;
-  }
-  
-  .ant-table-thead > tr > th {
-    font-weight: 600;
+    padding: 10px 8px !important;
   }
 
   /* Mobile card adjustments */
   .ant-card {
-    margin-bottom: 12px;
-    border-radius: 8px;
+    border-radius: 14px !important;
   }
 
   .ant-card-body {
-    padding: 12px !important;
+    padding: 16px !important;
   }
 
-  /* Mobile spacing adjustments */
-  .ant-space-vertical > .ant-space-item {
-    margin-bottom: 12px !important;
-  }
-
-  /* Mobile typography adjustments */
+  /* Mobile typography */
   .ant-typography h2 {
-    font-size: 20px !important;
+    font-size: 22px !important;
   }
 
   .ant-typography h3 {
     font-size: 18px !important;
   }
-
-  .ant-typography h4 {
-    font-size: 16px !important;
+  
+  /* Mobile menu */
+  .ant-menu-dark .ant-menu-item {
+    margin: 4px 6px !important;
+    height: 44px !important;
+    line-height: 44px !important;
   }
   
-  /* Mobile button adjustments */
-  .ant-btn {
-    font-size: 13px;
-  }
-  
-  .ant-btn-sm {
-    font-size: 12px;
-    padding: 0 8px;
-  }
-  
-  /* Mobile pagination */
-  .ant-pagination {
-    font-size: 12px;
-  }
-  
-  .ant-pagination-item {
-    min-width: 28px;
-    height: 28px;
-    line-height: 26px;
-  }
-  
-  /* Mobile search input */
+  /* Mobile search */
   .ant-input-search {
     max-width: 100% !important;
+  }
+  
+  .ant-input-search .ant-input-affix-wrapper {
+    padding: 8px 14px !important;
   }
 }
 
 /* Small mobile devices */
 @media (max-width: 480px) {
   .ant-layout-content {
-    margin: 8px !important;
-    padding: 8px !important;
-  }
-
-  .ant-card {
-    margin-bottom: 8px;
+    margin: 12px !important;
+    padding: 12px !important;
   }
 
   .ant-card-body {
-    padding: 10px !important;
+    padding: 14px !important;
   }
 
-  /* Very small screens - stack everything */
-  .ant-row {
-    margin: 0 !important;
-  }
-
-  .ant-col {
-    padding: 0 !important;
-    margin-bottom: 8px;
-  }
-
-  /* Mobile drawer adjustments */
   .ant-drawer-body {
-    padding: 12px !important;
+    padding: 16px !important;
   }
   
   .ant-drawer-header {
-    padding: 12px 16px !important;
+    padding: 14px 18px !important;
   }
   
-  /* Compact table on very small screens */
+  /* Compact table */
   .ant-table-thead > tr > th,
   .ant-table-tbody > tr > td {
-    padding: 6px 4px !important;
-    font-size: 11px;
-  }
-  
-  /* Hide less important columns */
-  .ant-table-cell.ant-table-cell-ellipsis {
-    max-width: 100px;
-  }
-  
-  /* Compact tags */
-  .ant-tag {
-    font-size: 10px;
-    padding: 0 4px;
-    margin: 0;
-  }
-  
-  /* Compact buttons */
-  .ant-btn-sm {
-    font-size: 11px;
-    padding: 0 6px;
-    height: 24px;
+    padding: 8px 6px !important;
+    font-size: 12px;
   }
   
   /* Page header responsive */
   .page-header {
     flex-direction: column;
     align-items: flex-start !important;
-    gap: 12px;
+    gap: 14px;
+  }
+  
+  /* Compact modal */
+  .ant-modal-content {
+    border-radius: 14px !important;
+  }
+  
+  .ant-modal-header {
+    padding: 16px 18px !important;
+  }
+  
+  .ant-modal-body {
+    padding: 18px !important;
   }
 }
 
 /* ==========================================
-   Registration Modal Responsive Styles
+   REGISTRATION MODAL STYLES
    ========================================== */
 
-/* Base modal styling */
 .registration-modal .ant-modal-content {
   max-width: 700px;
   margin: 0 auto;
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
 }
 
 .registration-modal .ant-modal-header {
-  padding: 16px 20px;
-  border-bottom: none;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .registration-modal .ant-modal-close {
-  top: 12px;
-  right: 12px;
+  top: 14px;
+  right: 14px;
 }
 
-/* Mobile modal adjustments */
 @media (max-width: 576px) {
   .registration-modal .ant-modal-content {
-    border-radius: 12px;
-    margin: 8px;
+    border-radius: 14px;
+    margin: 12px;
   }
   
   .registration-modal .ant-modal-header {
-    padding: 12px 16px;
+    padding: 14px 18px;
   }
   
   .registration-modal .ant-modal-title {
     font-size: 16px;
   }
   
-  .registration-modal .ant-modal-close {
-    top: 8px;
-    right: 8px;
-  }
-  
-  /* Compact form items on mobile */
   .registration-modal .ant-form-item {
-    margin-bottom: 12px;
-  }
-  
-  .registration-modal .ant-form-item-label {
-    padding-bottom: 4px;
-  }
-  
-  .registration-modal .ant-form-item-label > label {
-    font-size: 13px;
+    margin-bottom: 14px;
   }
   
   .registration-modal .ant-input,
   .registration-modal .ant-input-password {
-    height: 40px !important;
-    font-size: 14px !important;
+    height: 44px !important;
+    font-size: 15px !important;
+    border-radius: 10px !important;
   }
   
   .registration-modal .ant-divider {
-    margin: 16px 0 !important;
-  }
-  
-  /* Responsive buttons */
-  .registration-modal .ant-space {
-    flex-wrap: wrap;
-    justify-content: center;
+    margin: 18px 0 !important;
   }
   
   .registration-modal .ant-btn {
-    min-width: auto !important;
-    flex: 1;
-    max-width: 200px;
+    height: 44px !important;
+    border-radius: 10px !important;
   }
+}
+
+/* ==========================================
+   UTILITY CLASSES
+   ========================================== */
+
+.shadow-sm {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+.rounded-lg {
+  border-radius: 14px;
+}
+
+.rounded-xl {
+  border-radius: 18px;
+}
+
+/* Smooth page transitions */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-transition-exit {
+  opacity: 1;
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }

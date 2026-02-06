@@ -21,7 +21,9 @@ import {
   Avatar,
   Table,
   Result,
+  Statistic,
 } from 'antd';
+import { motion } from 'framer-motion';
 import { getStatusLabel as getPurchaseStatusLabel, getStatusColor as getPurchaseStatusColor } from '../constants/purchaseStatus';
 import { getUserStatus, getStatusLabel as getUserStatusLabel, getStatusColor as getUserStatusColor } from '../constants/userStatus';
 import {
@@ -42,6 +44,8 @@ import {
   LockOutlined,
   CalendarOutlined,
   StopOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -59,9 +63,28 @@ import {
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
 import dayjs from 'dayjs';
+import StatCard from '../components/StatCard';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+};
 
 const UsersPage = () => {
   const [loading, setLoading] = useState(true);
@@ -389,13 +412,33 @@ const UsersPage = () => {
     return cardGradients[Math.abs(hash) % cardGradients.length];
   };
 
-  // User Card Component
-  const UserCard = ({ userRecord }) => {
+  // User Card Component - Enhanced with premium styling
+  const UserCard = ({ userRecord, index = 0 }) => {
     const status = getUserStatus(userRecord);
     const statusColor = getUserStatusColor(status);
     const statusLabel = getUserStatusLabel(status);
     const userName = `${userRecord.firstName || ''} ${userRecord.lastName || ''}`.trim() || 'לא זמין';
     const userGradient = getUserGradient(userRecord.uid);
+
+    // Status configuration
+    const statusConfig = {
+      active: { 
+        color: '#10b981', 
+        bg: 'rgba(16, 185, 129, 0.1)',
+        shadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
+      },
+      connected: { 
+        color: '#3b82f6', 
+        bg: 'rgba(59, 130, 246, 0.1)',
+        shadow: '0 0 0 3px rgba(59, 130, 246, 0.2)',
+      },
+      offline: { 
+        color: '#9ca3af', 
+        bg: 'rgba(156, 163, 175, 0.1)',
+        shadow: 'none',
+      },
+    };
+    const currentStatus = statusConfig[status] || statusConfig.offline;
 
     const menuItems = [
       {
@@ -447,7 +490,7 @@ const UsersPage = () => {
             label: userRecord.uid === user?.uid ? 'לא ניתן להסיר מעצמך' : 'הסר הרשאות מנהל',
             danger: true,
             onClick: () => handleRevokeAdmin(userRecord),
-            disabled: userRecord.uid === user?.uid, // Prevent self-revoke
+            disabled: userRecord.uid === user?.uid,
           }
         : {
             key: 'grant',
@@ -458,196 +501,250 @@ const UsersPage = () => {
     ];
 
     return (
-      <Card
-        hoverable
-        onClick={() => handleViewUser(userRecord)}
-        style={{
-          borderRadius: 20,
-          overflow: 'hidden',
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          border: 'none',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-          transition: 'all 0.3s ease',
-        }}
-        styles={{
-          body: {
-            padding: 0,
-            flex: 1,
+      <motion.div
+        variants={cardVariants}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: index * 0.03 }}
+        whileHover={{ y: -4 }}
+        style={{ height: '100%' }}
+      >
+        <Card
+          hoverable
+          onClick={() => handleViewUser(userRecord)}
+          style={{
+            borderRadius: 18,
+            overflow: 'hidden',
+            height: '100%',
             display: 'flex',
             flexDirection: 'column',
-          },
-        }}
-      >
-        {/* Header with vibrant gradient */}
-        <div
-          style={{
-            background: userGradient,
-            padding: '16px',
-            color: '#fff',
-            position: 'relative',
+            border: '1px solid #e8eaed',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+          styles={{
+            body: {
+              padding: 0,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+            },
           }}
         >
-          {/* Status indicator dot */}
+          {/* Header with gradient */}
           <div
             style={{
-              position: 'absolute',
-              top: 12,
-              right: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
+              background: userGradient,
+              padding: '20px 16px',
+              color: '#fff',
+              position: 'relative',
             }}
           >
+            {/* Status indicator */}
             <div
               style={{
+                position: 'absolute',
+                top: 14,
+                right: 14,
                 width: 10,
                 height: 10,
                 borderRadius: '50%',
-                backgroundColor: status === 'active' ? '#52c41a' : status === 'connected' ? '#1890ff' : '#d9d9d9',
-                boxShadow: status === 'active' ? '0 0 8px #52c41a' : status === 'connected' ? '0 0 8px #1890ff' : 'none',
+                backgroundColor: currentStatus.color,
+                boxShadow: currentStatus.shadow,
+                animation: status === 'active' ? 'statusPulse 2s ease-in-out infinite' : 'none',
               }}
             />
-          </div>
 
-          {/* Admin Badge */}
-          {userRecord.isAdmin && (
-            <Tag
-              color='gold'
-              icon={<CrownOutlined />}
-              style={{
-                position: 'absolute',
-                top: 10,
-                left: 10,
-                fontWeight: 'bold',
-                borderRadius: 8,
-                fontSize: 11,
-              }}
-            >
-              מנהל
-            </Tag>
-          )}
-          
-          {/* Actions dropdown */}
-          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', bottom: 8, right: 8 }}>
-            <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-              <Button
-                type='text'
-                icon={<MoreOutlined />}
-                style={{ color: '#fff', background: 'rgba(255,255,255,0.2)', borderRadius: 8 }}
-                size='small'
-              />
-            </Dropdown>
-          </div>
-
-          {/* User Avatar and Name */}
-          <div style={{ textAlign: 'center', paddingTop: 4 }}>
-            <Avatar
-              size={64}
-              icon={<UserOutlined />}
-              style={{ 
-                backgroundColor: 'rgba(255,255,255,0.25)',
-                marginBottom: 10,
-                border: '3px solid rgba(255,255,255,0.3)',
-              }}
-            />
-            <Title level={5} style={{ color: '#fff', margin: 0, marginBottom: 6, textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
-              {userName}
-            </Title>
-            <Tag 
-              color={status === 'active' ? 'green' : status === 'connected' ? 'blue' : 'default'} 
-              style={{ borderRadius: 12, fontWeight: 500 }}
-            >
-              {statusLabel}
-            </Tag>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column', background: '#fafafa' }}>
-          {/* Contact Info */}
-          <div style={{ marginBottom: 12, background: '#fff', padding: 10, borderRadius: 10, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            {userRecord.phoneNumber && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <PhoneOutlined style={{ color: '#667eea' }} />
-                <Text style={{ direction: 'ltr', display: 'inline-block', color: '#333' }}>
-                  {userRecord.phoneNumber}
-                </Text>
-              </div>
+            {/* Admin Badge */}
+            {userRecord.isAdmin && (
+              <Tag
+                color='gold'
+                icon={<CrownOutlined />}
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  left: 12,
+                  fontWeight: 600,
+                  borderRadius: 8,
+                  fontSize: 11,
+                  border: 'none',
+                }}
+              >
+                מנהל
+              </Tag>
             )}
-            {userRecord.email && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <MailOutlined style={{ color: '#667eea' }} />
-                <Text 
-                  style={{ fontSize: 12, color: '#666' }}
-                  ellipsis={{ tooltip: userRecord.email }}
-                >
-                  {userRecord.email}
-                </Text>
-              </div>
-            )}
-            {!userRecord.phoneNumber && !userRecord.email && (
-              <Text type='secondary' style={{ fontSize: 12 }}>אין פרטי קשר</Text>
-            )}
-          </div>
-
-          {/* Balance Info */}
-          <div style={{ flex: 1 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '12px 14px',
-                background: 'linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%)',
-                borderRadius: 10,
-                marginBottom: 8,
-                border: '1px solid #d6e4ff',
-              }}
-            >
-              <ClockCircleOutlined style={{ color: '#1890ff', fontSize: 20 }} />
-              <div>
-                <Text style={{ color: '#1890ff', fontWeight: 700, fontSize: 18 }}>
-                  {formatTime(userRecord.remainingTime || 0)}
-                </Text>
-                <Text type='secondary' style={{ display: 'block', fontSize: 11 }}>
-                  זמן נותר
-                </Text>
-              </div>
-            </div>
             
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '12px 14px',
-                background: 'linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%)',
-                borderRadius: 10,
-                border: '1px solid #b7eb8f',
-              }}
+            {/* Actions dropdown */}
+            <div 
+              onClick={e => e.stopPropagation()} 
+              style={{ position: 'absolute', bottom: 12, right: 12 }}
             >
-              <PrinterOutlined style={{ color: '#52c41a', fontSize: 20 }} />
-              <div>
-                <Text style={{ color: '#52c41a', fontWeight: 700, fontSize: 18 }}>
-                  ₪{userRecord.printBalance || 0}
-                </Text>
-                <Text type='secondary' style={{ display: 'block', fontSize: 11 }}>
-                  תקציב הדפסות
-                </Text>
-              </div>
+              <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+                <Button
+                  type='text'
+                  icon={<MoreOutlined />}
+                  style={{ 
+                    color: '#fff', 
+                    background: 'rgba(255,255,255,0.15)',
+                    backdropFilter: 'blur(4px)',
+                    borderRadius: 8,
+                    border: '1px solid rgba(255,255,255,0.2)',
+                  }}
+                  size='small'
+                />
+              </Dropdown>
+            </div>
+
+            {/* User Avatar and Name */}
+            <div style={{ textAlign: 'center', paddingTop: 4 }}>
+              <Avatar
+                size={60}
+                icon={<UserOutlined />}
+                style={{ 
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  backdropFilter: 'blur(4px)',
+                  marginBottom: 12,
+                  border: '2px solid rgba(255,255,255,0.3)',
+                }}
+              />
+              <Title level={5} style={{ color: '#fff', margin: 0, marginBottom: 8, fontSize: 16 }}>
+                {userName}
+              </Title>
+              <Tag 
+                style={{ 
+                  background: currentStatus.bg,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 10,
+                  fontWeight: 500,
+                  fontSize: 11,
+                }}
+              >
+                {statusLabel}
+              </Tag>
             </div>
           </div>
 
-          {/* Footer info */}
-          <div style={{ paddingTop: 12, marginTop: 12, textAlign: 'center' }}>
-            <Text type='secondary' style={{ fontSize: 11 }}>
-              🗓️ הצטרף: {userRecord.createdAt ? dayjs(userRecord.createdAt).format('DD/MM/YYYY') : 'לא זמין'}
-            </Text>
+          {/* Body */}
+          <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column', background: '#fafbfc' }}>
+            {/* Contact Info */}
+            <div 
+              style={{ 
+                marginBottom: 14, 
+                background: '#fff', 
+                padding: '12px 14px', 
+                borderRadius: 12, 
+                border: '1px solid #e8eaed',
+              }}
+            >
+              {userRecord.phoneNumber && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: userRecord.email ? 8 : 0 }}>
+                  <PhoneOutlined style={{ color: '#667eea', fontSize: 14 }} />
+                  <Text style={{ direction: 'ltr', display: 'inline-block', color: '#374151', fontSize: 13 }}>
+                    {userRecord.phoneNumber}
+                  </Text>
+                </div>
+              )}
+              {userRecord.email && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <MailOutlined style={{ color: '#667eea', fontSize: 14 }} />
+                  <Text 
+                    style={{ fontSize: 12, color: '#6b7280' }}
+                    ellipsis={{ tooltip: userRecord.email }}
+                  >
+                    {userRecord.email}
+                  </Text>
+                </div>
+              )}
+              {!userRecord.phoneNumber && !userRecord.email && (
+                <Text type='secondary' style={{ fontSize: 12, color: '#9ca3af' }}>אין פרטי קשר</Text>
+              )}
+            </div>
+
+            {/* Balance Info - Enhanced styling */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '14px 16px',
+                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%)',
+                  borderRadius: 12,
+                  border: '1px solid rgba(59, 130, 246, 0.15)',
+                }}
+              >
+                <div 
+                  style={{ 
+                    width: 36, 
+                    height: 36, 
+                    borderRadius: 10, 
+                    background: 'rgba(59, 130, 246, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <ClockCircleOutlined style={{ color: '#3b82f6', fontSize: 18 }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Text style={{ color: '#3b82f6', fontWeight: 700, fontSize: 17, display: 'block', lineHeight: 1.2 }}>
+                    {formatTime(userRecord.remainingTime || 0)}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#6b7280' }}>זמן נותר</Text>
+                </div>
+              </div>
+              
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '14px 16px',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%)',
+                  borderRadius: 12,
+                  border: '1px solid rgba(16, 185, 129, 0.15)',
+                }}
+              >
+                <div 
+                  style={{ 
+                    width: 36, 
+                    height: 36, 
+                    borderRadius: 10, 
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <PrinterOutlined style={{ color: '#10b981', fontSize: 18 }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Text style={{ color: '#10b981', fontWeight: 700, fontSize: 17, display: 'block', lineHeight: 1.2 }}>
+                    ₪{userRecord.printBalance || 0}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#6b7280' }}>תקציב הדפסות</Text>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer info */}
+            <div 
+              style={{ 
+                paddingTop: 14, 
+                marginTop: 14, 
+                textAlign: 'center',
+                borderTop: '1px solid #e8eaed',
+              }}
+            >
+              <Text style={{ fontSize: 11, color: '#9ca3af' }}>
+                <CalendarOutlined style={{ marginLeft: 4 }} />
+                הצטרף: {userRecord.createdAt ? dayjs(userRecord.createdAt).format('DD/MM/YYYY') : 'לא זמין'}
+              </Text>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </motion.div>
     );
   };
 
@@ -761,72 +858,185 @@ const UsersPage = () => {
     );
   }
 
+  // Calculate user statistics
+  const activeUsers = users.filter(u => getUserStatus(u) === 'active').length;
+  const connectedUsers = users.filter(u => getUserStatus(u) === 'connected').length;
+  const adminUsers = users.filter(u => u.isAdmin).length;
+  const totalUsers = users.length;
+
   return (
-    <div style={{ direction: 'rtl' }}>
-      <Space direction='vertical' size='large' style={{ width: '100%' }}>
+    <motion.div 
+      style={{ direction: 'rtl' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Space direction='vertical' size={24} style={{ width: '100%' }}>
         {/* Header */}
-        <div 
+        <motion.div 
           className='page-header'
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
           style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: 12,
+            gap: 16,
           }}
         >
           <div>
-            <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-              <UserOutlined />
+            <Title level={2} style={{ margin: 0, fontWeight: 700, color: '#1f2937' }}>
               משתמשים
-              <Badge 
-                count={users.length} 
-                style={{ backgroundColor: '#1890ff' }}
-                overflowCount={999}
-              />
             </Title>
-            <Text type='secondary'>נהל וצפה בכל המשתמשים בארגון שלך</Text>
+            <Text style={{ color: '#6b7280', fontSize: 14 }}>
+              נהל וצפה בכל המשתמשים בארגון שלך
+            </Text>
           </div>
-          <Button icon={<ReloadOutlined />} onClick={loadUsers} loading={loading}>
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={loadUsers} 
+            loading={loading}
+            style={{ 
+              borderRadius: 10,
+              height: 40,
+              paddingLeft: 20,
+              paddingRight: 20,
+            }}
+          >
             רענן
           </Button>
-        </div>
+        </motion.div>
+
+        {/* Stats Row */}
+        <Row gutter={[16, 16]}>
+          <Col xs={12} sm={6}>
+            <Card 
+              variant='borderless' 
+              style={{ 
+                borderRadius: 14,
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.15)',
+              }}
+              styles={{ body: { padding: '16px 20px' } }}
+            >
+              <Statistic
+                title={<Text style={{ color: '#6b7280', fontSize: 12 }}>פעילים</Text>}
+                value={activeUsers}
+                valueStyle={{ color: '#10b981', fontWeight: 700, fontSize: 28 }}
+                prefix={<CheckCircleOutlined style={{ fontSize: 20, marginLeft: 8 }} />}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card 
+              variant='borderless' 
+              style={{ 
+                borderRadius: 14,
+                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)',
+                border: '1px solid rgba(59, 130, 246, 0.15)',
+              }}
+              styles={{ body: { padding: '16px 20px' } }}
+            >
+              <Statistic
+                title={<Text style={{ color: '#6b7280', fontSize: 12 }}>מחוברים</Text>}
+                value={connectedUsers}
+                valueStyle={{ color: '#3b82f6', fontWeight: 700, fontSize: 28 }}
+                prefix={<UserOutlined style={{ fontSize: 20, marginLeft: 8 }} />}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card 
+              variant='borderless' 
+              style={{ 
+                borderRadius: 14,
+                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)',
+                border: '1px solid rgba(245, 158, 11, 0.15)',
+              }}
+              styles={{ body: { padding: '16px 20px' } }}
+            >
+              <Statistic
+                title={<Text style={{ color: '#6b7280', fontSize: 12 }}>מנהלים</Text>}
+                value={adminUsers}
+                valueStyle={{ color: '#f59e0b', fontWeight: 700, fontSize: 28 }}
+                prefix={<CrownOutlined style={{ fontSize: 20, marginLeft: 8 }} />}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card 
+              variant='borderless' 
+              style={{ 
+                borderRadius: 14,
+                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(102, 126, 234, 0.05) 100%)',
+                border: '1px solid rgba(102, 126, 234, 0.15)',
+              }}
+              styles={{ body: { padding: '16px 20px' } }}
+            >
+              <Statistic
+                title={<Text style={{ color: '#6b7280', fontSize: 12 }}>סה"כ</Text>}
+                value={totalUsers}
+                valueStyle={{ color: '#667eea', fontWeight: 700, fontSize: 28 }}
+                prefix={<UserOutlined style={{ fontSize: 20, marginLeft: 8 }} />}
+              />
+            </Card>
+          </Col>
+        </Row>
 
         {/* Search */}
-        <Card>
+        <Card 
+          variant='borderless' 
+          style={{ borderRadius: 14 }}
+          styles={{ body: { padding: '16px 20px' } }}
+        >
           <Search
-            placeholder='חפש לפי שם, טלפון או אימייל'
+            placeholder='חפש לפי שם, טלפון או אימייל...'
             allowClear
             size='large'
-            prefix={<SearchOutlined />}
+            prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
             onChange={e => setSearchText(e.target.value)}
-            style={{ width: '100%', maxWidth: 500 }}
+            style={{ 
+              width: '100%', 
+              maxWidth: 500,
+            }}
           />
         </Card>
 
         {/* Users Grid */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 60 }}>
+          <div style={{ textAlign: 'center', padding: 80 }}>
             <Spin size='large' />
-            <div style={{ marginTop: 16 }}>
-              <Text type='secondary'>טוען משתמשים...</Text>
+            <div style={{ marginTop: 20 }}>
+              <Text style={{ color: '#6b7280' }}>טוען משתמשים...</Text>
             </div>
           </div>
         ) : filteredUsers.length === 0 ? (
-          <Card>
+          <Card variant='borderless' style={{ borderRadius: 14 }}>
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={searchText ? 'לא נמצאו משתמשים תואמים' : 'אין משתמשים'}
+              description={
+                <Text style={{ color: '#6b7280' }}>
+                  {searchText ? 'לא נמצאו משתמשים תואמים' : 'אין משתמשים'}
+                </Text>
+              }
             />
           </Card>
         ) : (
-          <Row gutter={[16, 16]}>
-            {filteredUsers.map(userRecord => (
-              <Col key={userRecord.uid} xs={24} sm={12} lg={8} xl={6}>
-                <UserCard userRecord={userRecord} />
-              </Col>
-            ))}
-          </Row>
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <Row gutter={[20, 20]}>
+              {filteredUsers.map((userRecord, index) => (
+                <Col key={userRecord.uid} xs={24} sm={12} lg={8} xl={6}>
+                  <UserCard userRecord={userRecord} index={index} />
+                </Col>
+              ))}
+            </Row>
+          </motion.div>
         )}
       </Space>
 
@@ -1220,7 +1430,7 @@ const UsersPage = () => {
           </Space>
         )}
       </Modal>
-    </div>
+    </motion.div>
   );
 };
 
