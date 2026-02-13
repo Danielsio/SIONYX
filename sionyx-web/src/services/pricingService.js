@@ -52,7 +52,9 @@ export const updatePrintPricing = async (orgId, pricingData) => {
     // Validate pricing data
     const { blackAndWhitePrice, colorPrice } = pricingData;
     
-    if (blackAndWhitePrice <= 0 || colorPrice <= 0) {
+    if (typeof blackAndWhitePrice !== 'number' && typeof blackAndWhitePrice !== 'string' ||
+        typeof colorPrice !== 'number' && typeof colorPrice !== 'string' ||
+        Number(blackAndWhitePrice) <= 0 || Number(colorPrice) <= 0) {
       return {
         success: false,
         error: 'Prices must be greater than 0',

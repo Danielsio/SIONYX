@@ -74,6 +74,26 @@ describe('pricingService', () => {
       expect(result.error).toBe('Prices must be greater than 0');
     });
 
+    it('returns error if blackAndWhitePrice is undefined', async () => {
+      const result = await updatePrintPricing('my-org', {
+        blackAndWhitePrice: undefined,
+        colorPrice: 3.0,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Prices must be greater than 0');
+    });
+
+    it('returns error if colorPrice is null', async () => {
+      const result = await updatePrintPricing('my-org', {
+        blackAndWhitePrice: 1.0,
+        colorPrice: null,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Prices must be greater than 0');
+    });
+
     it('returns error if colorPrice is 0 or negative', async () => {
       const result = await updatePrintPricing('my-org', {
         blackAndWhitePrice: 1.0,
