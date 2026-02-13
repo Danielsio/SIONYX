@@ -75,7 +75,7 @@ const colors = {
 // ============================================
 // Hero Section Component - Premium v2.0
 // ============================================
-const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
+const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadLoading }) => {
   const heroRef = useRef(null);
   const subtitleRef = useRef(null);
 
@@ -298,7 +298,8 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
           variant="ghost"
           size="large"
           icon={<DownloadOutlined />}
-          onClick={onAdminLogin}
+          loading={downloadLoading}
+          onClick={onDownload}
           style={{ 
             padding: '0 32px',
             height: 54,
@@ -308,7 +309,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
             color: '#fff',
           }}
         >
-          הורד תוכנה
+          {downloadLoading ? 'מוריד...' : 'הורד תוכנה'}
         </AnimatedButton>
       </motion.div>
 
@@ -1416,6 +1417,8 @@ const LandingPage = memo(() => {
         <HeroSection 
           onRegisterClick={openRegistrationModal}
           onAdminLogin={handleAdminLogin}
+          onDownload={handleDirectDownload}
+          downloadLoading={downloadLoading}
         />
 
         {/* Features Section */}
