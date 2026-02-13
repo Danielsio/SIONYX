@@ -144,7 +144,7 @@ const PricingSettings = () => {
               <Divider />
               <div style={{ textAlign: 'center' }}>
                 <Text type='secondary'>
-                  יחס מחירים: {(pricing.colorPrice / pricing.blackAndWhitePrice).toFixed(1)}x
+                  יחס מחירים: {pricing.blackAndWhitePrice > 0 ? (pricing.colorPrice / pricing.blackAndWhitePrice).toFixed(1) : 'N/A'}x
                 </Text>
               </div>
             </Space>
