@@ -132,4 +132,26 @@ describe('PricingSettings', () => {
     // Should not crash
     expect(screen.getByText('מחירים נוכחיים')).toBeInTheDocument();
   });
+
+  it('does not crash when blackAndWhitePrice is 0 (division by zero)', async () => {
+    getPrintPricing.mockResolvedValue({
+      success: true,
+      pricing: { blackAndWhitePrice: 0, colorPrice: 3.0 },
+    });
+
+    render(
+      <AntApp>
+        <PricingSettings />
+      </AntApp>
+    );
+
+    await waitFor(() => {
+      expect(getPrintPricing).toHaveBeenCalled();
+    });
+
+    // Should not show Infinity or NaN in the ratio display
+    const body = document.body.textContent;
+    expect(body).not.toContain('Infinity');
+    expect(body).not.toContain('NaN');
+  });
 });
