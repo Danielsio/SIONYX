@@ -6,8 +6,9 @@ import OperatingHoursSettings from './OperatingHoursSettings';
 import { getOperatingHours, updateOperatingHours, DEFAULT_OPERATING_HOURS } from '../../services/settingsService';
 
 vi.mock('../../services/settingsService');
+const mockUseOrgId = vi.fn(() => 'my-org');
 vi.mock('../../hooks/useOrgId', () => ({
-  useOrgId: () => 'my-org',
+  useOrgId: (...args) => mockUseOrgId(...args),
 }));
 
 // Mock dayjs with all methods required by Ant Design TimePicker
@@ -224,5 +225,35 @@ describe('OperatingHoursSettings', () => {
 
     // Should not crash
     expect(screen.getByText('עדכן הגדרות')).toBeInTheDocument();
+  });
+
+  it('reloads data when orgId changes from null to a value', async () => {
+    mockUseOrgId.mockReturnValue(null);
+
+    getOperatingHours.mockResolvedValue({
+      success: true,
+      operatingHours: DEFAULT_OPERATING_HOURS,
+    });
+
+    const { rerender } = render(
+      <AntApp>
+        <OperatingHoursSettings />
+      </AntApp>
+    );
+
+    await new Promise(r => setTimeout(r, 50));
+    expect(getOperatingHours).not.toHaveBeenCalled();
+
+    mockUseOrgId.mockReturnValue('my-org');
+
+    rerender(
+      <AntApp>
+        <OperatingHoursSettings />
+      </AntApp>
+    );
+
+    await waitFor(() => {
+      expect(getOperatingHours).toHaveBeenCalledWith('my-org');
+    });
   });
 });

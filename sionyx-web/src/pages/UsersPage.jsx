@@ -116,7 +116,7 @@ const UsersPage = () => {
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [orgId]);
 
   const loadUsers = async () => {
     setLoading(true);

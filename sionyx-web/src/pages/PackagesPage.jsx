@@ -65,7 +65,7 @@ const PackagesPage = () => {
 
   useEffect(() => {
     loadPackages();
-  }, []);
+  }, [orgId]);
 
   const loadPackages = async () => {
     setLoading(true);
