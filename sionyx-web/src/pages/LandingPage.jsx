@@ -88,10 +88,12 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
   // Subtitle GSAP animation
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.fromTo(subtitleRef.current, 
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.8, delay: 0.6, ease: 'power3.out' }
-      );
+      if (subtitleRef.current) {
+        gsap.fromTo(subtitleRef.current, 
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.8, delay: 0.6, ease: 'power3.out' }
+        );
+      }
     }, heroRef);
     return () => ctx.revert();
   }, []);

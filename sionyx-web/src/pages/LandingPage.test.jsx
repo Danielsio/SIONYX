@@ -372,6 +372,43 @@ describe('LandingPage', () => {
     warnSpy.mockRestore();
   });
 
+  it('GSAP animation guards against null subtitleRef', async () => {
+    const gsap = await import('gsap');
+
+    // Make gsap.fromTo throw when called with null (simulates real GSAP behavior)
+    gsap.default.fromTo.mockImplementation((target) => {
+      if (!target) throw new Error('GSAP: Cannot tween a null target');
+    });
+
+    // Make gsap.context execute its callback AND verify fromTo args
+    const fromToCalls = [];
+    const origFromTo = gsap.default.fromTo;
+    gsap.default.fromTo.mockImplementation((...args) => {
+      fromToCalls.push(args[0]);
+      if (!args[0]) throw new Error('GSAP: Cannot tween a null target');
+    });
+
+    gsap.default.context.mockImplementation((cb, scope) => {
+      cb();
+      return { revert: vi.fn() };
+    });
+
+    getLatestRelease.mockResolvedValue(mockReleaseInfo);
+
+    // Render should NOT throw
+    expect(() => render(<LandingPage />)).not.toThrow();
+
+    // gsap.fromTo should only be called with valid (non-null) targets
+    fromToCalls.forEach(target => {
+      expect(target).not.toBeNull();
+      expect(target).not.toBeUndefined();
+    });
+
+    // Restore mocks
+    gsap.default.fromTo.mockReset();
+    gsap.default.context.mockImplementation(() => ({ revert: vi.fn() }));
+  });
+
   describe('Registration Modal Responsiveness', () => {
     it('has registration-modal class for responsive styling', async () => {
       const user = userEvent.setup();
