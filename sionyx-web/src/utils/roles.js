@@ -58,7 +58,6 @@ export const isSupervisor = user => hasRole(user, ROLES.SUPERVISOR);
 
 /**
  * Check if user is admin only (not supervisor)
- * Used to restrict certain features to admins that supervisors should not access
  */
 export const isAdminOnly = user => {
   const userRole = getUserRole(user);
@@ -66,21 +65,14 @@ export const isAdminOnly = user => {
 };
 
 /**
- * Check if user can access users/computers management
- * Only admins can access, supervisors are explicitly blocked
+ * Check if supervisor is pending activation (not yet activated)
+ * Returns true ONLY for supervisor users whose supervisorActive flag is not true.
+ * Regular admins always return false (unaffected by activation gate).
+ * When true, services should return empty data to make the org appear new/empty.
  */
-export const canAccessUserManagement = user => {
-  const userRole = getUserRole(user);
-  return userRole === ROLES.ADMIN;
-};
-
-/**
- * Check if user can access computer management
- * Only admins can access, supervisors are explicitly blocked
- */
-export const canAccessComputerManagement = user => {
-  const userRole = getUserRole(user);
-  return userRole === ROLES.ADMIN;
+export const isSupervisorPendingActivation = user => {
+  if (!user) return false;
+  return getUserRole(user) === ROLES.SUPERVISOR && user.supervisorActive !== true;
 };
 
 /**

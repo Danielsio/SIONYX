@@ -10,11 +10,18 @@ import {
   onValue,
 } from 'firebase/database';
 import { database } from '../config/firebase';
+import { useAuthStore } from '../store/authStore';
+import { isSupervisorPendingActivation } from '../utils/roles';
 
 /**
  * Send a message from admin to user
  */
 export const sendMessage = async (orgId, toUserId, message, fromAdminId) => {
+  // Supervisor activation gate: block sending if not yet activated
+  if (isSupervisorPendingActivation(useAuthStore.getState().user)) {
+    return { success: true, messageId: null, message: null };
+  }
+
   try {
     const messagesRef = ref(database, `organizations/${orgId}/messages`);
     const newMessageRef = push(messagesRef);
@@ -49,6 +56,11 @@ export const sendMessage = async (orgId, toUserId, message, fromAdminId) => {
  * Get all messages for an organization (admin view)
  */
 export const getAllMessages = async orgId => {
+  // Supervisor activation gate: return empty data if not yet activated
+  if (isSupervisorPendingActivation(useAuthStore.getState().user)) {
+    return { success: true, messages: [] };
+  }
+
   try {
     const messagesRef = ref(database, `organizations/${orgId}/messages`);
     const snapshot = await get(messagesRef);
@@ -87,6 +99,11 @@ export const getAllMessages = async orgId => {
  * Get messages for a specific user (admin view)
  */
 export const getMessagesForUser = async (orgId, userId) => {
+  // Supervisor activation gate: return empty data if not yet activated
+  if (isSupervisorPendingActivation(useAuthStore.getState().user)) {
+    return { success: true, messages: [] };
+  }
+
   try {
     const messagesRef = ref(database, `organizations/${orgId}/messages`);
     const userMessagesQuery = query(messagesRef, orderByChild('toUserId'), equalTo(userId));

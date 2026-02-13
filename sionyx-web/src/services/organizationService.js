@@ -1,6 +1,8 @@
 import { database, functions } from '../config/firebase';
 import { ref, get } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
+import { useAuthStore } from '../store/authStore';
+import { isSupervisorPendingActivation } from '../utils/roles';
 
 /**
  * Organization Service
@@ -142,6 +144,20 @@ export const getOrganizationMetadata = async orgId => {
  * @returns {Object} Success status and statistics data
  */
 export const getOrganizationStats = async orgId => {
+  // Supervisor activation gate: return zero stats if not yet activated
+  if (isSupervisorPendingActivation(useAuthStore.getState().user)) {
+    return {
+      success: true,
+      stats: {
+        usersCount: 0,
+        packagesCount: 0,
+        purchasesCount: 0,
+        totalRevenue: 0,
+        totalTimeMinutes: 0,
+      },
+    };
+  }
+
   try {
     // Get users count
     const usersRef = ref(database, `organizations/${orgId}/users`);

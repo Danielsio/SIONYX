@@ -7,8 +7,7 @@ import {
   isAdminOrAbove,
   isSupervisor,
   isAdminOnly,
-  canAccessUserManagement,
-  canAccessComputerManagement,
+  isSupervisorPendingActivation,
   getRoleDisplayName,
 } from './roles';
 
@@ -140,35 +139,32 @@ describe('roles utility', () => {
     });
   });
 
-  describe('canAccessUserManagement', () => {
-    it('returns true for admin', () => {
-      expect(canAccessUserManagement({ role: 'admin' })).toBe(true);
-      expect(canAccessUserManagement({ isAdmin: true })).toBe(true);
+  describe('isSupervisorPendingActivation', () => {
+    it('returns true for supervisor without supervisorActive flag', () => {
+      expect(isSupervisorPendingActivation({ role: 'supervisor' })).toBe(true);
     });
 
-    it('returns false for supervisor', () => {
-      expect(canAccessUserManagement({ role: 'supervisor' })).toBe(false);
+    it('returns true for supervisor with supervisorActive=false', () => {
+      expect(isSupervisorPendingActivation({ role: 'supervisor', supervisorActive: false })).toBe(true);
     });
 
-    it('returns false for regular user', () => {
-      expect(canAccessUserManagement({ role: 'user' })).toBe(false);
-      expect(canAccessUserManagement(null)).toBe(false);
-    });
-  });
-
-  describe('canAccessComputerManagement', () => {
-    it('returns true for admin', () => {
-      expect(canAccessComputerManagement({ role: 'admin' })).toBe(true);
-      expect(canAccessComputerManagement({ isAdmin: true })).toBe(true);
+    it('returns false for supervisor with supervisorActive=true', () => {
+      expect(isSupervisorPendingActivation({ role: 'supervisor', supervisorActive: true })).toBe(false);
     });
 
-    it('returns false for supervisor', () => {
-      expect(canAccessComputerManagement({ role: 'supervisor' })).toBe(false);
+    it('returns false for admin (unaffected by activation)', () => {
+      expect(isSupervisorPendingActivation({ role: 'admin' })).toBe(false);
+      expect(isSupervisorPendingActivation({ role: 'admin', supervisorActive: false })).toBe(false);
+      expect(isSupervisorPendingActivation({ isAdmin: true })).toBe(false);
     });
 
     it('returns false for regular user', () => {
-      expect(canAccessComputerManagement({ role: 'user' })).toBe(false);
-      expect(canAccessComputerManagement(null)).toBe(false);
+      expect(isSupervisorPendingActivation({ role: 'user' })).toBe(false);
+    });
+
+    it('returns false for null/undefined user', () => {
+      expect(isSupervisorPendingActivation(null)).toBe(false);
+      expect(isSupervisorPendingActivation(undefined)).toBe(false);
     });
   });
 });
