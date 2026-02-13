@@ -1337,15 +1337,17 @@ const LandingPage = memo(() => {
 
   // Fetch latest release info on mount
   useEffect(() => {
+    let mounted = true;
     const fetchReleaseInfo = async () => {
       try {
         const release = await getLatestRelease();
-        setReleaseInfo(release);
+        if (mounted) setReleaseInfo(release);
       } catch (error) {
-        console.warn('Could not fetch release info:', error);
+        if (mounted) console.warn('Could not fetch release info:', error);
       }
     };
     fetchReleaseInfo();
+    return () => { mounted = false; };
   }, []);
 
   const handleRegistration = useCallback(async (values) => {

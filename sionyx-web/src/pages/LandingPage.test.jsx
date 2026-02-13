@@ -346,6 +346,32 @@ describe('LandingPage', () => {
     });
   });
 
+  it('does not warn about release fetch after unmount', async () => {
+    // Create a deferred promise that we control
+    let rejectRelease;
+    getLatestRelease.mockReturnValue(new Promise((_, reject) => {
+      rejectRelease = reject;
+    }));
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { unmount } = render(<LandingPage />);
+
+    // Unmount before the promise settles
+    unmount();
+
+    // Now reject the promise (simulating network error after navigation away)
+    rejectRelease(new Error('Network error'));
+
+    // Allow microtasks to process
+    await new Promise(r => setTimeout(r, 50));
+
+    // console.warn should NOT have been called since component is unmounted
+    expect(warnSpy).not.toHaveBeenCalled();
+
+    warnSpy.mockRestore();
+  });
+
   describe('Registration Modal Responsiveness', () => {
     it('has registration-modal class for responsive styling', async () => {
       const user = userEvent.setup();
