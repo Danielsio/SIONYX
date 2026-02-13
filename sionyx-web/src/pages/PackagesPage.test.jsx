@@ -11,8 +11,9 @@ import { useDataStore } from '../store/dataStore';
 vi.mock('../services/packageService');
 vi.mock('../store/authStore');
 vi.mock('../store/dataStore');
+const mockUseOrgId = vi.fn(() => 'my-org');
 vi.mock('../hooks/useOrgId', () => ({
-  useOrgId: () => 'my-org',
+  useOrgId: (...args) => mockUseOrgId(...args),
 }));
 
 // Mock dayjs
@@ -311,6 +312,48 @@ describe('PackagesPage', () => {
     });
 
     expect(screen.queryByText('מחק')).not.toBeInTheDocument();
+  });
+
+  it('reloads data when orgId changes from null to a value', async () => {
+    mockUseOrgId.mockReturnValue(null);
+
+    useAuthStore.mockImplementation((selector) => {
+      const state = { user: { orgId: null, uid: 'admin-123', isAdmin: true } };
+      return selector(state);
+    });
+
+    useDataStore.mockImplementation((selector) => {
+      const state = {
+        packages: [],
+        setPackages: vi.fn(),
+        updatePackage: vi.fn(),
+        removePackage: vi.fn(),
+      };
+      return selector ? selector(state) : state;
+    });
+
+    getAllPackages.mockResolvedValue({ success: true, packages: [] });
+
+    const { rerender } = render(
+      <AntApp>
+        <PackagesPage />
+      </AntApp>
+    );
+
+    await new Promise(r => setTimeout(r, 50));
+    expect(getAllPackages).not.toHaveBeenCalled();
+
+    mockUseOrgId.mockReturnValue('my-org');
+
+    rerender(
+      <AntApp>
+        <PackagesPage />
+      </AntApp>
+    );
+
+    await waitFor(() => {
+      expect(getAllPackages).toHaveBeenCalledWith('my-org');
+    });
   });
 });
 

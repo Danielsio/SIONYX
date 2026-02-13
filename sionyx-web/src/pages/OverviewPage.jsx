@@ -59,7 +59,7 @@ const OverviewPage = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [orgId]);
 
   const loadData = async () => {
     setLoading(true);

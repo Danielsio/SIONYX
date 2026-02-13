@@ -39,7 +39,7 @@ const PricingSettings = () => {
 
   useEffect(() => {
     loadPricing();
-  }, []);
+  }, [orgId]);
 
   const loadPricing = async () => {
     setLoading(true);

@@ -14,8 +14,9 @@ vi.mock('../services/pricingService');
 vi.mock('../services/userService');
 vi.mock('../store/authStore');
 vi.mock('../store/dataStore');
+const mockUseOrgId = vi.fn(() => 'my-org');
 vi.mock('../hooks/useOrgId', () => ({
-  useOrgId: () => 'my-org',
+  useOrgId: (...args) => mockUseOrgId(...args),
 }));
 
 const renderOverviewPage = () => {
@@ -161,5 +162,49 @@ describe('OverviewPage', () => {
       screen.queryAllByText(label).length > 0
     );
     expect(foundLabel).toBe(true);
+  });
+
+  it('reloads data when orgId changes from null to a value', async () => {
+    // Start with null orgId
+    mockUseOrgId.mockReturnValue(null);
+
+    useAuthStore.mockImplementation((selector) => {
+      const state = {
+        user: { orgId: null, uid: 'admin-123', displayName: 'Admin', email: 'admin@test.com' },
+      };
+      return selector(state);
+    });
+
+    useDataStore.mockImplementation((selector) => {
+      const state = {
+        stats: {},
+        setStats: vi.fn(),
+      };
+      return selector ? selector(state) : state;
+    });
+
+    const { rerender } = render(
+      <AntApp>
+        <OverviewPage />
+      </AntApp>
+    );
+
+    // With null orgId, services should NOT be called (guard returns early)
+    await new Promise(r => setTimeout(r, 50));
+    expect(getOrganizationStats).not.toHaveBeenCalled();
+
+    // Now orgId becomes available
+    mockUseOrgId.mockReturnValue('my-org');
+
+    rerender(
+      <AntApp>
+        <OverviewPage />
+      </AntApp>
+    );
+
+    // After rerender with valid orgId, effect should re-run and services should be called
+    await waitFor(() => {
+      expect(getOrganizationStats).toHaveBeenCalledWith('my-org');
+    });
   });
 });

@@ -41,7 +41,7 @@ const OperatingHoursSettings = () => {
 
   useEffect(() => {
     loadSettings();
-  }, []);
+  }, [orgId]);
 
   const loadSettings = async () => {
     setLoading(true);

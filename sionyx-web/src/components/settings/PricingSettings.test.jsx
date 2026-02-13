@@ -6,8 +6,9 @@ import PricingSettings from './PricingSettings';
 import { getPrintPricing, updatePrintPricing } from '../../services/pricingService';
 
 vi.mock('../../services/pricingService');
+const mockUseOrgId = vi.fn(() => 'my-org');
 vi.mock('../../hooks/useOrgId', () => ({
-  useOrgId: () => 'my-org',
+  useOrgId: (...args) => mockUseOrgId(...args),
 }));
 
 describe('PricingSettings', () => {
@@ -153,5 +154,35 @@ describe('PricingSettings', () => {
     const body = document.body.textContent;
     expect(body).not.toContain('Infinity');
     expect(body).not.toContain('NaN');
+  });
+
+  it('reloads data when orgId changes from null to a value', async () => {
+    mockUseOrgId.mockReturnValue(null);
+
+    getPrintPricing.mockResolvedValue({
+      success: true,
+      pricing: { blackAndWhitePrice: 1.0, colorPrice: 3.0 },
+    });
+
+    const { rerender } = render(
+      <AntApp>
+        <PricingSettings />
+      </AntApp>
+    );
+
+    await new Promise(r => setTimeout(r, 50));
+    expect(getPrintPricing).not.toHaveBeenCalled();
+
+    mockUseOrgId.mockReturnValue('my-org');
+
+    rerender(
+      <AntApp>
+        <PricingSettings />
+      </AntApp>
+    );
+
+    await waitFor(() => {
+      expect(getPrintPricing).toHaveBeenCalledWith('my-org');
+    });
   });
 });

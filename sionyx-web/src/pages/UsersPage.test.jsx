@@ -21,8 +21,9 @@ vi.mock('../services/userService');
 vi.mock('../services/chatService');
 vi.mock('../store/authStore');
 vi.mock('../store/dataStore');
+const mockUseOrgId = vi.fn(() => 'my-org');
 vi.mock('../hooks/useOrgId', () => ({
-  useOrgId: () => 'my-org',
+  useOrgId: (...args) => mockUseOrgId(...args),
 }));
 
 // Mock dayjs
@@ -809,5 +810,52 @@ describe('UsersPage - Password Reset', () => {
         expect(screen.getByText(/שים לב/)).toBeInTheDocument();
       });
     }
+  });
+});
+
+describe('UsersPage - orgId dependency', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('reloads data when orgId changes from null to a value', async () => {
+    mockUseOrgId.mockReturnValue(null);
+
+    useAuthStore.mockImplementation((selector) => {
+      const state = { user: { orgId: null, uid: 'admin-123', role: 'admin', isAdmin: true } };
+      return selector(state);
+    });
+
+    useDataStore.mockImplementation((selector) => {
+      const state = {
+        users: [],
+        setUsers: vi.fn(),
+        updateUser: vi.fn(),
+      };
+      return selector ? selector(state) : state;
+    });
+
+    getAllUsers.mockResolvedValue({ success: true, users: [] });
+
+    const { rerender } = render(
+      <AntApp>
+        <UsersPage />
+      </AntApp>
+    );
+
+    await new Promise(r => setTimeout(r, 50));
+    expect(getAllUsers).not.toHaveBeenCalled();
+
+    mockUseOrgId.mockReturnValue('my-org');
+
+    rerender(
+      <AntApp>
+        <UsersPage />
+      </AntApp>
+    );
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalledWith('my-org');
+    });
   });
 });
