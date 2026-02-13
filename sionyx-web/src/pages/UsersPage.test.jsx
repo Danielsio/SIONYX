@@ -352,6 +352,82 @@ describe('UsersPage', () => {
   });
 });
 
+describe('UsersPage - Send Message Guard', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.setItem('adminOrgId', 'my-org');
+  });
+
+  it('does not call sendMessage with undefined sender uid', async () => {
+    const user = userEvent.setup();
+    const mockSetUsers = vi.fn();
+    const mockUpdateUser = vi.fn();
+
+    // User has orgId but uid is undefined
+    useAuthStore.mockImplementation((selector) => {
+      const state = { user: { orgId: 'my-org', uid: undefined, role: 'admin', isAdmin: true } };
+      return selector(state);
+    });
+
+    useDataStore.mockImplementation((selector) => {
+      const state = {
+        users: mockUsers,
+        setUsers: mockSetUsers,
+        updateUser: mockUpdateUser,
+      };
+      return selector ? selector(state) : state;
+    });
+
+    getAllUsers.mockResolvedValue({ success: true, users: mockUsers });
+    getUserPurchaseHistory.mockResolvedValue({ success: true, purchases: [] });
+    getMessagesForUser.mockResolvedValue({ success: true, messages: [] });
+    adjustUserBalance.mockResolvedValue({ success: true });
+    sendMessage.mockResolvedValue({ success: true });
+    resetUserPassword.mockResolvedValue({ success: true, message: 'ok' });
+
+    render(
+      <AntApp>
+        <UsersPage />
+      </AntApp>
+    );
+
+    await waitFor(() => {
+      expect(getAllUsers).toHaveBeenCalled();
+    });
+
+    // Open the user card drawer
+    const userCard = screen.getByText(/יוסי כהן/).closest('.ant-card');
+    await user.click(userCard);
+
+    await waitFor(() => {
+      expect(getUserPurchaseHistory).toHaveBeenCalled();
+    });
+
+    // Click "שלח הודעה" to open send message modal
+    const sendBtns = screen.getAllByRole('button', { name: /שלח הודעה/ });
+    await user.click(sendBtns[0]);
+
+    // Fill in the message form
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText(/הכנס את ההודעה/)).toBeInTheDocument();
+    });
+
+    const msgInput = screen.getByPlaceholderText(/הכנס את ההודעה/);
+    await user.type(msgInput, 'Test message');
+
+    // Submit the form - find the submit button inside the modal
+    const allSendBtns = screen.getAllByRole('button', { name: /שלח הודעה/ });
+    const submitBtn = allSendBtns[allSendBtns.length - 1]; // last one is in the modal
+    await user.click(submitBtn);
+
+    // Allow any async handlers to run
+    await new Promise(r => setTimeout(r, 100));
+
+    // sendMessage should NOT have been called because user.uid is undefined
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+});
+
 describe('UsersPage - Admin Self-Revoke Prevention', () => {
   beforeEach(() => {
     vi.clearAllMocks();
