@@ -226,6 +226,36 @@ describe('MessagesPage', () => {
     }
   });
 
+  it('does not crash or log error when user is null', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    useAuthStore.mockImplementation((selector) => {
+      const state = { user: null };
+      return typeof selector === 'function' ? selector(state) : state;
+    });
+
+    getAllUsers.mockResolvedValue({ success: true, users: [] });
+    getAllMessages.mockResolvedValue({ success: true, messages: [] });
+
+    render(
+      <AntApp>
+        <MessagesPage />
+      </AntApp>
+    );
+
+    // Wait for any effects to run
+    await waitFor(() => {
+      expect(document.body).toBeInTheDocument();
+    });
+
+    // Should not crash, services should NOT be called, and no error should be logged
+    expect(getAllUsers).not.toHaveBeenCalled();
+    expect(getAllMessages).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
+
+    errorSpy.mockRestore();
+  });
+
   it('shows message count badges', async () => {
     renderMessagesPage();
 
