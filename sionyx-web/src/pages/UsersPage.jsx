@@ -351,6 +351,10 @@ const UsersPage = () => {
   };
 
   const handleSendMessage = async values => {
+    if (!user?.uid) {
+      message.error('שגיאה: לא ניתן לזהות את השולח');
+      return;
+    }
     try {
       const { message: messageText } = values;
       setSending(true);
