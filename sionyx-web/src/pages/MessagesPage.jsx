@@ -70,6 +70,7 @@ const MessagesPage = () => {
   }, [userMessages, chatVisible]);
 
   const loadData = async () => {
+    if (!user?.orgId) return;
     setLoading(true);
     try {
       const [usersResult, messagesResult] = await Promise.all([
