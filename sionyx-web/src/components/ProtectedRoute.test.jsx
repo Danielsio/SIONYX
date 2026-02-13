@@ -23,7 +23,7 @@ describe('ProtectedRoute', () => {
     return render(
       <MemoryRouter initialEntries={[initialRoute]}>
         <Routes>
-          <Route path="/login" element={<div data-testid="login-page">Login Page</div>} />
+          <Route path="/admin/login" element={<div data-testid="login-page">Login Page</div>} />
           <Route
             path="/protected"
             element={
@@ -44,7 +44,7 @@ describe('ProtectedRoute', () => {
     expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
   });
 
-  it('redirects to login when not authenticated', () => {
+  it('redirects to /admin/login when not authenticated', () => {
     renderWithRouter(false);
 
     expect(screen.getByTestId('login-page')).toBeInTheDocument();
