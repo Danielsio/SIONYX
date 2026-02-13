@@ -11,6 +11,8 @@ Usage:
     python scripts/manage_supervisor.py promote --org <orgId> --phone <phone>
     python scripts/manage_supervisor.py disable --org <orgId>
     python scripts/manage_supervisor.py enable --org <orgId>
+    python scripts/manage_supervisor.py activate --org <orgId>
+    python scripts/manage_supervisor.py deactivate --org <orgId>
 
 Examples:
     # List all organizations and their supervisor status
@@ -27,6 +29,12 @@ Examples:
 
     # Re-enable supervisor mode
     python scripts/manage_supervisor.py enable --org "myOrg"
+
+    # Activate supervisor (allow seeing all org data after verification)
+    python scripts/manage_supervisor.py activate --org "myOrg"
+
+    # Deactivate supervisor (hide org data, supervisor sees empty org again)
+    python scripts/manage_supervisor.py deactivate --org "myOrg"
 """
 
 import argparse
@@ -175,6 +183,7 @@ def get_all_organizations() -> List[Dict[str, Any]]:
                 "orgId": org_id,
                 "name": metadata.get("name", org_id),
                 "supervisorEnabled": settings.get("supervisorEnabled", False),
+                "supervisorActive": settings.get("supervisorActive", False),
                 "supervisors": supervisors,
                 "userCount": len(users),
             })
@@ -222,6 +231,7 @@ def get_organization_details(org_id: str) -> Optional[Dict[str, Any]]:
             "orgId": org_id,
             "name": metadata.get("name", org_id),
             "supervisorEnabled": settings.get("supervisorEnabled", False),
+            "supervisorActive": settings.get("supervisorActive", False),
             "operatingHours": settings.get("operatingHours", {}),
             "supervisors": supervisors,
             "admins": admins,
@@ -326,15 +336,16 @@ def create_supervisor(org_id: str, phone: str, password: str, name: str = "") ->
         print(red(f"{CROSS} Failed to create user record: {e}"))
         return False
     
-    # Enable supervisor mode for org
+    # Enable supervisor mode for org (but NOT activated yet - supervisor sees empty data)
     try:
         print(f"{ARROW} Enabling supervisor mode for org...")
         settings_ref = db.reference(f"organizations/{org_id}/metadata/settings")
         settings_ref.update({
             "supervisorEnabled": True,
             "supervisorEnabledAt": datetime.now().isoformat(),
+            "supervisorActive": False,  # Not activated yet - supervisor sees empty org
         })
-        print(green(f"   {CHECK} Supervisor mode enabled"))
+        print(green(f"   {CHECK} Supervisor mode enabled (not yet activated)"))
     except Exception as e:
         print(red(f"{CROSS} Failed to enable supervisor mode: {e}"))
         return False
@@ -344,6 +355,9 @@ def create_supervisor(org_id: str, phone: str, password: str, name: str = "") ->
     print(f"   Phone: {phone}")
     print(f"   Password: {password}")
     print(f"   Org ID: {org_id}")
+    print(f"\n   {WARN} Supervisor is NOT yet activated.")
+    print(f"   The supervisor will see an empty organization until activated.")
+    print(f"   To activate: python scripts/manage_supervisor.py activate --org \"{org_id}\"")
     
     return True
 
@@ -365,13 +379,15 @@ def promote_user_to_supervisor(org_id: str, user_id: str, name: str = "") -> boo
         user_ref.update(update_data)
         print(green(f"   {CHECK} User promoted to supervisor"))
         
-        # Enable supervisor mode
+        # Enable supervisor mode (but NOT activated yet)
         settings_ref = db.reference(f"organizations/{org_id}/metadata/settings")
         settings_ref.update({
             "supervisorEnabled": True,
             "supervisorEnabledAt": datetime.now().isoformat(),
+            "supervisorActive": False,  # Not activated yet
         })
-        print(green(f"   {CHECK} Supervisor mode enabled"))
+        print(green(f"   {CHECK} Supervisor mode enabled (not yet activated)"))
+        print(f"   {WARN} To activate: python scripts/manage_supervisor.py activate --org \"{org_id}\"")
         
         return True
     except Exception as e:
@@ -425,6 +441,51 @@ def set_supervisor_mode(org_id: str, enabled: bool) -> bool:
         return False
 
 
+def set_supervisor_activation(org_id: str, active: bool) -> bool:
+    """Activate or deactivate supervisor visibility for an organization.
+    
+    When active=True, the supervisor can see all organization data.
+    When active=False, the supervisor sees an empty organization (no users, computers, messages).
+    """
+    action = "Activating" if active else "Deactivating"
+    print(f"\n{ARROW} {action} supervisor for org: {org_id}")
+    
+    try:
+        # Check org exists
+        org_ref = db.reference(f"organizations/{org_id}/metadata")
+        metadata = org_ref.get()
+        if not metadata:
+            print(red(f"\n{CROSS} Organization '{org_id}' not found"))
+            return False
+        
+        # Check supervisor mode is enabled
+        settings = metadata.get("settings", {})
+        if not settings.get("supervisorEnabled"):
+            print(yellow(f"\n{WARN} Supervisor mode is not enabled for this org"))
+            print(f"   Enable first with: python scripts/manage_supervisor.py enable --org \"{org_id}\"")
+            return False
+        
+        settings_ref = db.reference(f"organizations/{org_id}/metadata/settings")
+        timestamp_key = f"supervisor{'Activated' if active else 'Deactivated'}At"
+        settings_ref.update({
+            "supervisorActive": active,
+            timestamp_key: datetime.now().isoformat(),
+        })
+        
+        status = "activated" if active else "deactivated"
+        print(green(f"\n{CHECK} Supervisor {status} for org '{org_id}'"))
+        
+        if active:
+            print(f"   The supervisor can now see all organization data.")
+        else:
+            print(f"   The supervisor now sees an empty organization (no data visible).")
+        
+        return True
+    except Exception as e:
+        print(red(f"{CROSS} Failed to update supervisor activation: {e}"))
+        return False
+
+
 def cmd_list(args):
     """List all organizations and their supervisor status."""
     print(f"\n{bold('Organizations and Supervisor Status')}")
@@ -437,10 +498,13 @@ def cmd_list(args):
     
     for org in sorted(orgs, key=lambda x: x["orgId"]):
         status = green(f"{CHECK} Enabled") if org["supervisorEnabled"] else dim("Disabled")
+        activation = green(f"{CHECK} Active") if org["supervisorActive"] else yellow("Pending activation")
         
         print(f"\n{bold(org['orgId'])}")
         print(f"  Name: {org['name']}")
         print(f"  Supervisor Mode: {status}")
+        if org["supervisorEnabled"]:
+            print(f"  Supervisor Activation: {activation}")
         print(f"  Users: {org['userCount']}")
         
         if org["supervisors"]:
@@ -468,9 +532,12 @@ def cmd_show(args):
         return
     
     status = green(f"{CHECK} Enabled") if details["supervisorEnabled"] else yellow("Disabled")
+    activation = green(f"{CHECK} Active (sees all data)") if details["supervisorActive"] else yellow("Pending (sees empty org)")
     
     print(f"Name: {details['name']}")
     print(f"Supervisor Mode: {status}")
+    if details["supervisorEnabled"]:
+        print(f"Supervisor Activation: {activation}")
     print(f"Total Users: {details['userCount']}")
     
     print(f"\n{bold('Supervisors:')}")
@@ -524,6 +591,18 @@ def cmd_disable(args):
     sys.exit(0 if success else 1)
 
 
+def cmd_activate(args):
+    """Activate supervisor - supervisor can now see all org data."""
+    success = set_supervisor_activation(args.org, True)
+    sys.exit(0 if success else 1)
+
+
+def cmd_deactivate(args):
+    """Deactivate supervisor - supervisor sees empty org again."""
+    success = set_supervisor_activation(args.org, False)
+    sys.exit(0 if success else 1)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Manage supervisor users and supervisor mode for organizations",
@@ -565,6 +644,16 @@ def main():
     disable_parser = subparsers.add_parser("disable", help="Disable supervisor mode for an org")
     disable_parser.add_argument("--org", required=True, help="Organization ID")
     disable_parser.set_defaults(func=cmd_disable)
+    
+    # activate command
+    activate_parser = subparsers.add_parser("activate", help="Activate supervisor - allow seeing all org data")
+    activate_parser.add_argument("--org", required=True, help="Organization ID")
+    activate_parser.set_defaults(func=cmd_activate)
+    
+    # deactivate command
+    deactivate_parser = subparsers.add_parser("deactivate", help="Deactivate supervisor - hide org data (sees empty org)")
+    deactivate_parser.add_argument("--org", required=True, help="Organization ID")
+    deactivate_parser.set_defaults(func=cmd_deactivate)
     
     args = parser.parse_args()
     

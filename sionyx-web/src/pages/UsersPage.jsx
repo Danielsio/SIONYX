@@ -20,7 +20,6 @@ import {
   Empty,
   Avatar,
   Table,
-  Result,
   Statistic,
 } from 'antd';
 import { motion } from 'framer-motion';
@@ -43,14 +42,12 @@ import {
   MailOutlined,
   LockOutlined,
   CalendarOutlined,
-  StopOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
 import { useOrgId } from '../hooks/useOrgId';
-import { canAccessUserManagement } from '../utils/roles';
 import {
   getAllUsers,
   getUserPurchaseHistory,
@@ -117,14 +114,9 @@ const UsersPage = () => {
   const { message } = App.useApp();
   const orgId = useOrgId();
 
-  // Check if supervisor is trying to access
-  const hasAccess = canAccessUserManagement(user);
-
   useEffect(() => {
-    if (hasAccess) {
-      loadUsers();
-    }
-  }, [hasAccess]);
+    loadUsers();
+  }, []);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -839,24 +831,6 @@ const UsersPage = () => {
       (u.email?.toLowerCase() || '').includes(search)
     );
   });
-
-  // Access denied for supervisors
-  if (!hasAccess) {
-    return (
-      <div style={{ direction: 'rtl', padding: '50px 0' }}>
-        <Result
-          icon={<StopOutlined style={{ color: '#ff4d4f' }} />}
-          title="אין גישה"
-          subTitle="אין לך הרשאות לגשת לניהול משתמשים. פנה למנהל המערכת לקבלת גישה."
-          extra={
-            <Button type="primary" href="/admin">
-              חזור לדף הבית
-            </Button>
-          }
-        />
-      </div>
-    );
-  }
 
   // Calculate user statistics
   const activeUsers = users.filter(u => getUserStatus(u) === 'active').length;
