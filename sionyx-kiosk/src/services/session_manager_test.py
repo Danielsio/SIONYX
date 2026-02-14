@@ -232,6 +232,22 @@ class TestSyncSessionTime:
 
         assert len(signal_received) == 1
 
+    def test_sync_emits_sync_failed_when_get_data_fails(self, session_manager, mock_firebase):
+        """Test sync emits sync_failed when user data fetch fails (BUG-007)"""
+        session_manager.start_session()
+
+        # update_data succeeds, but get_data fails
+        mock_firebase.update_data.return_value = {"success": True}
+        mock_firebase.get_data.return_value = {"success": False}
+
+        signal_received = []
+        session_manager.sync_failed.connect(lambda msg: signal_received.append(msg))
+
+        session_manager.sync_session_time()
+
+        # sync_failed should be emitted because user data fetch failed
+        assert len(signal_received) == 1
+
 
 # =============================================================================
 # Test handle_time_expired

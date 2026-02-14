@@ -102,6 +102,8 @@ class SessionManager(QObject):
                     # Check if time expired
                     if new_remaining_time <= 0:
                         self.handle_time_expired()
+                else:
+                    raise Exception("Failed to fetch user data during sync")
             else:
                 raise Exception("Sync failed")
 
