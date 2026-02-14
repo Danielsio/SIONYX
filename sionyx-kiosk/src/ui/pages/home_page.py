@@ -439,8 +439,8 @@ class HomePage(QWidget):
             main_window = self.parent().parent().parent()
             if hasattr(main_window, "session_service"):
                 return main_window.session_service.is_session_active()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Session check failed: {e}")
         return False
 
     def update_countdown(self):
