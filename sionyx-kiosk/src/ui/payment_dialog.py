@@ -204,6 +204,7 @@ class PaymentDialog(QDialog):
         self._local_server: LocalFileServer | None = None
         self.listener_thread = None
         self.listener_active = False
+        self._purchase_handled = False
 
         # DON'T create pending purchase yet - wait for user to click "Pay"
         # This saves DB writes when users browse/close without paying
@@ -359,9 +360,14 @@ class PaymentDialog(QDialog):
 
     def on_purchase_completed(self, purchase_data: dict):
         """Handle purchase completion (from stream or polling)"""
+        if self._purchase_handled:
+            logger.debug("Purchase already handled, ignoring duplicate completion")
+            return
+
         status = purchase_data.get("status")
 
         if status == "completed":
+            self._purchase_handled = True
             logger.info("Purchase completed successfully!")
             self.payment_response = purchase_data.get("rawResponse", {})
 

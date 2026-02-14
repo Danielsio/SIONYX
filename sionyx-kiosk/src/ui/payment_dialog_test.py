@@ -91,6 +91,7 @@ def create_payment_dialog_mock(sample_package, mock_parent_widget):
     dialog._local_server = None
     dialog.listener_thread = None
     dialog.listener_active = False
+    dialog._purchase_handled = False
 
     return dialog
 
@@ -638,9 +639,8 @@ class TestPaymentDialogRaceConditions:
             dialog.on_purchase_completed(purchase_data)
             dialog.on_purchase_completed(purchase_data)
 
-        # Should only be called once
-        # NOTE: This test may fail currently - indicating need for guard
-        assert len(call_count) <= 2  # Relaxed assertion for current implementation
+        # Should only be called once - guard prevents double handling (BUG-008)
+        assert len(call_count) == 1
 
 
 # =============================================================================
