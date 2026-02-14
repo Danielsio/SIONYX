@@ -109,28 +109,30 @@ class LocalDatabase:
     def _init_db(self):
         """Create database if doesn't exist"""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            """
-                       CREATE TABLE IF NOT EXISTS auth
-                       (
-                           id
-                           INTEGER
-                           PRIMARY
-                           KEY
-                           CHECK
-                       (
-                           id =
-                           1
-                       ),
-                           encrypted_token TEXT
-                           )
-                       """
-        )
+            cursor.execute(
+                """
+                           CREATE TABLE IF NOT EXISTS auth
+                           (
+                               id
+                               INTEGER
+                               PRIMARY
+                               KEY
+                               CHECK
+                           (
+                               id =
+                               1
+                           ),
+                               encrypted_token TEXT
+                               )
+                           """
+            )
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            conn.close()
 
     def _get_encryption_key(self) -> bytes:
         """Generate encryption key from machine-specific data"""
@@ -151,29 +153,33 @@ class LocalDatabase:
         encrypted = self.cipher.encrypt(refresh_token.encode())
 
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        cursor.execute(
-            """
-            INSERT OR REPLACE INTO auth (id, encrypted_token)
-            VALUES (1, ?)
-        """,
-            (encrypted.decode(),),
-        )
+            cursor.execute(
+                """
+                INSERT OR REPLACE INTO auth (id, encrypted_token)
+                VALUES (1, ?)
+            """,
+                (encrypted.decode(),),
+            )
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            conn.close()
 
         logger.info("Refresh token stored")
 
     def get_stored_token(self) -> Optional[str]:
         """Get stored refresh token (decrypted)"""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        cursor.execute("SELECT encrypted_token FROM auth WHERE id = 1")
-        row = cursor.fetchone()
-        conn.close()
+            cursor.execute("SELECT encrypted_token FROM auth WHERE id = 1")
+            row = cursor.fetchone()
+        finally:
+            conn.close()
 
         if not row or not row[0]:
             return None
@@ -188,11 +194,13 @@ class LocalDatabase:
     def clear_tokens(self):
         """Clear stored token (logout)"""
         conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
 
-        cursor.execute("DELETE FROM auth")
+            cursor.execute("DELETE FROM auth")
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+        finally:
+            conn.close()
 
         logger.info("Tokens cleared")
