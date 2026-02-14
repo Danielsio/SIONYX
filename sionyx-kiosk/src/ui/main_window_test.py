@@ -1075,6 +1075,42 @@ class TestRefreshAllPages:
 
         main_window.refresh_all_pages(force=True)
 
+    def test_refresh_all_pages_skips_fresh_pages(self, main_window):
+        """Test refresh_all_pages does NOT refresh pages with fresh data (BUG-006)"""
+        main_window.content_stack.count.return_value = 1
+
+        mock_page = Mock()
+        mock_page.refresh_user_data = Mock()
+        mock_page.__class__.__name__ = "FreshPage"
+
+        main_window.content_stack.widget.return_value = mock_page
+
+        # Mark this page as JUST refreshed (data is fresh)
+        main_window.page_data_ages["FreshPage"] = datetime.now()
+
+        # refresh_all_pages with force=False should SKIP this page
+        main_window.refresh_all_pages(force=False)
+
+        mock_page.refresh_user_data.assert_not_called()
+
+    def test_refresh_all_pages_refreshes_stale_pages(self, main_window):
+        """Test refresh_all_pages refreshes pages with stale data (BUG-006)"""
+        main_window.content_stack.count.return_value = 1
+
+        mock_page = Mock()
+        mock_page.refresh_user_data = Mock()
+        mock_page.__class__.__name__ = "StalePage"
+
+        main_window.content_stack.widget.return_value = mock_page
+
+        # Mark this page as refreshed 60s ago (stale, beyond default max age)
+        main_window.page_data_ages["StalePage"] = datetime.now() - timedelta(seconds=60)
+
+        # refresh_all_pages with force=False should refresh this stale page
+        main_window.refresh_all_pages(force=False)
+
+        mock_page.refresh_user_data.assert_called_once()
+
 
 # =============================================================================
 # Additional Session Management Tests

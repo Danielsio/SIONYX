@@ -361,7 +361,7 @@ class MainWindow(BaseKioskWindow):
                 page_name = page.__class__.__name__
 
                 # Only refresh if data is stale or forced
-                if force or self._should_skip_refresh(page_name):
+                if force or not self._should_skip_refresh(page_name):
                     logger.info(f"Refreshing {page_name}")
                     page.refresh_user_data()
                     self._update_page_data_age(page_name)
