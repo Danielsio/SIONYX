@@ -732,3 +732,20 @@ class TestHomePage:
             # Verify modal was shown and exec'd
             mock_modal.show_animated.assert_called_once()
             mock_modal.exec.assert_called_once()
+
+    def test_is_session_active_logs_exception(self, home_page, qapp):
+        """Test _is_session_active logs exceptions instead of silently swallowing (BUG-013)"""
+        import logging
+
+        # Make parent() raise to trigger the except branch
+        with patch.object(home_page, "parent", side_effect=RuntimeError("widget deleted")):
+            with patch("ui.pages.home_page.logger") as mock_logger:
+                result = home_page._is_session_active()
+
+                # Should return False
+                assert result is False
+
+                # Should have logged the exception (not silently swallowed)
+                mock_logger.debug.assert_called()
+                log_msg = str(mock_logger.debug.call_args)
+                assert "session" in log_msg.lower() or "Session" in log_msg or "widget deleted" in log_msg
