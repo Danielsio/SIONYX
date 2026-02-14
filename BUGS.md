@@ -53,34 +53,38 @@
 - **Fix:** Added `mounted` flag that is set to false in useEffect cleanup. Both success and error paths check the flag.
 - **Commit:** `ed5872b`
 
-### BUG-006: Inverted refresh logic in `refresh_all_pages`
+### BUG-006: Inverted refresh logic in `refresh_all_pages` -- FIXED
 - **App:** Kiosk
 - **File:** `sionyx-kiosk/src/ui/main_window.py:363-369`
 - **Description:** Pages are refreshed when `_should_skip_refresh` returns `True` (data is fresh) instead of `False` (data is stale). Logic is inverted.
 - **Code:** `if force or self._should_skip_refresh(page_name):`
-- **Fix:** Change to `if force or not self._should_skip_refresh(page_name):`
+- **Fix:** Changed to `if force or not self._should_skip_refresh(page_name):`
+- **Commit:** `2f8b0f5`
 
-### BUG-007: Session sync failure silently ignored
+### BUG-007: Session sync failure silently ignored -- FIXED
 - **App:** Kiosk
 - **File:** `sionyx-kiosk/src/services/session_manager.py:76-106`
-- **Description:** When `firebase.update_data()` returns `{"success": False}`, execution falls through without emitting `sync_failed` or raising an exception. The session appears synced but isn't.
-- **Fix:** Add an `else` branch to handle the failure case (emit `sync_failed`, log error).
+- **Description:** When `firebase.get_data()` for user data returned `{"success": False}` during sync, the failure fell through silently without emitting `sync_failed`.
+- **Fix:** Added `else` branch that raises an exception, caught by the existing handler which emits `sync_failed`.
+- **Commit:** `05fab5f`
 
 ---
 
 ## Medium
 
-### BUG-008: Double purchase completion handler
+### BUG-008: Double purchase completion handler -- FIXED
 - **App:** Kiosk
 - **File:** `sionyx-kiosk/src/ui/payment_dialog.py:360-372`
 - **Description:** `on_purchase_completed` can be called twice (from both Firebase stream and polling) with no guard. Success UI can be shown more than once.
-- **Fix:** Add a `self._purchase_handled = True` guard.
+- **Fix:** Added `self._purchase_handled` flag that guards against duplicate processing.
+- **Commit:** `8598e5a`
 
-### BUG-009: SQLite connection leak on exception
+### BUG-009: SQLite connection leak on exception -- FIXED
 - **App:** Kiosk
 - **File:** `sionyx-kiosk/src/database/local_db.py:153-197`
 - **Description:** DB connections opened with `sqlite3.connect()` are not closed if an exception occurs before `conn.close()`.
-- **Fix:** Use `with sqlite3.connect(...) as conn:` or `try/finally`.
+- **Fix:** Wrapped all connection usage in `try/finally` blocks to ensure `conn.close()` is always called.
+- **Commit:** `8371094`
 
 ### BUG-010: GSAP animation scope mismatch -- FIXED
 - **App:** Web
@@ -100,17 +104,19 @@
 
 ## Low
 
-### BUG-012: Signal connection leak in AlertModal
+### BUG-012: Signal connection leak in AlertModal -- FIXED
 - **App:** Kiosk
 - **File:** `sionyx-kiosk/src/ui/components/alert_modal.py:296-301`
 - **Description:** Each `close_modal()` call connects `finished` to `accept` without disconnecting previous connections. Rapid clicks accumulate connections.
-- **Fix:** Disconnect before connecting, or use a flag.
+- **Fix:** Added `disconnect` before `connect` to ensure only one active connection at a time.
+- **Commit:** `f2ec932`
 
-### BUG-013: Silent exception in `_is_session_active`
+### BUG-013: Silent exception in `_is_session_active` -- FIXED
 - **App:** Kiosk
 - **File:** `sionyx-kiosk/src/ui/pages/home_page.py:436-444`
 - **Description:** Exceptions are swallowed with `pass` and no logging. Session state can be wrong without visibility.
-- **Fix:** Add `logger.debug(f"Session check failed: {e}")` before `pass`.
+- **Fix:** Replaced bare `pass` with `logger.debug(f"Session check failed: {e}")`.
+- **Commit:** `a2d7f1f`
 
 ### BUG-014: PricingSettings division by zero -- FIXED
 - **App:** Web
@@ -126,10 +132,10 @@
 | Severity | Count | Fixed |
 |----------|-------|-------|
 | Critical | 2 | 2 |
-| High | 5 | 4 |
-| Medium | 4 | 2 |
-| Low | 3 | 0 |
-| **Total** | **14** | **8** |
+| High | 5 | 5 |
+| Medium | 4 | 4 |
+| Low | 3 | 3 |
+| **Total** | **14** | **14** |
 
 ### Fixed (Web) -- 8 commits
 - BUG-001: ProtectedRoute wrong redirect path
@@ -141,5 +147,10 @@
 - BUG-011: pricingService undefined validation
 - BUG-014: PricingSettings division by zero
 
-### Remaining (Kiosk) -- 6 bugs
-- BUG-006, BUG-007, BUG-008, BUG-009, BUG-012, BUG-013
+### Fixed (Kiosk) -- 6 commits
+- BUG-006: Inverted refresh logic in refresh_all_pages
+- BUG-007: Session sync failure silently ignored
+- BUG-008: Double purchase completion handler
+- BUG-009: SQLite connection leak on exception
+- BUG-012: Signal connection leak in AlertModal
+- BUG-013: Silent exception in _is_session_active
