@@ -297,6 +297,10 @@ class AlertModal(QDialog):
         """Close with animation"""
         self.fade_animation.setStartValue(1.0)
         self.fade_animation.setEndValue(0.0)
+        try:
+            self.fade_animation.finished.disconnect(self.accept)
+        except TypeError:
+            pass  # Not connected yet
         self.fade_animation.finished.connect(self.accept)
         self.fade_animation.start()
 

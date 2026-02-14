@@ -116,6 +116,36 @@ class TestAlertModal:
             modal.close_modal()
             mock_start.assert_called_once()
 
+    def test_close_modal_does_not_accumulate_signal_connections(self, qapp):
+        """Test that calling close_modal multiple times doesn't leak signal connections (BUG-012)"""
+        modal = AlertModal(title="Test", message="Test")
+
+        # We'll count how many times accept is invoked via the finished signal.
+        # Replace the real accept with a counter BEFORE close_modal connects it.
+        call_count = []
+        original_accept = modal.accept
+
+        def counting_accept():
+            call_count.append(1)
+
+        # Override accept on the instance so close_modal connects our counter
+        modal.accept = counting_accept
+
+        with patch.object(modal.fade_animation, 'start'):
+            # Call close_modal multiple times - each one connects finished->accept
+            modal.close_modal()
+            modal.close_modal()
+            modal.close_modal()
+
+        # Emit finished manually to trigger all connected handlers
+        modal.fade_animation.finished.emit()
+
+        # Should be called exactly once, not 3 times
+        assert len(call_count) == 1
+
+        # Restore to avoid teardown issues
+        modal.accept = original_accept
+
     def test_keypress_escape_closes_modal(self, qapp):
         """Test that pressing Escape closes the modal"""
         modal = AlertModal(title="Test", message="Test")
