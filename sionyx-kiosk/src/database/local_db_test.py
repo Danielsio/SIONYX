@@ -228,6 +228,21 @@ class TestLocalDatabase:
 
             assert retrieved == refresh_token
 
+    def test_store_credentials_closes_connection_on_exception(self, local_db):
+        """Test that store_credentials closes DB connection on error (BUG-009)"""
+        mock_conn = Mock()
+        mock_cursor = Mock()
+        mock_cursor.execute.side_effect = Exception("disk I/O error")
+        mock_conn.cursor.return_value = mock_cursor
+
+        with patch("database.local_db.sqlite3.connect", return_value=mock_conn):
+            try:
+                local_db.store_credentials("uid", "phone", "token", {})
+            except Exception:
+                pass
+
+        mock_conn.close.assert_called()
+
     def test_init_db_creates_table(self, temp_db_path):
         """Test that _init_db creates the auth table"""
         import sqlite3
