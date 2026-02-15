@@ -6,10 +6,16 @@ This ensures a clean state for each customer in kiosk environments.
 """
 
 import subprocess
+import sys
 import time
 from typing import Dict, List
 
 from utils.logger import get_logger
+
+# Hide console window on Windows when spawning subprocesses (tasklist, taskkill)
+_SUBPROCESS_FLAGS = (
+    subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+)
 
 
 logger = get_logger(__name__)
@@ -237,6 +243,7 @@ class ProcessCleanupService:
                 capture_output=True,
                 text=True,
                 timeout=10,
+                creationflags=_SUBPROCESS_FLAGS,
             )
 
             for line in result.stdout.strip().split("\n"):
@@ -286,6 +293,7 @@ class ProcessCleanupService:
                     capture_output=True,
                     text=True,
                     timeout=5,
+                    creationflags=_SUBPROCESS_FLAGS,
                 )
 
                 if result.returncode == 0:
@@ -336,6 +344,7 @@ class ProcessCleanupService:
                 capture_output=True,
                 text=True,
                 timeout=10,
+                creationflags=_SUBPROCESS_FLAGS,
             )
 
             if result.returncode == 0:
