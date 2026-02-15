@@ -1,3 +1,4 @@
+using System.IO;
 using System.Threading;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,10 +36,19 @@ public partial class App : Application
         }
 
         // ── Serilog ──────────────────────────────────────────────
+        var logDir = e.Args.Contains("--kiosk")
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SIONYX", "logs")
+            : "logs";
+        Directory.CreateDirectory(logDir);
+
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .WriteTo.Console()
-            .WriteTo.File("logs/sionyx-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
+            .WriteTo.File(
+                Path.Combine(logDir, "sionyx-.log"),
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 7,
+                fileSizeLimitBytes: 10_000_000)
             .CreateLogger();
 
         Log.Information("SIONYX Kiosk WPF starting, version {Version}", GetVersion());
@@ -47,11 +57,14 @@ public partial class App : Application
         DispatcherUnhandledException += (_, ex) =>
         {
             Log.Fatal(ex.Exception, "Unhandled UI exception");
+            WriteCrashLog(ex.Exception, logDir);
             ex.Handled = true;
         };
         AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
         {
-            Log.Fatal(ex.ExceptionObject as Exception, "Unhandled domain exception");
+            var exception = ex.ExceptionObject as Exception;
+            Log.Fatal(exception, "Unhandled domain exception");
+            WriteCrashLog(exception, logDir);
         };
         TaskScheduler.UnobservedTaskException += (_, ex) =>
         {
@@ -110,7 +123,9 @@ public partial class App : Application
                 services.AddSingleton(_ => new BrowserCleanupService());
 
                 // ViewModels
-                services.AddTransient<AuthViewModel>();
+                services.AddTransient<AuthViewModel>(sp => new AuthViewModel(
+                    sp.GetRequiredService<AuthService>(),
+                    sp.GetRequiredService<OrganizationMetadataService>()));
                 services.AddTransient<MainViewModel>();
                 services.AddTransient<HomeViewModel>(sp =>
                 {
@@ -222,12 +237,20 @@ public partial class App : Application
         var mainVm = (MainViewModel)mainWindow.DataContext;
         mainVm.LogoutRequested += () =>
         {
-            Current.Dispatcher.Invoke(() =>
+            Current.Dispatcher.Invoke(async () =>
             {
+                await StopSystemServicesAsync();
                 mainWindow.Close();
                 ShowAuthWindow();
             });
         };
+
+        // Kiosk mode: fullscreen, topmost, no taskbar
+        if (_isKiosk)
+        {
+            mainWindow.WindowState = WindowState.Maximized;
+            mainWindow.Topmost = true;
+        }
 
         // Start system services
         StartSystemServices();
@@ -365,4 +388,26 @@ public partial class App : Application
     }
 
     private static string GetVersion() => "1.0.0";
+
+    private static void WriteCrashLog(Exception? ex, string logDir)
+    {
+        try
+        {
+            var crashFile = Path.Combine(logDir, $"crash_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+            var content = $"""
+                SIONYX Kiosk Crash Report
+                Time: {DateTime.Now:O}
+                Machine: {Environment.MachineName}
+                OS: {Environment.OSVersion}
+                
+                Exception:
+                {ex}
+                """;
+            File.WriteAllText(crashFile, content);
+        }
+        catch
+        {
+            // Best-effort crash log
+        }
+    }
 }

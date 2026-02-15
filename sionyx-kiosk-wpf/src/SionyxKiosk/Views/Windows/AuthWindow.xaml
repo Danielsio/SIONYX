@@ -49,6 +49,15 @@
                         Command="{Binding LoginCommand}" Margin="0,24,0,0"
                         IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
 
+                <!-- Forgot password link (login mode only) -->
+                <Button x:Name="ForgotPasswordButton" Content="שכחת סיסמה?"
+                        Style="{StaticResource BtnGhost}" Margin="0,8,0,0"
+                        Command="{Binding ForgotPasswordCommand}" />
+                <TextBlock x:Name="ForgotPasswordText" Text="{Binding ForgotPasswordInfo}"
+                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeSm}"
+                           TextWrapping="Wrap" Margin="0,4,0,0"
+                           Visibility="{Binding ForgotPasswordInfo, Converter={StaticResource StringToVis}}" />
+
                 <!-- Toggle link -->
                 <Button x:Name="ToggleButton" Content="אין לך חשבון? הירשם"
                         Style="{StaticResource BtnGhost}" Margin="0,12,0,0"
