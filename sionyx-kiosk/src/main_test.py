@@ -35,13 +35,17 @@ class TestSionyxApp:
         mock_hotkey = patches["hotkey_service"].start()
         mock_hotkey.return_value.admin_exit_requested = MagicMock()
 
-        # Mock KeyboardRestrictionService
-        patches["keyboard_service"] = patch("main.KeyboardRestrictionService")
+        # Mock KeyboardRestrictionService (lazy-loaded inside _start_kiosk_services)
+        patches["keyboard_service"] = patch(
+            "services.keyboard_restriction_service.KeyboardRestrictionService"
+        )
         mock_keyboard = patches["keyboard_service"].start()
         mock_keyboard.return_value.blocked_key_pressed = MagicMock()
 
-        # Mock ProcessRestrictionService
-        patches["process_service"] = patch("main.ProcessRestrictionService")
+        # Mock ProcessRestrictionService (lazy-loaded inside _start_kiosk_services)
+        patches["process_service"] = patch(
+            "services.process_restriction_service.ProcessRestrictionService"
+        )
         mock_process = patches["process_service"].start()
         mock_process.return_value.process_blocked = MagicMock()
 
@@ -50,13 +54,13 @@ class TestSionyxApp:
         mock_firebase = patches["firebase_config"].start()
         mock_firebase.return_value = {"apiKey": "test"}
 
-        # Mock AuthWindow
-        patches["auth_window"] = patch("main.AuthWindow")
+        # Mock AuthWindow (lazy-loaded inside show_auth_window)
+        patches["auth_window"] = patch("ui.auth_window.AuthWindow")
         mock_auth_window = patches["auth_window"].start()
         mock_auth_window.return_value.login_success = MagicMock()
 
-        # Mock MainWindow
-        patches["main_window"] = patch("main.MainWindow")
+        # Mock MainWindow (lazy-loaded inside show_main_window)
+        patches["main_window"] = patch("ui.main_window.MainWindow")
         patches["main_window"].start()
 
         # Mock Path.exists for .env check
@@ -140,11 +144,9 @@ class TestSionyxApp:
 
     def test_init_starts_kiosk_services_when_enabled(self, mock_dependencies):
         """Should start keyboard and process restriction when kiosk mode enabled."""
-        from main import (
-            KeyboardRestrictionService,
-            ProcessRestrictionService,
-            SionyxApp,
-        )
+        from main import SionyxApp
+        from services.keyboard_restriction_service import KeyboardRestrictionService
+        from services.process_restriction_service import ProcessRestrictionService
 
         SionyxApp(kiosk_mode=True)
 
@@ -153,11 +155,9 @@ class TestSionyxApp:
 
     def test_init_does_not_start_kiosk_services_when_disabled(self, mock_dependencies):
         """Should not start kiosk services when kiosk mode disabled."""
-        from main import (
-            KeyboardRestrictionService,
-            ProcessRestrictionService,
-            SionyxApp,
-        )
+        from main import SionyxApp
+        from services.keyboard_restriction_service import KeyboardRestrictionService
+        from services.process_restriction_service import ProcessRestrictionService
 
         SionyxApp(kiosk_mode=False)
 
@@ -166,7 +166,8 @@ class TestSionyxApp:
 
     def test_init_shows_auth_window_when_not_logged_in(self, mock_dependencies):
         """Should show auth window when user not logged in."""
-        from main import AuthWindow, SionyxApp
+        from main import SionyxApp
+        from ui.auth_window import AuthWindow
 
         SionyxApp()
 
@@ -174,7 +175,8 @@ class TestSionyxApp:
 
     def test_init_shows_main_window_when_logged_in(self, mock_dependencies):
         """Should show main window when user already logged in."""
-        from main import AuthService, MainWindow, SionyxApp
+        from main import AuthService, SionyxApp
+        from ui.main_window import MainWindow
 
         AuthService.return_value.is_logged_in.return_value = True
 
@@ -214,11 +216,11 @@ class TestSionyxAppMethods:
         mock_hotkey = patches["hotkey_service"].start()
         mock_hotkey.return_value.admin_exit_requested = MagicMock()
 
-        patches["keyboard_service"] = patch("main.KeyboardRestrictionService")
+        patches["keyboard_service"] = patch("services.keyboard_restriction_service.KeyboardRestrictionService")
         mock_keyboard = patches["keyboard_service"].start()
         mock_keyboard.return_value.blocked_key_pressed = MagicMock()
 
-        patches["process_service"] = patch("main.ProcessRestrictionService")
+        patches["process_service"] = patch("services.process_restriction_service.ProcessRestrictionService")
         mock_process = patches["process_service"].start()
         mock_process.return_value.process_blocked = MagicMock()
 
@@ -226,11 +228,11 @@ class TestSionyxAppMethods:
         mock_firebase = patches["firebase_config"].start()
         mock_firebase.return_value = {"apiKey": "test"}
 
-        patches["auth_window"] = patch("main.AuthWindow")
+        patches["auth_window"] = patch("ui.auth_window.AuthWindow")
         mock_auth_window = patches["auth_window"].start()
         mock_auth_window.return_value.login_success = MagicMock()
 
-        patches["main_window"] = patch("main.MainWindow")
+        patches["main_window"] = patch("ui.main_window.MainWindow")
         patches["main_window"].start()
 
         patches["path_exists"] = patch("main.Path.exists", return_value=True)
@@ -251,7 +253,7 @@ class TestSionyxAppMethods:
 
     def test_show_auth_window_creates_window(self, sionyx_app):
         """Should create and show auth window."""
-        from main import AuthWindow
+        from ui.auth_window import AuthWindow
 
         sionyx_app.show_auth_window()
 
@@ -272,7 +274,7 @@ class TestSionyxAppMethods:
 
     def test_show_main_window_creates_main_window(self, sionyx_app):
         """Should create and show main window."""
-        from main import MainWindow
+        from ui.main_window import MainWindow
 
         sionyx_app.show_main_window()
 
@@ -349,11 +351,11 @@ class TestStartKioskServices:
         mock_hotkey = patches["hotkey_service"].start()
         mock_hotkey.return_value.admin_exit_requested = MagicMock()
 
-        patches["keyboard_service"] = patch("main.KeyboardRestrictionService")
+        patches["keyboard_service"] = patch("services.keyboard_restriction_service.KeyboardRestrictionService")
         mock_keyboard = patches["keyboard_service"].start()
         mock_keyboard.return_value.blocked_key_pressed = MagicMock()
 
-        patches["process_service"] = patch("main.ProcessRestrictionService")
+        patches["process_service"] = patch("services.process_restriction_service.ProcessRestrictionService")
         mock_process = patches["process_service"].start()
         mock_process.return_value.process_blocked = MagicMock()
 
@@ -361,11 +363,11 @@ class TestStartKioskServices:
         mock_firebase = patches["firebase_config"].start()
         mock_firebase.return_value = {"apiKey": "test"}
 
-        patches["auth_window"] = patch("main.AuthWindow")
+        patches["auth_window"] = patch("ui.auth_window.AuthWindow")
         mock_auth_window = patches["auth_window"].start()
         mock_auth_window.return_value.login_success = MagicMock()
 
-        patches["main_window"] = patch("main.MainWindow")
+        patches["main_window"] = patch("ui.main_window.MainWindow")
         patches["main_window"].start()
 
         patches["path_exists"] = patch("main.Path.exists", return_value=True)
@@ -386,7 +388,8 @@ class TestStartKioskServices:
 
     def test_start_kiosk_services_handles_exception(self, mock_dependencies):
         """Should handle exceptions when starting kiosk services."""
-        from main import KeyboardRestrictionService, SionyxApp
+        from main import SionyxApp
+        from services.keyboard_restriction_service import KeyboardRestrictionService
 
         KeyboardRestrictionService.side_effect = RuntimeError("Failed")
 
@@ -420,21 +423,21 @@ class TestMissingEnvConfig:
         mock_hotkey = patches["hotkey_service"].start()
         mock_hotkey.return_value.admin_exit_requested = MagicMock()
 
-        patches["keyboard_service"] = patch("main.KeyboardRestrictionService")
+        patches["keyboard_service"] = patch("services.keyboard_restriction_service.KeyboardRestrictionService")
         mock_keyboard = patches["keyboard_service"].start()
         mock_keyboard.return_value.blocked_key_pressed = MagicMock()
 
-        patches["process_service"] = patch("main.ProcessRestrictionService")
+        patches["process_service"] = patch("services.process_restriction_service.ProcessRestrictionService")
         mock_process = patches["process_service"].start()
         mock_process.return_value.process_blocked = MagicMock()
 
         patches["firebase_config"] = patch("main.get_firebase_config")
         patches["firebase_config"].start()
 
-        patches["auth_window"] = patch("main.AuthWindow")
+        patches["auth_window"] = patch("ui.auth_window.AuthWindow")
         patches["auth_window"].start()
 
-        patches["main_window"] = patch("main.MainWindow")
+        patches["main_window"] = patch("ui.main_window.MainWindow")
         patches["main_window"].start()
 
         patches["icon_path"] = patch(
@@ -510,19 +513,19 @@ class TestAppInitializationFailure:
         mock_hotkey = patches["hotkey_service"].start()
         mock_hotkey.return_value.admin_exit_requested = MagicMock()
 
-        patches["keyboard_service"] = patch("main.KeyboardRestrictionService")
+        patches["keyboard_service"] = patch("services.keyboard_restriction_service.KeyboardRestrictionService")
         patches["keyboard_service"].start()
 
-        patches["process_service"] = patch("main.ProcessRestrictionService")
+        patches["process_service"] = patch("services.process_restriction_service.ProcessRestrictionService")
         patches["process_service"].start()
 
         patches["firebase_config"] = patch("main.get_firebase_config")
         patches["firebase_config"].start()
 
-        patches["auth_window"] = patch("main.AuthWindow")
+        patches["auth_window"] = patch("ui.auth_window.AuthWindow")
         patches["auth_window"].start()
 
-        patches["main_window"] = patch("main.MainWindow")
+        patches["main_window"] = patch("ui.main_window.MainWindow")
         patches["main_window"].start()
 
         patches["path_exists"] = patch("main.Path.exists", return_value=True)

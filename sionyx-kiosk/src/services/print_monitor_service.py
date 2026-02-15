@@ -92,6 +92,11 @@ class PrintMonitorService(QObject):
         self._bw_price = 1.0  # Default fallback
         self._color_price = 3.0  # Default fallback
 
+        # Cached budget (avoids db_get on every print job)
+        self._cached_budget: Optional[float] = None
+        self._budget_cache_time: Optional[datetime] = None
+        self._budget_cache_ttl = 30  # seconds
+
         # Safety: Track jobs WE paused (to resume on crash/shutdown)
         self._paused_by_us: Dict[str, int] = {}  # "printer:job_id" -> job_id
 
@@ -348,18 +353,37 @@ class PrintMonitorService(QObject):
     # BUDGET
     # =========================================================================
 
-    def _get_user_budget(self) -> float:
-        """Get user's current print budget (printBalance field)."""
+    def _get_user_budget(self, force_refresh: bool = False) -> float:
+        """
+        Get user's current print budget (printBalance field).
+
+        Uses a short-lived cache (30s TTL) to avoid hitting Firebase on
+        every print job. Cache is invalidated after deductions.
+        """
+        # Return cached value if fresh
+        if (
+            not force_refresh
+            and self._cached_budget is not None
+            and self._budget_cache_time is not None
+        ):
+            age = (datetime.now() - self._budget_cache_time).total_seconds()
+            if age < self._budget_cache_ttl:
+                logger.debug(f"Using cached budget: {self._cached_budget}₪ (age: {age:.0f}s)")
+                return self._cached_budget
+
         db_path = f"users/{self.user_id}"
         logger.debug(f"Getting user budget from path: {db_path}")
         try:
             result = self.firebase.db_get(db_path)
             logger.debug(
-                f"Budget fetch result: success={result.get('success')}, has_data={result.get('data') is not None}"
+                f"Budget fetch result: success={result.get('success')}, "
+                f"has_data={result.get('data') is not None}"
             )
             if result.get("success") and result.get("data"):
                 budget = float(result["data"].get("printBalance", 0.0))
-                logger.debug(f"User budget retrieved: {budget}₪")
+                self._cached_budget = budget
+                self._budget_cache_time = datetime.now()
+                logger.debug(f"User budget retrieved and cached: {budget}₪")
                 return budget
             logger.warning(f"No budget data found for user {self.user_id}")
             return 0.0
@@ -388,6 +412,9 @@ class PrintMonitorService(QObject):
             )
 
             if result.get("success"):
+                # Update cache immediately after deduction
+                self._cached_budget = new_budget
+                self._budget_cache_time = datetime.now()
                 logger.info(f"Budget deducted: {amount}₪, new balance: {new_budget}₪")
                 self.budget_updated.emit(new_budget)
                 return True
