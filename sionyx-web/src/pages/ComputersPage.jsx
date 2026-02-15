@@ -146,10 +146,10 @@ const ComputersPage = () => {
     }
   };
 
-  const formatSessionTime = loginTime => {
-    if (!loginTime) return '0:00:00';
+  const formatSessionTime = sessionStartTime => {
+    if (!sessionStartTime) return '0:00:00';
     const now = new Date();
-    const login = new Date(loginTime);
+    const login = new Date(sessionStartTime);
     const diffMs = now - login;
     const diffSeconds = Math.floor(diffMs / 1000);
     return formatDuration(diffSeconds);
