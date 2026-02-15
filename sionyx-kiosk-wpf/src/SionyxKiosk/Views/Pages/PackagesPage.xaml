@@ -1,0 +1,54 @@
+<Page x:Class="SionyxKiosk.Views.Pages.PackagesPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:controls="clr-namespace:SionyxKiosk.Views.Controls"
+      Title="חבילות" FlowDirection="RightToLeft">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
+        <StackPanel>
+            <controls:PageHeader Title="חבילות" Subtitle="בחר חבילה שמתאימה לך" Margin="0,0,0,24" />
+
+            <!-- Loading -->
+            <controls:LoadingSpinner HorizontalAlignment="Center"
+                                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+
+            <!-- Empty state -->
+            <controls:EmptyState Message="אין חבילות זמינות"
+                                 Visibility="{Binding Packages.Count, Converter={StaticResource ZeroToVis}}" />
+
+            <!-- Package grid -->
+            <ItemsControl ItemsSource="{Binding Packages}" Margin="0,0,0,24">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="White" CornerRadius="{StaticResource RadiusLg}"
+                                Width="280" Margin="0,0,16,16" Padding="24" Cursor="Hand">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270"
+                                                  Color="#0F172A" Opacity="0.06" />
+                            </Border.Effect>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,8" />
+                                <TextBlock FontSize="28" FontWeight="ExtraBold"
+                                           Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,12">
+                                    <Run Text="₪" /><Run Text="{Binding Price, StringFormat='{}{0:F0}'}" />
+                                </TextBlock>
+                                <TextBlock Text="{Binding Minutes, StringFormat='{}{0} דקות שימוש'}"
+                                           FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
+                                <TextBlock Text="{Binding PrintPages, StringFormat='{}{0} דפי הדפסה'}"
+                                           FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,16" />
+                                <Button Content="רכוש עכשיו" Style="{StaticResource BtnPrimary}"
+                                        Command="{Binding DataContext.SelectPackageCommand, RelativeSource={RelativeSource AncestorType=Page}}"
+                                        CommandParameter="{Binding}" HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

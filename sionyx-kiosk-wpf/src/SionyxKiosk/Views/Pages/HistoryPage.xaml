@@ -1,0 +1,38 @@
+<Page x:Class="SionyxKiosk.Views.Pages.HistoryPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:controls="clr-namespace:SionyxKiosk.Views.Controls"
+      Title="היסטוריה" FlowDirection="RightToLeft">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
+        <StackPanel>
+            <controls:PageHeader Title="היסטוריית רכישות" Subtitle="צפה ברכישות שלך" Margin="0,0,0,24" />
+
+            <!-- Summary stats -->
+            <UniformGrid Rows="1" Margin="0,0,0,24">
+                <controls:StatCard Title="סה״כ רכישות" Value="{Binding TotalPurchases}" Icon="📊" Margin="0,0,12,0" />
+                <controls:StatCard Title="סה״כ הוצאות" Value="{Binding TotalSpent, StringFormat='{}{0:F2} ₪'}" Icon="💰" Margin="12,0,0,0" />
+            </UniformGrid>
+
+            <!-- Loading -->
+            <controls:LoadingSpinner HorizontalAlignment="Center"
+                                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+
+            <!-- Empty state -->
+            <controls:EmptyState Message="אין היסטוריית רכישות"
+                                 Visibility="{Binding Purchases.Count, Converter={StaticResource ZeroToVis}}" />
+
+            <!-- Purchase list -->
+            <ItemsControl ItemsSource="{Binding Purchases}" Margin="0,0,0,32">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <controls:PurchaseCard
+                            PackageName="{Binding PackageName}"
+                            PurchaseDate="{Binding CreatedAt}"
+                            Amount="{Binding Amount, StringFormat='₪{0:F2}'}"
+                            Status="{Binding Status}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
