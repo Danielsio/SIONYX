@@ -234,7 +234,9 @@ class TestLoadingOverlayAnimation:
         # Now hide it - this should create the animation
         with patch("ui.components.loading_overlay.QPropertyAnimation") as mock_anim:
             mock_animation = mock_anim.return_value
-            mock_animation.finished = type("Signal", (), {"connect": lambda s, f: None})()
+            mock_animation.finished = type(
+                "Signal", (), {"connect": lambda s, f: None}
+            )()
 
             overlay.hide_overlay()
 

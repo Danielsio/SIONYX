@@ -6,8 +6,6 @@ Tests application branding and security constants.
 import os
 from unittest.mock import patch
 
-import pytest
-
 from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME, get_admin_exit_password
 
 

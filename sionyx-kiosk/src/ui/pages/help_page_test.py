@@ -158,7 +158,7 @@ class TestHelpPage:
         """Test HelpPage fetches current user on init"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
-            page = create_help_page(auth_service=mock_auth_service)
+            create_help_page(auth_service=mock_auth_service)
             mock_auth_service.get_current_user.assert_called_once()
 
     def test_help_page_stores_current_user(self, qapp, mock_auth_service):
@@ -215,7 +215,9 @@ class TestHelpPage:
             page = create_help_page(auth_service=auth)
             assert page.current_user is None
 
-    def test_help_page_fetches_admin_contact(self, qapp, mock_auth_service, mock_firebase_client):
+    def test_help_page_fetches_admin_contact(
+        self, qapp, mock_auth_service, mock_firebase_client
+    ):
         """Test HelpPage fetches admin contact from metadata"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()
@@ -236,7 +238,9 @@ class TestHelpPage:
                 assert page.admin_email == "admin@org.com"
                 assert page.org_name == "My Org"
 
-    def test_help_page_handles_missing_admin_contact(self, qapp, mock_auth_service, mock_firebase_client):
+    def test_help_page_handles_missing_admin_contact(
+        self, qapp, mock_auth_service, mock_firebase_client
+    ):
         """Test HelpPage handles missing admin contact gracefully"""
         with patch("ui.pages.help_page.get_logger") as mock_logger:
             mock_logger.return_value = Mock()

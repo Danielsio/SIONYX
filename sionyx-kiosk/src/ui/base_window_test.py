@@ -416,7 +416,7 @@ class TestRealBaseKioskWindow:
     def test_show_notification_calls_notification(self, real_base_window):
         """Test show_notification calls ModernNotification"""
         with patch("ui.base_window.ModernNotification") as mock_notif:
-            result = real_base_window.show_notification("Message")
+            real_base_window.show_notification("Message")
 
             mock_notif.show_toast.assert_called_once()
 

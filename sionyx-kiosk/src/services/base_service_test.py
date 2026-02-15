@@ -3,7 +3,6 @@ Tests for base_service.py - Base Service Classes
 Tests common functionality, error handling, and response formatting.
 """
 
-from datetime import datetime
 from unittest.mock import Mock, patch
 
 import pytest

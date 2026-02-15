@@ -98,7 +98,7 @@ class AlertModal(QDialog):
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setModal(True)
         self.setLayoutDirection(Qt.LayoutDirection.RightToLeft)
-        
+
         # Fixed size with padding for shadow
         self.setFixedSize(520, 440)
 
@@ -172,14 +172,14 @@ class AlertModal(QDialog):
             }}
         """
         )
-        
+
         icon_shadow = QGraphicsDropShadowEffect()
         icon_shadow.setBlurRadius(25)
         icon_shadow.setXOffset(0)
         icon_shadow.setYOffset(5)
         icon_shadow.setColor(self.colors["glow_color"])
         icon_container.setGraphicsEffect(icon_shadow)
-        
+
         icon_layout = QVBoxLayout(icon_container)
         icon_layout.setContentsMargins(0, 0, 0, 0)
 

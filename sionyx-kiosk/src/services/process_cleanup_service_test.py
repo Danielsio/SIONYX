@@ -28,7 +28,7 @@ def cleanup_service():
 @pytest.fixture
 def mock_tasklist_output():
     """Sample tasklist output for testing."""
-    return '''"Image Name","PID","Session Name","Session#","Mem Usage"
+    return """"Image Name","PID","Session Name","Session#","Mem Usage"
 "System Idle Process","0","Services","0","8 K"
 "System","4","Services","0","144 K"
 "chrome.exe","1234","Console","1","150,000 K"
@@ -37,7 +37,7 @@ def mock_tasklist_output():
 "explorer.exe","3456","Console","1","50,000 K"
 "svchost.exe","4567","Services","0","30,000 K"
 "notepad.exe","5678","Console","1","10,000 K"
-'''
+"""
 
 
 # =============================================================================
@@ -195,9 +195,9 @@ class TestCleanupUserProcesses:
 
     def test_skips_whitelisted_processes(self, cleanup_service):
         """Test skips processes in whitelist."""
-        tasklist = '''"explorer.exe","1234","Console","1","50,000 K"
+        tasklist = """"explorer.exe","1234","Console","1","50,000 K"
 "svchost.exe","2345","Services","0","30,000 K"
-'''
+"""
         mock_result = Mock()
         mock_result.stdout = tasklist
 
@@ -357,7 +357,7 @@ class TestKillByName:
         """Test handles case when process is not running."""
         mock_result = Mock()
         mock_result.returncode = 1
-        mock_result.stderr = "ERROR: The process \"Discord.exe\" not found."
+        mock_result.stderr = 'ERROR: The process "Discord.exe" not found.'
 
         with patch("subprocess.run", return_value=mock_result):
             result = cleanup_service._kill_by_name("Discord.exe")
@@ -435,10 +435,10 @@ class TestStubbornProcessHandling:
 
     def test_uses_kill_by_name_for_discord(self, cleanup_service):
         """Test uses _kill_by_name for Discord."""
-        tasklist = '''"Image Name","PID","Session Name","Session#","Mem Usage"
+        tasklist = """"Image Name","PID","Session Name","Session#","Mem Usage"
 "Discord.exe","1234","Console","1","150,000 K"
 "Discord.exe","1235","Console","1","100,000 K"
-'''
+"""
         mock_list_result = Mock()
         mock_list_result.stdout = tasklist
 

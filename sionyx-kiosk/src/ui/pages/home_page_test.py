@@ -86,17 +86,28 @@ class TestHomePage:
         return service
 
     @pytest.fixture
-    def home_page(self, mock_auth_service, mock_chat_service, mock_operating_hours_service, qapp):
+    def home_page(
+        self, mock_auth_service, mock_chat_service, mock_operating_hours_service, qapp
+    ):
         """Create HomePage with mocked dependencies"""
         with patch("ui.pages.home_page.ChatService", return_value=mock_chat_service):
-            with patch("ui.pages.home_page.OperatingHoursService", return_value=mock_operating_hours_service):
+            with patch(
+                "ui.pages.home_page.OperatingHoursService",
+                return_value=mock_operating_hours_service,
+            ):
                 page = HomePage(mock_auth_service)
                 yield page
                 # Cleanup
                 page.countdown_timer.stop()
 
     @pytest.fixture
-    def home_page_no_time(self, mock_firebase_client, mock_chat_service, mock_operating_hours_service, qapp):
+    def home_page_no_time(
+        self,
+        mock_firebase_client,
+        mock_chat_service,
+        mock_operating_hours_service,
+        qapp,
+    ):
         """Create HomePage for user with no time"""
         auth_service = Mock()
         auth_service.firebase = mock_firebase_client
@@ -104,13 +115,18 @@ class TestHomePage:
         auth_service.get_current_user.return_value = MOCK_USER_NO_TIME.copy()
 
         with patch("ui.pages.home_page.ChatService", return_value=mock_chat_service):
-            with patch("ui.pages.home_page.OperatingHoursService", return_value=mock_operating_hours_service):
+            with patch(
+                "ui.pages.home_page.OperatingHoursService",
+                return_value=mock_operating_hours_service,
+            ):
                 page = HomePage(auth_service)
                 yield page
                 page.countdown_timer.stop()
 
     @pytest.fixture
-    def home_page_with_messages(self, mock_auth_service, mock_operating_hours_service, qapp):
+    def home_page_with_messages(
+        self, mock_auth_service, mock_operating_hours_service, qapp
+    ):
         """Create HomePage with pending messages"""
         mock_chat = Mock()
         mock_chat.is_listening = False
@@ -123,7 +139,10 @@ class TestHomePage:
         mock_chat.messages_received.connect = Mock()
 
         with patch("ui.pages.home_page.ChatService", return_value=mock_chat):
-            with patch("ui.pages.home_page.OperatingHoursService", return_value=mock_operating_hours_service):
+            with patch(
+                "ui.pages.home_page.OperatingHoursService",
+                return_value=mock_operating_hours_service,
+            ):
                 page = HomePage(mock_auth_service)
                 yield page
                 page.countdown_timer.stop()
@@ -494,7 +513,7 @@ class TestHomePage:
         # Should not raise
         home_page.on_message_read("msg-id-123")
 
-    def test_cleanup_stops_timer(self, home_page, mock_chat_service):
+    def test_cleanup_stops_timer_with_chat_service(self, home_page, mock_chat_service):
         """Test cleanup stops the countdown timer"""
         home_page.chat_service = mock_chat_service
         home_page.countdown_timer.start(1000)
@@ -545,7 +564,7 @@ class TestHomePage:
 
         assert home_page.message_modal is None
 
-    def test_handle_new_messages_success(self, home_page):
+    def test_handle_new_messages_success_updates_ui(self, home_page):
         """Test handle_new_messages updates pending messages and shows notification"""
         messages = [{"id": "msg1"}, {"id": "msg2"}]
         result = {"success": True, "messages": messages}
@@ -673,20 +692,23 @@ class TestHomePage:
     def test_handle_start_session_checks_operating_hours(self, home_page):
         """Test handle_start_session checks operating hours before starting"""
         # Setup: operating hours allow access
-        home_page.operating_hours_service.is_within_operating_hours.return_value = (True, None)
-        
+        home_page.operating_hours_service.is_within_operating_hours.return_value = (
+            True,
+            None,
+        )
+
         mock_main_window = Mock()
         mock_main_window.session_service = Mock()
         mock_main_window.session_service.is_session_active = Mock(return_value=False)
         mock_main_window.start_user_session = Mock()
-        
+
         mock_stacked = Mock()
         mock_stacked.parent.return_value = mock_main_window
-        
+
         with patch.object(home_page, "parent", return_value=mock_stacked):
             with patch.object(home_page, "_is_session_active", return_value=False):
                 home_page.handle_start_session()
-        
+
         # Should check operating hours
         home_page.operating_hours_service.is_within_operating_hours.assert_called_once()
 
@@ -694,22 +716,25 @@ class TestHomePage:
         """Test handle_start_session blocks when outside operating hours"""
         # Setup: operating hours deny access
         home_page.operating_hours_service.is_within_operating_hours.return_value = (
-            False, "שעות הפעילות הן בין 06:00 ל-22:00"
+            False,
+            "שעות הפעילות הן בין 06:00 ל-22:00",
         )
-        
+
         mock_main_window = Mock()
         mock_main_window.session_service = Mock()
         mock_main_window.session_service.is_session_active = Mock(return_value=False)
         mock_main_window.start_user_session = Mock()
-        
+
         mock_stacked = Mock()
         mock_stacked.parent.return_value = mock_main_window
-        
+
         with patch.object(home_page, "parent", return_value=mock_stacked):
             with patch.object(home_page, "_is_session_active", return_value=False):
-                with patch.object(home_page, "_show_operating_hours_error") as mock_error:
+                with patch.object(
+                    home_page, "_show_operating_hours_error"
+                ) as mock_error:
                     home_page.handle_start_session()
-                    
+
                     # Should show error and NOT start session
                     mock_error.assert_called_once()
                     mock_main_window.start_user_session.assert_not_called()
@@ -719,16 +744,16 @@ class TestHomePage:
         with patch("ui.components.alert_modal.AlertModal") as MockAlertModal:
             mock_modal = Mock()
             MockAlertModal.return_value = mock_modal
-            
+
             home_page._show_operating_hours_error("שעות הפעילות הן בין 06:00 ל-22:00")
-            
+
             # Verify AlertModal was created with correct params
             MockAlertModal.assert_called_once()
             call_kwargs = MockAlertModal.call_args[1]
             assert call_kwargs["title"] == "שעות פעילות"
             assert call_kwargs["message"] == "לא ניתן להתחיל הפעלה כרגע"
             assert call_kwargs["alert_type"] == "warning"
-            
+
             # Verify modal was shown and exec'd
             mock_modal.show_animated.assert_called_once()
             mock_modal.exec.assert_called_once()
@@ -738,7 +763,9 @@ class TestHomePage:
         import logging
 
         # Make parent() raise to trigger the except branch
-        with patch.object(home_page, "parent", side_effect=RuntimeError("widget deleted")):
+        with patch.object(
+            home_page, "parent", side_effect=RuntimeError("widget deleted")
+        ):
             with patch("ui.pages.home_page.logger") as mock_logger:
                 result = home_page._is_session_active()
 
@@ -748,4 +775,8 @@ class TestHomePage:
                 # Should have logged the exception (not silently swallowed)
                 mock_logger.debug.assert_called()
                 log_msg = str(mock_logger.debug.call_args)
-                assert "session" in log_msg.lower() or "Session" in log_msg or "widget deleted" in log_msg
+                assert (
+                    "session" in log_msg.lower()
+                    or "Session" in log_msg
+                    or "widget deleted" in log_msg
+                )

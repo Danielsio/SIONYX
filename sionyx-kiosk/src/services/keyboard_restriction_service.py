@@ -18,7 +18,6 @@ IMPORTANT: This is a software layer. For true security, also use:
 import ctypes
 import threading
 from ctypes import wintypes
-from typing import Callable, Optional
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -134,7 +133,7 @@ class KeyboardRestrictionService(QObject):
         """Run the hook in its own thread with a message loop."""
         try:
             logger.debug("Keyboard hook thread started")
-            
+
             # Create the hook callback
             self._hook_proc = HOOKPROC(self._keyboard_hook_callback)
             logger.debug(f"Hook callback created: {self._hook_proc}")
@@ -142,7 +141,7 @@ class KeyboardRestrictionService(QObject):
             # Get module handle for the hook
             module_handle = kernel32.GetModuleHandleW(None)
             logger.debug(f"Module handle obtained: {module_handle}")
-            
+
             if not module_handle:
                 module_error = ctypes.get_last_error()
                 logger.error(f"Failed to get module handle: error {module_error}")
@@ -150,7 +149,7 @@ class KeyboardRestrictionService(QObject):
 
             # Clear last error before installing hook
             ctypes.set_last_error(0)
-            
+
             # Install the hook
             logger.debug("Attempting to install keyboard hook...")
             self.hook_handle = user32.SetWindowsHookExW(
@@ -166,7 +165,7 @@ class KeyboardRestrictionService(QObject):
                     thread_id=threading.current_thread().ident,
                 )
                 # Additional diagnostics
-                logger.debug(f"SetWindowsHookExW returned NULL")
+                logger.debug("SetWindowsHookExW returned NULL")
                 logger.debug(f"Hook proc address: {ctypes.addressof(self._hook_proc)}")
                 return
 

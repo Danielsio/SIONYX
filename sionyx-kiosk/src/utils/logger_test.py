@@ -4,10 +4,7 @@ Tests for logger.py - Professional Structured Logging System
 
 import json
 import logging
-from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
-
-import pytest
+from unittest.mock import Mock, patch
 
 
 # =============================================================================
@@ -519,7 +516,7 @@ class TestSionyxLogger:
         # The actual file operations are hard to mock comprehensively
         try:
             SionyxLogger.cleanup_old_logs()
-        except Exception as e:
+        except Exception:
             # If it fails due to file system issues, that's OK - we're testing that it handles errors gracefully
             pass
 
@@ -748,9 +745,6 @@ class TestSionyxLoggerFrozenMode:
 
     def test_cleanup_old_logs_uses_appdata_when_frozen(self):
         """Test cleanup_old_logs uses AppData directory when frozen"""
-        import sys
-        from pathlib import Path
-
         from utils.logger import SionyxLogger
 
         # Create a mock that simulates sys.frozen = True

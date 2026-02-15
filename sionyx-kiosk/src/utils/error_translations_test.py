@@ -3,8 +3,6 @@ Tests for error_translations.py - Error message translations
 Tests translation of error messages to Hebrew.
 """
 
-import pytest
-
 from utils.error_translations import (
     ERROR_TRANSLATIONS,
     translate_error,

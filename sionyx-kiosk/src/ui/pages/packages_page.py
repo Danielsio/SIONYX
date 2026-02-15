@@ -3,8 +3,8 @@ Packages Page - FROST Design System
 Modern package cards with clean grid layout.
 """
 
-from typing import Dict, Optional
 from datetime import datetime
+from typing import Dict, Optional
 
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QColor, QFont
@@ -12,9 +12,9 @@ from PyQt6.QtWidgets import (
     QDialog,
     QFrame,
     QGraphicsDropShadowEffect,
+    QGridLayout,
     QHBoxLayout,
     QLabel,
-    QGridLayout,
     QScrollArea,
     QSizePolicy,
     QVBoxLayout,
@@ -156,7 +156,7 @@ class PackagesPage(QWidget):
         """Fetch packages from service"""
         logger.debug("PackagesPage._fetch_packages called")
         result = self.package_service.get_all_packages()
-        
+
         logger.debug(f"Package fetch result: success={result.get('success')}")
 
         # Safety check: widget may be deleted during test teardown
@@ -267,9 +267,7 @@ class PackagesPage(QWidget):
         card.setMinimumWidth(260)
         card.setMinimumHeight(320)
         card.setMaximumHeight(420)
-        card.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-        )
+        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         card.setStyleSheet(
             f"""
             QFrame {{
@@ -413,7 +411,6 @@ class PackagesPage(QWidget):
             final_price_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             price_layout.addWidget(final_price_lbl)
 
-
             # Show discount badge
             discount_badge = QLabel(f"חסכון {int(discount_percent)}%")
             discount_badge.setFont(
@@ -444,7 +441,6 @@ class PackagesPage(QWidget):
             price_lbl.setStyleSheet(f"color: {Colors.PRIMARY};")
             price_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             price_layout.addWidget(price_lbl)
-
 
         layout.addWidget(price_container)
 
@@ -529,8 +525,7 @@ class PackagesPage(QWidget):
             QMessageBox.critical(
                 self,
                 "שגיאה",
-                "לא ניתן לפתוח את חלון התשלום.\n"
-                "נסה להתנתק ולהתחבר מחדש.",
+                "לא ניתן לפתוח את חלון התשלום.\n" "נסה להתנתק ולהתחבר מחדש.",
             )
             return
         except Exception as e:

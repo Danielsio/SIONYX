@@ -8,9 +8,7 @@ Testing Strategy:
 - Test browser detection
 """
 
-import os
-from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -314,7 +312,7 @@ class TestCloseBrowsers:
     def test_skips_browsers_not_running(self, cleanup_service):
         """Test skips browsers that aren't running."""
         with patch.object(cleanup_service, "is_browser_running", return_value=False):
-            with patch("subprocess.run") as mock_run:
+            with patch("subprocess.run"):
                 result = cleanup_service.close_browsers()
 
         # Should not call taskkill if browser isn't running

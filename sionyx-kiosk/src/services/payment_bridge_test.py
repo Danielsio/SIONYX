@@ -4,7 +4,7 @@ Tests Python-JavaScript communication for payment processing.
 """
 
 import json
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 from PyQt6.QtCore import QObject

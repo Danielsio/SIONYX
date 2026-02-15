@@ -212,13 +212,13 @@ class HelpPage(QWidget):
         self._contact_reflow_timer = QTimer(self)
         self._contact_reflow_timer.setSingleShot(True)
         self._contact_reflow_timer.timeout.connect(self._layout_contact_cards)
-        
+
         # Fetch admin contact from organization metadata
         self.admin_phone = ""
         self.admin_email = ""
         self.org_name = ""
         self._fetch_admin_contact()
-        
+
         self.init_ui()
 
     def _copy_to_clipboard(self, text: str):
@@ -239,12 +239,12 @@ class HelpPage(QWidget):
         if not self.firebase_client:
             logger.warning("No firebase_client provided, using default contact info")
             return
-            
+
         try:
             # firebase_client handles org_id automatically (multi-tenancy)
             metadata_service = OrganizationMetadataService(self.firebase_client)
             result = metadata_service.get_admin_contact()
-            
+
             if result.get("success"):
                 contact = result["contact"]
                 self.admin_phone = contact.get("phone", "")
@@ -416,10 +416,6 @@ class HelpPage(QWidget):
 
         if self.admin_phone:
             phone_text = str(self.admin_phone)
-            phone_digits = "".join(
-                ch for ch in phone_text if ch.isdigit() or ch == "+"
-            )
-            wa_phone = phone_digits.lstrip("+") if phone_digits else self.admin_phone
             self.contact_cards.append(
                 ContactCard(
                     "📱",
@@ -440,9 +436,7 @@ class HelpPage(QWidget):
 
         # If no admin contact info available, show placeholder
         if not self.admin_email and not self.admin_phone:
-            self.contact_cards.append(
-                ContactCard("ℹ️", "מידע", "פנה למנהל המערכת")
-            )
+            self.contact_cards.append(ContactCard("ℹ️", "מידע", "פנה למנהל המערכת"))
 
         self._layout_contact_cards()
 

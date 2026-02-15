@@ -522,7 +522,7 @@ class TestAuthService:
         # Should not raise
         auth_service._recover_orphaned_session("test-user-id")
 
-    def test_get_current_user(self, auth_service, sample_user_data):
+    def test_get_current_user_with_role(self, auth_service, sample_user_data):
         """Test getting current user"""
         auth_service.current_user = sample_user_data
 

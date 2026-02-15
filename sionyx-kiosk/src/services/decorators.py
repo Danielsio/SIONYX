@@ -42,7 +42,7 @@ USAGE NOTES:
 """
 
 from functools import wraps
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 from utils.logger import get_logger
 

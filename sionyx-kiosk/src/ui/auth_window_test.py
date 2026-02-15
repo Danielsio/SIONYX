@@ -248,7 +248,9 @@ class TestHandleSignIn:
         auth_window.show_error.assert_called()
         auth_window.shake_widget.assert_called()
 
-    def test_valid_credentials_starts_login_thread(self, auth_window, mock_auth_service):
+    def test_valid_credentials_starts_login_thread(
+        self, auth_window, mock_auth_service
+    ):
         """Test valid credentials starts login thread"""
         auth_window.signin_email_input.setText("0501234567")
         auth_window.signin_password_input.setText("password123")

@@ -4,7 +4,7 @@ Tests message fetching, marking as read, caching, and SSE listening functionalit
 """
 
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -216,7 +216,7 @@ class TestGetUnreadMessages:
         mock_firebase.db_get.return_value = {"success": True, "data": {}}
 
         # Should bypass cache
-        result = chat_service.get_unread_messages(use_cache=False)
+        chat_service.get_unread_messages(use_cache=False)
 
         mock_firebase.db_get.assert_called_once()
 

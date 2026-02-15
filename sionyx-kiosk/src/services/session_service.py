@@ -301,9 +301,7 @@ class SessionService(QObject):
 
             if now > expires_at:
                 # Time has expired - reset remaining time to 0
-                logger.info(
-                    f"User time expired at {expires_at_str}, resetting to 0"
-                )
+                logger.info(f"User time expired at {expires_at_str}, resetting to 0")
                 self.firebase.db_update(
                     f"users/{self.user_id}",
                     {

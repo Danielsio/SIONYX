@@ -6,6 +6,7 @@ import os
 import sys
 from pathlib import Path
 
+
 # Application display name (brand)
 APP_NAME = "SIONYX"
 

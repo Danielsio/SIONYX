@@ -251,14 +251,15 @@ class PrintMonitorService(QObject):
     def _on_wmi_print_job_event(self, event):
         """Handle WMI print job creation event."""
         import time
+
         event_time = time.time()
-        
+
         try:
             # Extract job info from WMI event
             # WMI Win32_PrintJob properties: Name format is "PrinterName, JobId"
             job_name = event.Name  # e.g., "HP LaserJet, 42"
             logger.debug(f"WMI raw event received at {event_time:.3f}: {job_name}")
-            
+
             if "," not in job_name:
                 logger.warning(f"Unexpected job name format: {job_name}")
                 return
@@ -267,7 +268,9 @@ class PrintMonitorService(QObject):
             printer_name = parts[0].strip()
             job_id = int(parts[1].strip())
 
-            logger.info(f"WMI event: New print job {job_id} on '{printer_name}' (detected at {event_time:.3f})")
+            logger.info(
+                f"WMI event: New print job {job_id} on '{printer_name}' (detected at {event_time:.3f})"
+            )
 
             # Build job data from WMI event
             job_data = {
@@ -286,11 +289,12 @@ class PrintMonitorService(QObject):
     def _process_job_thread_safe(self, printer_name: str, job_data: dict):
         """Process a print job with thread safety (can be called from WMI thread)."""
         import time
+
         process_start = time.time()
-        
+
         job_id = job_data.get("JobId", 0)
         job_key = f"{printer_name}:{job_id}"
-        
+
         logger.debug(f"Processing job {job_key} at {process_start:.3f}")
 
         with self._lock:
@@ -299,7 +303,9 @@ class PrintMonitorService(QObject):
                 logger.debug(f"Job {job_key} already processed, skipping")
                 return
             self._processed_jobs.add(job_key)
-            logger.debug(f"Job {job_key} marked as processed, total processed: {len(self._processed_jobs)}")
+            logger.debug(
+                f"Job {job_key} marked as processed, total processed: {len(self._processed_jobs)}"
+            )
 
             # Update known jobs
             if printer_name not in self._known_jobs:
@@ -309,7 +315,9 @@ class PrintMonitorService(QObject):
         # Handle the job (actual processing)
         logger.debug(f"Starting _handle_new_job for {job_key}")
         self._handle_new_job(printer_name, job_data)
-        logger.debug(f"Finished processing job {job_key} in {time.time() - process_start:.3f}s")
+        logger.debug(
+            f"Finished processing job {job_key} in {time.time() - process_start:.3f}s"
+        )
 
     # =========================================================================
     # PRICING
@@ -346,7 +354,9 @@ class PrintMonitorService(QObject):
         logger.debug(f"Getting user budget from path: {db_path}")
         try:
             result = self.firebase.db_get(db_path)
-            logger.debug(f"Budget fetch result: success={result.get('success')}, has_data={result.get('data') is not None}")
+            logger.debug(
+                f"Budget fetch result: success={result.get('success')}, has_data={result.get('data') is not None}"
+            )
             if result.get("success") and result.get("data"):
                 budget = float(result["data"].get("printBalance", 0.0))
                 logger.debug(f"User budget retrieved: {budget}₪")
@@ -364,8 +374,10 @@ class PrintMonitorService(QObject):
         try:
             current_budget = self._get_user_budget()
             new_budget = max(0.0, current_budget - amount)
-            
-            logger.debug(f"Budget calculation: {current_budget}₪ - {amount}₪ = {new_budget}₪")
+
+            logger.debug(
+                f"Budget calculation: {current_budget}₪ - {amount}₪ = {new_budget}₪"
+            )
 
             result = self.firebase.db_update(
                 db_path,
@@ -587,13 +599,17 @@ class PrintMonitorService(QObject):
         This ensures that if SIONYX exits normally, it doesn't block the printer.
         """
         with self._lock:
-            paused_jobs = dict(self._paused_by_us)  # Copy to avoid modification during iteration
+            paused_jobs = dict(
+                self._paused_by_us
+            )  # Copy to avoid modification during iteration
 
         if not paused_jobs:
             logger.debug("No paused jobs to resume on shutdown")
             return
 
-        logger.info(f"Resuming {len(paused_jobs)} job(s) paused by SIONYX before shutdown...")
+        logger.info(
+            f"Resuming {len(paused_jobs)} job(s) paused by SIONYX before shutdown..."
+        )
 
         for job_key, job_id in paused_jobs.items():
             try:
@@ -650,13 +666,15 @@ class PrintMonitorService(QObject):
                 self._last_poll_log = 0
             if not hasattr(self, "_poll_count"):
                 self._poll_count = 0
-            
+
             self._poll_count += 1
             now = time.time()
-            
+
             # Log every poll at DEBUG level for detailed debugging
-            logger.debug(f"Poll #{self._poll_count} - checking {len(printers)} printers")
-            
+            logger.debug(
+                f"Poll #{self._poll_count} - checking {len(printers)} printers"
+            )
+
             if now - self._last_poll_log > 30:
                 logger.info(f"Print monitor active - polling {len(printers)} printers")
                 self._last_poll_log = now

@@ -8,9 +8,7 @@ Tests the decorator pattern implementation for cross-cutting concerns:
 - @service_method - composite decorator
 """
 
-from unittest.mock import Mock, patch
-
-import pytest
+from unittest.mock import Mock
 
 from services.decorators import (
     _format_arg,
@@ -95,7 +93,7 @@ class TestAuthenticatedDecorator:
 
     def test_preserves_function_name(self):
         """Decorator preserves original function name"""
-        service = MockService(is_auth=True)
+        MockService(is_auth=True)
 
         @authenticated
         def my_special_function(self):

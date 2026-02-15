@@ -118,7 +118,7 @@ class TestMessageCard:
         """Test handling message without timestamp"""
         message = {"id": "msg1", "message": "No timestamp", "isRead": False}
         with patch("ui.components.message_display.get_logger"):
-            card = MessageCard(message)
+            MessageCard(message)
             # Should not raise
 
     def test_message_with_invalid_timestamp(self, qapp):
@@ -130,7 +130,7 @@ class TestMessageCard:
             "isRead": False,
         }
         with patch("ui.components.message_display.get_logger"):
-            card = MessageCard(message)
+            MessageCard(message)
             # Should not raise
 
 
@@ -155,7 +155,7 @@ class TestMessageDisplay:
     def test_gets_current_user(self, qapp, mock_auth_service):
         """Test display gets current user"""
         with patch("ui.components.message_display.get_logger"):
-            display = MessageDisplay(mock_auth_service)
+            MessageDisplay(mock_auth_service)
             mock_auth_service.get_current_user.assert_called()
 
     def test_initial_messages_empty(self, qapp, mock_auth_service):
