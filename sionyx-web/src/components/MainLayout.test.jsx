@@ -29,7 +29,9 @@ const renderMainLayout = (userOverride = null) => {
     uid: 'admin-123',
     orgId: 'test-org',
     email: 'admin@test.com',
-    displayName: 'Admin User',
+    firstName: 'Admin',
+    lastName: 'User',
+    phoneNumber: '0501234567',
   };
 
   useAuthStore.mockImplementation((selector) => {
@@ -176,20 +178,46 @@ describe('MainLayout', () => {
     renderMainLayout({
       uid: 'admin-123',
       orgId: 'test-org',
-      displayName: 'Test Admin',
+      firstName: 'Test',
+      lastName: 'Admin',
     });
 
     expect(screen.getByText('test-org')).toBeInTheDocument();
   });
 
-  it('displays user display name', () => {
+  it('displays user name from firstName/lastName', () => {
     renderMainLayout({
       uid: 'admin-123',
       orgId: 'test-org',
-      displayName: 'Test Admin',
+      firstName: 'Test',
+      lastName: 'Admin',
     });
 
     expect(screen.getByText('Test Admin')).toBeInTheDocument();
+  });
+
+  it('displays phone number from phoneNumber field', () => {
+    renderMainLayout({
+      uid: 'admin-123',
+      orgId: 'test-org',
+      firstName: 'Test',
+      lastName: 'Admin',
+      phoneNumber: '0501234567',
+    });
+
+    expect(screen.getByText(/0501234567/)).toBeInTheDocument();
+  });
+
+  it('falls back to phone field for manual login data', () => {
+    renderMainLayout({
+      uid: 'admin-123',
+      orgId: 'test-org',
+      firstName: 'Test',
+      lastName: 'Admin',
+      phone: '0509876543',
+    });
+
+    expect(screen.getByText(/0509876543/)).toBeInTheDocument();
   });
 
   it('responds to window resize for mobile view', () => {

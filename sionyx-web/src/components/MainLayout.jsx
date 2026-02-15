@@ -418,12 +418,14 @@ const MainLayout = () => {
                     }}
                   >
                     <Text style={{ fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
-                      {user?.displayName || 'מנהל'}
+                      {user?.firstName
+                        ? `${user.firstName} ${user.lastName || ''}`.trim()
+                        : 'מנהל'}
                     </Text>
-                    {user?.phone && (
+                    {(user?.phone || user?.phoneNumber) && (
                       <Text type='secondary' style={{ fontSize: 12 }}>
                         <PhoneOutlined style={{ marginLeft: 4 }} />
-                        {user.phone}
+                        {user.phone || user.phoneNumber}
                       </Text>
                     )}
                   </div>
