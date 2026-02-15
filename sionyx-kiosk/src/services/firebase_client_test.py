@@ -3,9 +3,8 @@ Tests for FirebaseClient and StreamListener (SSE)
 """
 
 import threading
-import time
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 import requests
@@ -676,7 +675,6 @@ class TestStreamListener:
 
     def test_reconnect_delay_exponential_backoff(self, stream_listener):
         """Test reconnect delay increases exponentially"""
-        initial_delay = stream_listener._reconnect_delay
         max_delay = stream_listener._max_reconnect_delay
 
         # Simulate multiple reconnections

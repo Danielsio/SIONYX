@@ -5,8 +5,6 @@ Tests for Windows Registry Configuration Reader
 import sys
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 class TestIsProduction:
     """Tests for is_production function"""

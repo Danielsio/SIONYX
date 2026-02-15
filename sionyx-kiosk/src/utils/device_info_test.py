@@ -158,6 +158,7 @@ class TestGetMacAddress:
         from utils.device_info import _get_mac_address
 
         call_count = [0]
+
         def mock_getnode():
             call_count[0] += 1
             # Return different values on each call

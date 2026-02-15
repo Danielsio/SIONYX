@@ -434,7 +434,9 @@ class TestGetOperatingHours:
         assert result["operatingHours"]["gracePeriodMinutes"] == 10
         assert result["operatingHours"]["graceBehavior"] == "force"
 
-    def test_get_operating_hours_defaults_on_failure(self, metadata_service, mock_firebase):
+    def test_get_operating_hours_defaults_on_failure(
+        self, metadata_service, mock_firebase
+    ):
         """Test default values when Firebase fails"""
         mock_firebase.db_get.return_value = {
             "success": False,
@@ -449,7 +451,9 @@ class TestGetOperatingHours:
         assert result["operatingHours"]["startTime"] == "06:00"
         assert result["operatingHours"]["endTime"] == "00:00"
 
-    def test_get_operating_hours_defaults_on_no_data(self, metadata_service, mock_firebase):
+    def test_get_operating_hours_defaults_on_no_data(
+        self, metadata_service, mock_firebase
+    ):
         """Test default values when no data exists"""
         mock_firebase.db_get.return_value = {"success": True, "data": None}
 
@@ -475,7 +479,9 @@ class TestGetOperatingHours:
         assert result["operatingHours"]["gracePeriodMinutes"] == 5
         assert result["operatingHours"]["graceBehavior"] == "graceful"
 
-    def test_get_operating_hours_exception_handling(self, metadata_service, mock_firebase):
+    def test_get_operating_hours_exception_handling(
+        self, metadata_service, mock_firebase
+    ):
         """Test exception handling"""
         mock_firebase.db_get.side_effect = Exception("Unexpected error")
 
@@ -618,7 +624,9 @@ class TestGetAdminContact:
         assert result["success"] is False
         assert "not found" in result["error"]
 
-    def test_get_admin_contact_exception_handling(self, metadata_service, mock_firebase):
+    def test_get_admin_contact_exception_handling(
+        self, metadata_service, mock_firebase
+    ):
         """Test exception handling"""
         mock_firebase.db_get.side_effect = Exception("Unexpected error")
 

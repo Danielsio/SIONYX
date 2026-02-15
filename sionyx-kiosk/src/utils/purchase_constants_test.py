@@ -3,8 +3,6 @@ Tests for purchase_constants.py - Purchase status constants
 Tests status values, labels, colors, and helper functions.
 """
 
-import pytest
-
 from utils.purchase_constants import (
     PURCHASE_STATUS,
     PURCHASE_STATUS_COLORS,

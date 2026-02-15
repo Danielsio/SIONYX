@@ -7,8 +7,6 @@ install keyboard hooks in a test environment.
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from services.keyboard_restriction_service import (
     VK_CONTROL,
     VK_ESCAPE,
@@ -162,8 +160,6 @@ class TestKeyboardRestrictionServiceCallback:
         service.hook_handle = 12345
 
         # Create mock keyboard data
-        from ctypes import pointer
-
         from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
@@ -220,14 +216,15 @@ class TestKeyboardHookCallback:
         service.hook_handle = 12345
 
         # Create mock lParam that points to keyboard data
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_LWIN
         lParam = ctypes.addressof(kb_data)
 
-        result = service._keyboard_hook_callback(0, 0, lParam)
+        service._keyboard_hook_callback(0, 0, lParam)
 
         # Should call next hook (pass through)
         mock_user32.CallNextHookEx.assert_called_once()
@@ -240,7 +237,7 @@ class TestKeyboardHookCallback:
         service = KeyboardRestrictionService(enabled=True)
         service.hook_handle = 12345
 
-        result = service._keyboard_hook_callback(-1, 0, 0)
+        service._keyboard_hook_callback(-1, 0, 0)
 
         mock_user32.CallNextHookEx.assert_called_once()
 
@@ -252,8 +249,9 @@ class TestKeyboardHookCallback:
         service = KeyboardRestrictionService(enabled=True)
         service.hook_handle = 12345
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_LWIN
@@ -271,8 +269,9 @@ class TestKeyboardHookCallback:
         service = KeyboardRestrictionService(enabled=True)
         service.hook_handle = 12345
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_RWIN
@@ -285,18 +284,21 @@ class TestKeyboardHookCallback:
     @patch("services.keyboard_restriction_service.user32")
     def test_callback_blocks_alt_tab(self, mock_user32):
         """Callback should block Alt+Tab."""
+
         # Mock Alt key being pressed
         def get_async_key_state(vk):
             if vk == VK_MENU:
                 return 0x8000
             return 0
+
         mock_user32.GetAsyncKeyState.side_effect = get_async_key_state
 
         service = KeyboardRestrictionService(enabled=True)
         service.hook_handle = 12345
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_TAB
@@ -309,17 +311,20 @@ class TestKeyboardHookCallback:
     @patch("services.keyboard_restriction_service.user32")
     def test_callback_blocks_alt_f4(self, mock_user32):
         """Callback should block Alt+F4."""
+
         def get_async_key_state(vk):
             if vk == VK_MENU:
                 return 0x8000
             return 0
+
         mock_user32.GetAsyncKeyState.side_effect = get_async_key_state
 
         service = KeyboardRestrictionService(enabled=True)
         service.hook_handle = 12345
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_F4
@@ -332,17 +337,20 @@ class TestKeyboardHookCallback:
     @patch("services.keyboard_restriction_service.user32")
     def test_callback_blocks_alt_esc(self, mock_user32):
         """Callback should block Alt+Escape."""
+
         def get_async_key_state(vk):
             if vk == VK_MENU:
                 return 0x8000
             return 0
+
         mock_user32.GetAsyncKeyState.side_effect = get_async_key_state
 
         service = KeyboardRestrictionService(enabled=True)
         service.hook_handle = 12345
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_ESCAPE
@@ -355,17 +363,20 @@ class TestKeyboardHookCallback:
     @patch("services.keyboard_restriction_service.user32")
     def test_callback_blocks_ctrl_shift_esc(self, mock_user32):
         """Callback should block Ctrl+Shift+Escape (Task Manager)."""
+
         def get_async_key_state(vk):
             if vk in (VK_CONTROL, VK_SHIFT):
                 return 0x8000
             return 0
+
         mock_user32.GetAsyncKeyState.side_effect = get_async_key_state
 
         service = KeyboardRestrictionService(enabled=True)
         service.hook_handle = 12345
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_ESCAPE
@@ -378,17 +389,20 @@ class TestKeyboardHookCallback:
     @patch("services.keyboard_restriction_service.user32")
     def test_callback_blocks_ctrl_esc(self, mock_user32):
         """Callback should block Ctrl+Escape (Start menu)."""
+
         def get_async_key_state(vk):
             if vk == VK_CONTROL:
                 return 0x8000
             return 0
+
         mock_user32.GetAsyncKeyState.side_effect = get_async_key_state
 
         service = KeyboardRestrictionService(enabled=True)
         service.hook_handle = 12345
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_ESCAPE
@@ -407,14 +421,15 @@ class TestKeyboardHookCallback:
         service = KeyboardRestrictionService(enabled=True)
         service.hook_handle = 12345
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = 0x41  # 'A' key
         lParam = ctypes.addressof(kb_data)
 
-        result = service._keyboard_hook_callback(0, 0, lParam)
+        service._keyboard_hook_callback(0, 0, lParam)
 
         mock_user32.CallNextHookEx.assert_called_once()
 
@@ -429,8 +444,9 @@ class TestKeyboardHookCallback:
         handler = MagicMock()
         service.blocked_key_pressed.connect(handler)
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_LWIN
@@ -454,8 +470,9 @@ class TestKeyboardHookCallback:
 
         service.blocked_key_pressed.connect(bad_handler)
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_LWIN
@@ -481,14 +498,15 @@ class TestKeyboardHookCallback:
         service.hook_handle = 12345
         service.blocked_combos["win"] = False  # Disable Windows key blocking
 
-        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
         import ctypes
+
+        from services.keyboard_restriction_service import KBDLLHOOKSTRUCT
 
         kb_data = KBDLLHOOKSTRUCT()
         kb_data.vkCode = VK_LWIN
         lParam = ctypes.addressof(kb_data)
 
-        result = service._keyboard_hook_callback(0, 0, lParam)
+        service._keyboard_hook_callback(0, 0, lParam)
 
         # Should pass through
         mock_user32.CallNextHookEx.assert_called_once()
@@ -513,7 +531,9 @@ class TestRunHookLoop:
     @patch("services.keyboard_restriction_service.user32")
     @patch("services.keyboard_restriction_service.kernel32")
     @patch("services.keyboard_restriction_service.ctypes.get_last_error")
-    def test_hook_loop_handles_install_failure(self, mock_error, mock_kernel32, mock_user32):
+    def test_hook_loop_handles_install_failure(
+        self, mock_error, mock_kernel32, mock_user32
+    ):
         """_run_hook_loop should handle hook installation failure."""
         mock_user32.SetWindowsHookExW.return_value = None  # Failure
         mock_error.return_value = 1234

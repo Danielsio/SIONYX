@@ -12,10 +12,9 @@ from typing import Dict, List
 
 from utils.logger import get_logger
 
+
 # Hide console window on Windows when spawning subprocesses (tasklist, taskkill)
-_SUBPROCESS_FLAGS = (
-    subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-)
+_SUBPROCESS_FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 
 logger = get_logger(__name__)
@@ -311,7 +310,9 @@ class ProcessCleanupService:
                         )
                         time.sleep(0.2)  # Brief delay before retry
                     else:
-                        logger.debug(f"Failed to kill {name} after {retry_count + 1} attempts")
+                        logger.debug(
+                            f"Failed to kill {name} after {retry_count + 1} attempts"
+                        )
                         return False
 
             except subprocess.TimeoutExpired:
@@ -354,7 +355,9 @@ class ProcessCleanupService:
                 logger.debug(f"Process not running: {process_name}")
                 return True
             else:
-                logger.debug(f"Failed to kill by name {process_name}: {result.stderr.strip()}")
+                logger.debug(
+                    f"Failed to kill by name {process_name}: {result.stderr.strip()}"
+                )
                 return False
 
         except subprocess.TimeoutExpired:

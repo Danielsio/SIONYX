@@ -15,12 +15,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from services.decorators import (
-    authenticated,
-    handle_firebase_errors,
-    log_operation,
-    service_method,
-)
+from services.decorators import service_method
 from services.firebase_client import FirebaseClient
 from utils.logger import get_logger
 

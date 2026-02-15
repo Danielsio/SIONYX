@@ -195,7 +195,7 @@ class OrganizationMetadataService:
     def get_operating_hours(self) -> Dict[str, Any]:
         """
         Get organization operating hours settings.
-        
+
         Returns:
             Dict with success status and operating hours settings
         """
@@ -255,7 +255,7 @@ class OrganizationMetadataService:
     def get_admin_contact(self) -> Dict[str, Any]:
         """
         Get organization admin contact info for password reset flow.
-        
+
         Uses the firebase_client's org_id automatically (multi-tenancy).
 
         Returns:

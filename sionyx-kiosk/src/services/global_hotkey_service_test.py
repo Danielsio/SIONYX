@@ -2,9 +2,8 @@
 Tests for global_hotkey_service.py - Global Hotkey Service
 """
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import patch
 
-import pytest
 from PyQt6.QtCore import QObject
 
 
@@ -106,7 +105,7 @@ class TestGlobalHotkeyServiceStop:
 
     def test_stop_sets_is_running_false(self, qapp):
         """Test stop sets is_running to False"""
-        with patch("services.global_hotkey_service.keyboard") as mock_keyboard:
+        with patch("services.global_hotkey_service.keyboard"):
             from services.global_hotkey_service import GlobalHotkeyService
 
             service = GlobalHotkeyService()

@@ -3,8 +3,6 @@ Tests for firebase_config.py - Firebase Configuration
 """
 
 import os
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -338,7 +336,7 @@ class TestEnvPathResolution:
                         mock_path.parent = mock_path
                         mock_path.exists.return_value = False
 
-                        config = FirebaseConfig()
+                        FirebaseConfig()
 
                         # load_dotenv should have been called
                         mock_load.assert_called()

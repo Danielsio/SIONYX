@@ -18,10 +18,12 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+
 # WebEngine is optional - handle gracefully if not installed
 try:
     from PyQt6.QtWebChannel import QWebChannel
     from PyQt6.QtWebEngineWidgets import QWebEngineView
+
     WEBENGINE_AVAILABLE = True
 except ImportError as e:
     WEBENGINE_AVAILABLE = False
@@ -29,6 +31,7 @@ except ImportError as e:
     QWebEngineView = None
     # Import logger early to log the error
     from utils.logger import get_logger
+
     _logger = get_logger(__name__)
     _logger.error(
         f"PyQt6-WebEngine not installed. Payment dialog will not work. "
@@ -189,7 +192,7 @@ class PaymentDialog(QDialog):
             )
 
         self.user = derived_user or {}
-        
+
         # Validate user has required uid field
         if not self.user.get("uid"):
             logger.error(
@@ -198,7 +201,7 @@ class PaymentDialog(QDialog):
                 action="payment_init_failed",
             )
             raise ValueError("Cannot initiate payment: user not properly loaded")
-        
+
         self.payment_response = None
         self.purchase_id = None
         self._local_server: LocalFileServer | None = None

@@ -2,8 +2,7 @@
 Tests for PurchaseService
 """
 
-from datetime import datetime
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

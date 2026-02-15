@@ -20,7 +20,9 @@ class TestSessionService:
             with patch("services.session_service.PrintMonitorService"):
                 with patch("services.session_service.ProcessCleanupService"):
                     with patch("services.session_service.BrowserCleanupService"):
-                        yield SessionService(mock_firebase_client, "test-user-id", "test-org")
+                        yield SessionService(
+                            mock_firebase_client, "test-user-id", "test-org"
+                        )
 
     def test_initialization(self, session_service):
         """Test SessionService initialization"""
@@ -313,7 +315,9 @@ class TestSessionServiceAdditional:
             with patch("services.session_service.PrintMonitorService"):
                 with patch("services.session_service.ProcessCleanupService"):
                     with patch("services.session_service.BrowserCleanupService"):
-                        yield SessionService(mock_firebase_client, "test-user-id", "test-org")
+                        yield SessionService(
+                            mock_firebase_client, "test-user-id", "test-org"
+                        )
 
     def test_countdown_tick_when_not_active(self, session_service):
         """Test countdown tick does nothing when not active"""
@@ -398,7 +402,9 @@ class TestBrowserCleanup:
             with patch("services.session_service.PrintMonitorService"):
                 with patch("services.session_service.BrowserCleanupService"):
                     with patch("services.session_service.ProcessCleanupService"):
-                        yield SessionService(mock_firebase_client, "test-user-id", "org")
+                        yield SessionService(
+                            mock_firebase_client, "test-user-id", "org"
+                        )
 
     def test_end_session_calls_browser_cleanup(
         self, session_service, mock_firebase_client, qtbot
@@ -408,9 +414,7 @@ class TestBrowserCleanup:
         session_service.session_id = "test-session-id"
         mock_firebase_client.db_update.return_value = {"success": True}
 
-        with patch.object(
-            session_service, "_cleanup_browser_data"
-        ) as mock_cleanup:
+        with patch.object(session_service, "_cleanup_browser_data") as mock_cleanup:
             session_service.end_session("user")
 
         mock_cleanup.assert_called_once()
@@ -484,9 +488,7 @@ class TestProcessCleanup:
         """Test start_session calls process cleanup."""
         mock_firebase_client.db_update.return_value = {"success": True}
 
-        with patch.object(
-            session_service, "_cleanup_user_processes"
-        ) as mock_cleanup:
+        with patch.object(session_service, "_cleanup_user_processes") as mock_cleanup:
             session_service.start_session(3600)
 
         mock_cleanup.assert_called_once()
@@ -566,9 +568,7 @@ class TestTimeExpiration:
 
         assert result["expired"] is False
 
-    def test_check_expiration_not_expired(
-        self, session_service, mock_firebase_client
-    ):
+    def test_check_expiration_not_expired(self, session_service, mock_firebase_client):
         """Test not expired when deadline is in the future."""
         from datetime import datetime, timedelta
 
@@ -583,9 +583,7 @@ class TestTimeExpiration:
         assert result["expired"] is False
         assert result.get("days_remaining", 0) > 0
 
-    def test_check_expiration_expired(
-        self, session_service, mock_firebase_client
-    ):
+    def test_check_expiration_expired(self, session_service, mock_firebase_client):
         """Test expired when deadline has passed."""
         from datetime import datetime, timedelta
 
@@ -602,9 +600,7 @@ class TestTimeExpiration:
         # Should have reset remaining time to 0
         mock_firebase_client.db_update.assert_called()
 
-    def test_check_expiration_db_error(
-        self, session_service, mock_firebase_client
-    ):
+    def test_check_expiration_db_error(self, session_service, mock_firebase_client):
         """Test handles database error gracefully."""
         mock_firebase_client.db_get.return_value = {
             "success": False,
@@ -633,7 +629,6 @@ class TestTimeExpiration:
 
         assert result["success"] is False
         assert result.get("expired") is True
-
 
 
 # =============================================================================
@@ -665,7 +660,7 @@ class TestOperatingHours:
                     with patch("services.session_service.ProcessCleanupService"):
                         with patch(
                             "services.session_service.OperatingHoursService",
-                            return_value=mock_operating_hours
+                            return_value=mock_operating_hours,
                         ):
                             yield SessionService(
                                 mock_firebase_client, "test-user-id", "org"
@@ -711,11 +706,13 @@ class TestOperatingHours:
         """Test hours ending soon emits warning signal"""
         # Use signal spy to capture emissions
         signal_received = []
-        session_service.operating_hours_warning.connect(lambda mins: signal_received.append(mins))
-        
+        session_service.operating_hours_warning.connect(
+            lambda mins: signal_received.append(mins)
+        )
+
         session_service._on_hours_ending_soon(5)
         qapp.processEvents()
-        
+
         assert len(signal_received) == 1
         assert signal_received[0] == 5
 
@@ -729,11 +726,13 @@ class TestOperatingHours:
 
         # Use signal spy to capture emissions
         signal_received = []
-        session_service.operating_hours_ended.connect(lambda behavior: signal_received.append(behavior))
-        
+        session_service.operating_hours_ended.connect(
+            lambda behavior: signal_received.append(behavior)
+        )
+
         session_service._on_hours_ended("graceful")
         qapp.processEvents()
-        
+
         assert len(signal_received) == 1
         assert signal_received[0] == "graceful"
         # Session should be ended
@@ -749,11 +748,13 @@ class TestOperatingHours:
 
         # Use signal spy to capture emissions
         session_ended_signals = []
-        session_service.session_ended.connect(lambda reason: session_ended_signals.append(reason))
-        
+        session_service.session_ended.connect(
+            lambda reason: session_ended_signals.append(reason)
+        )
+
         session_service._on_hours_ended("force")
         qapp.processEvents()
-        
+
         # Session should be ended with hours_force reason
         assert len(session_ended_signals) >= 1
         assert "hours" in session_ended_signals[0]

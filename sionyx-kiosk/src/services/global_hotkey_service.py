@@ -9,8 +9,8 @@ import threading
 import keyboard
 from PyQt6.QtCore import QObject, pyqtSignal
 
-from utils.logger import get_logger
 from utils.const import ADMIN_EXIT_HOTKEY_DEFAULT
+from utils.logger import get_logger
 from utils.registry_config import is_production, read_registry_value
 
 

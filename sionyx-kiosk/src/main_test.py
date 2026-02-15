@@ -3,7 +3,7 @@ Tests for main application module
 """
 
 import sys
-from unittest.mock import MagicMock, PropertyMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -83,26 +83,26 @@ class TestSionyxApp:
         """Should create QApplication instance."""
         from main import SionyxApp
 
-        sionyx = SionyxApp(verbose=False, kiosk_mode=False)
+        _sionyx = SionyxApp(verbose=False, kiosk_mode=False)
 
-        assert sionyx.app is not None
+        assert _sionyx.app is not None
 
     def test_init_stores_options(self, mock_dependencies):
         """Should store verbose and kiosk_mode options."""
         from main import SionyxApp
 
-        sionyx = SionyxApp(verbose=True, kiosk_mode=True)
+        _sionyx = SionyxApp(verbose=True, kiosk_mode=True)
 
-        assert sionyx.verbose is True
-        assert sionyx.kiosk_mode is True
+        assert _sionyx.verbose is True
+        assert _sionyx.kiosk_mode is True
 
     def test_init_starts_hotkey_service(self, mock_dependencies):
         """Should initialize and start global hotkey service."""
         from main import GlobalHotkeyService, SionyxApp
 
-        sionyx = SionyxApp()
+        _sionyx = SionyxApp()
 
-        assert sionyx.global_hotkey_service is not None
+        assert _sionyx.global_hotkey_service is not None
         GlobalHotkeyService.return_value.start.assert_called_once()
 
     def test_hotkey_service_uses_queued_connection(self, mock_dependencies):
@@ -122,21 +122,21 @@ class TestSionyxApp:
         # Get the mock signal
         mock_signal = GlobalHotkeyService.return_value.admin_exit_requested
 
-        sionyx = SionyxApp()
+        SionyxApp()
 
         # Verify connect was called with QueuedConnection
         mock_signal.connect.assert_called_once()
         call_args = mock_signal.connect.call_args
 
         # The second argument should be Qt.ConnectionType.QueuedConnection
-        assert len(call_args.args) == 2 or call_args.kwargs.get("type") is not None, (
-            "Signal must be connected with QueuedConnection for thread safety"
-        )
+        assert (
+            len(call_args.args) == 2 or call_args.kwargs.get("type") is not None
+        ), "Signal must be connected with QueuedConnection for thread safety"
 
         if len(call_args.args) == 2:
-            assert call_args.args[1] == Qt.ConnectionType.QueuedConnection, (
-                "Signal MUST use QueuedConnection to ensure slot runs on main thread"
-            )
+            assert (
+                call_args.args[1] == Qt.ConnectionType.QueuedConnection
+            ), "Signal MUST use QueuedConnection to ensure slot runs on main thread"
 
     def test_init_starts_kiosk_services_when_enabled(self, mock_dependencies):
         """Should start keyboard and process restriction when kiosk mode enabled."""
@@ -146,7 +146,7 @@ class TestSionyxApp:
             SionyxApp,
         )
 
-        sionyx = SionyxApp(kiosk_mode=True)
+        SionyxApp(kiosk_mode=True)
 
         KeyboardRestrictionService.return_value.start.assert_called_once()
         ProcessRestrictionService.return_value.start.assert_called_once()
@@ -159,7 +159,7 @@ class TestSionyxApp:
             SionyxApp,
         )
 
-        sionyx = SionyxApp(kiosk_mode=False)
+        SionyxApp(kiosk_mode=False)
 
         KeyboardRestrictionService.return_value.start.assert_not_called()
         ProcessRestrictionService.return_value.start.assert_not_called()
@@ -466,6 +466,7 @@ class TestMissingEnvConfig:
         """Should call sys.exit(1) when .env file is missing in dev mode."""
         with pytest.raises(SystemExit) as exc_info:
             from main import SionyxApp
+
             SionyxApp()
 
         assert exc_info.value.code == 1
@@ -476,6 +477,7 @@ class TestMissingEnvConfig:
 
         try:
             from main import SionyxApp
+
             SionyxApp()
         except SystemExit:
             pass
@@ -548,6 +550,7 @@ class TestAppInitializationFailure:
 
         with pytest.raises(RuntimeError, match="Config load failed"):
             from main import SionyxApp
+
             SionyxApp()
 
 

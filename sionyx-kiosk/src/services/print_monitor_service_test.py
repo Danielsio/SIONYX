@@ -3,7 +3,7 @@ Tests for PrintMonitorService
 """
 
 import threading
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from PyQt6.QtCore import QTimer
@@ -926,7 +926,9 @@ class TestCopiesFromDevmode:
         """Test returns 1 when exception occurs"""
         mock_devmode = Mock()
         # Make getattr raise an exception
-        type(mock_devmode).Copies = property(lambda self: (_ for _ in ()).throw(Exception("Error")))
+        type(mock_devmode).Copies = property(
+            lambda self: (_ for _ in ()).throw(Exception("Error"))
+        )
         copies = print_monitor._get_copies_from_devmode(mock_devmode)
         assert copies == 1
 
@@ -1449,7 +1451,9 @@ class TestHandleNewJobSpooling:
         _, _, cost, _ = allowed_signals[0]
         assert cost == 15.0  # 5 pages × 3.0 (color price)
 
-    def test_handle_new_job_job_disappears_during_spool(self, print_monitor, mock_firebase):
+    def test_handle_new_job_job_disappears_during_spool(
+        self, print_monitor, mock_firebase
+    ):
         """Test job handling when job disappears during spooling wait"""
         print_monitor._bw_price = 1.0
         mock_firebase.db_get.return_value = {
@@ -1465,7 +1469,9 @@ class TestHandleNewJobSpooling:
         }
 
         with patch.object(print_monitor, "_pause_job", return_value=True):
-            with patch.object(print_monitor, "_get_job_info", return_value={}):  # Job disappeared
+            with patch.object(
+                print_monitor, "_get_job_info", return_value={}
+            ):  # Job disappeared
                 with patch.object(print_monitor, "_resume_job"):
                     with patch("time.sleep"):  # Speed up test
                         print_monitor._handle_new_job("Printer1", job_data)
@@ -1546,6 +1552,7 @@ class TestWMIEventHandlingExceptions:
 
         # First call times out, then stop event is set
         call_count = [0]
+
         def mock_watch(timeout_ms=None):
             call_count[0] += 1
             if call_count[0] == 1:
@@ -1631,7 +1638,9 @@ class TestIsColorJobException:
         """Test _is_color_job_from_devmode returns False on exception"""
         mock_devmode = Mock()
         # Make getattr raise an exception
-        type(mock_devmode).Color = property(lambda self: (_ for _ in ()).throw(RuntimeError("Access denied")))
+        type(mock_devmode).Color = property(
+            lambda self: (_ for _ in ()).throw(RuntimeError("Access denied"))
+        )
 
         result = print_monitor._is_color_job_from_devmode(mock_devmode)
 
@@ -1653,7 +1662,9 @@ class TestHandleNewJobDevmodeUpdate:
         if service.is_monitoring():
             service.stop_monitoring()
 
-    def test_handle_new_job_updates_copies_during_spool(self, print_monitor, mock_firebase):
+    def test_handle_new_job_updates_copies_during_spool(
+        self, print_monitor, mock_firebase
+    ):
         """Test that copies are updated when devmode changes during spooling"""
         print_monitor._bw_price = 1.0
         mock_firebase.db_get.return_value = {
@@ -1908,7 +1919,9 @@ class TestResumeAllPausedJobs:
             "Printer2:99": 99,
         }
 
-        with patch.object(print_monitor, "_resume_job", return_value=True) as mock_resume:
+        with patch.object(
+            print_monitor, "_resume_job", return_value=True
+        ) as mock_resume:
             print_monitor._resume_all_paused_jobs()
 
         assert mock_resume.call_count == 2

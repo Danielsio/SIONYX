@@ -796,7 +796,7 @@ class TestPaymentDialogSuccessMessage:
 
     def test_show_success_message_creates_overlay(self, payment_dialog):
         """Test show_success_message creates overlay and starts timer"""
-        with patch("ui.payment_dialog.QWidget") as mock_widget:
+        with patch("ui.payment_dialog.QWidget"):
             with patch("ui.payment_dialog.QVBoxLayout"):
                 with patch("ui.payment_dialog.QLabel"):
                     with patch("ui.payment_dialog.QTimer") as mock_timer_cls:
@@ -835,7 +835,7 @@ class TestPaymentDialogCredentialsError:
 
     def test_show_credentials_error_creates_overlay(self, payment_dialog):
         """Test show_credentials_error creates error overlay"""
-        with patch("ui.payment_dialog.QWidget") as mock_widget:
+        with patch("ui.payment_dialog.QWidget"):
             with patch("ui.payment_dialog.QVBoxLayout"):
                 with patch("ui.payment_dialog.QLabel"):
                     with patch("ui.payment_dialog.QPushButton") as mock_btn:

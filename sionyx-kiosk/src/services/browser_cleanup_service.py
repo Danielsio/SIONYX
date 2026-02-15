@@ -8,18 +8,16 @@ logged-in accounts (Gmail, Facebook, etc.)
 
 import os
 import shutil
-import sqlite3
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from utils.logger import get_logger
 
+
 # Hide console window on Windows when spawning subprocesses (tasklist, taskkill)
-_SUBPROCESS_FLAGS = (
-    subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
-)
+_SUBPROCESS_FLAGS = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
 
 
 logger = get_logger(__name__)
@@ -109,7 +107,9 @@ class BrowserCleanupService:
 
         if results["errors"]:
             results["success"] = False
-            logger.warning(f"Browser cleanup completed with errors: {results['errors']}")
+            logger.warning(
+                f"Browser cleanup completed with errors: {results['errors']}"
+            )
         else:
             logger.info("Browser cleanup completed successfully")
 
@@ -167,7 +167,9 @@ class BrowserCleanupService:
                             )
                         except Exception as e:
                             errors.append(f"Error deleting {file_path}: {e}")
-                            logger.error(f"{browser_name}: Error deleting {file_path}: {e}")
+                            logger.error(
+                                f"{browser_name}: Error deleting {file_path}: {e}"
+                            )
 
         if errors:
             return {
@@ -213,7 +215,9 @@ class BrowserCleanupService:
                                 )
                             except Exception as e:
                                 errors.append(f"Error deleting {file_path}: {e}")
-                                logger.error(f"Firefox: Error deleting {file_path}: {e}")
+                                logger.error(
+                                    f"Firefox: Error deleting {file_path}: {e}"
+                                )
             except Exception as e:
                 errors.append(f"Error accessing profiles: {e}")
                 logger.error(f"Firefox: Error accessing profiles: {e}")
@@ -337,6 +341,7 @@ class BrowserCleanupService:
 
         # Give browsers time to close
         import time
+
         time.sleep(1)
 
         # Now clean up

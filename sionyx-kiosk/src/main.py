@@ -27,9 +27,9 @@ def _write_crash_log(error_type: str, error_msg: str, tb: str):
         crash_log = _get_crash_log_path()
         timestamp = datetime.now().isoformat()
         with open(crash_log, "a", encoding="utf-8") as f:
-            f.write(f"\n{'='*60}\n")
+            f.write(f"\n{'=' * 60}\n")
             f.write(f"CRASH REPORT - {timestamp}\n")
-            f.write(f"{'='*60}\n")
+            f.write(f"{'=' * 60}\n")
             f.write(f"Error Type: {error_type}\n")
             f.write(f"Error Message: {error_msg}\n")
             f.write(f"Python Version: {sys.version}\n")
@@ -98,8 +98,7 @@ QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 # Check both exact match and prefix match (for paths like C:\...\SIONYX.exe --debug)
 debug_flags = ["--verbose", "-v", "--debug"]
 is_debug = any(
-    any(arg == flag or arg.endswith(flag) for flag in debug_flags)
-    for arg in sys.argv
+    any(arg == flag or arg.endswith(flag) for flag in debug_flags) for arg in sys.argv
 )
 log_level = logging.DEBUG if is_debug else logging.INFO
 
@@ -557,7 +556,7 @@ if __name__ == "__main__":
             "Fatal error - application crashed", error=str(e), action="fatal_error"
         )
         logger.exception("Fatal error details")
-        
+
         # Also write to crash log for consistency
         _write_crash_log(
             error_type=type(e).__name__,

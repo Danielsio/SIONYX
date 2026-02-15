@@ -43,16 +43,16 @@ class PackageService(DatabaseService):
 
         if result.get("success"):
             packages = result.get("data", [])
-            
+
             logger.info(f"Packages loaded: {len(packages)} total")
-            
+
             # Log package names for debugging
             if packages:
                 names = [p.get("name", "?") for p in packages]
                 logger.debug(f"Packages: {names}")
             else:
                 logger.warning("No packages found in database!")
-            
+
             return self.create_success_response(
                 packages, f"Fetched {len(packages)} packages"
             )

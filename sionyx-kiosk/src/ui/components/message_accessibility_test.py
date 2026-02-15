@@ -3,11 +3,11 @@ Tests for message_accessibility.py
 Tests accessibility enhancements for message components.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QWidget, QApplication
+from PyQt6.QtWidgets import QApplication, QWidget
 
 from src.ui.components.message_accessibility import (
     AccessibilityEnhancer,
@@ -71,7 +71,7 @@ class TestMessageCardAccessibility:
         """Test accessible name with unread message."""
         accessibility = MessageCardAccessibility()
         accessibility.message_data = {"isRead": False, "message": "Test"}
-        
+
         name = accessibility.get_accessible_name()
         assert "unread" in name.lower()
 
@@ -79,7 +79,7 @@ class TestMessageCardAccessibility:
         """Test accessible name with read message."""
         accessibility = MessageCardAccessibility()
         accessibility.message_data = {"isRead": True, "message": "Test"}
-        
+
         name = accessibility.get_accessible_name()
         assert "read" in name.lower()
 
@@ -94,9 +94,9 @@ class TestMessageCardAccessibility:
         accessibility = MessageCardAccessibility()
         accessibility.message_data = {
             "message": "This is a test message content",
-            "timestamp": "2024-01-15 10:30:00"
+            "timestamp": "2024-01-15 10:30:00",
         }
-        
+
         description = accessibility.get_accessible_description()
         assert "test message" in description.lower()
         assert "2024-01-15" in description
@@ -111,7 +111,7 @@ class TestMessageCardAccessibility:
         """Test screen reader text with unread message."""
         accessibility = MessageCardAccessibility()
         accessibility.message_data = {"isRead": False, "message": "Hello world"}
-        
+
         text = accessibility.get_screen_reader_text()
         assert "unread" in text.lower()
         assert "hello" in text.lower()
@@ -120,7 +120,7 @@ class TestMessageCardAccessibility:
         """Test screen reader text with read message."""
         accessibility = MessageCardAccessibility()
         accessibility.message_data = {"isRead": True, "message": "Hello world"}
-        
+
         text = accessibility.get_screen_reader_text()
         # Should say "read" not "unread"
         assert "unread" not in text.lower() or "read" in text.lower()
@@ -145,7 +145,7 @@ class TestMessageModalAccessibility:
         accessibility = MessageModalAccessibility()
         accessibility.messages = [{"message": "Test 1"}, {"message": "Test 2"}]
         accessibility.current_index = 0
-        
+
         description = accessibility.get_accessible_description()
         assert "1 of 2" in description
 
@@ -160,7 +160,7 @@ class TestMessageModalAccessibility:
         accessibility = MessageModalAccessibility()
         accessibility.messages = [{"message": "A"}, {"message": "B"}, {"message": "C"}]
         accessibility.current_index = 1
-        
+
         text = accessibility.get_screen_reader_text()
         assert "2 of 3" in text
 
@@ -183,7 +183,7 @@ class TestMessageNotificationAccessibility:
         """Test accessible description with single message."""
         accessibility = MessageNotificationAccessibility()
         accessibility.message_count = 1
-        
+
         description = accessibility.get_accessible_description()
         assert "1 new message" in description.lower()
 
@@ -191,7 +191,7 @@ class TestMessageNotificationAccessibility:
         """Test accessible description with multiple messages."""
         accessibility = MessageNotificationAccessibility()
         accessibility.message_count = 5
-        
+
         description = accessibility.get_accessible_description()
         assert "5 new messages" in description.lower()
 
@@ -205,7 +205,7 @@ class TestMessageNotificationAccessibility:
         """Test screen reader text with single message."""
         accessibility = MessageNotificationAccessibility()
         accessibility.message_count = 1
-        
+
         text = accessibility.get_screen_reader_text()
         assert "1 new message" in text.lower()
 
@@ -213,7 +213,7 @@ class TestMessageNotificationAccessibility:
         """Test screen reader text with multiple messages."""
         accessibility = MessageNotificationAccessibility()
         accessibility.message_count = 3
-        
+
         text = accessibility.get_screen_reader_text()
         assert "3 new messages" in text.lower()
 
@@ -225,7 +225,7 @@ class TestAddAccessibilityToWidget:
         """Test adding default accessibility to widget."""
         # This will fail because the widget doesn't fully implement required methods
         # but we can test the function structure
-        with patch.object(AccessibilityEnhancer, 'setup_accessibility'):
+        with patch.object(AccessibilityEnhancer, "setup_accessibility"):
             # Just verify the function doesn't crash
             try:
                 add_accessibility_to_widget(mock_widget)
@@ -235,7 +235,7 @@ class TestAddAccessibilityToWidget:
 
     def test_adds_custom_accessibility_class(self, mock_widget):
         """Test adding custom accessibility class to widget."""
-        with patch.object(MessageCardAccessibility, 'setup_accessibility'):
+        with patch.object(MessageCardAccessibility, "setup_accessibility"):
             try:
                 add_accessibility_to_widget(mock_widget, MessageCardAccessibility)
             except AttributeError:
@@ -252,7 +252,7 @@ class TestAccessibilityConstants:
         enhancer = AccessibilityEnhancer()
         # The color is set in setup_focus_indicators with blue values
         # Just verify the method exists
-        assert hasattr(enhancer, 'setup_focus_indicators')
+        assert hasattr(enhancer, "setup_focus_indicators")
 
     def test_keyboard_navigation_uses_tab_focus(self):
         """Test that keyboard navigation uses TabFocus policy."""
@@ -268,17 +268,17 @@ class TestAccessibilityKeyboardEvents:
         """Test that MessageCardAccessibility responds to Enter key."""
         accessibility = MessageCardAccessibility()
         # Verify keyPressEvent method exists
-        assert hasattr(accessibility, 'keyPressEvent')
+        assert hasattr(accessibility, "keyPressEvent")
 
     def test_message_modal_responds_to_escape_key(self):
         """Test that MessageModalAccessibility responds to Escape key."""
         accessibility = MessageModalAccessibility()
-        assert hasattr(accessibility, 'keyPressEvent')
+        assert hasattr(accessibility, "keyPressEvent")
 
     def test_notification_responds_to_escape_key(self):
         """Test that MessageNotificationAccessibility responds to Escape key."""
         accessibility = MessageNotificationAccessibility()
-        assert hasattr(accessibility, 'keyPressEvent')
+        assert hasattr(accessibility, "keyPressEvent")
 
     def test_enter_and_space_are_activation_keys(self):
         """Test that Enter and Space keys are used for activation."""
@@ -300,13 +300,13 @@ class TestAccessibilityIntegration:
             MessageModalAccessibility,
             MessageNotificationAccessibility,
         ]
-        
+
         required_methods = [
-            'get_accessible_name',
-            'get_accessible_description',
-            'get_screen_reader_text',
+            "get_accessible_name",
+            "get_accessible_description",
+            "get_screen_reader_text",
         ]
-        
+
         for cls in classes:
             instance = cls()
             for method in required_methods:
@@ -321,7 +321,7 @@ class TestAccessibilityIntegration:
             MessageModalAccessibility,
             MessageNotificationAccessibility,
         ]
-        
+
         for cls in classes:
             instance = cls()
             assert isinstance(instance.get_accessible_name(), str)
@@ -336,7 +336,7 @@ class TestAccessibilityIntegration:
             MessageModalAccessibility,
             MessageNotificationAccessibility,
         ]
-        
+
         for cls in classes:
             instance = cls()
             assert len(instance.get_accessible_name()) > 0

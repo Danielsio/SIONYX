@@ -121,6 +121,7 @@ class TestFloatingTimerUI:
         assert hasattr(floating_timer, "print_balance_label")
         assert isinstance(floating_timer.print_balance_label, QLabel)
 
+
 # =============================================================================
 # Test update_time
 # =============================================================================
@@ -300,6 +301,7 @@ class TestButtonSignals:
 
         assert len(signal_received) == 1
 
+
 # =============================================================================
 # Test style methods
 # =============================================================================
@@ -392,6 +394,7 @@ class TestInitialLabelValues:
     def test_exit_button_text(self, floating_timer):
         """Test exit button has Hebrew text"""
         assert "יציאה" in floating_timer.exit_button.text()
+
 
 # =============================================================================
 # Test mouse tracking

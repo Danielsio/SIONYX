@@ -113,7 +113,9 @@ class HomePage(QWidget):
         self.stats_container = QWidget()
         self.stats_container.setStyleSheet("background: transparent;")
         self.stats_layout = QGridLayout(self.stats_container)
-        self.stats_layout.setContentsMargins(Spacing.SM, Spacing.SM, Spacing.SM, Spacing.SM)
+        self.stats_layout.setContentsMargins(
+            Spacing.SM, Spacing.SM, Spacing.SM, Spacing.SM
+        )
         self.stats_layout.setHorizontalSpacing(Spacing.LG)
         self.stats_layout.setVerticalSpacing(Spacing.LG)
         layout.addWidget(self.stats_container)
@@ -161,9 +163,7 @@ class HomePage(QWidget):
         card.setMaximumWidth(920)
         card.setMinimumWidth(240)
         card.setMinimumHeight(110)
-        card.setSizePolicy(
-            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
-        )
+        card.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         card.setStyleSheet(
             f"""
             QFrame {{
@@ -322,9 +322,7 @@ class HomePage(QWidget):
     def _build_action_card(self) -> QFrame:
         """Build the main action card"""
         card = QFrame()
-        card.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-        )
+        card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         card.setMinimumHeight(180)
         card.setStyleSheet(
             f"""
@@ -386,9 +384,7 @@ class HomePage(QWidget):
         self.start_btn = ActionButton(UIStrings.START_SESSION, "primary", "xl")
         self.start_btn.setMinimumWidth(280)
         self.start_btn.clicked.connect(self.handle_start_session)
-        self.start_btn.setSizePolicy(
-            QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed
-        )
+        self.start_btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         layout.addWidget(
             self.start_btn,

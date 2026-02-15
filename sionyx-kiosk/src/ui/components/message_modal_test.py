@@ -516,7 +516,6 @@ class TestShowAnimated:
             modal = MessageModal(sample_messages, mock_chat_service)
             modal.show = Mock()
             modal.fade_animation.start = Mock()
-            original_move = modal.move
             move_called = []
             modal.move = lambda x, y: move_called.append((x, y))
 

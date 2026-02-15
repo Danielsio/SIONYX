@@ -21,10 +21,6 @@ class TestQuietHandler:
 
     def test_log_message_does_nothing(self):
         """Test log_message is silenced"""
-        # Create mock request and client_address
-        mock_request = Mock()
-        mock_server = Mock()
-
         # _QuietHandler should have log_message that does nothing
         handler = _QuietHandler.__new__(_QuietHandler)
         # Call log_message - should not raise

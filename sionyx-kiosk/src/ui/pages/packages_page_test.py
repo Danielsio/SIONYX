@@ -108,11 +108,15 @@ class TestPackagesPage:
                 "savings": round(savings, 2),
             }
 
-        with patch(
-            "ui.pages.packages_page.PackageService", return_value=mock_package_service
-        ), patch(
-            "ui.pages.packages_page.PackageService.calculate_final_price",
-            side_effect=mock_calculate_final_price,
+        with (
+            patch(
+                "ui.pages.packages_page.PackageService",
+                return_value=mock_package_service,
+            ),
+            patch(
+                "ui.pages.packages_page.PackageService.calculate_final_price",
+                side_effect=mock_calculate_final_price,
+            ),
         ):
             # Create page - note: load_packages is called in __init__ via QTimer
             page = PackagesPage(mock_auth_service)
@@ -516,7 +520,10 @@ class TestPackagesPage:
         # That timer doesn't fire in tests (no event loop processing), so only explicit calls count
         mock_service.get_all_packages.side_effect = [
             {"success": True, "data": []},  # First explicit call - empty
-            {"success": True, "data": MOCK_PACKAGES},  # Second explicit call - with data
+            {
+                "success": True,
+                "data": MOCK_PACKAGES,
+            },  # Second explicit call - with data
         ]
 
         def mock_calculate_final_price(package):
@@ -531,11 +538,12 @@ class TestPackagesPage:
                 "savings": round(savings, 2),
             }
 
-        with patch(
-            "ui.pages.packages_page.PackageService", return_value=mock_service
-        ), patch(
-            "ui.pages.packages_page.PackageService.calculate_final_price",
-            side_effect=mock_calculate_final_price,
+        with (
+            patch("ui.pages.packages_page.PackageService", return_value=mock_service),
+            patch(
+                "ui.pages.packages_page.PackageService.calculate_final_price",
+                side_effect=mock_calculate_final_price,
+            ),
         ):
             page = PackagesPage(mock_auth_service)
             page._fetch_packages()  # First explicit fetch - empty

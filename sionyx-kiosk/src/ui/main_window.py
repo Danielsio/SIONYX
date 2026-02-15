@@ -12,8 +12,8 @@ from PyQt6.QtWidgets import (
     QLabel,
     QMessageBox,
     QPushButton,
-    QStackedWidget,
     QSizePolicy,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -170,7 +170,9 @@ class MainWindow(BaseKioskWindow):
         sidebar.setObjectName("modernSidebar")
         sidebar.setMinimumWidth(int(Dimensions.SIDEBAR_WIDTH * 0.75))
         sidebar.setMaximumWidth(Dimensions.SIDEBAR_WIDTH + 40)
-        sidebar.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        sidebar.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding
+        )
 
         # Apply shadow using constants
         shadow_config = get_shadow("lg")
@@ -282,9 +284,7 @@ class MainWindow(BaseKioskWindow):
         # Use base component for logout button
         btn_logout = ActionButton(UIStrings.LOGOUT, "danger", "md")
         btn_logout.setObjectName("modernLogoutButton")
-        btn_logout.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
-        )
+        btn_logout.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn_logout.clicked.connect(self.handle_logout)
         bottom_layout.addWidget(btn_logout)
 

@@ -2,8 +2,7 @@
 Tests for session_manager.py - Session Manager
 """
 
-import time
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from PyQt6.QtCore import QObject
@@ -100,7 +99,7 @@ class TestStartSession:
 
     def test_start_session_creates_session_id(self, session_manager):
         """Test start_session creates a session ID"""
-        result = session_manager.start_session()
+        session_manager.start_session()
 
         assert session_manager.session_id is not None
         assert len(session_manager.session_id) > 0
@@ -232,7 +231,9 @@ class TestSyncSessionTime:
 
         assert len(signal_received) == 1
 
-    def test_sync_emits_sync_failed_when_get_data_fails(self, session_manager, mock_firebase):
+    def test_sync_emits_sync_failed_when_get_data_fails(
+        self, session_manager, mock_firebase
+    ):
         """Test sync emits sync_failed when user data fetch fails (BUG-007)"""
         session_manager.start_session()
 
