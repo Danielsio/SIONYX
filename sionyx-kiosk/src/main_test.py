@@ -397,9 +397,92 @@ class TestStartKioskServices:
         assert app.keyboard_restriction_service is None
 
 
-# NOTE: Tests for missing .env config scenarios are skipped because they require
-# complex mocking of Python's import system and Path operations that don't work
-# reliably in the test environment. The functionality is tested manually.
+class TestMissingEnvConfig:
+    """Tests for missing .env configuration in development mode."""
+
+    @pytest.fixture
+    def mock_dependencies(self):
+        """Set up mocks with .env file NOT found."""
+        patches = {}
+
+        patches["qapp"] = patch("main.QApplication")
+        mock_qapp = patches["qapp"].start()
+        mock_app = MagicMock()
+        mock_qapp.return_value = mock_app
+        mock_qapp.primaryScreen.return_value.geometry.return_value.center.return_value = (
+            MagicMock()
+        )
+
+        patches["auth_service"] = patch("main.AuthService")
+        patches["auth_service"].start()
+
+        patches["hotkey_service"] = patch("main.GlobalHotkeyService")
+        mock_hotkey = patches["hotkey_service"].start()
+        mock_hotkey.return_value.admin_exit_requested = MagicMock()
+
+        patches["keyboard_service"] = patch("main.KeyboardRestrictionService")
+        mock_keyboard = patches["keyboard_service"].start()
+        mock_keyboard.return_value.blocked_key_pressed = MagicMock()
+
+        patches["process_service"] = patch("main.ProcessRestrictionService")
+        mock_process = patches["process_service"].start()
+        mock_process.return_value.process_blocked = MagicMock()
+
+        patches["firebase_config"] = patch("main.get_firebase_config")
+        patches["firebase_config"].start()
+
+        patches["auth_window"] = patch("main.AuthWindow")
+        patches["auth_window"].start()
+
+        patches["main_window"] = patch("main.MainWindow")
+        patches["main_window"].start()
+
+        patches["icon_path"] = patch(
+            "ui.base_window.get_app_icon_path", return_value="icon.ico"
+        )
+        patches["icon_path"].start()
+
+        patches["qicon"] = patch("PyQt6.QtGui.QIcon")
+        patches["qicon"].start()
+
+        # .env file does NOT exist
+        patches["path_exists"] = patch("main.Path.exists", return_value=False)
+        patches["path_exists"].start()
+
+        # Mock QMessageBox so it doesn't show a real dialog
+        patches["qmessagebox"] = patch("main.QMessageBox")
+        patches["qmessagebox"].start()
+
+        # Ensure we're in dev mode (not frozen)
+        patches["frozen"] = patch.object(sys, "frozen", False, create=True)
+        patches["frozen"].start()
+
+        yield patches
+
+        for p in patches.values():
+            p.stop()
+
+    def test_missing_env_calls_sys_exit(self, mock_dependencies):
+        """Should call sys.exit(1) when .env file is missing in dev mode."""
+        with pytest.raises(SystemExit) as exc_info:
+            from main import SionyxApp
+            SionyxApp()
+
+        assert exc_info.value.code == 1
+
+    def test_missing_env_shows_error_dialog(self, mock_dependencies):
+        """Should show QMessageBox.critical when .env file is missing."""
+        from main import QMessageBox
+
+        try:
+            from main import SionyxApp
+            SionyxApp()
+        except SystemExit:
+            pass
+
+        QMessageBox.critical.assert_called_once()
+        call_args = QMessageBox.critical.call_args
+        assert "Configuration Missing" in str(call_args)
 
 
 class TestAppInitializationFailure:
@@ -468,6 +551,8 @@ class TestAppInitializationFailure:
             SionyxApp()
 
 
-# NOTE: Tests for handle_admin_exit scenarios are skipped because the method
-# imports PyQt widgets inline which makes them difficult to mock reliably.
-# The functionality is tested manually and covered by integration tests.
+# NOTE: Tests for handle_admin_exit are not feasible as unit tests because the
+# method mixes inline PyQt widget imports (QDialog, QVBoxLayout, etc.) with
+# module-level imports (QLineEdit, QMessageBox). This creates a patching conflict
+# that cannot be reliably resolved. The admin exit flow is covered by manual
+# testing and integration tests.
