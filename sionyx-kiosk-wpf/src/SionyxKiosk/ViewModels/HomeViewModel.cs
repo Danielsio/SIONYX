@@ -28,6 +28,18 @@ public partial class HomeViewModel : ObservableObject
 
         UpdateStats();
         _session.TimeUpdated += OnTimeUpdated;
+        _session.SessionEnded += reason => IsSessionActive = false;
+        _chat.MessagesReceived += msgs => UnreadMessages = msgs.Count;
+
+        // Load initial unread count
+        _ = LoadUnreadCountAsync();
+    }
+
+    private async Task LoadUnreadCountAsync()
+    {
+        var result = await _chat.GetUnreadMessagesAsync();
+        if (result.IsSuccess && result.Data is List<Dictionary<string, object?>> msgs)
+            UnreadMessages = msgs.Count;
     }
 
     [RelayCommand]

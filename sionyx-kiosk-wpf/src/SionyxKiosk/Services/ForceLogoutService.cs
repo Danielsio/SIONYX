@@ -28,7 +28,7 @@ public class ForceLogoutService
         _userId = userId;
         StopListening();
 
-        var path = $"force_logout/{userId}";
+        var path = $"users/{userId}/forceLogout";
         _listener = _firebase.DbListen(path, OnEvent);
         Log.Information("ForceLogoutService: listening on {Path}", path);
     }
@@ -55,7 +55,7 @@ public class ForceLogoutService
             ForceLogout?.Invoke(reason);
 
             // Clear the force-logout flag
-            _ = _firebase.DbDeleteAsync($"force_logout/{_userId}");
+            _ = _firebase.DbDeleteAsync($"users/{_userId}/forceLogout");
         }
         catch (Exception ex)
         {

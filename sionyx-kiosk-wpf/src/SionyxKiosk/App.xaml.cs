@@ -19,6 +19,7 @@ public partial class App : Application
 {
     private static Mutex? _singleInstanceMutex;
     private IHost? _host;
+    private bool _isKiosk;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -64,27 +65,49 @@ public partial class App : Application
             .ConfigureServices((_, services) =>
             {
                 // Infrastructure
-                services.AddSingleton<FirebaseClient>();
+                services.AddSingleton(_ => FirebaseConfig.Load());
+                services.AddSingleton(sp => new FirebaseClient(sp.GetRequiredService<FirebaseConfig>()));
+                services.AddSingleton(_ => new LocalDatabase());
                 // RegistryConfig is static, no DI needed
 
-                // Business Services
-                services.AddSingleton<AuthService>();
-                services.AddSingleton<ComputerService>();
-                services.AddSingleton<SessionService>();
-                services.AddSingleton<ChatService>();
-                services.AddSingleton<PackageService>();
-                services.AddSingleton<PurchaseService>();
-                services.AddSingleton<OrganizationMetadataService>();
-                services.AddSingleton<OperatingHoursService>();
-                services.AddSingleton<ForceLogoutService>();
+                // Business Services (singleton - no user-specific params)
+                services.AddSingleton(sp => new AuthService(
+                    sp.GetRequiredService<FirebaseClient>(),
+                    sp.GetRequiredService<LocalDatabase>()));
+                services.AddSingleton(sp => new ComputerService(sp.GetRequiredService<FirebaseClient>()));
+                services.AddSingleton(sp => new PackageService(sp.GetRequiredService<FirebaseClient>()));
+                services.AddSingleton(sp => new PurchaseService(sp.GetRequiredService<FirebaseClient>()));
+                services.AddSingleton(sp => new OrganizationMetadataService(sp.GetRequiredService<FirebaseClient>()));
+                services.AddSingleton(sp => new OperatingHoursService(sp.GetRequiredService<FirebaseClient>()));
+                services.AddSingleton(sp => new ForceLogoutService(sp.GetRequiredService<FirebaseClient>()));
+
+                // User-scoped services (created after login via factory)
+                services.AddSingleton(sp =>
+                {
+                    var fb = sp.GetRequiredService<FirebaseClient>();
+                    var auth = sp.GetRequiredService<AuthService>();
+                    var cfg = sp.GetRequiredService<FirebaseConfig>();
+                    return new SessionService(fb, auth.CurrentUser?.Uid ?? "", cfg.OrgId);
+                });
+                services.AddSingleton(sp =>
+                {
+                    var fb = sp.GetRequiredService<FirebaseClient>();
+                    var auth = sp.GetRequiredService<AuthService>();
+                    return new ChatService(fb, auth.CurrentUser?.Uid ?? "");
+                });
 
                 // System Services
-                services.AddSingleton<PrintMonitorService>();
-                services.AddSingleton<KeyboardRestrictionService>();
-                services.AddSingleton<GlobalHotkeyService>();
-                services.AddSingleton<ProcessRestrictionService>();
-                services.AddSingleton<ProcessCleanupService>();
-                services.AddSingleton<BrowserCleanupService>();
+                services.AddSingleton(sp =>
+                {
+                    var fb = sp.GetRequiredService<FirebaseClient>();
+                    var auth = sp.GetRequiredService<AuthService>();
+                    return new PrintMonitorService(fb, auth.CurrentUser?.Uid ?? "");
+                });
+                services.AddSingleton(_ => new KeyboardRestrictionService());
+                services.AddSingleton(_ => new GlobalHotkeyService());
+                services.AddSingleton(_ => new ProcessRestrictionService());
+                services.AddSingleton(_ => new ProcessCleanupService());
+                services.AddSingleton(_ => new BrowserCleanupService());
 
                 // ViewModels
                 services.AddTransient<AuthViewModel>();
@@ -109,14 +132,14 @@ public partial class App : Application
                     var auth = sp.GetRequiredService<AuthService>();
                     return new HistoryViewModel(purchase, auth.CurrentUser?.Uid ?? "");
                 });
-                services.AddTransient<HelpViewModel>();
+                services.AddTransient(sp => new HelpViewModel(sp.GetRequiredService<OrganizationMetadataService>()));
                 services.AddTransient<PaymentViewModel>(sp =>
                 {
                     var purchase = sp.GetRequiredService<PurchaseService>();
                     var auth = sp.GetRequiredService<AuthService>();
                     return new PaymentViewModel(purchase, auth.CurrentUser?.Uid ?? "");
                 });
-                services.AddTransient<MessageViewModel>();
+                services.AddTransient(sp => new MessageViewModel(sp.GetRequiredService<ChatService>()));
 
                 // Views
                 services.AddTransient<AuthWindow>();
@@ -135,7 +158,7 @@ public partial class App : Application
         await _host.StartAsync();
 
         // ── Start with Auth or Main ──────────────────────────────
-        var isKiosk = e.Args.Contains("--kiosk");
+        _isKiosk = e.Args.Contains("--kiosk");
         var isVerbose = e.Args.Contains("--verbose");
 
         if (isVerbose)
@@ -214,34 +237,88 @@ public partial class App : Application
         try
         {
             var auth = _host!.Services.GetRequiredService<AuthService>();
+            var userId = auth.CurrentUser?.Uid ?? "";
 
             // Force logout listener
             var forceLogout = _host.Services.GetRequiredService<ForceLogoutService>();
-            forceLogout.StartListening(auth.CurrentUser?.Uid ?? "");
+            forceLogout.StartListening(userId);
             forceLogout.ForceLogout += reason =>
             {
                 Log.Warning("Force logout received: {Reason}", reason);
                 Current.Dispatcher.Invoke(async () =>
                 {
+                    await StopSystemServicesAsync();
                     await auth.LogoutAsync();
                     MainWindow?.Close();
                     ShowAuthWindow();
                 });
             };
 
+            // Chat service — start SSE listener for messages
+            var chat = _host.Services.GetRequiredService<ChatService>();
+            chat.StartListening();
+
             // Operating hours monitoring
             var hours = _host.Services.GetRequiredService<OperatingHoursService>();
             hours.StartMonitoring();
 
-            // Process restriction
-            var procRestrict = _host.Services.GetRequiredService<ProcessRestrictionService>();
-            procRestrict.Start();
+            // Process restriction (always in kiosk mode)
+            if (_isKiosk)
+            {
+                var procRestrict = _host.Services.GetRequiredService<ProcessRestrictionService>();
+                procRestrict.Start();
 
-            Log.Information("System services started successfully");
+                var keyboard = _host.Services.GetRequiredService<KeyboardRestrictionService>();
+                keyboard.Start();
+            }
+
+            // Global hotkey (admin exit) — needs window handle from MainWindow
+            if (MainWindow != null)
+            {
+                var hwnd = new System.Windows.Interop.WindowInteropHelper(MainWindow).Handle;
+                if (hwnd != IntPtr.Zero)
+                {
+                    var hotkey = _host.Services.GetRequiredService<GlobalHotkeyService>();
+                    hotkey.Start(hwnd);
+                    hotkey.AdminExitRequested += () =>
+                    {
+                        Current.Dispatcher.Invoke(async () =>
+                        {
+                            await StopSystemServicesAsync();
+                            await auth.LogoutAsync();
+                            Shutdown();
+                        });
+                    };
+                }
+            }
+
+            Log.Information("System services started successfully (kiosk={IsKiosk})", _isKiosk);
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Error starting system services");
+        }
+    }
+
+    private async Task StopSystemServicesAsync()
+    {
+        try
+        {
+            _host?.Services.GetService<ChatService>()?.StopListening();
+            _host?.Services.GetService<ForceLogoutService>()?.StopListening();
+            _host?.Services.GetService<OperatingHoursService>()?.StopMonitoring();
+            _host?.Services.GetService<ProcessRestrictionService>()?.Stop();
+            _host?.Services.GetService<KeyboardRestrictionService>()?.Stop();
+            _host?.Services.GetService<GlobalHotkeyService>()?.Stop();
+            _host?.Services.GetService<PrintMonitorService>()?.StopMonitoring();
+
+            var session = _host?.Services.GetService<SessionService>();
+            if (session?.IsActive == true)
+                await session.EndSessionAsync("logout");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error stopping system services");
         }
     }
 
