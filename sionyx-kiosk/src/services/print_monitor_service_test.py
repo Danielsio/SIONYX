@@ -1,15 +1,16 @@
 """
-Tests for PrintMonitorService (Per-Job Interception, Multi-PC Safe)
+Tests for PrintMonitorService (Event-Driven, Multi-PC Safe)
 
 Tests cover:
 - Initialization and state
-- Start/stop monitoring lifecycle
-- Job detection via polling
+- Start/stop monitoring lifecycle (notifications + fallback polling)
+- Event-driven notification thread
+- Job detection (scan_for_new_jobs, shared by notifications + polling)
 - Cost calculation (pages × copies × price)
-- Budget management and caching
+- Budget management and caching (including debt)
 - Per-job pause/resume/cancel
 - Paused job handling (approve/deny)
-- Escaped job handling (retroactive charging)
+- Escaped job handling (retroactive charging with debt)
 - Job info extraction and spool waiting
 - Edge cases and error handling
 - Thread safety
@@ -22,6 +23,7 @@ import pytest
 from PyQt6.QtCore import QTimer
 
 from services.print_monitor_service import (
+    FALLBACK_POLL_MS,
     JOB_CONTROL_CANCEL,
     JOB_CONTROL_PAUSE,
     JOB_CONTROL_RESUME,
@@ -114,7 +116,11 @@ class TestStartStopMonitoring:
     def test_start_monitoring_success(self, print_monitor):
         with patch.object(print_monitor, "_load_pricing"):
             with patch.object(print_monitor, "_initialize_known_jobs"):
-                result = print_monitor.start_monitoring()
+                with patch(
+                    "services.print_monitor_service._HAS_NOTIFICATIONS",
+                    False,
+                ):
+                    result = print_monitor.start_monitoring()
 
         assert result["success"] is True
         assert print_monitor.is_monitoring() is True
@@ -125,22 +131,51 @@ class TestStartStopMonitoring:
         assert result["success"] is True
         assert result["message"] == "Already monitoring"
 
-    def test_start_monitoring_creates_250ms_timer(self, print_monitor):
+    def test_start_monitoring_creates_fallback_timer(self, print_monitor):
+        """Start creates a fallback polling timer (2s interval)"""
         with patch.object(print_monitor, "_load_pricing"):
             with patch.object(print_monitor, "_initialize_known_jobs"):
-                print_monitor.start_monitoring()
+                with patch(
+                    "services.print_monitor_service._HAS_NOTIFICATIONS",
+                    False,
+                ):
+                    print_monitor.start_monitoring()
 
         assert print_monitor._poll_timer is not None
         assert isinstance(print_monitor._poll_timer, QTimer)
+
+    def test_start_monitoring_starts_notification_thread(self, print_monitor):
+        """When notifications are available, starts the watcher thread"""
+        with patch.object(print_monitor, "_load_pricing"):
+            with patch.object(print_monitor, "_initialize_known_jobs"):
+                with patch(
+                    "services.print_monitor_service._HAS_NOTIFICATIONS",
+                    True,
+                ):
+                    with patch(
+                        "services.print_monitor_service.win32print",
+                        Mock(),
+                    ):
+                        result = print_monitor.start_monitoring()
+
+        assert result["success"] is True
+        assert print_monitor._notification_thread is not None
+        # Clean up: stop the thread
+        print_monitor._stop_event.set()
+        print_monitor._notification_thread.join(timeout=2.0)
 
     def test_start_monitoring_no_printer_pause(self, print_monitor):
         """Verify start_monitoring does NOT pause any printers"""
         with patch.object(print_monitor, "_load_pricing"):
             with patch.object(print_monitor, "_initialize_known_jobs"):
                 with patch(
-                    "services.print_monitor_service.win32print"
-                ) as mock_w32:
-                    print_monitor.start_monitoring()
+                    "services.print_monitor_service._HAS_NOTIFICATIONS",
+                    False,
+                ):
+                    with patch(
+                        "services.print_monitor_service.win32print"
+                    ) as mock_w32:
+                        print_monitor.start_monitoring()
 
         # SetPrinter (printer-level) should NEVER be called
         if hasattr(mock_w32, "SetPrinter"):
@@ -189,6 +224,15 @@ class TestStartStopMonitoring:
 
         mock_timer.stop.assert_called_once()
         assert print_monitor._poll_timer is None
+
+    def test_stop_monitoring_signals_thread_to_stop(self, print_monitor):
+        """Stop sets the stop event so notification thread exits"""
+        print_monitor._is_monitoring = True
+        print_monitor._poll_timer = Mock()
+
+        print_monitor.stop_monitoring()
+
+        assert print_monitor._stop_event.is_set()
 
     def test_stop_monitoring_no_printer_resume(self, print_monitor):
         """Verify stop_monitoring does NOT resume any printers"""
@@ -666,11 +710,11 @@ class TestError87:
 
 
 # =============================================================================
-# Polling Tests
+# Job Detection Tests (scan_for_new_jobs - shared by notifications + polling)
 # =============================================================================
 
 
-class TestPolling:
+class TestJobDetection:
 
     def test_initialize_known_jobs(self, print_monitor, mock_win32print):
         mock_win32print.EnumPrinters.return_value = [
@@ -694,13 +738,15 @@ class TestPolling:
             print_monitor._initialize_known_jobs()
         assert print_monitor._known_jobs == {}
 
-    def test_poll_not_monitoring(self, print_monitor):
+    def test_scan_not_monitoring(self, print_monitor):
+        """Scan exits early if not monitoring"""
         print_monitor._is_monitoring = False
         with patch.object(print_monitor, "_get_all_printers") as m:
-            print_monitor._poll_print_queues()
+            print_monitor._scan_for_new_jobs()
         m.assert_not_called()
 
-    def test_poll_detects_new_job(self, print_monitor, mock_win32print):
+    def test_scan_detects_new_job(self, print_monitor, mock_win32print):
+        """Scan detects a new job in the queue"""
         print_monitor._is_monitoring = True
         print_monitor._known_jobs = {"Printer1": {1, 2}}
 
@@ -720,13 +766,14 @@ class TestPolling:
             with patch.object(
                 print_monitor, "_handle_new_job"
             ) as mock_handle:
-                print_monitor._poll_print_queues()
+                print_monitor._scan_for_new_jobs()
 
         mock_handle.assert_called_once()
         assert mock_handle.call_args[0][0] == "Printer1"
         assert mock_handle.call_args[0][1]["JobId"] == 3
 
-    def test_poll_skips_processed(self, print_monitor, mock_win32print):
+    def test_scan_skips_processed(self, print_monitor, mock_win32print):
+        """Scan skips jobs already in _processed_jobs"""
         print_monitor._is_monitoring = True
         print_monitor._known_jobs = {"Printer1": set()}
         print_monitor._processed_jobs = {"Printer1:3"}
@@ -743,10 +790,11 @@ class TestPolling:
             with patch.object(
                 print_monitor, "_handle_new_job"
             ) as mock_handle:
-                print_monitor._poll_print_queues()
+                print_monitor._scan_for_new_jobs()
         mock_handle.assert_not_called()
 
-    def test_poll_cleans_processed(self, print_monitor, mock_win32print):
+    def test_scan_cleans_processed(self, print_monitor, mock_win32print):
+        """Scan removes processed entries for jobs no longer in queue"""
         print_monitor._is_monitoring = True
         print_monitor._known_jobs = {"Printer1": {1, 2}}
         print_monitor._processed_jobs = {"Printer1:1", "Printer1:2"}
@@ -760,19 +808,133 @@ class TestPolling:
         with patch(
             "services.print_monitor_service.win32print", mock_win32print
         ):
-            print_monitor._poll_print_queues()
+            print_monitor._scan_for_new_jobs()
 
         assert "Printer1:1" not in print_monitor._processed_jobs
         assert "Printer1:2" in print_monitor._processed_jobs
 
-    def test_poll_handles_exception(self, print_monitor):
+    def test_scan_handles_exception(self, print_monitor):
+        """Scan swallows exceptions gracefully"""
         print_monitor._is_monitoring = True
         with patch.object(
             print_monitor,
             "_get_all_printers",
             side_effect=Exception("Error"),
         ):
-            print_monitor._poll_print_queues()  # Should not raise
+            print_monitor._scan_for_new_jobs()  # Should not raise
+
+    def test_poll_delegates_to_scan(self, print_monitor):
+        """Fallback poll timer calls _scan_for_new_jobs"""
+        with patch.object(print_monitor, "_scan_for_new_jobs") as m:
+            print_monitor._poll_print_queues()
+        m.assert_called_once()
+
+
+# =============================================================================
+# Notification Thread Tests
+# =============================================================================
+
+
+class TestNotifications:
+    """Tests for the event-driven notification thread."""
+
+    def test_open_notification_handle_no_api(self, print_monitor):
+        """Returns None if notification API not available"""
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", False
+        ):
+            result = print_monitor._open_notification_handle()
+        assert result == (None, None)
+
+    def test_open_notification_handle_exception(self, print_monitor):
+        """Returns None on exception"""
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", True
+        ):
+            with patch(
+                "services.print_monitor_service._winspool"
+            ) as mock_ws:
+                mock_ws.OpenPrinterW.side_effect = Exception("Failed")
+                result = print_monitor._open_notification_handle()
+        assert result == (None, None)
+
+    def test_wait_for_notification_no_api(self, print_monitor):
+        """Returns False if notification API not available"""
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", False
+        ):
+            result = print_monitor._wait_for_notification(Mock(), 500)
+        assert result is False
+
+    def test_close_notification_handle_no_api(self, print_monitor):
+        """Does nothing if API not available"""
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", False
+        ):
+            # Should not raise
+            print_monitor._close_notification_handle(Mock(), Mock())
+
+    def test_notification_thread_exits_on_stop_event(self, print_monitor):
+        """Thread exits cleanly when stop event is set"""
+        print_monitor._stop_event.set()
+
+        with patch.object(
+            print_monitor,
+            "_open_notification_handle",
+            return_value=(Mock(), Mock()),
+        ):
+            with patch.object(
+                print_monitor,
+                "_wait_for_notification",
+                return_value=False,
+            ):
+                with patch.object(
+                    print_monitor, "_close_notification_handle"
+                ):
+                    # Should exit quickly because stop_event is set
+                    print_monitor._notification_thread_func()
+
+    def test_notification_thread_calls_scan_on_event(self, print_monitor):
+        """Thread calls _scan_for_new_jobs when notification fires"""
+        call_count = [0]
+
+        def mock_wait(hChange, timeout_ms):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                return True  # First call: event fired
+            print_monitor._stop_event.set()  # Second call: exit
+            return False
+
+        with patch.object(
+            print_monitor,
+            "_open_notification_handle",
+            return_value=(Mock(), Mock()),
+        ):
+            with patch.object(
+                print_monitor,
+                "_wait_for_notification",
+                side_effect=mock_wait,
+            ):
+                with patch.object(
+                    print_monitor, "_scan_for_new_jobs"
+                ) as mock_scan:
+                    with patch.object(
+                        print_monitor, "_close_notification_handle"
+                    ):
+                        print_monitor._notification_thread_func()
+
+        mock_scan.assert_called_once()
+
+    def test_notification_thread_fallback_on_bad_handle(self, print_monitor):
+        """Thread exits gracefully if handle creation fails"""
+        with patch.object(
+            print_monitor,
+            "_open_notification_handle",
+            return_value=(None, None),
+        ):
+            # Should exit without error
+            print_monitor._notification_thread_func()
+        assert print_monitor._using_notifications is False
 
 
 # =============================================================================
@@ -1251,12 +1413,12 @@ class TestEdgeCases:
 
         assert process_count[0] == 1
 
-    def test_poll_no_printers(self, print_monitor):
+    def test_scan_no_printers(self, print_monitor):
         print_monitor._is_monitoring = True
         with patch.object(
             print_monitor, "_get_all_printers", return_value=[]
         ):
-            print_monitor._poll_print_queues()  # Should not crash
+            print_monitor._scan_for_new_jobs()  # Should not crash
 
     def test_multiple_printers_independent(
         self, print_monitor, mock_win32print
@@ -1296,7 +1458,7 @@ class TestEdgeCases:
             with patch.object(
                 print_monitor, "_handle_new_job", side_effect=track_handle
             ):
-                print_monitor._poll_print_queues()
+                print_monitor._scan_for_new_jobs()
 
         # Should detect new job from each printer
         assert ("Printer1", 2) in handled_jobs
