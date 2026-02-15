@@ -1,0 +1,22 @@
+## .NET build artifacts
+bin/
+obj/
+*.user
+*.suo
+*.vs/
+.vs/
+*.DotSettings.user
+
+## NuGet
+packages/
+
+## Build output
+publish/
+dist/
+
+## IDE
+.idea/
+*.sln.iml
+
+## Logs
+logs/
