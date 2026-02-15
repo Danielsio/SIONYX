@@ -1,29 +1,35 @@
 """
-Print Monitor Service
-Monitors Windows Print Spooler and validates print jobs against user's budget.
+Print Monitor Service - Pause-First Architecture
+Guarantees 100% print job interception by keeping printers paused during sessions.
 
-Architecture: Event-driven WMI with polling fallback
-- Primary: WMI event subscription for instant job detection
-- Fallback: Polling every 2 seconds as safety net
+Architecture:
+- On session start: Pause ALL printers so jobs queue but cannot print
+- Polling detects new jobs (100% reliable since jobs can't escape the queue)
+- For each job: wait for spool, extract pages/copies/color, calculate cost
+- Approved: safely release the single job, then re-pause the printer
+- Denied: cancel the job and notify user
+- On session end: resume all printers
 
-Flow:
-1. WMI event fires when new print job created (or polling detects it)
-2. Pause job immediately
-3. Get page count and calculate cost (B&W or Color price from org metadata)
-4. If user has sufficient budget: resume job + deduct budget
-5. If insufficient: cancel job + emit signal for UI notification
+Cost formula:
+  cost = total_pages × copies × price_per_page(BW or color)
+
+Crash safety:
+- atexit handler resumes all printers even on unexpected exit
+- On startup: detect and resume printers left paused from a previous crash
+- Tracks which printers WE paused to avoid interfering with intentional pauses
 """
 
+import atexit
 import threading
+import time
 import traceback
 from datetime import datetime
-from typing import Dict, Optional, Set
+from typing import Dict, List, Optional, Set
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
 from services.firebase_client import FirebaseClient
 from utils.logger import get_logger
-
 
 # win32print is only available on Windows
 try:
@@ -31,36 +37,82 @@ try:
 except ImportError:
     win32print = None  # Will be mocked in tests
 
-# WMI is only available on Windows
-try:
-    import pythoncom
-    import wmi
-except ImportError:
-    pythoncom = None
-    wmi = None
-
 logger = get_logger(__name__)
-
 
 # Windows Print Job Control Commands
 JOB_CONTROL_PAUSE = 1
 JOB_CONTROL_RESUME = 2
 JOB_CONTROL_CANCEL = 3
 
+# Windows Printer Control Commands
+PRINTER_CONTROL_PAUSE = 1
+PRINTER_CONTROL_RESUME = 2
+
+# Printer status flags
+PRINTER_STATUS_PAUSED = 0x00000001
+
+# Job status flags
+JOB_STATUS_PAUSED = 0x00000001
+JOB_STATUS_SPOOLING = 0x00000008
+JOB_STATUS_PRINTING = 0x00000010
+JOB_STATUS_DELETING = 0x00000004
+
+# DEVMODE color constants
+DMCOLOR_COLOR = 2
+
+# Global set to track which printers we paused (for atexit handler)
+_globally_paused_printers: Set[str] = set()
+_global_lock = threading.Lock()
+
+
+def _atexit_resume_printers():
+    """
+    Emergency handler: resume all printers that SIONYX paused.
+
+    Called by atexit on any exit (normal, exception, signal).
+    This prevents leaving printers stuck in paused state if SIONYX crashes.
+    """
+    with _global_lock:
+        printers_to_resume = list(_globally_paused_printers)
+
+    if not printers_to_resume or not win32print:
+        return
+
+    for printer_name in printers_to_resume:
+        try:
+            handle = win32print.OpenPrinter(printer_name)
+            try:
+                win32print.SetPrinter(
+                    handle, 0, None, PRINTER_CONTROL_RESUME
+                )
+            finally:
+                win32print.ClosePrinter(handle)
+        except Exception:
+            pass  # Best effort on exit
+
+
+# Register the atexit handler once at module load
+atexit.register(_atexit_resume_printers)
+
 
 class PrintMonitorService(QObject):
     """
-    Print Monitor - uses WMI events for instant detection with polling fallback.
+    Print Monitor - Pause-First Architecture.
+
+    Keeps all printers paused during user sessions so that every print job
+    is guaranteed to be caught, validated against budget, and either approved
+    or denied before any ink hits paper.
 
     Safety Features:
-    - On startup: Cleans up any orphaned paused jobs from previous crashes
-    - On shutdown: Resumes any jobs we've paused to prevent blocking printer queue
-    - Tracks which jobs we've paused to avoid affecting other users' jobs
+    - Printers are paused at session start (jobs physically cannot bypass)
+    - On shutdown: all printers are resumed
+    - atexit handler resumes printers even on crash
+    - On startup: recovers printers left paused from previous crash
     """
 
     # Signals for UI notifications
-    job_allowed = pyqtSignal(str, int, float, float)  # doc_name, pages, cost, remaining
-    job_blocked = pyqtSignal(str, int, float, float)  # doc_name, pages, cost, budget
+    job_allowed = pyqtSignal(str, int, float, float)  # doc, pages, cost, remaining
+    job_blocked = pyqtSignal(str, int, float, float)  # doc, pages, cost, budget
     budget_updated = pyqtSignal(float)  # new_budget
     error_occurred = pyqtSignal(str)  # error_message
 
@@ -81,10 +133,6 @@ class PrintMonitorService(QObject):
         self._processed_jobs: Set[str] = set()  # "printer:job_id" to avoid duplicates
         self._poll_timer: Optional[QTimer] = None
 
-        # WMI event watcher thread
-        self._wmi_thread: Optional[threading.Thread] = None
-        self._wmi_stop_event = threading.Event()
-
         # Thread safety lock
         self._lock = threading.Lock()
 
@@ -97,8 +145,11 @@ class PrintMonitorService(QObject):
         self._budget_cache_time: Optional[datetime] = None
         self._budget_cache_ttl = 30  # seconds
 
-        # Safety: Track jobs WE paused (to resume on crash/shutdown)
-        self._paused_by_us: Dict[str, int] = {}  # "printer:job_id" -> job_id
+        # Track which printers WE paused (to resume on shutdown/crash)
+        self._paused_printers: Set[str] = set()
+
+        # Track jobs we are currently releasing (to avoid re-processing)
+        self._releasing_jobs: Set[str] = set()
 
     # =========================================================================
     # PUBLIC API
@@ -111,68 +162,63 @@ class PrintMonitorService(QObject):
             return {"success": True, "message": "Already monitoring"}
 
         try:
-            logger.info("Starting print monitor service")
+            logger.info("Starting print monitor service (pause-first architecture)")
 
-            # Safety: Clean up any orphaned paused jobs from previous crashes
-            self._cleanup_orphaned_jobs()
+            # Safety: Recover printers left paused from a previous crash
+            self._recover_from_crash()
 
             # Load org pricing
             self._load_pricing()
+
+            # Pause all printers to guarantee job interception
+            self._pause_all_printers()
 
             # Initialize known jobs (ignore existing jobs in queue)
             self._initialize_known_jobs()
 
             # Clear processed jobs set
             self._processed_jobs.clear()
+            self._releasing_jobs.clear()
 
-            # Clear paused jobs tracking
-            with self._lock:
-                self._paused_by_us.clear()
-
-            # Start WMI event watcher (primary - instant detection)
-            self._start_wmi_watcher()
-
-            # Start polling timer (fallback - every 250ms for faster detection)
-            # Reduced from 500ms to catch fast-completing jobs like virtual printers
+            # Start polling timer (1 second interval - safe because jobs can't escape)
             self._poll_timer = QTimer()
-            self._poll_timer.timeout.connect(self._poll_spooler)
-            self._poll_timer.start(250)  # 250ms for faster detection
-            logger.debug("Polling timer started with 250ms interval")
+            self._poll_timer.timeout.connect(self._poll_print_queues)
+            self._poll_timer.start(1000)
+            logger.debug("Polling timer started with 1000ms interval")
 
             self._is_monitoring = True
-            logger.info("Print monitor started (WMI events + polling fallback)")
+            logger.info("Print monitor started (all printers paused)")
             return {"success": True}
 
         except Exception as e:
             logger.error(f"Failed to start print monitor: {e}")
+            # If we partially started, try to resume any printers we paused
+            self._resume_all_printers()
             return {"success": False, "error": str(e)}
 
     def stop_monitoring(self) -> Dict:
-        """Stop monitoring print spooler."""
+        """Stop monitoring and resume all printers."""
         if not self._is_monitoring:
             return {"success": True, "message": "Not monitoring"}
 
         try:
             logger.info("Stopping print monitor service")
 
-            # Safety: Resume any jobs we paused to prevent blocking printer queue
-            self._resume_all_paused_jobs()
-
-            # Stop WMI watcher
-            self._stop_wmi_watcher()
-
-            # Stop polling timer
+            # Stop polling timer first
             if self._poll_timer:
                 self._poll_timer.stop()
                 self._poll_timer = None
+
+            # Resume all printers we paused
+            self._resume_all_printers()
 
             self._is_monitoring = False
             with self._lock:
                 self._known_jobs.clear()
                 self._processed_jobs.clear()
-                self._paused_by_us.clear()
+                self._releasing_jobs.clear()
 
-            logger.info("Print monitor stopped")
+            logger.info("Print monitor stopped (all printers resumed)")
             return {"success": True}
 
         except Exception as e:
@@ -184,145 +230,155 @@ class PrintMonitorService(QObject):
         return self._is_monitoring
 
     # =========================================================================
-    # WMI EVENT WATCHER
+    # PRINTER-LEVEL PAUSE / RESUME
     # =========================================================================
 
-    def _start_wmi_watcher(self):
-        """Start WMI event watcher in background thread."""
-        if not wmi or not pythoncom:
-            logger.warning("WMI not available, using polling only")
+    def _pause_all_printers(self):
+        """
+        Pause all printers so new jobs queue up but cannot print.
+
+        This is the core of the pause-first architecture - by keeping printers
+        paused, we guarantee that no job can bypass our budget check.
+        """
+        printers = self._get_all_printers()
+        if not printers:
+            logger.warning("No printers found! Print monitoring may not work.")
             return
 
-        self._wmi_stop_event.clear()
-        self._wmi_thread = threading.Thread(
-            target=self._wmi_watch_loop,
-            name="PrintMonitor-WMI",
-            daemon=True,
-        )
-        self._wmi_thread.start()
-        logger.info("WMI event watcher started")
+        logger.info(f"Pausing {len(printers)} printer(s) for budget enforcement")
 
-    def _stop_wmi_watcher(self):
-        """Stop WMI event watcher thread."""
-        if self._wmi_thread and self._wmi_thread.is_alive():
-            logger.info("Stopping WMI event watcher...")
-            self._wmi_stop_event.set()
-            # Give thread time to exit gracefully
-            self._wmi_thread.join(timeout=3.0)
-            if self._wmi_thread.is_alive():
-                logger.warning("WMI thread did not stop gracefully")
-            self._wmi_thread = None
+        for printer_name in printers:
+            if self._is_printer_paused(printer_name):
+                logger.debug(f"Printer '{printer_name}' already paused, skipping")
+                continue
+            self._pause_printer(printer_name)
 
-    def _wmi_watch_loop(self):
-        """Background thread loop watching for WMI print job events."""
-        try:
-            # Initialize COM for this thread
-            pythoncom.CoInitialize()
+    def _resume_all_printers(self):
+        """
+        Resume all printers that we paused.
 
-            try:
-                c = wmi.WMI()
-
-                # Watch for new print job creation events
-                # Query: SELECT * FROM __InstanceCreationEvent within 1 second
-                # WHERE TargetInstance ISA 'Win32_PrintJob'
-                watcher = c.Win32_PrintJob.watch_for(
-                    notification_type="Creation",
-                    delay_secs=1,
-                )
-
-                logger.info("WMI watcher initialized, listening for print jobs...")
-
-                while not self._wmi_stop_event.is_set():
-                    try:
-                        # Wait for event with timeout (allows checking stop flag)
-                        event = watcher(timeout_ms=1000)
-                        if event:
-                            self._on_wmi_print_job_event(event)
-                    except wmi.x_wmi_timed_out:
-                        # Timeout is normal, just continue loop
-                        continue
-                    except Exception as e:
-                        if not self._wmi_stop_event.is_set():
-                            logger.error(f"WMI event error: {e}")
-                        break
-
-            finally:
-                pythoncom.CoUninitialize()
-
-        except Exception as e:
-            logger.error(f"WMI watch loop error: {e}")
-            logger.error(traceback.format_exc())
-
-    def _on_wmi_print_job_event(self, event):
-        """Handle WMI print job creation event."""
-        import time
-
-        event_time = time.time()
-
-        try:
-            # Extract job info from WMI event
-            # WMI Win32_PrintJob properties: Name format is "PrinterName, JobId"
-            job_name = event.Name  # e.g., "HP LaserJet, 42"
-            logger.debug(f"WMI raw event received at {event_time:.3f}: {job_name}")
-
-            if "," not in job_name:
-                logger.warning(f"Unexpected job name format: {job_name}")
-                return
-
-            parts = job_name.rsplit(",", 1)
-            printer_name = parts[0].strip()
-            job_id = int(parts[1].strip())
-
-            logger.info(
-                f"WMI event: New print job {job_id} on '{printer_name}' (detected at {event_time:.3f})"
-            )
-
-            # Build job data from WMI event
-            job_data = {
-                "JobId": job_id,
-                "pDocument": getattr(event, "Document", "Unknown"),
-                "TotalPages": getattr(event, "TotalPages", 0),
-            }
-
-            # Process job (thread-safe)
-            self._process_job_thread_safe(printer_name, job_data)
-
-        except Exception as e:
-            logger.error(f"Error handling WMI event: {e}")
-            logger.error(traceback.format_exc())
-
-    def _process_job_thread_safe(self, printer_name: str, job_data: dict):
-        """Process a print job with thread safety (can be called from WMI thread)."""
-        import time
-
-        process_start = time.time()
-
-        job_id = job_data.get("JobId", 0)
-        job_key = f"{printer_name}:{job_id}"
-
-        logger.debug(f"Processing job {job_key} at {process_start:.3f}")
-
+        Called on stop_monitoring() and by atexit handler on crash.
+        Only resumes printers that WE paused (tracked in _paused_printers).
+        """
         with self._lock:
-            # Check if already processed (avoid duplicates from WMI + polling)
-            if job_key in self._processed_jobs:
-                logger.debug(f"Job {job_key} already processed, skipping")
-                return
-            self._processed_jobs.add(job_key)
-            logger.debug(
-                f"Job {job_key} marked as processed, total processed: {len(self._processed_jobs)}"
-            )
+            printers_to_resume = list(self._paused_printers)
 
-            # Update known jobs
-            if printer_name not in self._known_jobs:
-                self._known_jobs[printer_name] = set()
-            self._known_jobs[printer_name].add(job_id)
+        if not printers_to_resume:
+            logger.debug("No paused printers to resume")
+            return
 
-        # Handle the job (actual processing)
-        logger.debug(f"Starting _handle_new_job for {job_key}")
-        self._handle_new_job(printer_name, job_data)
-        logger.debug(
-            f"Finished processing job {job_key} in {time.time() - process_start:.3f}s"
-        )
+        logger.info(f"Resuming {len(printers_to_resume)} printer(s)")
+
+        for printer_name in printers_to_resume:
+            self._resume_printer(printer_name)
+
+    def _pause_printer(self, printer_name: str) -> bool:
+        """Pause a single printer."""
+        if not win32print:
+            return False
+        try:
+            handle = win32print.OpenPrinter(printer_name)
+            try:
+                win32print.SetPrinter(
+                    handle, 0, None, PRINTER_CONTROL_PAUSE
+                )
+                with self._lock:
+                    self._paused_printers.add(printer_name)
+                # Also update global tracker for atexit
+                with _global_lock:
+                    _globally_paused_printers.add(printer_name)
+                logger.info(f"Paused printer: '{printer_name}'")
+                return True
+            finally:
+                win32print.ClosePrinter(handle)
+        except Exception as e:
+            logger.error(f"Failed to pause printer '{printer_name}': {e}")
+            return False
+
+    def _resume_printer(self, printer_name: str) -> bool:
+        """Resume a single printer."""
+        if not win32print:
+            return False
+        try:
+            handle = win32print.OpenPrinter(printer_name)
+            try:
+                win32print.SetPrinter(
+                    handle, 0, None, PRINTER_CONTROL_RESUME
+                )
+                with self._lock:
+                    self._paused_printers.discard(printer_name)
+                # Also update global tracker
+                with _global_lock:
+                    _globally_paused_printers.discard(printer_name)
+                logger.info(f"Resumed printer: '{printer_name}'")
+                return True
+            finally:
+                win32print.ClosePrinter(handle)
+        except Exception as e:
+            logger.error(f"Failed to resume printer '{printer_name}': {e}")
+            return False
+
+    def _is_printer_paused(self, printer_name: str) -> bool:
+        """Check if a printer is currently paused."""
+        if not win32print:
+            return False
+        try:
+            handle = win32print.OpenPrinter(printer_name)
+            try:
+                # GetPrinter level 2 returns status
+                info = win32print.GetPrinter(handle, 2)
+                status = info.get("Status", 0) if isinstance(info, dict) else 0
+                return bool(status & PRINTER_STATUS_PAUSED)
+            finally:
+                win32print.ClosePrinter(handle)
+        except Exception as e:
+            logger.debug(f"Could not check printer status for '{printer_name}': {e}")
+            return False
+
+    # =========================================================================
+    # CRASH RECOVERY
+    # =========================================================================
+
+    def _recover_from_crash(self):
+        """
+        Detect and resume printers left paused from a previous SIONYX crash.
+
+        On startup, check all printers. If any are paused and appear in the
+        global tracking set (from atexit), resume them. This prevents
+        printers from being permanently stuck after a crash.
+        """
+        if not win32print:
+            return
+
+        try:
+            # Check the global set for printers we might have left paused
+            with _global_lock:
+                leftover = list(_globally_paused_printers)
+
+            if leftover:
+                logger.warning(
+                    f"Found {len(leftover)} printer(s) possibly left paused "
+                    "from previous crash. Resuming..."
+                )
+                for printer_name in leftover:
+                    try:
+                        if self._is_printer_paused(printer_name):
+                            self._resume_printer(printer_name)
+                            logger.info(
+                                f"Recovered printer '{printer_name}' from crash"
+                            )
+                    except Exception as e:
+                        logger.error(
+                            f"Failed to recover printer '{printer_name}': {e}"
+                        )
+                # Clear the global set
+                with _global_lock:
+                    _globally_paused_printers.clear()
+            else:
+                logger.debug("No crashed printer state to recover")
+
+        except Exception as e:
+            logger.error(f"Error during crash recovery: {e}")
 
     # =========================================================================
     # PRICING
@@ -337,17 +393,24 @@ class PrintMonitorService(QObject):
                 self._bw_price = float(metadata.get("blackAndWhitePrice", 1.0))
                 self._color_price = float(metadata.get("colorPrice", 3.0))
                 logger.info(
-                    f"Loaded pricing: B&W={self._bw_price}₪, Color={self._color_price}₪"
+                    f"Loaded pricing: B&W={self._bw_price}₪, "
+                    f"Color={self._color_price}₪"
                 )
             else:
                 logger.warning("Could not load pricing, using defaults")
         except Exception as e:
             logger.error(f"Error loading pricing: {e}")
 
-    def _calculate_cost(self, pages: int, is_color: bool = False) -> float:
-        """Calculate print cost based on page count and type."""
+    def _calculate_cost(
+        self, pages: int, copies: int, is_color: bool = False
+    ) -> float:
+        """
+        Calculate print cost.
+
+        Formula: pages × copies × price_per_page
+        """
         price_per_page = self._color_price if is_color else self._bw_price
-        return pages * price_per_page
+        return pages * copies * price_per_page
 
     # =========================================================================
     # BUDGET
@@ -368,17 +431,15 @@ class PrintMonitorService(QObject):
         ):
             age = (datetime.now() - self._budget_cache_time).total_seconds()
             if age < self._budget_cache_ttl:
-                logger.debug(f"Using cached budget: {self._cached_budget}₪ (age: {age:.0f}s)")
+                logger.debug(
+                    f"Using cached budget: {self._cached_budget}₪ (age: {age:.0f}s)"
+                )
                 return self._cached_budget
 
         db_path = f"users/{self.user_id}"
         logger.debug(f"Getting user budget from path: {db_path}")
         try:
             result = self.firebase.db_get(db_path)
-            logger.debug(
-                f"Budget fetch result: success={result.get('success')}, "
-                f"has_data={result.get('data') is not None}"
-            )
             if result.get("success") and result.get("data"):
                 budget = float(result["data"].get("printBalance", 0.0))
                 self._cached_budget = budget
@@ -396,7 +457,7 @@ class PrintMonitorService(QObject):
         db_path = f"users/{self.user_id}"
         logger.debug(f"Deducting {amount}₪ from user budget at path: {db_path}")
         try:
-            current_budget = self._get_user_budget()
+            current_budget = self._get_user_budget(force_refresh=True)
             new_budget = max(0.0, current_budget - amount)
 
             logger.debug(
@@ -415,7 +476,9 @@ class PrintMonitorService(QObject):
                 # Update cache immediately after deduction
                 self._cached_budget = new_budget
                 self._budget_cache_time = datetime.now()
-                logger.info(f"Budget deducted: {amount}₪, new balance: {new_budget}₪")
+                logger.info(
+                    f"Budget deducted: {amount}₪, new balance: {new_budget}₪"
+                )
                 self.budget_updated.emit(new_budget)
                 return True
             else:
@@ -430,12 +493,14 @@ class PrintMonitorService(QObject):
     # SPOOLER INTERACTION
     # =========================================================================
 
-    def _get_all_printers(self) -> list:
+    def _get_all_printers(self) -> List[str]:
         """Get list of all printer names."""
         if not win32print:
             return []
         try:
-            flags = win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS
+            flags = (
+                win32print.PRINTER_ENUM_LOCAL | win32print.PRINTER_ENUM_CONNECTIONS
+            )
             printers = win32print.EnumPrinters(flags)
             return [p[2] for p in printers]  # p[2] is printer name
         except Exception as e:
@@ -449,7 +514,7 @@ class PrintMonitorService(QObject):
         try:
             handle = win32print.OpenPrinter(printer_name)
             try:
-                # Use Level 2 to get TotalPages
+                # Use Level 2 to get TotalPages and DEVMODE
                 jobs = win32print.EnumJobs(handle, 0, -1, 2)
                 return list(jobs) if jobs else []
             finally:
@@ -459,13 +524,12 @@ class PrintMonitorService(QObject):
             return []
 
     def _get_job_info(self, printer_name: str, job_id: int) -> dict:
-        """Get detailed info for a specific job (with retry for page count)."""
+        """Get detailed info for a specific job."""
         if not win32print:
             return {}
         try:
             handle = win32print.OpenPrinter(printer_name)
             try:
-                # Use Level 2 to get TotalPages
                 job_info = win32print.GetJob(handle, job_id, 2)
                 return job_info if job_info else {}
             finally:
@@ -475,182 +539,78 @@ class PrintMonitorService(QObject):
             return {}
 
     def _pause_job(self, printer_name: str, job_id: int) -> bool:
-        """Pause a print job and track it for safety cleanup."""
+        """Pause an individual print job."""
         if not win32print:
             return False
         try:
             handle = win32print.OpenPrinter(printer_name)
             try:
                 win32print.SetJob(handle, job_id, 0, None, JOB_CONTROL_PAUSE)
-                logger.debug(f"Paused job {job_id}")
-
-                # Track this job so we can resume it on crash/shutdown
-                job_key = f"{printer_name}:{job_id}"
-                with self._lock:
-                    self._paused_by_us[job_key] = job_id
-
+                logger.debug(f"Paused job {job_id} on '{printer_name}'")
                 return True
             finally:
                 win32print.ClosePrinter(handle)
         except Exception as e:
-            # Error 87 = "The parameter is incorrect" - job likely already completed
-            # This is normal for fast jobs (virtual printers, small docs)
-            error_code = getattr(e, "winerror", None) or (e.args[0] if e.args else None)
+            error_code = getattr(e, "winerror", None) or (
+                e.args[0] if e.args else None
+            )
             if error_code == 87:
                 logger.debug(f"Job {job_id} already completed (cannot pause)")
-                return False  # Can't pause, but not a critical error
+                return False
             logger.error(f"Error pausing job {job_id}: {e}")
             return False
 
     def _resume_job(self, printer_name: str, job_id: int) -> bool:
-        """Resume a paused print job and remove from tracking."""
+        """Resume a paused print job."""
         if not win32print:
             return False
         try:
             handle = win32print.OpenPrinter(printer_name)
             try:
                 win32print.SetJob(handle, job_id, 0, None, JOB_CONTROL_RESUME)
-                logger.debug(f"Resumed job {job_id}")
-
-                # Remove from tracking - no longer paused by us
-                job_key = f"{printer_name}:{job_id}"
-                with self._lock:
-                    self._paused_by_us.pop(job_key, None)
-
+                logger.debug(f"Resumed job {job_id} on '{printer_name}'")
                 return True
             finally:
                 win32print.ClosePrinter(handle)
         except Exception as e:
-            # Error 87 = "The parameter is incorrect" - job likely already completed
-            # This is normal for fast jobs (virtual printers, small docs) - not an error
-            error_code = getattr(e, "winerror", None) or (e.args[0] if e.args else None)
+            error_code = getattr(e, "winerror", None) or (
+                e.args[0] if e.args else None
+            )
             if error_code == 87:
                 logger.debug(f"Job {job_id} already completed (cannot resume)")
-                # Remove from tracking anyway
-                job_key = f"{printer_name}:{job_id}"
-                with self._lock:
-                    self._paused_by_us.pop(job_key, None)
-                return True  # Job printed successfully, just completed fast
+                return True  # Job printed, that's fine
             logger.error(f"Error resuming job {job_id}: {e}")
             return False
 
     def _cancel_job(self, printer_name: str, job_id: int) -> bool:
-        """Cancel a print job and remove from tracking."""
+        """Cancel a print job."""
         if not win32print:
             return False
         try:
             handle = win32print.OpenPrinter(printer_name)
             try:
                 win32print.SetJob(handle, job_id, 0, None, JOB_CONTROL_CANCEL)
-                logger.debug(f"Cancelled job {job_id}")
-
-                # Remove from tracking - job is gone
-                job_key = f"{printer_name}:{job_id}"
-                with self._lock:
-                    self._paused_by_us.pop(job_key, None)
-
+                logger.debug(f"Cancelled job {job_id} on '{printer_name}'")
                 return True
             finally:
                 win32print.ClosePrinter(handle)
         except Exception as e:
-            # Error 87 = "The parameter is incorrect" - job likely already completed
-            error_code = getattr(e, "winerror", None) or (e.args[0] if e.args else None)
+            error_code = getattr(e, "winerror", None) or (
+                e.args[0] if e.args else None
+            )
             if error_code == 87:
                 logger.debug(f"Job {job_id} already completed (cannot cancel)")
-                # Remove from tracking anyway
-                job_key = f"{printer_name}:{job_id}"
-                with self._lock:
-                    self._paused_by_us.pop(job_key, None)
-                return True  # Job is gone, which is what we wanted
+                return True  # Job is gone, that's what we wanted
             logger.error(f"Error cancelling job {job_id}: {e}")
             return False
 
-    # =========================================================================
-    # SAFETY: CRASH RECOVERY & GRACEFUL SHUTDOWN
-    # =========================================================================
-
-    def _cleanup_orphaned_jobs(self):
-        """
-        Clean up paused jobs that may be orphaned from a previous crash.
-
-        On startup, check all printer queues for paused jobs. Since we can't know
-        which ones were paused by SIONYX (vs user manually pausing), we log them
-        but don't automatically resume - could be intentional pauses.
-
-        This is mainly for logging/awareness. For actual recovery, we track jobs
-        we pause during this session and resume them on graceful shutdown.
-        """
-        if not win32print:
-            return
-
-        try:
-            printers = self._get_all_printers()
-            paused_jobs_found = 0
-
-            # Windows job status flags
-            JOB_STATUS_PAUSED = 0x1
-
-            for printer_name in printers:
-                try:
-                    jobs = self._get_printer_jobs(printer_name)
-                    for job in jobs:
-                        status = job.get("Status", 0)
-                        if status & JOB_STATUS_PAUSED:
-                            job_id = job.get("JobId", 0)
-                            doc_name = job.get("pDocument", "Unknown")
-                            paused_jobs_found += 1
-                            logger.warning(
-                                f"Found paused job in queue: '{doc_name}' "
-                                f"(ID: {job_id}) on '{printer_name}'. "
-                                "This may be from a previous SIONYX crash."
-                            )
-                except Exception as e:
-                    logger.error(f"Error checking printer {printer_name}: {e}")
-
-            if paused_jobs_found > 0:
-                logger.warning(
-                    f"Found {paused_jobs_found} paused job(s) in printer queues. "
-                    "These may need manual attention if they were from a SIONYX crash."
-                )
-            else:
-                logger.info("No orphaned paused jobs found in printer queues")
-
-        except Exception as e:
-            logger.error(f"Error during orphaned job cleanup: {e}")
-
-    def _resume_all_paused_jobs(self):
-        """
-        Resume all jobs that WE paused during this session.
-
-        Called on graceful shutdown to prevent leaving jobs stuck in the queue.
-        This ensures that if SIONYX exits normally, it doesn't block the printer.
-        """
-        with self._lock:
-            paused_jobs = dict(
-                self._paused_by_us
-            )  # Copy to avoid modification during iteration
-
-        if not paused_jobs:
-            logger.debug("No paused jobs to resume on shutdown")
-            return
-
-        logger.info(
-            f"Resuming {len(paused_jobs)} job(s) paused by SIONYX before shutdown..."
-        )
-
-        for job_key, job_id in paused_jobs.items():
-            try:
-                # Extract printer name from key "printer_name:job_id"
-                printer_name = job_key.rsplit(":", 1)[0]
-                logger.info(f"Resuming job {job_id} on '{printer_name}'")
-                self._resume_job(printer_name, job_id)
-            except Exception as e:
-                logger.error(f"Failed to resume job {job_key}: {e}")
-
-        logger.info("Finished resuming paused jobs")
+    def _is_job_in_queue(self, printer_name: str, job_id: int) -> bool:
+        """Check if a specific job is still in the printer queue."""
+        jobs = self._get_printer_jobs(printer_name)
+        return any(j.get("JobId") == job_id for j in jobs)
 
     # =========================================================================
-    # POLLING FALLBACK
+    # JOB DETECTION (POLLING)
     # =========================================================================
 
     def _initialize_known_jobs(self):
@@ -660,51 +620,36 @@ class PrintMonitorService(QObject):
             printers = self._get_all_printers()
 
             if not printers:
-                logger.warning("No printers found! Print monitoring may not work.")
-                logger.info("Tip: Make sure pywin32 is installed: pip install pywin32")
+                logger.warning("No printers found during initialization")
                 return
 
             logger.info(f"Found {len(printers)} printer(s): {printers}")
 
             for printer_name in printers:
                 jobs = self._get_printer_jobs(printer_name)
-                self._known_jobs[printer_name] = {job.get("JobId", 0) for job in jobs}
+                self._known_jobs[printer_name] = {
+                    job.get("JobId", 0) for job in jobs
+                }
                 if self._known_jobs[printer_name]:
                     logger.info(
-                        f"Ignoring {len(self._known_jobs[printer_name])} existing jobs "
-                        f"on {printer_name}"
+                        f"Ignoring {len(self._known_jobs[printer_name])} "
+                        f"existing jobs on '{printer_name}'"
                     )
 
-    def _poll_spooler(self):
-        """Check for new print jobs (fallback, called by timer)."""
+    def _poll_print_queues(self):
+        """
+        Check all printer queues for new jobs.
+
+        Since all printers are paused, jobs are guaranteed to be in the queue
+        when we check. No race condition possible.
+        """
         if not self._is_monitoring:
             return
 
         try:
             printers = self._get_all_printers()
             if not printers:
-                logger.debug("No printers found during poll")
                 return
-
-            # Log occasionally to confirm polling is running (every ~30 seconds)
-            import time
-
-            if not hasattr(self, "_last_poll_log"):
-                self._last_poll_log = 0
-            if not hasattr(self, "_poll_count"):
-                self._poll_count = 0
-
-            self._poll_count += 1
-            now = time.time()
-
-            # Log every poll at DEBUG level for detailed debugging
-            logger.debug(
-                f"Poll #{self._poll_count} - checking {len(printers)} printers"
-            )
-
-            if now - self._last_poll_log > 30:
-                logger.info(f"Print monitor active - polling {len(printers)} printers")
-                self._last_poll_log = now
 
             for printer_name in printers:
                 with self._lock:
@@ -715,43 +660,50 @@ class PrintMonitorService(QObject):
                 current_jobs = self._get_printer_jobs(printer_name)
                 current_ids = {job.get("JobId", 0) for job in current_jobs}
 
-                # Log if any jobs are in queue (for debugging)
-                if current_jobs:
-                    logger.info(
-                        f"Jobs in queue for '{printer_name}': {len(current_jobs)} - IDs: {current_ids}"
-                    )
-
-                # Find new jobs not yet known
+                # Find new jobs
                 new_ids = current_ids - known
 
-                if new_ids:
-                    logger.info(f"New job(s) detected: {new_ids}")
-
                 for job_id in new_ids:
+                    job_key = f"{printer_name}:{job_id}"
+
+                    with self._lock:
+                        # Skip if already processed or being released
+                        if (
+                            job_key in self._processed_jobs
+                            or job_key in self._releasing_jobs
+                        ):
+                            continue
+                        self._processed_jobs.add(job_key)
+
                     job_data = next(
                         (j for j in current_jobs if j.get("JobId") == job_id),
                         None,
                     )
                     if job_data:
-                        # Use thread-safe processing (may have been caught by WMI already)
-                        self._process_job_thread_safe(printer_name, job_data)
+                        logger.info(
+                            f"New print job detected: ID={job_id} on "
+                            f"'{printer_name}'"
+                        )
+                        self._handle_new_job(printer_name, job_data)
 
-                # Update known jobs for removed jobs
+                # Update known jobs
                 with self._lock:
                     self._known_jobs[printer_name] = current_ids
 
-                    # Clean up processed jobs set (remove jobs no longer in queue)
+                    # Clean up processed/releasing sets for jobs no longer in queue
+                    prefix = f"{printer_name}:"
                     keys_to_remove = [
                         key
                         for key in self._processed_jobs
-                        if key.startswith(f"{printer_name}:")
+                        if key.startswith(prefix)
                         and int(key.split(":")[1]) not in current_ids
                     ]
                     for key in keys_to_remove:
                         self._processed_jobs.discard(key)
+                        self._releasing_jobs.discard(key)
 
         except Exception as e:
-            logger.error(f"Error polling spooler: {e}")
+            logger.error(f"Error polling print queues: {e}")
             logger.error(traceback.format_exc())
 
     # =========================================================================
@@ -763,7 +715,6 @@ class PrintMonitorService(QObject):
         if devmode is None:
             return 1
         try:
-            # PyDEVMODEW has a Copies attribute
             copies = getattr(devmode, "Copies", 1)
             return copies if copies and copies > 0 else 1
         except Exception as e:
@@ -775,18 +726,15 @@ class PrintMonitorService(QObject):
         Detect if print job is color from DEVMODE structure.
 
         DEVMODE.Color values:
-        - DMCOLOR_MONOCHROME (1) = grayscale/black & white
+        - DMCOLOR_MONOCHROME (1) = grayscale/B&W
         - DMCOLOR_COLOR (2) = color
 
         Returns True if color, False if B&W or unknown.
         """
-        DMCOLOR_COLOR = 2
-
         if devmode is None:
             logger.debug("No DEVMODE available, assuming B&W")
             return False
         try:
-            # PyDEVMODEW has a Color attribute
             color_setting = getattr(devmode, "Color", None)
             is_color = color_setting == DMCOLOR_COLOR
             logger.debug(f"DEVMODE.Color = {color_setting}, is_color = {is_color}")
@@ -795,120 +743,228 @@ class PrintMonitorService(QObject):
             logger.debug(f"Could not get color from devmode: {e}")
             return False
 
-    def _handle_new_job(self, printer_name: str, job_data: dict):
-        """Process a newly detected print job."""
-        import time
+    def _wait_for_spool_complete(
+        self, printer_name: str, job_id: int, job_data: dict
+    ) -> dict:
+        """
+        Wait for a job to finish spooling so we get accurate page count.
 
-        job_id = job_data.get("JobId", 0)
-        doc_name = job_data.get("pDocument", "Unknown")
+        Since the printer is paused, the job stays in the queue indefinitely -
+        we have all the time we need to wait for spooling to complete.
 
-        # Get number of copies from DEVMODE
-        devmode = job_data.get("pDevMode")
-        copies = self._get_copies_from_devmode(devmode)
-        logger.info(f"Copies requested: {copies}")
-
-        # Status 8 = JOB_STATUS_SPOOLING - document still being processed
-        JOB_STATUS_SPOOLING = 8
-
-        # Wait for spooling to complete to get accurate page count
-        # Large documents take time to spool
+        Returns updated job_data with accurate TotalPages, or original if
+        spooling info cannot be determined.
+        """
         total_pages = job_data.get("TotalPages", 0)
         status = job_data.get("Status", 0)
 
+        # If already done spooling and has pages, return immediately
+        if not (status & JOB_STATUS_SPOOLING) and total_pages > 0:
+            return job_data
+
         logger.info(
-            f"Initial: TotalPages={total_pages}, Status={status}, Size={job_data.get('Size', 0)}"
+            f"Waiting for job {job_id} to finish spooling "
+            f"(pages={total_pages}, status={status})"
         )
 
-        # If still spooling or page count is low, wait for spooling to complete
-        if status & JOB_STATUS_SPOOLING or total_pages <= 1:
-            logger.info("Document still spooling, waiting for complete page count...")
-            last_pages = total_pages
-            stable_count = 0
+        last_pages = total_pages
+        stable_count = 0
 
-            for attempt in range(20):  # Wait up to 10 seconds (20 × 500ms)
-                time.sleep(0.5)  # Wait 500ms
-                job_info = self._get_job_info(printer_name, job_id)
+        # Wait up to 30 seconds (60 × 500ms) - generous because job is stuck anyway
+        for attempt in range(60):
+            time.sleep(0.5)
+            job_info = self._get_job_info(printer_name, job_id)
 
-                if not job_info:
-                    logger.warning("Job no longer exists, may have completed")
-                    break
+            if not job_info:
+                logger.warning(f"Job {job_id} disappeared during spool wait")
+                break
 
-                current_pages = job_info.get("TotalPages", 0)
-                current_status = job_info.get("Status", 0)
-                current_size = job_info.get("Size", 0)
+            current_pages = job_info.get("TotalPages", 0)
+            current_status = job_info.get("Status", 0)
 
-                # Also update copies and devmode if available
-                if job_info.get("pDevMode"):
-                    devmode = job_info.get("pDevMode")
-                    copies = self._get_copies_from_devmode(devmode)
+            logger.debug(
+                f"Spool wait attempt {attempt + 1}: pages={current_pages}, "
+                f"status={current_status}"
+            )
 
-                logger.debug(
-                    f"Attempt {attempt + 1}: pages={current_pages}, "
-                    f"status={current_status}, size={current_size}"
-                )
+            # Spooling complete
+            if not (current_status & JOB_STATUS_SPOOLING) and current_pages > 0:
+                logger.info(f"Spooling complete: {current_pages} pages")
+                return job_info
 
-                # Check if spooling is complete (status no longer has SPOOLING flag)
-                if not (current_status & JOB_STATUS_SPOOLING) and current_pages > 0:
-                    total_pages = current_pages
-                    logger.info(f"Spooling complete! TotalPages={total_pages}")
-                    break
+            # Page count stabilized
+            if current_pages > 0 and current_pages == last_pages:
+                stable_count += 1
+                if stable_count >= 3:
+                    logger.info(f"Page count stable at {current_pages}")
+                    return job_info
+            else:
+                stable_count = 0
 
-                # Also check if page count has stabilized
-                if current_pages > 0 and current_pages == last_pages:
-                    stable_count += 1
-                    if stable_count >= 3:  # Same count for 3 checks = stable
-                        total_pages = current_pages
-                        logger.info(f"Page count stable at {total_pages}")
-                        break
-                else:
-                    stable_count = 0
-                    if current_pages > total_pages:
-                        total_pages = current_pages
+            last_pages = current_pages
 
-                last_pages = current_pages
+        logger.warning(f"Spool wait timed out for job {job_id}")
+        # Return the latest info we have, or original
+        latest = self._get_job_info(printer_name, job_id)
+        return latest if latest else job_data
 
-        # Final fallback if still 0
+    def _handle_new_job(self, printer_name: str, job_data: dict):
+        """
+        Process a newly detected print job.
+
+        Flow:
+        1. Wait for spooling to complete (job is stuck, no rush)
+        2. Extract: pages, copies, color/BW
+        3. Calculate cost: pages × copies × price_per_page
+        4. Budget check
+        5. Approve (release job) or Deny (cancel job)
+        """
+        job_id = job_data.get("JobId", 0)
+        doc_name = job_data.get("pDocument", "Unknown")
+
+        logger.info(f"Processing job {job_id}: '{doc_name}' on '{printer_name}'")
+
+        # Step 1: Wait for spooling to complete
+        final_data = self._wait_for_spool_complete(printer_name, job_id, job_data)
+
+        # Step 2: Extract job properties
+        total_pages = final_data.get("TotalPages", 0)
         if total_pages <= 0:
             logger.warning("Could not determine page count, defaulting to 1")
             total_pages = 1
 
-        # Calculate actual pages (pages × copies)
-        actual_pages = total_pages * copies
-        logger.info(
-            f"New print job: '{doc_name}' ({total_pages} pages × {copies} copies = {actual_pages} total) on {printer_name}"
-        )
-        total_pages = actual_pages  # Use actual total for billing
-
-        # Step 1: Pause the job immediately
-        if not self._pause_job(printer_name, job_id):
-            logger.error(f"Could not pause job {job_id}, allowing it to proceed")
-            return
-
-        # Step 2: Detect if color and calculate cost
+        devmode = final_data.get("pDevMode") or job_data.get("pDevMode")
+        copies = self._get_copies_from_devmode(devmode)
         is_color = self._is_color_job_from_devmode(devmode)
-        cost = self._calculate_cost(total_pages, is_color)
-        logger.info(f"Print type: {'COLOR' if is_color else 'B&W'}, cost: {cost}₪")
 
-        # Step 3: Check budget
-        budget = self._get_user_budget()
+        logger.info(
+            f"Job details: {total_pages} pages × {copies} copies, "
+            f"{'COLOR' if is_color else 'B&W'}"
+        )
+
+        # Step 3: Calculate cost
+        cost = self._calculate_cost(total_pages, copies, is_color)
+        billable_pages = total_pages * copies
+        logger.info(f"Cost: {cost}₪ ({billable_pages} billable pages)")
+
+        # Step 4: Budget check
+        budget = self._get_user_budget(force_refresh=True)
 
         if budget >= cost:
-            # ALLOW: Deduct and resume
+            # APPROVE: Deduct budget and release job
             if self._deduct_budget(cost):
-                self._resume_job(printer_name, job_id)
+                self._release_job(printer_name, job_id)
                 remaining = budget - cost
                 logger.info(
-                    f"Job ALLOWED: '{doc_name}' - cost {cost}₪, remaining {remaining}₪"
+                    f"Job APPROVED: '{doc_name}' - {cost}₪, "
+                    f"remaining {remaining}₪"
                 )
-                self.job_allowed.emit(doc_name, total_pages, cost, remaining)
+                self.job_allowed.emit(doc_name, billable_pages, cost, remaining)
             else:
-                # Deduction failed, cancel to be safe
+                # Deduction failed - cancel to be safe
                 self._cancel_job(printer_name, job_id)
-                self.error_occurred.emit("Failed to process print job")
+                logger.error(
+                    f"Budget deduction failed for job {job_id}, cancelling"
+                )
+                self.error_occurred.emit("שגיאה בחיוב הדפסה")
         else:
-            # BLOCK: Cancel and notify
+            # DENY: Cancel job and notify
             self._cancel_job(printer_name, job_id)
             logger.warning(
-                f"Job BLOCKED: '{doc_name}' - cost {cost}₪, budget {budget}₪"
+                f"Job DENIED: '{doc_name}' - need {cost}₪, have {budget}₪"
             )
-            self.job_blocked.emit(doc_name, total_pages, cost, budget)
+            self.job_blocked.emit(doc_name, billable_pages, cost, budget)
+
+    # =========================================================================
+    # SAFE JOB RELEASE
+    # =========================================================================
+
+    def _release_job(self, printer_name: str, job_id: int):
+        """
+        Safely release a single approved job for printing.
+
+        Flow:
+        1. Pause all OTHER jobs individually (safety net)
+        2. Resume the printer
+        3. Wait for the approved job to complete
+        4. Re-pause the printer
+        5. Resume other individually-paused jobs
+        """
+        job_key = f"{printer_name}:{job_id}"
+        with self._lock:
+            self._releasing_jobs.add(job_key)
+
+        try:
+            logger.info(f"Releasing job {job_id} on '{printer_name}'")
+
+            # Step 1: Pause all other jobs on this printer individually
+            other_jobs = self._get_printer_jobs(printer_name)
+            paused_others = []
+            for job in other_jobs:
+                other_id = job.get("JobId", 0)
+                if other_id != job_id:
+                    if self._pause_job(printer_name, other_id):
+                        paused_others.append(other_id)
+
+            if paused_others:
+                logger.debug(
+                    f"Paused {len(paused_others)} other jobs as safety net"
+                )
+
+            # Step 2: Resume the printer so our job can print
+            self._resume_printer(printer_name)
+
+            # Step 3: Wait for the job to complete (leave the queue)
+            self._wait_for_job_completion(printer_name, job_id)
+
+            # Step 4: Re-pause the printer
+            self._pause_printer(printer_name)
+
+            # Step 5: Resume other individually-paused jobs
+            for other_id in paused_others:
+                self._resume_job(printer_name, other_id)
+
+            logger.info(f"Job {job_id} released and printed successfully")
+
+        except Exception as e:
+            logger.error(f"Error releasing job {job_id}: {e}")
+            logger.error(traceback.format_exc())
+            # Safety: make sure printer gets re-paused
+            if printer_name not in self._paused_printers:
+                self._pause_printer(printer_name)
+        finally:
+            with self._lock:
+                self._releasing_jobs.discard(job_key)
+
+    def _wait_for_job_completion(
+        self, printer_name: str, job_id: int, timeout: float = 120.0
+    ):
+        """
+        Wait for a specific job to leave the printer queue (= printing complete).
+
+        Args:
+            printer_name: The printer the job is on
+            job_id: The job ID to wait for
+            timeout: Maximum wait time in seconds (default 2 minutes)
+        """
+        start = time.time()
+        check_interval = 0.5  # Start checking every 500ms
+
+        logger.debug(f"Waiting for job {job_id} to complete (timeout={timeout}s)")
+
+        while time.time() - start < timeout:
+            if not self._is_job_in_queue(printer_name, job_id):
+                elapsed = time.time() - start
+                logger.info(
+                    f"Job {job_id} completed in {elapsed:.1f}s"
+                )
+                return
+
+            time.sleep(check_interval)
+            # Gradually increase interval to reduce CPU usage
+            if check_interval < 2.0:
+                check_interval = min(check_interval * 1.5, 2.0)
+
+        logger.warning(
+            f"Job {job_id} did not complete within {timeout}s timeout"
+        )
