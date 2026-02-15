@@ -50,6 +50,7 @@ const ComputersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [actionLoading, setActionLoading] = useState({});
   
   const user = useAuthStore(state => state.user);
   
@@ -94,6 +95,8 @@ const ComputersPage = () => {
       okText: 'כן, התנתק',
       cancelText: 'ביטול',
       onOk: async () => {
+        const key = `logout-${userId}`;
+        setActionLoading(prev => ({ ...prev, [key]: true }));
         try {
           const result = await forceLogoutUser(userId, computerId);
           if (result.success) {
@@ -104,6 +107,8 @@ const ComputersPage = () => {
           }
         } catch (err) {
           message.error('שגיאה בהתנתקות המשתמש: ' + err.message);
+        } finally {
+          setActionLoading(prev => ({ ...prev, [key]: false }));
         }
       },
     });
@@ -117,6 +122,8 @@ const ComputersPage = () => {
       cancelText: 'ביטול',
       okType: 'danger',
       onOk: async () => {
+        const key = `delete-${computerId}`;
+        setActionLoading(prev => ({ ...prev, [key]: true }));
         try {
           const result = await deleteComputer(computerId);
           if (result.success) {
@@ -127,6 +134,8 @@ const ComputersPage = () => {
           }
         } catch (err) {
           message.error('שגיאה במחיקת המחשב: ' + err.message);
+        } finally {
+          setActionLoading(prev => ({ ...prev, [key]: false }));
         }
       },
     });
@@ -216,6 +225,7 @@ const ComputersPage = () => {
                 danger
                 size="small"
                 icon={<LogoutOutlined />}
+                loading={actionLoading[`logout-${user.userId}`]}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleForceLogout(user.userId, user.computerId);
@@ -320,6 +330,7 @@ const ComputersPage = () => {
                     danger
                     size="small"
                     icon={<LogoutOutlined />}
+                    loading={actionLoading[`logout-${computer.currentUserId}`]}
                     onClick={() => handleForceLogout(computer.currentUserId, computer.computerId)}
                     style={{ padding: 0, height: 'auto' }}
                   >
@@ -336,6 +347,7 @@ const ComputersPage = () => {
                 danger
                 size="small"
                 icon={<DeleteOutlined />}
+                loading={actionLoading[`delete-${computer.computerId}`]}
                 onClick={() => handleDeleteComputer(computer.computerId)}
               />
             </Space>
@@ -383,6 +395,7 @@ const ComputersPage = () => {
               danger
               size="small"
               icon={<DeleteOutlined />}
+              loading={actionLoading[`delete-${computerId}`]}
               onClick={() => handleDeleteComputer(computerId)}
             />
           </Col>
