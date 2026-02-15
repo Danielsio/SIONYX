@@ -24,4 +24,3 @@ keyboard
 
 # Windows Print Monitoring (Windows only)
 pywin32
-WMI
