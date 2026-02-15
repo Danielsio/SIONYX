@@ -3,17 +3,22 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:controls="clr-namespace:SionyxKiosk.Views.Controls"
       Title="דף הבית" FlowDirection="RightToLeft">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Page.Resources>
+
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
         <StackPanel Margin="0,0,0,32">
 
-            <!-- Page header -->
-            <controls:PageHeader Title="דף הבית" Subtitle="ברוך הבא!" Margin="0,0,0,24" />
+            <!-- Page header with personalized greeting -->
+            <controls:PageHeader Title="דף הבית" Subtitle="{Binding WelcomeMessage}" Margin="0,0,0,24" />
 
             <!-- Stats row -->
             <UniformGrid Rows="1" Margin="0,0,0,24">
                 <controls:StatCard Title="זמן נותר" Value="{Binding RemainingTime}" Icon="⏱" Margin="0,0,12,0" />
                 <controls:StatCard Title="יתרת הדפסות" Value="{Binding PrintBalance}" Icon="🖨" Margin="6,0" />
-                <controls:StatCard Title="הודעות שלא נקראו" Value="{Binding UnreadMessages}" Icon="💬" Margin="12,0,0,0" />
+                <controls:StatCard Title="הודעות" Value="{Binding UnreadMessages}" Icon="💬" Margin="12,0,0,0" />
             </UniformGrid>
 
             <!-- Session controls -->
@@ -23,16 +28,32 @@
                 </Border.Effect>
                 <StackPanel>
                     <TextBlock Text="ניהול הפעלה" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+
+                    <!-- Session inactive: show Start button -->
+                    <StackPanel HorizontalAlignment="Center"
+                                Visibility="{Binding IsSessionInactive, Converter={StaticResource BoolToVis}}">
                         <Button Content="▶  התחל הפעלה" Style="{StaticResource BtnPrimary}"
-                                Command="{Binding StartSessionCommand}" Margin="0,0,12,0"
-                                Width="180" Height="48" FontSize="16" />
+                                Command="{Binding StartSessionCommand}"
+                                Width="220" Height="52" FontSize="17"
+                                IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
+                    </StackPanel>
+
+                    <!-- Session active: show End button -->
+                    <StackPanel HorizontalAlignment="Center"
+                                Visibility="{Binding IsSessionActive, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="ההפעלה פעילה" FontSize="14" FontWeight="SemiBold"
+                                   Foreground="{StaticResource SuccessBrush}"
+                                   HorizontalAlignment="Center" Margin="0,0,0,12" />
                         <Button Content="⏹  סיים הפעלה" Style="{StaticResource BtnDanger}"
                                 Command="{Binding EndSessionCommand}"
-                                Width="180" Height="48" FontSize="16" />
+                                Width="220" Height="48" FontSize="16" />
                     </StackPanel>
                 </StackPanel>
             </Border>
+
+            <!-- Loading indicator -->
+            <controls:LoadingSpinner HorizontalAlignment="Center"
+                                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
 
             <!-- Error display -->
             <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource ErrorBrush}"
