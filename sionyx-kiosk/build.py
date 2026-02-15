@@ -444,6 +444,33 @@ def delete_old_versions(bucket, current_version: str, prefix: str = "releases/")
         print_info("No old versions to clean up")
 
 
+def _get_firebase_download_url(bucket_name: str, blob_path: str, token: str) -> str:
+    """Build a Firebase Storage download URL with access token.
+    
+    This URL format uses Firebase security rules (not GCS IAM/ACL),
+    and the download token grants public access to the specific file.
+    """
+    from urllib.parse import quote
+    encoded_path = quote(blob_path, safe="")
+    return (
+        f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}"
+        f"/o/{encoded_path}?alt=media&token={token}"
+    )
+
+
+def _ensure_download_token(blob) -> str:
+    """Ensure a blob has a Firebase download token and return it."""
+    import uuid
+    blob.reload()
+    meta = blob.metadata or {}
+    token = meta.get("firebaseStorageDownloadTokens")
+    if not token:
+        token = str(uuid.uuid4())
+        blob.metadata = {**(blob.metadata or {}), "firebaseStorageDownloadTokens": token}
+        blob.patch()
+    return token
+
+
 def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -> bool:
     """Upload installer and version metadata to Firebase Storage"""
     print_header("Uploading to Firebase Storage")
@@ -473,6 +500,7 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
             })
         
         bucket = storage.bucket()
+        bucket_name = bucket.name
         version = version_data["version"]
         
         # Delete old versions first
@@ -486,15 +514,16 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
         
         blob = bucket.blob(installer_blob_path)
         blob.upload_from_filename(str(installer_path))
-        blob.make_public()
         
-        installer_url = blob.public_url
+        # Generate a Firebase download URL with token (works with security rules)
+        token = _ensure_download_token(blob)
+        installer_url = _get_firebase_download_url(bucket_name, installer_blob_path, token)
         print_success(f"Installer uploaded: {installer_url}")
         
         # Also upload to constant path for backwards compatibility
         latest_blob = bucket.blob("sionyx-installer.exe")
         latest_blob.upload_from_filename(str(installer_path))
-        latest_blob.make_public()
+        _ensure_download_token(latest_blob)
         print_info(f"Also uploaded as: sionyx-installer.exe (backwards compat)")
         
         # Upload version metadata
@@ -517,8 +546,9 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
             json.dumps(metadata, indent=2),
             content_type="application/json"
         )
-        metadata_blob.make_public()
-        print_success(f"Version metadata uploaded: {metadata_blob.public_url}")
+        metadata_token = _ensure_download_token(metadata_blob)
+        metadata_url = _get_firebase_download_url(bucket_name, "releases/latest.json", metadata_token)
+        print_success(f"Version metadata uploaded: {metadata_url}")
         
         return True
         

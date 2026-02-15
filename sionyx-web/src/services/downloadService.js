@@ -7,11 +7,6 @@
 
 import { logger } from '../utils/logger';
 
-// Firebase Storage base URL - use proxy in dev to bypass CORS
-const STORAGE_BASE_URL = import.meta.env.DEV 
-  ? '/storage-proxy' 
-  : 'https://storage.googleapis.com';
-
 /**
  * Get Firebase Storage bucket from environment or default
  */
@@ -20,14 +15,24 @@ const getStorageBucket = () => {
 };
 
 /**
+ * Build a Firebase Storage REST API URL for a given path.
+ * Uses the firebasestorage.googleapis.com endpoint which respects
+ * Firebase Security Rules (unlike storage.googleapis.com which needs IAM/ACL).
+ */
+const getFirebaseStorageUrl = (path) => {
+  const bucket = getStorageBucket();
+  const encodedPath = encodeURIComponent(path);
+  return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}`;
+};
+
+/**
  * Fetch the latest release metadata from Firebase Storage
  * @returns {Promise<Object>} Release metadata
  */
 const fetchLatestMetadata = async () => {
-  const bucket = getStorageBucket();
   // Add timestamp to bust browser cache
   const cacheBuster = `t=${Date.now()}`;
-  const metadataUrl = `${STORAGE_BASE_URL}/${bucket}/releases/latest.json?${cacheBuster}`;
+  const metadataUrl = `${getFirebaseStorageUrl('releases/latest.json')}?alt=media&${cacheBuster}`;
 
   try {
     const response = await fetch(metadataUrl, {
