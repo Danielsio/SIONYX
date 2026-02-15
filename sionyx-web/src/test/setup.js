@@ -266,17 +266,6 @@ vi.mock('gsap/ScrollTrigger', () => ({
 }));
 
 // ============================================
-// Date/Time Libraries Mocks
-// ============================================
-
-// Mock date-fns
-vi.mock('date-fns', () => ({
-  formatDistanceToNow: vi.fn(() => 'לפני 5 דקות'),
-  format: vi.fn(() => '15/01/2024'),
-  parseISO: vi.fn((str) => new Date(str)),
-}));
-
-// ============================================
 // Browser APIs Mocks
 // ============================================
 
