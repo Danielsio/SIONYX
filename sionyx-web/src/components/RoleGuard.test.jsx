@@ -58,8 +58,8 @@ describe('RoleGuard', () => {
     mockUser('user');
 
     render(
-      <RoleGuard 
-        requiredRole={ROLES.SUPERVISOR} 
+      <RoleGuard
+        requiredRole={ROLES.SUPERVISOR}
         fallback={<div data-testid='fallback'>Access Denied</div>}
       >
         <div data-testid='protected-content'>Protected Content</div>

@@ -1,5 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Typography, Space, Spin, Empty, App, Tag, Avatar, Alert, Button } from 'antd';
+import {
+  Card,
+  Row,
+  Col,
+  Typography,
+  Space,
+  Spin,
+  Empty,
+  App,
+  Tag,
+  Avatar,
+  Alert,
+  Button,
+} from 'antd';
 import { motion } from 'framer-motion';
 import {
   UserOutlined,
@@ -37,8 +50,8 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: {
       duration: 0.4,
@@ -135,11 +148,11 @@ const OverviewPage = () => {
 
   return (
     <App>
-      <motion.div 
+      <motion.div
         style={{ direction: 'rtl' }}
         variants={containerVariants}
-        initial="hidden"
-        animate="visible"
+        initial='hidden'
+        animate='visible'
       >
         <Space direction='vertical' size={28} style={{ width: '100%' }}>
           {/* Error Banner */}
@@ -166,9 +179,9 @@ const OverviewPage = () => {
             </Title>
             <Text style={{ color: '#6b7280', fontSize: 15 }}>
               שלום! הנה סיכום הפעילות של{' '}
-              <Text 
-                style={{ 
-                  color: '#667eea', 
+              <Text
+                style={{
+                  color: '#667eea',
                   fontWeight: 600,
                   background: 'rgba(102, 126, 234, 0.1)',
                   padding: '2px 8px',
@@ -230,7 +243,7 @@ const OverviewPage = () => {
           <Row gutter={[20, 20]}>
             <Col xs={24} lg={8}>
               <motion.div variants={itemVariants}>
-                <Card 
+                <Card
                   title={
                     <Space>
                       <ClockCircleOutlined style={{ color: '#667eea' }} />
@@ -258,7 +271,7 @@ const OverviewPage = () => {
 
             <Col xs={24} lg={8}>
               <motion.div variants={itemVariants}>
-                <Card 
+                <Card
                   title={
                     <Space>
                       <PrinterOutlined style={{ color: '#667eea' }} />
@@ -289,7 +302,7 @@ const OverviewPage = () => {
 
             <Col xs={24} lg={8}>
               <motion.div variants={itemVariants}>
-                <Card 
+                <Card
                   title={
                     <Space>
                       <AppstoreOutlined style={{ color: '#667eea' }} />
@@ -302,16 +315,26 @@ const OverviewPage = () => {
                 >
                   <Space direction='vertical' size={20} style={{ width: '100%' }}>
                     <div>
-                      <Text type='secondary' style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>
+                      <Text
+                        type='secondary'
+                        style={{ fontSize: 13, display: 'block', marginBottom: 4 }}
+                      >
                         מזהה ארגון
                       </Text>
-                      <Text strong style={{ fontSize: 16 }}>{user?.orgId || 'לא זמין'}</Text>
+                      <Text strong style={{ fontSize: 16 }}>
+                        {user?.orgId || 'לא זמין'}
+                      </Text>
                     </div>
                     <div>
-                      <Text type='secondary' style={{ fontSize: 13, display: 'block', marginBottom: 4 }}>
+                      <Text
+                        type='secondary'
+                        style={{ fontSize: 13, display: 'block', marginBottom: 4 }}
+                      >
                         אימייל מנהל
                       </Text>
-                      <Text strong style={{ fontSize: 16 }}>{user?.email || 'לא זמין'}</Text>
+                      <Text strong style={{ fontSize: 16 }}>
+                        {user?.email || 'לא זמין'}
+                      </Text>
                     </div>
                   </Space>
                 </Card>
@@ -321,7 +344,7 @@ const OverviewPage = () => {
 
           {/* Recently Active Users */}
           <motion.div variants={itemVariants}>
-            <Card 
+            <Card
               title={
                 <Space>
                   <UserOutlined style={{ color: '#10b981' }} />
@@ -341,12 +364,18 @@ const OverviewPage = () => {
                   {recentUsers.map((u, index) => {
                     const status = getUserStatus(u);
                     const statusColors = {
-                      active: { bg: 'linear-gradient(135deg, #10b981, #34d399)', border: '#10b981' },
-                      connected: { bg: 'linear-gradient(135deg, #3b82f6, #60a5fa)', border: '#3b82f6' },
+                      active: {
+                        bg: 'linear-gradient(135deg, #10b981, #34d399)',
+                        border: '#10b981',
+                      },
+                      connected: {
+                        bg: 'linear-gradient(135deg, #3b82f6, #60a5fa)',
+                        border: '#3b82f6',
+                      },
                       offline: { bg: '#9ca3af', border: '#d1d5db' },
                     };
                     const colors = statusColors[status] || statusColors.offline;
-                    
+
                     return (
                       <Col key={u.uid} xs={24} sm={12} lg={8} xl={6}>
                         <motion.div
@@ -354,9 +383,9 @@ const OverviewPage = () => {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.05 }}
                         >
-                          <Card 
-                            size='small' 
-                            style={{ 
+                          <Card
+                            size='small'
+                            style={{
                               borderRadius: 14,
                               borderRight: `4px solid ${colors.border}`,
                               background: '#fff',
@@ -376,10 +405,10 @@ const OverviewPage = () => {
                                 icon={<UserOutlined />}
                               />
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <Text 
-                                  strong 
-                                  style={{ 
-                                    display: 'block', 
+                                <Text
+                                  strong
+                                  style={{
+                                    display: 'block',
                                     fontSize: 14,
                                     whiteSpace: 'nowrap',
                                     overflow: 'hidden',
@@ -389,11 +418,18 @@ const OverviewPage = () => {
                                 >
                                   {`${u.firstName || ''} ${u.lastName || ''}`.trim() || 'לא זמין'}
                                 </Text>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
-                                  <Tag 
-                                    color={getStatusColor(status)} 
-                                    style={{ 
-                                      margin: 0, 
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8,
+                                    marginTop: 6,
+                                  }}
+                                >
+                                  <Tag
+                                    color={getStatusColor(status)}
+                                    style={{
+                                      margin: 0,
                                       fontSize: 11,
                                       borderRadius: 6,
                                     }}
@@ -416,17 +452,14 @@ const OverviewPage = () => {
                   })}
                 </Row>
               ) : (
-                <Empty
-                  description='אין משתמשים פעילים כרגע'
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                />
+                <Empty description='אין משתמשים פעילים כרגע' image={Empty.PRESENTED_IMAGE_SIMPLE} />
               )}
             </Card>
           </motion.div>
 
           {/* Quick Statistics */}
           <motion.div variants={itemVariants}>
-            <Card 
+            <Card
               title={
                 <Space>
                   <DollarOutlined style={{ color: '#667eea' }} />
@@ -441,7 +474,9 @@ const OverviewPage = () => {
                   <Col xs={24} sm={8}>
                     <MiniStatCard
                       label='זמן ממוצע למשתמש'
-                      value={formatTime(Math.round((stats.totalTimeMinutes || 0) / stats.usersCount))}
+                      value={formatTime(
+                        Math.round((stats.totalTimeMinutes || 0) / stats.usersCount)
+                      )}
                       icon={<ClockCircleOutlined />}
                       color='primary'
                     />

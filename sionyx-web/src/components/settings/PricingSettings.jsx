@@ -116,7 +116,12 @@ const PricingSettings = () => {
           <Card
             title='מחירים נוכחיים'
             extra={
-              <Button icon={<ReloadOutlined />} onClick={loadPricing} loading={loading} size='small'>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={loadPricing}
+                loading={loading}
+                size='small'
+              >
                 רענן
               </Button>
             }
@@ -145,7 +150,11 @@ const PricingSettings = () => {
               <Divider />
               <div style={{ textAlign: 'center' }}>
                 <Text type='secondary'>
-                  יחס מחירים: {pricing.blackAndWhitePrice > 0 ? (pricing.colorPrice / pricing.blackAndWhitePrice).toFixed(1) : 'N/A'}x
+                  יחס מחירים:{' '}
+                  {pricing.blackAndWhitePrice > 0
+                    ? (pricing.colorPrice / pricing.blackAndWhitePrice).toFixed(1)
+                    : 'N/A'}
+                  x
                 </Text>
               </div>
             </Space>

@@ -228,17 +228,17 @@ export const resetUserPassword = async (orgId, userId, newPassword) => {
   try {
     const resetPasswordFn = httpsCallable(functions, 'resetUserPassword');
     const result = await resetPasswordFn({ orgId, userId, newPassword });
-    
+
     return {
       success: true,
       message: result.data.message || 'הסיסמה אופסה בהצלחה',
     };
   } catch (error) {
     logger.error('Error resetting user password:', error);
-    
+
     // Extract error message from Firebase function error
     const errorMessage = error.message || 'שגיאה באיפוס הסיסמה';
-    
+
     return {
       success: false,
       error: errorMessage,
@@ -281,7 +281,10 @@ export const kickUser = async (orgId, userId) => {
 
     // Also disassociate user from computer if they have a current computer
     if (currentUser.currentComputerId) {
-      const computerRef = ref(database, `organizations/${orgId}/computers/${currentUser.currentComputerId}`);
+      const computerRef = ref(
+        database,
+        `organizations/${orgId}/computers/${currentUser.currentComputerId}`
+      );
       await update(computerRef, {
         currentUserId: null,
         lastUserLogout: new Date().toISOString(),

@@ -18,81 +18,81 @@ vi.mock('framer-motion', () => ({
 describe('AnimatedText', () => {
   it('renders without crashing', () => {
     const { container } = render(<AnimatedText>Hello World</AnimatedText>);
-    
+
     expect(container).toBeInTheDocument();
     expect(container.textContent).toContain('Hello');
   });
 
   it('renders with gradient effect', () => {
     const { container } = render(<AnimatedText gradient>Gradient Text</AnimatedText>);
-    
+
     expect(container).toBeInTheDocument();
     expect(container.textContent).toContain('Gradient');
   });
 
   it('renders with typing effect', () => {
     const { container } = render(<AnimatedText typing>Typing Effect</AnimatedText>);
-    
+
     // Text is split into characters
     expect(container).toBeInTheDocument();
   });
 
   it('renders with reveal animation', () => {
     const { container } = render(<AnimatedText reveal>Reveal Me</AnimatedText>);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with wordByWord animation', () => {
     const { container } = render(<AnimatedText wordByWord>Word By Word</AnimatedText>);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders as different HTML elements', () => {
-    const { rerender, container } = render(<AnimatedText as="h1">Heading</AnimatedText>);
+    const { rerender, container } = render(<AnimatedText as='h1'>Heading</AnimatedText>);
     expect(container).toBeInTheDocument();
-    
-    rerender(<AnimatedText as="h2">Heading 2</AnimatedText>);
+
+    rerender(<AnimatedText as='h2'>Heading 2</AnimatedText>);
     expect(container).toBeInTheDocument();
-    
-    rerender(<AnimatedText as="p">Paragraph</AnimatedText>);
+
+    rerender(<AnimatedText as='p'>Paragraph</AnimatedText>);
     expect(container).toBeInTheDocument();
   });
 
   it('applies custom className', () => {
-    const { container } = render(<AnimatedText className="custom-text">Classed</AnimatedText>);
-    
+    const { container } = render(<AnimatedText className='custom-text'>Classed</AnimatedText>);
+
     expect(container).toBeInTheDocument();
   });
 
   it('applies custom styles', () => {
     const { container } = render(<AnimatedText style={{ color: 'red' }}>Styled</AnimatedText>);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('handles empty text gracefully', () => {
     const { container } = render(<AnimatedText>{''}</AnimatedText>);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with delay prop', () => {
     const { container } = render(<AnimatedText delay={0.5}>Delayed</AnimatedText>);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with duration prop', () => {
     const { container } = render(<AnimatedText duration={2}>Duration</AnimatedText>);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with stagger prop', () => {
     const { container } = render(<AnimatedText stagger={0.1}>Staggered</AnimatedText>);
-    
+
     expect(container).toBeInTheDocument();
   });
 });

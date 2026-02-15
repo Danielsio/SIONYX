@@ -6,8 +6,8 @@ import AnimatedCard from './AnimatedCard';
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, style, className, onMouseEnter, onMouseLeave, onMouseMove, ...props }) => (
-      <div 
-        style={style} 
+      <div
+        style={style}
         className={className}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
@@ -32,30 +32,30 @@ describe('AnimatedCard', () => {
         <div>Card Content</div>
       </AnimatedCard>
     );
-    
+
     expect(screen.getByText('Card Content')).toBeInTheDocument();
   });
 
   it('renders with title', () => {
     const { container } = render(
-      <AnimatedCard title="Test Title">
+      <AnimatedCard title='Test Title'>
         <div>Content</div>
       </AnimatedCard>
     );
-    
+
     // Title might be rendered as attribute or child
     expect(container).toBeInTheDocument();
   });
 
   it('renders with icon prop', () => {
-    const TestIcon = () => <span data-testid="card-icon">📦</span>;
-    
+    const TestIcon = () => <span data-testid='card-icon'>📦</span>;
+
     const { container } = render(
       <AnimatedCard icon={<TestIcon />}>
         <div>Content</div>
       </AnimatedCard>
     );
-    
+
     // Icon is passed as prop, component may not render it directly in mocked version
     expect(container).toBeInTheDocument();
   });
@@ -66,14 +66,14 @@ describe('AnimatedCard', () => {
         <div>Hover Me</div>
       </AnimatedCard>
     );
-    
+
     const card = container.firstChild;
     if (card) {
       fireEvent.mouseEnter(card);
       fireEvent.mouseMove(card, { clientX: 150, clientY: 150 });
       fireEvent.mouseLeave(card);
     }
-    
+
     expect(container).toBeInTheDocument();
   });
 
@@ -83,18 +83,18 @@ describe('AnimatedCard', () => {
         <div>Styled</div>
       </AnimatedCard>
     );
-    
+
     expect(container).toBeInTheDocument();
     expect(screen.getByText('Styled')).toBeInTheDocument();
   });
 
   it('applies custom className', () => {
     const { container } = render(
-      <AnimatedCard className="custom-class">
+      <AnimatedCard className='custom-class'>
         <div>Classed</div>
       </AnimatedCard>
     );
-    
+
     expect(container).toBeInTheDocument();
   });
 
@@ -104,27 +104,27 @@ describe('AnimatedCard', () => {
         <div>Disabled Card</div>
       </AnimatedCard>
     );
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with gradient background variant', () => {
     const { container } = render(
-      <AnimatedCard variant="gradient">
+      <AnimatedCard variant='gradient'>
         <div>Gradient</div>
       </AnimatedCard>
     );
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with glass variant', () => {
     const { container } = render(
-      <AnimatedCard variant="glass">
+      <AnimatedCard variant='glass'>
         <div>Glass</div>
       </AnimatedCard>
     );
-    
+
     expect(container).toBeInTheDocument();
   });
 });

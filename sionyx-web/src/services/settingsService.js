@@ -5,7 +5,7 @@ import { logger } from '../utils/logger';
 /**
  * Settings Service for Admin Dashboard
  * Handles organization settings management
- * 
+ *
  * Settings are stored in: organizations/{orgId}/metadata/settings/
  */
 

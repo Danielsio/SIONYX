@@ -14,10 +14,10 @@ vi.mock('../store/authStore');
 
 // Mock dayjs
 vi.mock('dayjs', () => {
-  const dayjs = (date) => ({
+  const dayjs = date => ({
     format: () => '15/01/2024',
     fromNow: () => 'לפני שעה',
-    unix: () => date ? new Date(date).getTime() / 1000 : Date.now() / 1000,
+    unix: () => (date ? new Date(date).getTime() / 1000 : Date.now() / 1000),
   });
   dayjs.extend = () => {};
   dayjs.locale = () => {};
@@ -62,7 +62,7 @@ const mockMessages = [
 ];
 
 const renderMessagesPage = () => {
-  useAuthStore.mockImplementation((selector) => {
+  useAuthStore.mockImplementation(selector => {
     const state = { user: { orgId: 'my-org', uid: 'admin-123' } };
     return typeof selector === 'function' ? selector(state) : state;
   });
@@ -229,7 +229,7 @@ describe('MessagesPage', () => {
   it('does not crash or log error when user is null', async () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    useAuthStore.mockImplementation((selector) => {
+    useAuthStore.mockImplementation(selector => {
       const state = { user: null };
       return typeof selector === 'function' ? selector(state) : state;
     });
@@ -267,4 +267,3 @@ describe('MessagesPage', () => {
     expect(document.body).toBeInTheDocument();
   });
 });
-

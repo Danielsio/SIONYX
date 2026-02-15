@@ -164,7 +164,7 @@ const MessagesPage = () => {
       const userData = userMap.get(userId);
       userData.messages.push(msg);
       if (!msg.read) userData.unreadCount++;
-      
+
       const msgTime = dayjs(msg.timestamp);
       if (!userData.latestTimestamp || msgTime.isAfter(userData.latestTimestamp)) {
         userData.latestTimestamp = msgTime;
@@ -191,15 +191,14 @@ const MessagesPage = () => {
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
   // Filter conversations by search
-  const filteredConversations = conversations.filter(conv =>
-    conv.userName.toLowerCase().includes(searchText.toLowerCase()) ||
-    conv.userPhone.includes(searchText)
+  const filteredConversations = conversations.filter(
+    conv =>
+      conv.userName.toLowerCase().includes(searchText.toLowerCase()) ||
+      conv.userPhone.includes(searchText)
   );
 
   // Users without messages (for quick access)
-  const usersWithoutMessages = users.filter(
-    u => !conversations.find(c => c.userId === u.uid)
-  );
+  const usersWithoutMessages = users.filter(u => !conversations.find(c => c.userId === u.uid));
 
   const ConversationCard = ({ conv }) => (
     <Card
@@ -291,9 +290,7 @@ const MessagesPage = () => {
           <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
             <MessageOutlined />
             הודעות
-            {totalUnread > 0 && (
-              <Badge count={totalUnread} style={{ marginRight: 8 }} />
-            )}
+            {totalUnread > 0 && <Badge count={totalUnread} style={{ marginRight: 8 }} />}
           </Title>
           <Text type='secondary'>שלח הודעות למשתמשים וצפה בשיחות</Text>
         </div>
@@ -327,7 +324,9 @@ const MessagesPage = () => {
                   allowClear
                 />
               }
-              styles={{ body: { padding: 16, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' } }}
+              styles={{
+                body: { padding: 16, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' },
+              }}
             >
               {filteredConversations.length === 0 ? (
                 <Empty description='אין שיחות' image={Empty.PRESENTED_IMAGE_SIMPLE} />
@@ -370,19 +369,25 @@ const MessagesPage = () => {
                   <div style={{ fontSize: 24, fontWeight: 'bold', color: '#1890ff' }}>
                     {messages.length}
                   </div>
-                  <Text type='secondary' style={{ fontSize: 12 }}>סך הכל</Text>
+                  <Text type='secondary' style={{ fontSize: 12 }}>
+                    סך הכל
+                  </Text>
                 </Col>
                 <Col span={8} style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 24, fontWeight: 'bold', color: '#faad14' }}>
                     {totalUnread}
                   </div>
-                  <Text type='secondary' style={{ fontSize: 12 }}>לא נקראו</Text>
+                  <Text type='secondary' style={{ fontSize: 12 }}>
+                    לא נקראו
+                  </Text>
                 </Col>
                 <Col span={8} style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
                     {conversations.length}
                   </div>
-                  <Text type='secondary' style={{ fontSize: 12 }}>שיחות</Text>
+                  <Text type='secondary' style={{ fontSize: 12 }}>
+                    שיחות
+                  </Text>
                 </Col>
               </Row>
             </Card>
@@ -410,7 +415,9 @@ const MessagesPage = () => {
                 <Text type='secondary' style={{ fontSize: 12 }}>
                   {selectedUser.phoneNumber}
                   {isUserActive(selectedUser.lastSeen) && (
-                    <Tag color='green' style={{ marginRight: 8 }}>פעיל</Tag>
+                    <Tag color='green' style={{ marginRight: 8 }}>
+                      פעיל
+                    </Tag>
                   )}
                 </Text>
               </div>

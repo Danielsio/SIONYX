@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Avatar, Dropdown, Typography, Space, Badge, Drawer, Button, Tooltip } from 'antd';
+import {
+  Layout,
+  Menu,
+  Avatar,
+  Dropdown,
+  Typography,
+  Space,
+  Badge,
+  Drawer,
+  Button,
+  Tooltip,
+} from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   DashboardOutlined,
@@ -129,16 +140,18 @@ const MainLayout = () => {
   ];
 
   const renderSidebar = () => (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      height: '100%',
-      ...sidebarStyle,
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        ...sidebarStyle,
+      }}
+    >
       {/* Logo */}
       <motion.div
         initial={false}
-        animate={{ 
+        animate={{
           padding: collapsed ? '16px 12px' : '20px 24px',
         }}
         transition={{ duration: 0.2 }}
@@ -153,7 +166,7 @@ const MainLayout = () => {
         }}
       >
         <motion.div
-          animate={{ 
+          animate={{
             width: collapsed ? 36 : 40,
             height: collapsed ? 36 : 40,
           }}
@@ -186,12 +199,14 @@ const MainLayout = () => {
               exit={{ opacity: 0, x: -10 }}
               transition={{ duration: 0.15 }}
             >
-              <Text style={{ 
-                color: '#fff', 
-                fontSize: 20, 
-                fontWeight: 700,
-                letterSpacing: '0.5px',
-              }}>
+              <Text
+                style={{
+                  color: '#fff',
+                  fontSize: 20,
+                  fontWeight: 700,
+                  letterSpacing: '0.5px',
+                }}
+              >
                 SIONYX
               </Text>
             </motion.div>
@@ -207,7 +222,7 @@ const MainLayout = () => {
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={handleMenuClick}
-          style={{ 
+          style={{
             background: 'transparent',
             border: 'none',
           }}
@@ -237,11 +252,11 @@ const MainLayout = () => {
             borderRadius: 10,
             transition: 'all 0.2s',
           }}
-          onMouseEnter={(e) => {
+          onMouseEnter={e => {
             e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
             e.currentTarget.style.color = '#ef4444';
           }}
-          onMouseLeave={(e) => {
+          onMouseLeave={e => {
             e.currentTarget.style.background = 'transparent';
             e.currentTarget.style.color = 'rgba(255, 255, 255, 0.65)';
           }}
@@ -291,9 +306,7 @@ const MainLayout = () => {
             header: { display: 'none' },
           }}
         >
-          <div style={{ height: '100%' }}>
-            {renderSidebar()}
-          </div>
+          <div style={{ height: '100%' }}>{renderSidebar()}</div>
         </Drawer>
       )}
 
@@ -325,7 +338,7 @@ const MainLayout = () => {
                 type='text'
                 icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 onClick={toggleSidebar}
-                style={{ 
+                style={{
                   fontSize: 18,
                   width: 40,
                   height: 40,
@@ -361,8 +374,8 @@ const MainLayout = () => {
           {/* Right side - Org info + User avatar */}
           <Space size={isMobile ? 'small' : 'middle'}>
             {!isMobile && (
-              <div 
-                style={{ 
+              <div
+                style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 10,
@@ -371,43 +384,41 @@ const MainLayout = () => {
                   borderRadius: 10,
                 }}
               >
-                <div 
-                  style={{ 
-                    width: 8, 
-                    height: 8, 
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
                     borderRadius: '50%',
                     background: '#10b981',
                     boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
-                  }} 
+                  }}
                 />
-                <Text style={{ fontWeight: 600, color: '#667eea' }}>
-                  {user?.orgId || 'ארגון'}
-                </Text>
+                <Text style={{ fontWeight: 600, color: '#667eea' }}>{user?.orgId || 'ארגון'}</Text>
               </div>
             )}
 
-            <Dropdown 
-              menu={{ items: userMenuItems }} 
+            <Dropdown
+              menu={{ items: userMenuItems }}
               placement='bottomRight'
               disabled={userMenuItems.every(item => item.disabled)}
             >
-              <Space 
-                style={{ 
+              <Space
+                style={{
                   cursor: 'pointer',
                   padding: '6px 12px',
                   borderRadius: 12,
                   transition: 'background 0.2s',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#f4f5f7'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                onMouseEnter={e => (e.currentTarget.style.background = '#f4f5f7')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <Avatar 
+                <Avatar
                   size={40}
-                  style={{ 
+                  style={{
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
-                  }} 
-                  icon={<UserOutlined />} 
+                  }}
+                  icon={<UserOutlined />}
                 />
                 {!isMobile && (
                   <div
@@ -418,9 +429,7 @@ const MainLayout = () => {
                     }}
                   >
                     <Text style={{ fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
-                      {user?.firstName
-                        ? `${user.firstName} ${user.lastName || ''}`.trim()
-                        : 'מנהל'}
+                      {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'מנהל'}
                     </Text>
                     {(user?.phone || user?.phoneNumber) && (
                       <Text type='secondary' style={{ fontSize: 12 }}>

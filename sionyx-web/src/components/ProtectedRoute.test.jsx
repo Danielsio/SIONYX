@@ -15,7 +15,7 @@ describe('ProtectedRoute', () => {
   });
 
   const renderWithRouter = (isAuthenticated, initialRoute = '/protected') => {
-    useAuthStore.mockImplementation((selector) => {
+    useAuthStore.mockImplementation(selector => {
       const state = { isAuthenticated };
       return selector(state);
     });
@@ -23,12 +23,12 @@ describe('ProtectedRoute', () => {
     return render(
       <MemoryRouter initialEntries={[initialRoute]}>
         <Routes>
-          <Route path="/admin/login" element={<div data-testid="login-page">Login Page</div>} />
+          <Route path='/admin/login' element={<div data-testid='login-page'>Login Page</div>} />
           <Route
-            path="/protected"
+            path='/protected'
             element={
               <ProtectedRoute>
-                <div data-testid="protected-content">Protected Content</div>
+                <div data-testid='protected-content'>Protected Content</div>
               </ProtectedRoute>
             }
           />
@@ -59,5 +59,3 @@ describe('ProtectedRoute', () => {
     expect(typeof useAuthStore.mock.calls[0][0]).toBe('function');
   });
 });
-
-

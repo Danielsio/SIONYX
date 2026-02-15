@@ -3,7 +3,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App as AntApp } from 'antd';
 import PackagesPage from './PackagesPage';
-import { getAllPackages, createPackage, updatePackage, deletePackage, calculateFinalPrice } from '../services/packageService';
+import {
+  getAllPackages,
+  createPackage,
+  updatePackage,
+  deletePackage,
+  calculateFinalPrice,
+} from '../services/packageService';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
 
@@ -18,10 +24,10 @@ vi.mock('../hooks/useOrgId', () => ({
 
 // Mock dayjs
 vi.mock('dayjs', () => {
-  const dayjs = (date) => ({
+  const dayjs = date => ({
     format: () => '15/01/2024',
     fromNow: () => 'לפני שבוע',
-    unix: () => date ? new Date(date).getTime() / 1000 : Date.now() / 1000,
+    unix: () => (date ? new Date(date).getTime() / 1000 : Date.now() / 1000),
   });
   dayjs.extend = () => {};
   dayjs.locale = () => {};
@@ -58,12 +64,12 @@ const renderPackagesPage = ({
   const mockUpdateStorePackage = vi.fn();
   const mockRemovePackage = vi.fn();
 
-  useAuthStore.mockImplementation((selector) => {
+  useAuthStore.mockImplementation(selector => {
     const state = { user: userOverride };
     return selector(state);
   });
 
-  useDataStore.mockImplementation((selector) => {
+  useDataStore.mockImplementation(selector => {
     const state = {
       packages: packagesOverride,
       setPackages: mockSetPackages,
@@ -82,8 +88,8 @@ const renderPackagesPage = ({
   updatePackage.mockResolvedValue({ success: true });
   deletePackage.mockResolvedValue({ success: true });
   calculateFinalPrice.mockImplementation((price, discount) => ({
-    finalPrice: price - (price * (discount || 0) / 100),
-    savings: price * (discount || 0) / 100,
+    finalPrice: price - (price * (discount || 0)) / 100,
+    savings: (price * (discount || 0)) / 100,
   }));
 
   return {
@@ -317,12 +323,12 @@ describe('PackagesPage', () => {
   it('reloads data when orgId changes from null to a value', async () => {
     mockUseOrgId.mockReturnValue(null);
 
-    useAuthStore.mockImplementation((selector) => {
+    useAuthStore.mockImplementation(selector => {
       const state = { user: { orgId: null, uid: 'admin-123', isAdmin: true } };
       return selector(state);
     });
 
-    useDataStore.mockImplementation((selector) => {
+    useDataStore.mockImplementation(selector => {
       const state = {
         packages: [],
         setPackages: vi.fn(),
@@ -356,4 +362,3 @@ describe('PackagesPage', () => {
     });
   });
 });
-

@@ -23,8 +23,15 @@ import {
   Statistic,
 } from 'antd';
 import { motion } from 'framer-motion';
-import { getStatusLabel as getPurchaseStatusLabel, getStatusColor as getPurchaseStatusColor } from '../constants/purchaseStatus';
-import { getUserStatus, getStatusLabel as getUserStatusLabel, getStatusColor as getUserStatusColor } from '../constants/userStatus';
+import {
+  getStatusLabel as getPurchaseStatusLabel,
+  getStatusColor as getPurchaseStatusColor,
+} from '../constants/purchaseStatus';
+import {
+  getUserStatus,
+  getStatusLabel as getUserStatusLabel,
+  getStatusColor as getUserStatusColor,
+} from '../constants/userStatus';
 import {
   SearchOutlined,
   UserOutlined,
@@ -77,8 +84,8 @@ const containerVariants = {
 
 const cardVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] },
   },
@@ -326,7 +333,7 @@ const UsersPage = () => {
   const handleResetPasswordSubmit = async () => {
     try {
       const values = await resetPasswordForm.validateFields();
-      
+
       if (values.newPassword !== values.confirmPassword) {
         message.error('הסיסמאות אינן תואמות');
         return;
@@ -400,7 +407,7 @@ const UsersPage = () => {
   ];
 
   // Get consistent color for a user based on their ID
-  const getUserGradient = (userId) => {
+  const getUserGradient = userId => {
     if (!userId) return cardGradients[0];
     let hash = 0;
     for (let i = 0; i < userId.length; i++) {
@@ -414,23 +421,24 @@ const UsersPage = () => {
     const status = getUserStatus(userRecord);
     const statusColor = getUserStatusColor(status);
     const statusLabel = getUserStatusLabel(status);
-    const userName = `${userRecord.firstName || ''} ${userRecord.lastName || ''}`.trim() || 'לא זמין';
+    const userName =
+      `${userRecord.firstName || ''} ${userRecord.lastName || ''}`.trim() || 'לא זמין';
     const userGradient = getUserGradient(userRecord.uid);
 
     // Status configuration
     const statusConfig = {
-      active: { 
-        color: '#10b981', 
+      active: {
+        color: '#10b981',
         bg: 'rgba(16, 185, 129, 0.1)',
         shadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
       },
-      connected: { 
-        color: '#3b82f6', 
+      connected: {
+        color: '#3b82f6',
         bg: 'rgba(59, 130, 246, 0.1)',
         shadow: '0 0 0 3px rgba(59, 130, 246, 0.2)',
       },
-      offline: { 
-        color: '#9ca3af', 
+      offline: {
+        color: '#9ca3af',
         bg: 'rgba(156, 163, 175, 0.1)',
         shadow: 'none',
       },
@@ -500,8 +508,8 @@ const UsersPage = () => {
     return (
       <motion.div
         variants={cardVariants}
-        initial="hidden"
-        animate="visible"
+        initial='hidden'
+        animate='visible'
         transition={{ delay: index * 0.03 }}
         whileHover={{ y: -4 }}
         style={{ height: '100%' }}
@@ -570,18 +578,18 @@ const UsersPage = () => {
                 מנהל
               </Tag>
             )}
-            
+
             {/* Actions dropdown */}
-            <div 
-              onClick={e => e.stopPropagation()} 
+            <div
+              onClick={e => e.stopPropagation()}
               style={{ position: 'absolute', bottom: 12, right: 12 }}
             >
               <Dropdown menu={{ items: menuItems }} trigger={['click']}>
                 <Button
                   type='text'
                   icon={<MoreOutlined />}
-                  style={{ 
-                    color: '#fff', 
+                  style={{
+                    color: '#fff',
                     background: 'rgba(255,255,255,0.15)',
                     backdropFilter: 'blur(4px)',
                     borderRadius: 8,
@@ -597,7 +605,7 @@ const UsersPage = () => {
               <Avatar
                 size={60}
                 icon={<UserOutlined />}
-                style={{ 
+                style={{
                   backgroundColor: 'rgba(255,255,255,0.2)',
                   backdropFilter: 'blur(4px)',
                   marginBottom: 12,
@@ -607,8 +615,8 @@ const UsersPage = () => {
               <Title level={5} style={{ color: '#fff', margin: 0, marginBottom: 8, fontSize: 16 }}>
                 {userName}
               </Title>
-              <Tag 
-                style={{ 
+              <Tag
+                style={{
                   background: currentStatus.bg,
                   color: '#fff',
                   border: 'none',
@@ -623,21 +631,43 @@ const UsersPage = () => {
           </div>
 
           {/* Body */}
-          <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column', background: '#fafbfc' }}>
+          <div
+            style={{
+              padding: 16,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              background: '#fafbfc',
+            }}
+          >
             {/* Contact Info */}
-            <div 
-              style={{ 
-                marginBottom: 14, 
-                background: '#fff', 
-                padding: '12px 14px', 
-                borderRadius: 12, 
+            <div
+              style={{
+                marginBottom: 14,
+                background: '#fff',
+                padding: '12px 14px',
+                borderRadius: 12,
                 border: '1px solid #e8eaed',
               }}
             >
               {userRecord.phoneNumber && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: userRecord.email ? 8 : 0 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    marginBottom: userRecord.email ? 8 : 0,
+                  }}
+                >
                   <PhoneOutlined style={{ color: '#667eea', fontSize: 14 }} />
-                  <Text style={{ direction: 'ltr', display: 'inline-block', color: '#374151', fontSize: 13 }}>
+                  <Text
+                    style={{
+                      direction: 'ltr',
+                      display: 'inline-block',
+                      color: '#374151',
+                      fontSize: 13,
+                    }}
+                  >
                     {userRecord.phoneNumber}
                   </Text>
                 </div>
@@ -645,7 +675,7 @@ const UsersPage = () => {
               {userRecord.email && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <MailOutlined style={{ color: '#667eea', fontSize: 14 }} />
-                  <Text 
+                  <Text
                     style={{ fontSize: 12, color: '#6b7280' }}
                     ellipsis={{ tooltip: userRecord.email }}
                   >
@@ -654,7 +684,9 @@ const UsersPage = () => {
                 </div>
               )}
               {!userRecord.phoneNumber && !userRecord.email && (
-                <Text type='secondary' style={{ fontSize: 12, color: '#9ca3af' }}>אין פרטי קשר</Text>
+                <Text type='secondary' style={{ fontSize: 12, color: '#9ca3af' }}>
+                  אין פרטי קשר
+                </Text>
               )}
             </div>
 
@@ -666,16 +698,17 @@ const UsersPage = () => {
                   alignItems: 'center',
                   gap: 12,
                   padding: '14px 16px',
-                  background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%)',
+                  background:
+                    'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.04) 100%)',
                   borderRadius: 12,
                   border: '1px solid rgba(59, 130, 246, 0.15)',
                 }}
               >
-                <div 
-                  style={{ 
-                    width: 36, 
-                    height: 36, 
-                    borderRadius: 10, 
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
                     background: 'rgba(59, 130, 246, 0.15)',
                     display: 'flex',
                     alignItems: 'center',
@@ -685,29 +718,38 @@ const UsersPage = () => {
                   <ClockCircleOutlined style={{ color: '#3b82f6', fontSize: 18 }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <Text style={{ color: '#3b82f6', fontWeight: 700, fontSize: 17, display: 'block', lineHeight: 1.2 }}>
+                  <Text
+                    style={{
+                      color: '#3b82f6',
+                      fontWeight: 700,
+                      fontSize: 17,
+                      display: 'block',
+                      lineHeight: 1.2,
+                    }}
+                  >
                     {formatTime(userRecord.remainingTime || 0)}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#6b7280' }}>זמן נותר</Text>
                 </div>
               </div>
-              
+
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
                   padding: '14px 16px',
-                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%)',
+                  background:
+                    'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%)',
                   borderRadius: 12,
                   border: '1px solid rgba(16, 185, 129, 0.15)',
                 }}
               >
-                <div 
-                  style={{ 
-                    width: 36, 
-                    height: 36, 
-                    borderRadius: 10, 
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
                     background: 'rgba(16, 185, 129, 0.15)',
                     display: 'flex',
                     alignItems: 'center',
@@ -717,7 +759,15 @@ const UsersPage = () => {
                   <PrinterOutlined style={{ color: '#10b981', fontSize: 18 }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <Text style={{ color: '#10b981', fontWeight: 700, fontSize: 17, display: 'block', lineHeight: 1.2 }}>
+                  <Text
+                    style={{
+                      color: '#10b981',
+                      fontWeight: 700,
+                      fontSize: 17,
+                      display: 'block',
+                      lineHeight: 1.2,
+                    }}
+                  >
                     ₪{userRecord.printBalance || 0}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#6b7280' }}>תקציב הדפסות</Text>
@@ -726,17 +776,20 @@ const UsersPage = () => {
             </div>
 
             {/* Footer info */}
-            <div 
-              style={{ 
-                paddingTop: 14, 
-                marginTop: 14, 
+            <div
+              style={{
+                paddingTop: 14,
+                marginTop: 14,
                 textAlign: 'center',
                 borderTop: '1px solid #e8eaed',
               }}
             >
               <Text style={{ fontSize: 11, color: '#9ca3af' }}>
                 <CalendarOutlined style={{ marginLeft: 4 }} />
-                הצטרף: {userRecord.createdAt ? dayjs(userRecord.createdAt).format('DD/MM/YYYY') : 'לא זמין'}
+                הצטרף:{' '}
+                {userRecord.createdAt
+                  ? dayjs(userRecord.createdAt).format('DD/MM/YYYY')
+                  : 'לא זמין'}
               </Text>
             </div>
           </div>
@@ -844,7 +897,7 @@ const UsersPage = () => {
   const totalUsers = users.length;
 
   return (
-    <motion.div 
+    <motion.div
       style={{ direction: 'rtl' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -852,14 +905,14 @@ const UsersPage = () => {
     >
       <Space direction='vertical' size={24} style={{ width: '100%' }}>
         {/* Header */}
-        <motion.div 
+        <motion.div
           className='page-header'
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
             gap: 16,
@@ -869,15 +922,13 @@ const UsersPage = () => {
             <Title level={2} style={{ margin: 0, fontWeight: 700, color: '#1f2937' }}>
               משתמשים
             </Title>
-            <Text style={{ color: '#6b7280', fontSize: 14 }}>
-              נהל וצפה בכל המשתמשים בארגון שלך
-            </Text>
+            <Text style={{ color: '#6b7280', fontSize: 14 }}>נהל וצפה בכל המשתמשים בארגון שלך</Text>
           </div>
-          <Button 
-            icon={<ReloadOutlined />} 
-            onClick={loadUsers} 
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={loadUsers}
             loading={loading}
-            style={{ 
+            style={{
               borderRadius: 10,
               height: 40,
               paddingLeft: 20,
@@ -891,11 +942,12 @@ const UsersPage = () => {
         {/* Stats Row */}
         <Row gutter={[16, 16]}>
           <Col xs={12} sm={6}>
-            <Card 
-              variant='borderless' 
-              style={{ 
+            <Card
+              variant='borderless'
+              style={{
                 borderRadius: 14,
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)',
+                background:
+                  'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)',
                 border: '1px solid rgba(16, 185, 129, 0.15)',
               }}
               styles={{ body: { padding: '16px 20px' } }}
@@ -909,11 +961,12 @@ const UsersPage = () => {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card 
-              variant='borderless' 
-              style={{ 
+            <Card
+              variant='borderless'
+              style={{
                 borderRadius: 14,
-                background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)',
+                background:
+                  'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)',
                 border: '1px solid rgba(59, 130, 246, 0.15)',
               }}
               styles={{ body: { padding: '16px 20px' } }}
@@ -927,11 +980,12 @@ const UsersPage = () => {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card 
-              variant='borderless' 
-              style={{ 
+            <Card
+              variant='borderless'
+              style={{
                 borderRadius: 14,
-                background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)',
+                background:
+                  'linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%)',
                 border: '1px solid rgba(245, 158, 11, 0.15)',
               }}
               styles={{ body: { padding: '16px 20px' } }}
@@ -945,11 +999,12 @@ const UsersPage = () => {
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card 
-              variant='borderless' 
-              style={{ 
+            <Card
+              variant='borderless'
+              style={{
                 borderRadius: 14,
-                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(102, 126, 234, 0.05) 100%)',
+                background:
+                  'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(102, 126, 234, 0.05) 100%)',
                 border: '1px solid rgba(102, 126, 234, 0.15)',
               }}
               styles={{ body: { padding: '16px 20px' } }}
@@ -965,8 +1020,8 @@ const UsersPage = () => {
         </Row>
 
         {/* Search */}
-        <Card 
-          variant='borderless' 
+        <Card
+          variant='borderless'
           style={{ borderRadius: 14 }}
           styles={{ body: { padding: '16px 20px' } }}
         >
@@ -976,8 +1031,8 @@ const UsersPage = () => {
             size='large'
             prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
             onChange={e => setSearchText(e.target.value)}
-            style={{ 
-              width: '100%', 
+            style={{
+              width: '100%',
               maxWidth: 500,
             }}
           />
@@ -1003,11 +1058,7 @@ const UsersPage = () => {
             />
           </Card>
         ) : (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
+          <motion.div variants={containerVariants} initial='hidden' animate='visible'>
             <Row gutter={[20, 20]}>
               {filteredUsers.map((userRecord, index) => (
                 <Col key={userRecord.uid} xs={24} sm={12} lg={8} xl={6}>
@@ -1125,9 +1176,7 @@ const UsersPage = () => {
                     const status = getUserStatus(selectedUser);
                     const statusLabel = getUserStatusLabel(status);
                     const statusColor = getUserStatusColor(status);
-                    return (
-                      <Tag color={statusColor}>{statusLabel}</Tag>
-                    );
+                    return <Tag color={statusColor}>{statusLabel}</Tag>;
                   })()}
                 </Descriptions.Item>
                 <Descriptions.Item label='תפקיד'>
@@ -1154,18 +1203,22 @@ const UsersPage = () => {
                 <Descriptions.Item label='תוקף זמן'>
                   {selectedUser.timeExpiresAt ? (
                     <Space>
-                      <CalendarOutlined style={{ 
-                        color: dayjs(selectedUser.timeExpiresAt).isBefore(dayjs()) 
-                          ? '#ff4d4f' 
-                          : '#fa8c16' 
-                      }} />
-                      <Text style={{ 
-                        color: dayjs(selectedUser.timeExpiresAt).isBefore(dayjs()) 
-                          ? '#ff4d4f' 
-                          : undefined 
-                      }}>
-                        {dayjs(selectedUser.timeExpiresAt).isBefore(dayjs()) 
-                          ? 'פג תוקף' 
+                      <CalendarOutlined
+                        style={{
+                          color: dayjs(selectedUser.timeExpiresAt).isBefore(dayjs())
+                            ? '#ff4d4f'
+                            : '#fa8c16',
+                        }}
+                      />
+                      <Text
+                        style={{
+                          color: dayjs(selectedUser.timeExpiresAt).isBefore(dayjs())
+                            ? '#ff4d4f'
+                            : undefined,
+                        }}
+                      >
+                        {dayjs(selectedUser.timeExpiresAt).isBefore(dayjs())
+                          ? 'פג תוקף'
                           : dayjs(selectedUser.timeExpiresAt).format('DD/MM/YYYY')}
                       </Text>
                     </Space>
@@ -1189,27 +1242,18 @@ const UsersPage = () => {
             {/* Quick Actions */}
             <Card title='פעולות מהירות'>
               <Space wrap>
-                <Button 
-                  icon={<MessageOutlined />} 
-                  onClick={() => setSendMessageVisible(true)}
-                >
+                <Button icon={<MessageOutlined />} onClick={() => setSendMessageVisible(true)}>
                   שלח הודעה
                 </Button>
-                <Button 
-                  icon={<EditOutlined />} 
-                  onClick={() => handleAdjustBalance(selectedUser)}
-                >
+                <Button icon={<EditOutlined />} onClick={() => handleAdjustBalance(selectedUser)}>
                   התאם יתרה
                 </Button>
-                <Button 
-                  icon={<LockOutlined />} 
-                  onClick={() => handleResetPassword(selectedUser)}
-                >
+                <Button icon={<LockOutlined />} onClick={() => handleResetPassword(selectedUser)}>
                   איפוס סיסמה
                 </Button>
                 {selectedUser.isAdmin ? (
-                  <Button 
-                    icon={<MinusCircleOutlined />} 
+                  <Button
+                    icon={<MinusCircleOutlined />}
                     danger
                     onClick={() => handleRevokeAdmin(selectedUser)}
                     disabled={selectedUser.uid === user?.uid}
@@ -1218,16 +1262,13 @@ const UsersPage = () => {
                     {selectedUser.uid === user?.uid ? 'לא ניתן להסיר מעצמך' : 'הסר הרשאות מנהל'}
                   </Button>
                 ) : (
-                  <Button 
-                    icon={<CrownOutlined />} 
-                    onClick={() => handleGrantAdmin(selectedUser)}
-                  >
+                  <Button icon={<CrownOutlined />} onClick={() => handleGrantAdmin(selectedUser)}>
                     הענק הרשאות מנהל
                   </Button>
                 )}
                 {selectedUser.forceLogout !== true && (
-                  <Button 
-                    icon={<MinusCircleOutlined />} 
+                  <Button
+                    icon={<MinusCircleOutlined />}
                     danger
                     onClick={() => handleKickUser(selectedUser)}
                   >
@@ -1344,7 +1385,8 @@ const UsersPage = () => {
           <Space>
             <LockOutlined />
             <span>
-              איפוס סיסמה {resetPasswordUser && `ל${resetPasswordUser.firstName} ${resetPasswordUser.lastName}`}
+              איפוס סיסמה{' '}
+              {resetPasswordUser && `ל${resetPasswordUser.firstName} ${resetPasswordUser.lastName}`}
             </span>
           </Space>
         }
@@ -1372,8 +1414,8 @@ const UsersPage = () => {
               }}
             >
               <Text>
-                <strong>שים לב:</strong> הסיסמה החדשה תיכנס לתוקף מיד. 
-                וודא שאתה מעביר את הסיסמה החדשה למשתמש בצורה מאובטחת.
+                <strong>שים לב:</strong> הסיסמה החדשה תיכנס לתוקף מיד. וודא שאתה מעביר את הסיסמה
+                החדשה למשתמש בצורה מאובטחת.
               </Text>
             </div>
 
@@ -1386,10 +1428,7 @@ const UsersPage = () => {
                   { min: 6, message: 'הסיסמה חייבת להכיל לפחות 6 תווים' },
                 ]}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder='לפחות 6 תווים'
-                />
+                <Input.Password prefix={<LockOutlined />} placeholder='לפחות 6 תווים' />
               </Form.Item>
 
               <Form.Item
@@ -1400,10 +1439,7 @@ const UsersPage = () => {
                   { min: 6, message: 'הסיסמה חייבת להכיל לפחות 6 תווים' },
                 ]}
               >
-                <Input.Password
-                  prefix={<LockOutlined />}
-                  placeholder='הכנס שוב את הסיסמה'
-                />
+                <Input.Password prefix={<LockOutlined />} placeholder='הכנס שוב את הסיסמה' />
               </Form.Item>
             </Form>
           </Space>

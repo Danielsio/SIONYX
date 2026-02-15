@@ -4,11 +4,11 @@ import { useAuthStore } from './authStore';
 // Mock localStorage for persist middleware
 const localStorageMock = {
   store: {},
-  getItem: vi.fn((key) => localStorageMock.store[key] || null),
+  getItem: vi.fn(key => localStorageMock.store[key] || null),
   setItem: vi.fn((key, value) => {
     localStorageMock.store[key] = String(value);
   }),
-  removeItem: vi.fn((key) => {
+  removeItem: vi.fn(key => {
     delete localStorageMock.store[key];
   }),
   clear: vi.fn(() => {
@@ -140,7 +140,7 @@ describe('authStore', () => {
 
     it('falls back to localStorage if user has no orgId', () => {
       localStorageMock.store['adminOrgId'] = 'stored-org-id';
-      
+
       useAuthStore.getState().setUser({
         uid: 'user-123',
         // No orgId
@@ -164,7 +164,7 @@ describe('authStore', () => {
 
     it('prefers user orgId over localStorage', () => {
       localStorageMock.store['adminOrgId'] = 'stored-org-id';
-      
+
       useAuthStore.getState().setUser({
         uid: 'user-123',
         orgId: 'user-org-id',
@@ -275,5 +275,3 @@ describe('authStore', () => {
     });
   });
 });
-
-

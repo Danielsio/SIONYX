@@ -24,7 +24,11 @@ import {
   WarningOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { getOperatingHours, updateOperatingHours, DEFAULT_OPERATING_HOURS } from '../../services/settingsService';
+import {
+  getOperatingHours,
+  updateOperatingHours,
+  DEFAULT_OPERATING_HOURS,
+} from '../../services/settingsService';
 import { useOrgId } from '../../hooks/useOrgId';
 import { logger } from '../../utils/logger';
 
@@ -132,7 +136,12 @@ const OperatingHoursSettings = () => {
           <Card
             title='מצב נוכחי'
             extra={
-              <Button icon={<ReloadOutlined />} onClick={loadSettings} loading={loading} size='small'>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={loadSettings}
+                loading={loading}
+                size='small'
+              >
                 רענן
               </Button>
             }
@@ -195,11 +204,7 @@ const OperatingHoursSettings = () => {
                 graceBehavior: settings.graceBehavior,
               }}
             >
-              <Form.Item
-                name='enabled'
-                label='הפעל הגבלת שעות פעילות'
-                valuePropName='checked'
-              >
+              <Form.Item name='enabled' label='הפעל הגבלת שעות פעילות' valuePropName='checked'>
                 <Switch checkedChildren='מופעל' unCheckedChildren='מושבת' />
               </Form.Item>
 
@@ -241,7 +246,12 @@ const OperatingHoursSettings = () => {
                 label='זמן התראה לפני סגירה (דקות)'
                 rules={[
                   { required: enabled, message: 'נא להזין זמן התראה' },
-                  { type: 'number', min: 1, max: 30, message: 'זמן התראה חייב להיות בין 1-30 דקות' },
+                  {
+                    type: 'number',
+                    min: 1,
+                    max: 30,
+                    message: 'זמן התראה חייב להיות בין 1-30 דקות',
+                  },
                 ]}
               >
                 <InputNumber

@@ -87,7 +87,9 @@ describe('downloadService', () => {
 
     it('should throw error for invalid URL', async () => {
       await expect(downloadFile('', 'file.exe')).rejects.toThrow('Invalid download URL');
-      await expect(downloadFile('ftp://invalid', 'file.exe')).rejects.toThrow('Invalid download URL');
+      await expect(downloadFile('ftp://invalid', 'file.exe')).rejects.toThrow(
+        'Invalid download URL'
+      );
     });
 
     it('should throw error when URL is null', async () => {
@@ -112,7 +114,9 @@ describe('downloadService', () => {
     });
 
     it('should throw error for invalid URL', async () => {
-      await expect(downloadFileWithProgress('', 'file.exe')).rejects.toThrow('Invalid download URL');
+      await expect(downloadFileWithProgress('', 'file.exe')).rejects.toThrow(
+        'Invalid download URL'
+      );
     });
   });
 

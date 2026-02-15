@@ -22,7 +22,7 @@ vi.mock('react-router-dom', async () => {
 
 const renderLoginPage = () => {
   const mockSetUser = vi.fn();
-  useAuthStore.mockImplementation((selector) => {
+  useAuthStore.mockImplementation(selector => {
     const state = { setUser: mockSetUser };
     return selector(state);
   });
@@ -79,13 +79,13 @@ describe('LoginPage', () => {
   it('calls signInAdmin on form submit with valid data', async () => {
     const user = userEvent.setup();
     signInAdmin.mockResolvedValue({ success: true, user: { uid: '123' } });
-    
+
     renderLoginPage();
 
     await user.type(screen.getByLabelText(/מזהה ארגון/), 'my-org');
     await user.type(screen.getByLabelText(/מספר טלפון/), '1234567890');
     await user.type(screen.getByLabelText(/סיסמה/), 'password');
-    
+
     await user.click(screen.getByRole('button', { name: /התחבר/ }));
 
     await waitFor(() => {
@@ -96,13 +96,13 @@ describe('LoginPage', () => {
   it('navigates to admin on successful login', async () => {
     const user = userEvent.setup();
     signInAdmin.mockResolvedValue({ success: true, user: { uid: '123' } });
-    
+
     renderLoginPage();
 
     await user.type(screen.getByLabelText(/מזהה ארגון/), 'my-org');
     await user.type(screen.getByLabelText(/מספר טלפון/), '1234567890');
     await user.type(screen.getByLabelText(/סיסמה/), 'password');
-    
+
     await user.click(screen.getByRole('button', { name: /התחבר/ }));
 
     await waitFor(() => {
@@ -114,13 +114,13 @@ describe('LoginPage', () => {
     const user = userEvent.setup();
     const mockUser = { uid: '123', orgId: 'my-org' };
     signInAdmin.mockResolvedValue({ success: true, user: mockUser });
-    
+
     const { mockSetUser } = renderLoginPage();
 
     await user.type(screen.getByLabelText(/מזהה ארגון/), 'my-org');
     await user.type(screen.getByLabelText(/מספר טלפון/), '1234567890');
     await user.type(screen.getByLabelText(/סיסמה/), 'password');
-    
+
     await user.click(screen.getByRole('button', { name: /התחבר/ }));
 
     await waitFor(() => {
@@ -130,17 +130,17 @@ describe('LoginPage', () => {
 
   it('does not navigate on failed login', async () => {
     const user = userEvent.setup();
-    signInAdmin.mockResolvedValue({ 
-      success: false, 
-      error: 'Invalid credentials' 
+    signInAdmin.mockResolvedValue({
+      success: false,
+      error: 'Invalid credentials',
     });
-    
+
     renderLoginPage();
 
     await user.type(screen.getByLabelText(/מזהה ארגון/), 'my-org');
     await user.type(screen.getByLabelText(/מספר טלפון/), '1234567890');
     await user.type(screen.getByLabelText(/סיסמה/), 'wrong');
-    
+
     await user.click(screen.getByRole('button', { name: /התחבר/ }));
 
     await waitFor(() => {

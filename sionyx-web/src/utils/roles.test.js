@@ -145,11 +145,15 @@ describe('roles utility', () => {
     });
 
     it('returns true for supervisor with supervisorActive=false', () => {
-      expect(isSupervisorPendingActivation({ role: 'supervisor', supervisorActive: false })).toBe(true);
+      expect(isSupervisorPendingActivation({ role: 'supervisor', supervisorActive: false })).toBe(
+        true
+      );
     });
 
     it('returns false for supervisor with supervisorActive=true', () => {
-      expect(isSupervisorPendingActivation({ role: 'supervisor', supervisorActive: true })).toBe(false);
+      expect(isSupervisorPendingActivation({ role: 'supervisor', supervisorActive: true })).toBe(
+        false
+      );
     });
 
     it('returns false for admin (unaffected by activation)', () => {

@@ -27,7 +27,7 @@ class ErrorBoundary extends Component {
   componentDidCatch(error, errorInfo) {
     // Log error to console for debugging
     logger.error('Error Boundary caught an error:', error, errorInfo);
-    
+
     this.setState({
       error,
       errorInfo,
@@ -90,12 +90,7 @@ class ErrorBoundary extends Component {
                 >
                   רענן עמוד
                 </Button>,
-                <Button
-                  key='home'
-                  icon={<HomeOutlined />}
-                  onClick={this.handleGoHome}
-                  size='large'
-                >
+                <Button key='home' icon={<HomeOutlined />} onClick={this.handleGoHome} size='large'>
                   חזור לדף הבית
                 </Button>,
               ]}
@@ -141,7 +136,3 @@ class ErrorBoundary extends Component {
 }
 
 export default ErrorBoundary;
-
-
-
-

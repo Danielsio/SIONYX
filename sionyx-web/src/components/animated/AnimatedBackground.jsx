@@ -10,81 +10,83 @@ import { motion } from 'framer-motion';
 // Detect if we should use reduced animations (large screens need lighter animations)
 const usePerformanceMode = () => {
   const [mode, setMode] = useState('full');
-  
+
   useEffect(() => {
     const checkPerformance = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
       const pixels = width * height;
-      
+
       // Check for reduced motion preference
       const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReducedMotion) {
         setMode('minimal');
         return;
       }
-      
+
       // Mobile devices (< 768px) - full animations work great
       if (width < 768) {
         setMode('full');
         return;
       }
-      
+
       // Large screens (> 2M pixels like 1920x1080) - use optimized mode
       if (pixels > 2000000) {
         setMode('optimized');
         return;
       }
-      
+
       setMode('full');
     };
-    
+
     checkPerformance();
     window.addEventListener('resize', checkPerformance);
     return () => window.removeEventListener('resize', checkPerformance);
   }, []);
-  
+
   return mode;
 };
 
 // Floating Orb Component - CSS animations instead of GSAP for better GPU acceleration
-const FloatingOrb = memo(({ 
-  size = 300, 
-  color = 'rgba(94, 129, 244, 0.15)', 
-  initialX = 0, 
-  initialY = 0,
-  duration = 20,
-  delay = 0,
-  reducedBlur = false,
-}) => {
-  // Use CSS keyframe animation ID based on position for variety
-  const animationName = useMemo(() => {
-    const seed = typeof initialX === 'string' ? initialX.length : initialX;
-    return `float-${seed % 3}`;
-  }, [initialX]);
+const FloatingOrb = memo(
+  ({
+    size = 300,
+    color = 'rgba(94, 129, 244, 0.15)',
+    initialX = 0,
+    initialY = 0,
+    duration = 20,
+    delay = 0,
+    reducedBlur = false,
+  }) => {
+    // Use CSS keyframe animation ID based on position for variety
+    const animationName = useMemo(() => {
+      const seed = typeof initialX === 'string' ? initialX.length : initialX;
+      return `float-${seed % 3}`;
+    }, [initialX]);
 
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        width: size,
-        height: size,
-        borderRadius: '50%',
-        background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-        // Reduced blur for desktop performance - blur is VERY expensive
-        filter: reducedBlur ? 'blur(20px)' : 'blur(40px)',
-        pointerEvents: 'none',
-        left: initialX,
-        top: initialY,
-        // Use CSS animation for GPU acceleration
-        animation: `${animationName} ${duration}s ease-in-out ${delay}s infinite`,
-        // GPU hints
-        transform: 'translateZ(0)',
-        willChange: 'transform',
-      }}
-    />
-  );
-});
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+          // Reduced blur for desktop performance - blur is VERY expensive
+          filter: reducedBlur ? 'blur(20px)' : 'blur(40px)',
+          pointerEvents: 'none',
+          left: initialX,
+          top: initialY,
+          // Use CSS animation for GPU acceleration
+          animation: `${animationName} ${duration}s ease-in-out ${delay}s infinite`,
+          // GPU hints
+          transform: 'translateZ(0)',
+          willChange: 'transform',
+        }}
+      />
+    );
+  }
+);
 
 FloatingOrb.displayName = 'FloatingOrb';
 
@@ -102,25 +104,25 @@ const ParticleField = memo(({ count = 50, enableConnections = true }) => {
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d', { alpha: true });
-    
+
     // Use device pixel ratio but cap it for performance
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    
+
     const resizeCanvas = () => {
       const width = window.innerWidth;
       const height = window.innerHeight;
-      
+
       // Set display size
       canvas.style.width = width + 'px';
       canvas.style.height = height + 'px';
-      
+
       // Set actual size in memory (scaled for retina but capped)
       canvas.width = width * dpr;
       canvas.height = height * dpr;
-      
+
       // Scale context to match
       ctx.scale(dpr, dpr);
-      
+
       // Reinitialize particles on resize
       particlesRef.current = Array.from({ length: count }, () => ({
         x: Math.random() * width,
@@ -131,9 +133,9 @@ const ParticleField = memo(({ count = 50, enableConnections = true }) => {
         opacity: Math.random() * 0.4 + 0.2,
       }));
     };
-    
+
     resizeCanvas();
-    
+
     // Debounced resize handler
     let resizeTimeout;
     const handleResize = () => {
@@ -143,7 +145,7 @@ const ParticleField = memo(({ count = 50, enableConnections = true }) => {
     window.addEventListener('resize', handleResize);
 
     // Throttled mouse handler - only update every 50ms
-    const handleMouseMove = (e) => {
+    const handleMouseMove = e => {
       const now = Date.now();
       if (now - lastMouseUpdate.current > 50) {
         mouseRef.current = { x: e.clientX, y: e.clientY };
@@ -157,7 +159,7 @@ const ParticleField = memo(({ count = 50, enableConnections = true }) => {
 
     const animate = () => {
       frameCount.current++;
-      
+
       ctx.clearRect(0, 0, width, height);
 
       const particles = particlesRef.current;
@@ -167,15 +169,16 @@ const ParticleField = memo(({ count = 50, enableConnections = true }) => {
       // Update and draw particles
       for (let i = 0; i < particles.length; i++) {
         const particle = particles[i];
-        
+
         // Mouse attraction (simplified calculation)
         const dx = mouseX - particle.x;
         const dy = mouseY - particle.y;
         const distSq = dx * dx + dy * dy; // Avoid sqrt when possible
-        
-        if (distSq < 40000) { // 200^2
+
+        if (distSq < 40000) {
+          // 200^2
           const dist = Math.sqrt(distSq);
-          const force = (200 - dist) / 200 * 0.015;
+          const force = ((200 - dist) / 200) * 0.015;
           particle.vx += dx * force * 0.01;
           particle.vy += dy * force * 0.01;
         }
@@ -204,7 +207,7 @@ const ParticleField = memo(({ count = 50, enableConnections = true }) => {
       // Draw connections - ONLY every 2nd frame and with distance limit
       if (enableConnections && frameCount.current % 2 === 0) {
         ctx.lineWidth = 0.5;
-        
+
         // Only check nearby particles (spatial optimization)
         for (let i = 0; i < particles.length; i++) {
           const p1 = particles[i];
@@ -215,7 +218,8 @@ const ParticleField = memo(({ count = 50, enableConnections = true }) => {
             const dy = p1.y - p2.y;
             const distSq = dx * dx + dy * dy;
 
-            if (distSq < 12100) { // 110^2 - reduced connection distance
+            if (distSq < 12100) {
+              // 110^2 - reduced connection distance
               const dist = Math.sqrt(distSq);
               ctx.beginPath();
               ctx.moveTo(p1.x, p1.y);
@@ -262,7 +266,7 @@ ParticleField.displayName = 'ParticleField';
 // Main Animated Background Component
 const AnimatedBackground = memo(() => {
   const performanceMode = usePerformanceMode();
-  
+
   // Adjust settings based on performance mode
   const settings = useMemo(() => {
     switch (performanceMode) {
@@ -329,7 +333,8 @@ const AnimatedBackground = memo(() => {
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 25%, #16213e 50%, #0f3460 75%, #0a192f 100%)',
+          background:
+            'linear-gradient(135deg, #0a0a1a 0%, #1a1a3e 25%, #16213e 50%, #0f3460 75%, #0a192f 100%)',
         }}
       />
 
@@ -346,35 +351,36 @@ const AnimatedBackground = memo(() => {
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'radial-gradient(ellipse at 30% 30%, rgba(94, 129, 244, 0.12) 0%, transparent 50%)',
+          background:
+            'radial-gradient(ellipse at 30% 30%, rgba(94, 129, 244, 0.12) 0%, transparent 50%)',
         }}
       />
 
       {/* Floating Orbs - CSS animated */}
       {settings.showOrbs && (
         <>
-          <FloatingOrb 
-            size={400} 
-            color="rgba(94, 129, 244, 0.1)" 
-            initialX={-50} 
+          <FloatingOrb
+            size={400}
+            color='rgba(94, 129, 244, 0.1)'
+            initialX={-50}
             initialY={-50}
             duration={20}
             reducedBlur={settings.reducedBlur}
           />
-          <FloatingOrb 
-            size={350} 
-            color="rgba(236, 72, 153, 0.07)" 
-            initialX="65%" 
-            initialY="15%"
+          <FloatingOrb
+            size={350}
+            color='rgba(236, 72, 153, 0.07)'
+            initialX='65%'
+            initialY='15%'
             duration={18}
             delay={1}
             reducedBlur={settings.reducedBlur}
           />
-          <FloatingOrb 
-            size={300} 
-            color="rgba(118, 75, 162, 0.08)" 
-            initialX="25%" 
-            initialY="55%"
+          <FloatingOrb
+            size={300}
+            color='rgba(118, 75, 162, 0.08)'
+            initialX='25%'
+            initialY='55%'
             duration={22}
             delay={2}
             reducedBlur={settings.reducedBlur}
@@ -384,8 +390,8 @@ const AnimatedBackground = memo(() => {
 
       {/* Particle Field - with performance-based settings */}
       {settings.particleCount > 0 && (
-        <ParticleField 
-          count={settings.particleCount} 
+        <ParticleField
+          count={settings.particleCount}
           enableConnections={settings.enableConnections}
         />
       )}

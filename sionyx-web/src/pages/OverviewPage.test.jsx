@@ -21,26 +21,26 @@ vi.mock('../hooks/useOrgId', () => ({
 
 const renderOverviewPage = () => {
   const mockSetStats = vi.fn();
-  
-  useAuthStore.mockImplementation((selector) => {
-    const state = { 
-      user: { 
-        orgId: 'my-org', 
+
+  useAuthStore.mockImplementation(selector => {
+    const state = {
+      user: {
+        orgId: 'my-org',
         uid: 'admin-123',
         displayName: 'Admin User',
         email: 'admin@test.com',
-      } 
+      },
     };
     return selector(state);
   });
 
-  useDataStore.mockImplementation((selector) => {
-    const state = { 
+  useDataStore.mockImplementation(selector => {
+    const state = {
       stats: {
         usersCount: 10,
         packagesCount: 5,
         purchasesCount: 50,
-        totalRevenue: 1500.00,
+        totalRevenue: 1500.0,
         totalTimeMinutes: 5000,
       },
       setStats: mockSetStats,
@@ -70,7 +70,7 @@ describe('OverviewPage', () => {
         usersCount: 10,
         packagesCount: 5,
         purchasesCount: 50,
-        totalRevenue: 1500.00,
+        totalRevenue: 1500.0,
         totalTimeMinutes: 5000,
       },
     });
@@ -126,9 +126,12 @@ describe('OverviewPage', () => {
   it('displays overview title after loading', async () => {
     renderOverviewPage();
 
-    await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
 
     expect(screen.getByText(/סקירה/)).toBeInTheDocument();
   });
@@ -152,15 +155,16 @@ describe('OverviewPage', () => {
   it('shows statistics cards after loading', async () => {
     renderOverviewPage();
 
-    await waitFor(() => {
-      expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    }, { timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      },
+      { timeout: 2000 }
+    );
 
     // Should show at least one statistic label (use queryAllBy for multiple matches)
     const statsLabels = [/משתמשים/, /חבילות/, /רכישות/, /הכנסות/];
-    const foundLabel = statsLabels.some(label => 
-      screen.queryAllByText(label).length > 0
-    );
+    const foundLabel = statsLabels.some(label => screen.queryAllByText(label).length > 0);
     expect(foundLabel).toBe(true);
   });
 
@@ -168,14 +172,14 @@ describe('OverviewPage', () => {
     // Start with null orgId
     mockUseOrgId.mockReturnValue(null);
 
-    useAuthStore.mockImplementation((selector) => {
+    useAuthStore.mockImplementation(selector => {
       const state = {
         user: { orgId: null, uid: 'admin-123', displayName: 'Admin', email: 'admin@test.com' },
       };
       return selector(state);
     });
 
-    useDataStore.mockImplementation((selector) => {
+    useDataStore.mockImplementation(selector => {
       const state = {
         stats: {},
         setStats: vi.fn(),

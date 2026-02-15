@@ -136,15 +136,15 @@ const StatCard = ({
   // Trend indicator
   const renderTrend = () => {
     if (!trend || !trendValue) return null;
-    
+
     const isPositive = trend === 'up';
     const trendColor = isPositive ? '#10b981' : '#ef4444';
     const trendIcon = isPositive ? '↑' : '↓';
-    
+
     return (
-      <Text 
-        style={{ 
-          fontSize: 12, 
+      <Text
+        style={{
+          fontSize: 12,
           color: trendColor,
           fontWeight: 600,
           marginTop: 4,
@@ -162,8 +162,8 @@ const StatCard = ({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ 
-          duration: 0.4, 
+        transition={{
+          duration: 0.4,
           delay,
           ease: [0.25, 0.46, 0.45, 0.94],
         }}
@@ -204,7 +204,9 @@ const StatCard = ({
                   {title}
                 </Text>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
-                  {prefix}{typeof formatter === 'function' ? formatter(value) : value}{suffix}
+                  {prefix}
+                  {typeof formatter === 'function' ? formatter(value) : value}
+                  {suffix}
                 </div>
                 {renderTrend()}
               </div>
@@ -212,7 +214,9 @@ const StatCard = ({
           </div>
           {subtitle && (
             <div style={{ padding: '12px 20px', background: '#fff' }}>
-              <Text type='secondary' style={{ fontSize: 12 }}>{subtitle}</Text>
+              <Text type='secondary' style={{ fontSize: 12 }}>
+                {subtitle}
+              </Text>
             </div>
           )}
         </Card>
@@ -225,8 +229,8 @@ const StatCard = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ 
-        duration: 0.4, 
+      transition={{
+        duration: 0.4,
         delay,
         ease: [0.25, 0.46, 0.45, 0.94],
       }}
@@ -244,14 +248,14 @@ const StatCard = ({
           ...variantStyles.card,
           ...style,
         }}
-        styles={{ 
-          body: { 
+        styles={{
+          body: {
             padding: '24px 20px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: 12,
-          } 
+          },
         }}
         {...props}
       >
@@ -272,7 +276,7 @@ const StatCard = ({
             {icon}
           </div>
         )}
-        
+
         <Statistic
           title={title}
           value={value}
@@ -287,9 +291,9 @@ const StatCard = ({
             ...variantStyles.value,
           }}
         />
-        
+
         {renderTrend()}
-        
+
         {subtitle && (
           <Text type='secondary' style={{ fontSize: 12, marginTop: 4 }}>
             {subtitle}
@@ -303,13 +307,7 @@ const StatCard = ({
 /**
  * MiniStatCard - Compact version for inline stats
  */
-export const MiniStatCard = ({
-  label,
-  value,
-  icon,
-  color = 'primary',
-  style = {},
-}) => {
+export const MiniStatCard = ({ label, value, icon, color = 'primary', style = {} }) => {
   const colorConfig = {
     primary: { bg: 'rgba(102, 126, 234, 0.1)', color: '#667eea' },
     success: { bg: 'rgba(16, 185, 129, 0.1)', color: '#10b981' },
@@ -333,11 +331,7 @@ export const MiniStatCard = ({
         ...style,
       }}
     >
-      {icon && (
-        <div style={{ color: colors.color, fontSize: 20 }}>
-          {icon}
-        </div>
-      )}
+      {icon && <div style={{ color: colors.color, fontSize: 20 }}>{icon}</div>}
       <div style={{ flex: 1 }}>
         <div style={{ color: colors.color, fontWeight: 700, fontSize: 18, lineHeight: 1.2 }}>
           {value}
@@ -353,13 +347,7 @@ export const MiniStatCard = ({
 /**
  * InfoStatCard - For displaying key-value info with icon
  */
-export const InfoStatCard = ({
-  title,
-  children,
-  icon,
-  extra,
-  style = {},
-}) => {
+export const InfoStatCard = ({ title, children, icon, extra, style = {} }) => {
   return (
     <Card
       title={title}
