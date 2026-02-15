@@ -94,6 +94,9 @@ Section "Main Application" SecMain
     ; Payment Gateway Configuration
     WriteRegStr HKLM "SOFTWARE\${APP_NAME}" "NedarimCallbackUrl" "https://us-central1-sionyx-19636.cloudfunctions.net/nedarimCallback"
     
+    ; Security - Admin exit password (change this per deployment)
+    WriteRegStr HKLM "SOFTWARE\${APP_NAME}" "AdminExitPassword" "sionyx2025"
+    
     DetailPrint "[OK] Configuration stored in Windows Registry"
     
     ; Create uninstaller
