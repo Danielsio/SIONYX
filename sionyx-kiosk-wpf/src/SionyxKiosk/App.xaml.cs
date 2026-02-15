@@ -285,11 +285,38 @@ public partial class App : Application
             var chat = _host.Services.GetRequiredService<ChatService>();
             chat.StartListening();
 
-            // Print monitor — start/stop with session
+            // Print monitor + floating timer — start/stop with session
             var session = _host.Services.GetRequiredService<SessionService>();
             var printMonitor = _host.Services.GetRequiredService<PrintMonitorService>();
-            session.SessionStarted += () => printMonitor.StartMonitoring();
-            session.SessionEnded += _ => printMonitor.StopMonitoring();
+            Views.Controls.FloatingTimer? floatingTimer = null;
+
+            session.SessionStarted += () =>
+            {
+                printMonitor.StartMonitoring();
+                Current.Dispatcher.Invoke(() =>
+                {
+                    floatingTimer = new Views.Controls.FloatingTimer();
+                    floatingTimer.Show();
+                });
+            };
+
+            session.TimeUpdated += remaining =>
+            {
+                Current.Dispatcher.Invoke(() =>
+                {
+                    floatingTimer?.UpdateTime(remaining);
+                });
+            };
+
+            session.SessionEnded += _ =>
+            {
+                printMonitor.StopMonitoring();
+                Current.Dispatcher.Invoke(() =>
+                {
+                    floatingTimer?.Close();
+                    floatingTimer = null;
+                });
+            };
 
             // Operating hours monitoring
             var hours = _host.Services.GetRequiredService<OperatingHoursService>();

@@ -19,6 +19,14 @@ public partial class HomeViewModel : ObservableObject
     [ObservableProperty] private bool _isSessionActive;
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string _errorMessage = "";
+    [ObservableProperty] private string _welcomeMessage = "";
+
+    public bool IsSessionInactive => !IsSessionActive;
+
+    partial void OnIsSessionActiveChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsSessionInactive));
+    }
 
     public HomeViewModel(SessionService session, ChatService chat, UserData user)
     {
@@ -26,6 +34,8 @@ public partial class HomeViewModel : ObservableObject
         _chat = chat;
         _user = user;
 
+        WelcomeMessage = $"שלום, {_user.FullName}!";
+        IsSessionActive = _session.IsActive;
         UpdateStats();
         _session.TimeUpdated += OnTimeUpdated;
         _session.SessionEnded += reason => IsSessionActive = false;
