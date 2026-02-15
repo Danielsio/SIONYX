@@ -149,7 +149,11 @@ public partial class App : Application
                     return new MainWindow(vm, sp);
                 });
                 services.AddTransient<HomePage>();
-                services.AddTransient<PackagesPage>();
+                services.AddTransient<PackagesPage>(sp =>
+                {
+                    var vm = sp.GetRequiredService<PackagesViewModel>();
+                    return new PackagesPage(vm, sp);
+                });
                 services.AddTransient<HistoryPage>();
                 services.AddTransient<HelpPage>();
             })
