@@ -8,6 +8,7 @@ namespace SionyxKiosk.ViewModels;
 public partial class AuthViewModel : ObservableObject
 {
     private readonly AuthService _auth;
+    private readonly OrganizationMetadataService? _metadataService;
 
     [ObservableProperty] private string _phone = "";
     [ObservableProperty] private string _password = "";
@@ -17,13 +18,15 @@ public partial class AuthViewModel : ObservableObject
     [ObservableProperty] private string _errorMessage = "";
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _isLoginMode = true;
+    [ObservableProperty] private string _forgotPasswordInfo = "";
 
     public event Action? LoginSucceeded;
     public event Action? RegistrationSucceeded;
 
-    public AuthViewModel(AuthService auth)
+    public AuthViewModel(AuthService auth, OrganizationMetadataService? metadataService = null)
     {
         _auth = auth;
+        _metadataService = metadataService;
     }
 
     [RelayCommand]
@@ -74,6 +77,41 @@ public partial class AuthViewModel : ObservableObject
     {
         IsLoginMode = !IsLoginMode;
         ErrorMessage = "";
+        ForgotPasswordInfo = "";
+    }
+
+    [RelayCommand]
+    private async Task ForgotPasswordAsync()
+    {
+        if (_metadataService == null)
+        {
+            ForgotPasswordInfo = "לא ניתן לטעון פרטי קשר. פנה למנהל המערכת.";
+            return;
+        }
+
+        try
+        {
+            var result = await _metadataService.GetAdminContactAsync();
+            if (result.IsSuccess && result.Data is { } contact)
+            {
+                var type = contact.GetType();
+                var phone = type.GetProperty("phone")?.GetValue(contact)?.ToString() ?? "";
+                var email = type.GetProperty("email")?.GetValue(contact)?.ToString() ?? "";
+
+                var info = "לאיפוס סיסמה פנה למנהל:";
+                if (!string.IsNullOrEmpty(phone)) info += $"\n📞 {phone}";
+                if (!string.IsNullOrEmpty(email)) info += $"\n✉️ {email}";
+                ForgotPasswordInfo = info;
+            }
+            else
+            {
+                ForgotPasswordInfo = "פנה למנהל המערכת לאיפוס סיסמה.";
+            }
+        }
+        catch
+        {
+            ForgotPasswordInfo = "פנה למנהל המערכת לאיפוס סיסמה.";
+        }
     }
 
     /// <summary>Called by App when auto-login succeeds.</summary>

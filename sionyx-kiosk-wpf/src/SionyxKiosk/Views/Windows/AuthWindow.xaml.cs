@@ -24,6 +24,7 @@ public partial class AuthWindow : Window
             {
                 var isLogin = viewModel.IsLoginMode;
                 RegisterFields.Visibility = isLogin ? Visibility.Collapsed : Visibility.Visible;
+                ForgotPasswordButton.Visibility = isLogin ? Visibility.Visible : Visibility.Collapsed;
                 SubtitleText.Text = isLogin ? "התחבר לחשבון שלך" : "צור חשבון חדש";
                 ActionButton.Content = isLogin ? "התחבר" : "הירשם";
                 ActionButton.Command = isLogin ? viewModel.LoginCommand : viewModel.RegisterCommand;
