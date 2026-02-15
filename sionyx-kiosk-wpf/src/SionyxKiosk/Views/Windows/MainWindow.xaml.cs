@@ -1,4 +1,6 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using SionyxKiosk.ViewModels;
 using SionyxKiosk.Views.Pages;
 
@@ -16,14 +18,17 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         InitializeComponent();
 
-        _vm.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(MainViewModel.CurrentPage))
-                NavigateToPage(_vm.CurrentPage);
-        };
-
         // Navigate to home on startup
         NavigateToPage("Home");
+    }
+
+    private void NavButton_Checked(object sender, RoutedEventArgs e)
+    {
+        if (sender is RadioButton rb && rb.Tag is string page)
+        {
+            _vm.CurrentPage = page;
+            NavigateToPage(page);
+        }
     }
 
     private void NavigateToPage(string page)
@@ -37,7 +42,7 @@ public partial class MainWindow : Window
             _ => _services.GetService(typeof(HomePage))
         };
 
-        if (pageInstance is System.Windows.Controls.Page p)
+        if (pageInstance is Page p)
             ContentFrame.Navigate(p);
     }
 }
