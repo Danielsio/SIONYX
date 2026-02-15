@@ -40,7 +40,7 @@ const getRtdbUrl = path => {
  *   - No auth needed, no Storage 403 issues
  *   - Written by build.py during each release
  *
- * Fallback: Firebase Storage (releases/latest.json)
+ * Fallback: Firebase Storage (latest.json)
  *   - May fail with 403 if uniform bucket-level access is enabled
  *
  * @returns {Promise<Object>} Release metadata
@@ -65,7 +65,7 @@ const fetchLatestMetadata = async () => {
   // FALLBACK: Fetch from Firebase Storage
   try {
     const cacheBuster = `t=${Date.now()}`;
-    const metadataUrl = `${getFirebaseStorageUrl('releases/latest.json')}?alt=media&${cacheBuster}`;
+    const metadataUrl = `${getFirebaseStorageUrl('latest.json')}?alt=media&${cacheBuster}`;
 
     const response = await fetch(metadataUrl, { cache: 'no-store' });
 
