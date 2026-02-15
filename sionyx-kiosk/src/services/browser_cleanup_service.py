@@ -295,6 +295,9 @@ class BrowserCleanupService:
         """
         Attempt to close all browsers gracefully.
 
+        Uses a single tasklist call to check all browsers at once,
+        then kills only those that are running.
+
         Returns:
             Dict with browser name -> success status
         """
@@ -305,10 +308,23 @@ class BrowserCleanupService:
             "firefox": "firefox.exe",
         }
 
+        # Single tasklist call to detect all running browsers
+        try:
+            tasklist_result = subprocess.run(
+                ["tasklist", "/FO", "CSV"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                creationflags=_SUBPROCESS_FLAGS,
+            )
+            running_output = tasklist_result.stdout.lower()
+        except Exception as e:
+            logger.debug(f"Error getting process list: {e}")
+            running_output = ""
+
         for name, process in browsers.items():
-            if self.is_browser_running(name):
+            if process.lower() in running_output:
                 try:
-                    # Use taskkill to close gracefully
                     subprocess.run(
                         ["taskkill", "/IM", process, "/F"],
                         capture_output=True,

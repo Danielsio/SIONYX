@@ -50,7 +50,10 @@ class AuthService:
                 )
 
                 # Check for crashed/orphaned session and recover time
-                self._recover_orphaned_session(self.firebase.user_id)
+                # Pass user_data to avoid redundant db_get
+                self._recover_orphaned_session(
+                    self.firebase.user_id, user_data=user_result["data"]
+                )
 
                 # Register/update computer and associate with user
                 self._handle_computer_registration(self.firebase.user_id)
@@ -110,7 +113,8 @@ class AuthService:
         self.current_user["uid"] = uid
 
         # Check for crashed/orphaned session and recover time
-        self._recover_orphaned_session(uid)
+        # Pass user_data to avoid redundant db_get
+        self._recover_orphaned_session(uid, user_data=user_data)
 
         # Register/update computer and associate with user
         self._handle_computer_registration(uid)
@@ -257,7 +261,9 @@ class AuthService:
 
         return result
 
-    def _recover_orphaned_session(self, user_id: str):
+    def _recover_orphaned_session(
+        self, user_id: str, user_data: Optional[Dict] = None
+    ):
         """
         Clean up orphaned/crashed sessions WITHOUT deducting time.
 
@@ -268,16 +274,20 @@ class AuthService:
         - Runs only on login (free, no extra cost)
 
         Uses updatedAt to detect stale sessions (updated every 60s during active session)
+
+        Args:
+            user_id: The user ID to check for orphaned sessions
+            user_data: Optional pre-fetched user data to avoid redundant db_get
         """
         try:
             logger.info(f"Checking for orphaned session for user: {user_id}")
 
-            # Get user data
-            user_result = self.firebase.db_get(f"users/{user_id}")
-            if not user_result.get("success") or not user_result.get("data"):
-                return
-
-            user_data = user_result["data"]
+            # Use pre-fetched data if available, otherwise fetch from DB
+            if user_data is None:
+                user_result = self.firebase.db_get(f"users/{user_id}")
+                if not user_result.get("success") or not user_result.get("data"):
+                    return
+                user_data = user_result["data"]
             is_session_active = user_data.get("isSessionActive", False)
 
             if not is_session_active:

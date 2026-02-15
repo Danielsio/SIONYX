@@ -60,10 +60,6 @@ try:
 
     from services.auth_service import AuthService
     from services.global_hotkey_service import GlobalHotkeyService
-    from services.keyboard_restriction_service import KeyboardRestrictionService
-    from services.process_restriction_service import ProcessRestrictionService
-    from ui.auth_window import AuthWindow
-    from ui.main_window import MainWindow
     from utils.const import ADMIN_EXIT_PASSWORD, APP_NAME
     from utils.firebase_config import get_firebase_config
     from utils.logger import (
@@ -245,13 +241,17 @@ class SionyxApp:
 
     def show_auth_window(self):
         """Display authentication window"""
+        from ui.auth_window import AuthWindow
+
         logger.info("Opening auth window", action="show_auth_window")
         self.auth_window = AuthWindow(self.auth_service)
         self.auth_window.login_success.connect(self.show_main_window)
         self.auth_window.show()
 
     def show_main_window(self):
-        """Display main dashboard"""
+        """Display main dashboard (lazy-loads MainWindow and its dependencies)"""
+        from ui.main_window import MainWindow
+
         logger.info("Opening main dashboard", action="show_main_window")
 
         if self.auth_window is not None:
@@ -472,6 +472,9 @@ class SionyxApp:
 
     def _start_kiosk_services(self):
         """Start kiosk security services (keyboard and process restrictions)."""
+        from services.keyboard_restriction_service import KeyboardRestrictionService
+        from services.process_restriction_service import ProcessRestrictionService
+
         try:
             # Keyboard restriction - blocks Alt+Tab, Win key, etc.
             self.keyboard_restriction_service = KeyboardRestrictionService(enabled=True)
