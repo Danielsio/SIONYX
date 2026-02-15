@@ -417,7 +417,7 @@ def create_installer(version: str) -> Optional[Path]:
 # FIREBASE STORAGE
 # =============================================================================
 
-def delete_old_versions(bucket, current_version: str, prefix: str = "releases/"):
+def delete_old_versions(bucket, current_version: str, prefix: str = ""):
     """Delete old installer versions from Firebase Storage"""
     print_info("Cleaning up old versions...")
     
@@ -506,11 +506,11 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
         version = version_data["version"]
         
         # Delete old versions first
-        delete_old_versions(bucket, version, "releases/")
+        delete_old_versions(bucket, version)
         
         # Upload installer
         installer_filename = get_installer_filename(version)
-        installer_blob_path = f"releases/{installer_filename}"
+        installer_blob_path = installer_filename
         
         print_info(f"Uploading {installer_path} -> {installer_blob_path}")
         
@@ -541,7 +541,7 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
             "changelog": version_data.get("changelog", [])
         }
         
-        metadata_blob = bucket.blob("releases/latest.json")
+        metadata_blob = bucket.blob("latest.json")
         # Set no-cache headers to prevent stale version info
         metadata_blob.cache_control = "no-cache, no-store, must-revalidate"
         metadata_blob.upload_from_string(
@@ -549,7 +549,7 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
             content_type="application/json"
         )
         metadata_token = _ensure_download_token(metadata_blob)
-        metadata_url = _get_firebase_download_url(bucket_name, "releases/latest.json", metadata_token)
+        metadata_url = _get_firebase_download_url(bucket_name, "latest.json", metadata_token)
         print_success(f"Version metadata uploaded: {metadata_url}")
         
         # Also write release metadata to RTDB at public/latestRelease

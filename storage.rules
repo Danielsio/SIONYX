@@ -2,16 +2,12 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     // Allow public read access to release files (installer + metadata)
-    // so unauthenticated users can download from the landing page
-    match /releases/{allPaths=**} {
-      allow read: if true;
+    // so unauthenticated users can download from the landing page.
+    // Files are stored at the bucket root: latest.json, sionyx-installer-vX.Y.Z.exe
+    match /{file} {
+      allow read: if file == 'latest.json'
+                  || file.matches('sionyx-installer.*\\.exe');
       allow write: if false; // Only admin SDK (build script) can write
-    }
-
-    // Backwards-compat installer path
-    match /sionyx-installer.exe {
-      allow read: if true;
-      allow write: if false;
     }
 
     // Default: require authentication for everything else
