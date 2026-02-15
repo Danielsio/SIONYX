@@ -936,6 +936,180 @@ class TestNotifications:
             print_monitor._notification_thread_func()
         assert print_monitor._using_notifications is False
 
+    def test_open_notification_handle_success(self, print_monitor):
+        """Tests the full ctypes path for opening notification handle"""
+        mock_winspool = Mock()
+        mock_winspool.OpenPrinterW = Mock()
+        mock_winspool.FindFirstPrinterChangeNotification = Mock(
+            return_value=42
+        )  # Valid handle
+
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", True
+        ):
+            with patch(
+                "services.print_monitor_service._winspool", mock_winspool
+            ):
+                with patch(
+                    "services.print_monitor_service.ctypes"
+                ) as mock_ctypes:
+                    mock_ctypes.byref = Mock()
+                    hPrinter, hChange = (
+                        print_monitor._open_notification_handle()
+                    )
+
+        assert hChange == 42
+        mock_winspool.OpenPrinterW.assert_called_once()
+        mock_winspool.FindFirstPrinterChangeNotification.assert_called_once()
+
+    def test_open_notification_handle_invalid_handle(self, print_monitor):
+        """Tests when FindFirst returns INVALID_HANDLE_VALUE"""
+        mock_winspool = Mock()
+        mock_winspool.OpenPrinterW = Mock()
+        mock_winspool.FindFirstPrinterChangeNotification = Mock(
+            return_value=-1
+        )  # INVALID_HANDLE_VALUE
+        mock_winspool.ClosePrinter = Mock()
+
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", True
+        ):
+            with patch(
+                "services.print_monitor_service._winspool", mock_winspool
+            ):
+                with patch(
+                    "services.print_monitor_service.ctypes"
+                ) as mock_ctypes:
+                    mock_ctypes.byref = Mock()
+                    mock_ctypes.get_last_error = Mock(return_value=5)
+                    hPrinter, hChange = (
+                        print_monitor._open_notification_handle()
+                    )
+
+        assert hPrinter is None
+        assert hChange is None
+        mock_winspool.ClosePrinter.assert_called_once()
+
+    def test_wait_for_notification_event_fired(self, print_monitor):
+        """Tests WaitForSingleObject returning WAIT_OBJECT_0"""
+        mock_kernel32 = Mock()
+        mock_kernel32.WaitForSingleObject = Mock(return_value=0)  # WAIT_OBJECT_0
+        mock_winspool = Mock()
+        mock_winspool.FindNextPrinterChangeNotification = Mock()
+
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", True
+        ):
+            with patch(
+                "services.print_monitor_service._kernel32", mock_kernel32
+            ):
+                with patch(
+                    "services.print_monitor_service._winspool",
+                    mock_winspool,
+                ):
+                    with patch(
+                        "services.print_monitor_service.wintypes"
+                    ):
+                        with patch(
+                            "services.print_monitor_service.ctypes"
+                        ):
+                            result = (
+                                print_monitor._wait_for_notification(
+                                    Mock(), 500
+                                )
+                            )
+
+        assert result is True
+        mock_kernel32.WaitForSingleObject.assert_called_once()
+        mock_winspool.FindNextPrinterChangeNotification.assert_called_once()
+
+    def test_wait_for_notification_timeout(self, print_monitor):
+        """Tests WaitForSingleObject returning WAIT_TIMEOUT"""
+        mock_kernel32 = Mock()
+        mock_kernel32.WaitForSingleObject = Mock(
+            return_value=0x00000102
+        )  # WAIT_TIMEOUT
+
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", True
+        ):
+            with patch(
+                "services.print_monitor_service._kernel32", mock_kernel32
+            ):
+                result = print_monitor._wait_for_notification(
+                    Mock(), 500
+                )
+
+        assert result is False
+
+    def test_wait_for_notification_exception(self, print_monitor):
+        """Tests exception handling in wait"""
+        mock_kernel32 = Mock()
+        mock_kernel32.WaitForSingleObject = Mock(
+            side_effect=Exception("WinError")
+        )
+
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", True
+        ):
+            with patch(
+                "services.print_monitor_service._kernel32", mock_kernel32
+            ):
+                result = print_monitor._wait_for_notification(
+                    Mock(), 500
+                )
+
+        assert result is False
+
+    def test_close_notification_handle_success(self, print_monitor):
+        """Tests closing both handles"""
+        mock_winspool = Mock()
+
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", True
+        ):
+            with patch(
+                "services.print_monitor_service._winspool", mock_winspool
+            ):
+                print_monitor._close_notification_handle(
+                    Mock(), 42
+                )
+
+        mock_winspool.FindClosePrinterChangeNotification.assert_called_once()
+        mock_winspool.ClosePrinter.assert_called_once()
+
+    def test_close_notification_handle_exceptions(self, print_monitor):
+        """Tests closing handles with exceptions (graceful)"""
+        mock_winspool = Mock()
+        mock_winspool.FindClosePrinterChangeNotification.side_effect = (
+            Exception("Error1")
+        )
+        mock_winspool.ClosePrinter.side_effect = Exception("Error2")
+
+        with patch(
+            "services.print_monitor_service._HAS_NOTIFICATIONS", True
+        ):
+            with patch(
+                "services.print_monitor_service._winspool", mock_winspool
+            ):
+                # Should not raise
+                print_monitor._close_notification_handle(
+                    Mock(), 42
+                )
+
+    def test_stop_monitoring_waits_for_thread(self, print_monitor):
+        """Stop monitoring joins the notification thread"""
+        print_monitor._is_monitoring = True
+        print_monitor._poll_timer = Mock()
+
+        mock_thread = Mock()
+        mock_thread.is_alive.return_value = False
+        print_monitor._notification_thread = mock_thread
+
+        print_monitor.stop_monitoring()
+
+        assert print_monitor._notification_thread is None
+
 
 # =============================================================================
 # Paused Job Handling Tests (Job Successfully Paused)
