@@ -1,15 +1,17 @@
 {
-  "version": "2.1.2",
+  "version": "2.1.3",
   "major": 2,
   "minor": 1,
-  "patch": 2,
+  "patch": 3,
   "buildNumber": 63,
   "lastBuildDate": "2026-02-05T18:57:48.109573",
   "changelog": [
-    "feat: Remove redundant account button from floating timer",
-    "feat: Clear browser cookies on session end",
-    "feat: Close user programs on session start",
-    "feat: Package expiration/deadline support"
+    "fix: Inverted refresh logic in refresh_all_pages (BUG-006)",
+    "fix: Session sync failure silently ignored (BUG-007)",
+    "fix: Double purchase completion handler (BUG-008)",
+    "fix: SQLite connection leak on exception (BUG-009)",
+    "fix: Signal connection leak in AlertModal (BUG-012)",
+    "fix: Log exception in _is_session_active (BUG-013)"
   ],
   "coverage": 94.49
 }
