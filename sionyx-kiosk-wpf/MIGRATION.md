@@ -350,8 +350,8 @@ dotnet add package FluentAssertions
 | Phase 2: Business Services | DONE | AuthService, ComputerService, OrganizationMetadataService, PackageService, PurchaseService, ChatService (SSE), OperatingHoursService, SessionService (full lifecycle with countdown/sync/warnings), BrowserCleanupService, ProcessCleanupService, ProcessRestrictionService. Models: UserData, Package, Purchase, OperatingHoursSettings. **Build: 0 errors, 0 warnings.** |
 | Phase 3: System Services | DONE | PrintMonitorService (P/Invoke for FindFirstPrinterChangeNotification + System.Printing), KeyboardRestrictionService (SetWindowsHookEx low-level hook), GlobalHotkeyService (RegisterHotKey via Win32). **Build: 0 errors, 0 warnings.** |
 | Phase 4: Theme & Design | DONE | Colors.xaml (full FROST palette + gradients), Typography.xaml (modular scale + semantic text styles), Theme.xaml (global implicit styles: inputs, buttons, tooltips, spacing, radii), Animations.xaml (fade, slide, scale, pulse, spinner storyboards). **Build: 0 errors, 0 warnings.** |
-| Phase 5: Reusable Controls | NOT STARTED | |
-| Phase 6: Views + ViewModels | NOT STARTED | |
-| Phase 7: App Shell | NOT STARTED | |
+| Phase 5: Reusable Controls | DONE | FrostCard, StatCard, PageHeader, LoadingSpinner, EmptyState, StatusBadge, LoadingOverlay, MessageCard, FloatingTimer (topmost draggable, warning states), PurchaseCard, StringToVisibilityConverter. All with DependencyProperties. **Build: 0 errors, 0 warnings.** |
+| Phase 6: Views + ViewModels | DONE | ViewModels: Auth, Main, Home, Packages, History, Help, Payment, Message (CommunityToolkit.Mvvm). Windows: AuthWindow (dual-panel), MainWindow (sidebar+Frame). Pages: Home, Packages, History, Help. Dialogs: Alert, Modern, Message, Payment (WebView2). Services: ForceLogoutService, LocalFileServer (HttpListener). **Build: 0 errors, 0 warnings.** |
+| Phase 7: App Shell | DONE | App.xaml.cs: DI container (Microsoft.Extensions.Hosting), Serilog, single-instance Mutex, global exception handlers, CLI args (--kiosk, --verbose), Auth→Main window lifecycle, auto-login, system service startup/shutdown, theme ResourceDictionary merging. Removed placeholder MainWindow. **Build: 0 errors, 0 warnings.** |
 | Phase 8: Build & Distribution | NOT STARTED | |
 | Phase 9: Testing | NOT STARTED | Unit tests pending for Phase 1 |
