@@ -14,32 +14,49 @@
         <!-- SIDEBAR -->
         <Border Grid.Column="0" Background="{StaticResource SidebarGradient}">
             <DockPanel>
-                <!-- Logo area -->
-                <StackPanel DockPanel.Dock="Top" Margin="24,32,24,0">
-                    <TextBlock Text="SIONYX" FontSize="28" FontWeight="ExtraBold"
-                               Foreground="White" Margin="0,0,0,4" />
-                    <TextBlock Text="{Binding CurrentUser.FullName}" FontSize="14"
-                               Foreground="#FFFFFFBB" Margin="0,0,0,32" />
-                </StackPanel>
+                <!-- Logo + user info area -->
+                <Border DockPanel.Dock="Top" Padding="24,28,24,24"
+                        BorderBrush="#FFFFFF18" BorderThickness="0,0,0,1">
+                    <StackPanel>
+                        <TextBlock Text="SIONYX" FontSize="28" FontWeight="ExtraBold"
+                                   Foreground="White" Margin="0,0,0,12" />
+                        <!-- User avatar circle + name -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <Border Width="36" Height="36" CornerRadius="18"
+                                    Background="{StaticResource PrimaryGradient}" Margin="0,0,10,0">
+                                <TextBlock Text="👤" FontSize="16"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{Binding CurrentUser.FullName}" FontSize="14"
+                                           FontWeight="SemiBold" Foreground="White" />
+                                <TextBlock Text="{Binding CurrentUser.PhoneNumber}" FontSize="11"
+                                           Foreground="#FFFFFF88" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
 
                 <!-- Logout button at bottom -->
-                <Button DockPanel.Dock="Bottom" Content="התנתק" Style="{StaticResource BtnDanger}"
-                        Command="{Binding LogoutCommand}" Margin="24,0,24,24" />
+                <Border DockPanel.Dock="Bottom" Padding="16,16">
+                    <Button Content="🚪  התנתק" Style="{StaticResource BtnDanger}"
+                            Command="{Binding LogoutCommand}" />
+                </Border>
 
                 <!-- Nav items -->
-                <StackPanel Margin="12,0">
-                    <Button Content="🏠  דף הבית" Style="{StaticResource BtnGhost}" HorizontalContentAlignment="Right"
-                            Command="{Binding NavigateCommand}" CommandParameter="Home"
-                            Foreground="White" Margin="0,4" Padding="16,12" />
-                    <Button Content="📦  חבילות" Style="{StaticResource BtnGhost}" HorizontalContentAlignment="Right"
-                            Command="{Binding NavigateCommand}" CommandParameter="Packages"
-                            Foreground="White" Margin="0,4" Padding="16,12" />
-                    <Button Content="📋  היסטוריה" Style="{StaticResource BtnGhost}" HorizontalContentAlignment="Right"
-                            Command="{Binding NavigateCommand}" CommandParameter="History"
-                            Foreground="White" Margin="0,4" Padding="16,12" />
-                    <Button Content="❓  עזרה" Style="{StaticResource BtnGhost}" HorizontalContentAlignment="Right"
-                            Command="{Binding NavigateCommand}" CommandParameter="Help"
-                            Foreground="White" Margin="0,4" Padding="16,12" />
+                <StackPanel Margin="8,16,8,0">
+                    <RadioButton x:Name="NavHome" Content="  דף הבית" Tag="Home"
+                                 Style="{StaticResource SidebarNavButton}" IsChecked="True"
+                                 Checked="NavButton_Checked" GroupName="Nav" />
+                    <RadioButton x:Name="NavPackages" Content="  חבילות" Tag="Packages"
+                                 Style="{StaticResource SidebarNavButton}"
+                                 Checked="NavButton_Checked" GroupName="Nav" />
+                    <RadioButton x:Name="NavHistory" Content="  היסטוריה" Tag="History"
+                                 Style="{StaticResource SidebarNavButton}"
+                                 Checked="NavButton_Checked" GroupName="Nav" />
+                    <RadioButton x:Name="NavHelp" Content="  עזרה" Tag="Help"
+                                 Style="{StaticResource SidebarNavButton}"
+                                 Checked="NavButton_Checked" GroupName="Nav" />
                 </StackPanel>
             </DockPanel>
         </Border>
