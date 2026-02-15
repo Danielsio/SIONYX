@@ -1,357 +1,337 @@
-# SIONYX Kiosk - Migration from PyQt6 to WPF (.NET 8)
+# SIONYX Kiosk - WPF Migration: Comprehensive Gap Analysis & Plan
 
-## Technology Decision
-
-### WPF (.NET 8) over WinUI 3 - Rationale
-
-| Criteria | WPF (.NET 8) | WinUI 3 |
-|----------|-------------|---------|
-| Maturity | 18+ years, rock-solid | 3 years, still maturing |
-| Installer | NSIS/MSI (we already use NSIS) | Requires MSIX (complex) |
-| Kiosk track record | Proven in POS, ATMs, kiosks worldwide | Very few kiosk deployments |
-| UI libraries | MaterialDesignInXAML, HandyControl, MahApps | Limited third-party |
-| WebView2 | Full support | Full support |
-| Win32 API (P/Invoke) | Trivial, first-class | Same |
-| Single-file publish | Yes (.NET 8) | Complicated |
-| Community/docs | Massive | Growing but small |
-| RTL support | Full XAML FlowDirection="RightToLeft" | Full |
-| Animation | Storyboards, VisualStateManager | Composition APIs |
-| MVVM tooling | CommunityToolkit.Mvvm (mature) | Same |
-
-**Winner: WPF (.NET 8) with MaterialDesignInXAML for modern UI**
+> Last updated: 2026-02-13
+> Original: `sionyx-kiosk/` (Python/PyQt6)
+> Target: `sionyx-kiosk-wpf/` (C#/WPF/.NET 8)
 
 ---
 
-## Architecture
+## How This Document Works
 
-### Pattern: MVVM (Model-View-ViewModel)
-
-```
-sionyx-kiosk-wpf/
-├── SionyxKiosk.sln                  # Solution file
-├── src/
-│   └── SionyxKiosk/
-│       ├── SionyxKiosk.csproj       # Project file
-│       ├── App.xaml / App.xaml.cs    # App entry, DI container, global resources
-│       ├── Models/                   # Data models (User, Package, Session, etc.)
-│       ├── ViewModels/              # MVVM ViewModels
-│       ├── Views/                   # XAML views (windows, pages, dialogs)
-│       │   ├── Windows/            # AuthWindow, MainWindow
-│       │   ├── Pages/              # HomePage, PackagesPage, HistoryPage, HelpPage
-│       │   ├── Dialogs/            # PaymentDialog, AlertModal, MessageModal, ConfirmDialog
-│       │   └── Controls/           # FloatingTimer, StatCard, ActionButton, etc.
-│       ├── Services/               # Business logic (auth, session, print, etc.)
-│       ├── Infrastructure/         # Firebase client, local DB, registry, device info
-│       ├── Converters/             # XAML value converters
-│       ├── Themes/                 # Resource dictionaries, styles, colors
-│       ├── Assets/                 # Icons, images, fonts
-│       └── Helpers/                # Extensions, utilities
-├── tests/
-│   └── SionyxKiosk.Tests/
-│       ├── SionyxKiosk.Tests.csproj
-│       ├── ViewModels/
-│       ├── Services/
-│       └── Infrastructure/
-├── installer/
-│   └── installer.nsi               # NSIS installer script
-└── MIGRATION.md                     # This file
-```
-
-### Key NuGet Packages
-
-| Package | Purpose | Replaces |
-|---------|---------|----------|
-| `CommunityToolkit.Mvvm` | MVVM framework (ObservableObject, RelayCommand) | PyQt signals/slots |
-| `MaterialDesignThemes` | Modern Material Design UI | Custom QSS styling |
-| `MaterialDesignColors` | Color palette | Custom color constants |
-| `Microsoft.Extensions.DependencyInjection` | DI container | Manual wiring |
-| `Microsoft.Extensions.Hosting` | App host lifecycle | Manual setup |
-| `FirebaseDatabase.net` | Firebase Realtime DB | `firebase_client.py` |
-| `FirebaseAuthentication.net` | Firebase Auth REST | `firebase_client.py` |
-| `Microsoft.Web.WebView2` | Embedded browser (payment) | PyQt6-WebEngine |
-| `Serilog` + `Serilog.Sinks.File` | Structured logging | `logger.py` |
-| `System.Management` | WMI (optional) | N/A |
-| `xunit` + `Moq` + `FluentAssertions` | Testing | pytest + pytest-mock |
-| `Velopack` | Auto-update & installer | NSIS + manual build |
+Each item below maps a **specific piece of Python logic** to its WPF equivalent.
+- Status: `TODO` | `IN PROGRESS` | `DONE`
+- Commit type: `LOGIC` (pure Python→C# conversion) or `UI/UX` (visual/interaction)
+- Each item = 1 commit when completed
 
 ---
 
-## Component Migration Map
+## Part A: LOGIC Commits (Python → C# Conversion)
 
-### Phase 1: Foundation (Infrastructure + Core Services)
+### A1. Authentication Flow
 
-These have no UI dependency and can be built and tested first.
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A1.1 | Login (phone→email, Firebase sign-in) | `auth_service.py:login()` | `AuthService.cs:LoginAsync()` | DONE | Phone converted to email, Firebase REST sign-in |
+| A1.2 | Register (validate, sign-up, create user in RTDB) | `auth_service.py:register()` | `AuthService.cs:RegisterAsync()` | DONE | Creates user node at `users/{uid}` |
+| A1.3 | **Token persistence (store REAL refresh token)** | `local_db.py:store_credentials()` with Fernet encryption | `AuthService.cs` stores `"stored"` instead of real token | **TODO** | Python encrypts and stores the actual refresh token. WPF stores the string "stored" — auto-login after restart is broken. Must store `_firebase.RefreshToken` in `LocalDatabase` and restore it on startup. |
+| A1.4 | **Auto-login (restore session from stored token)** | `auth_service.py:is_logged_in()` → refresh token → load user → recover orphaned session → register computer | `App.xaml.cs:TryAutoLoginAsync()` calls `AuthService.IsLoggedInAsync()` | **TODO** | Python's `is_logged_in()` does: (1) get stored token, (2) refresh Firebase token, (3) load user data, (4) check orphaned session, (5) register computer. WPF's `IsLoggedInAsync()` needs to restore the token to `FirebaseClient` then do the same chain. |
+| A1.5 | **Single-session enforcement** | `auth_service.py:login()` checks `isSessionActive` on user node | `AuthService.cs:LoginAsync()` | **TODO** | Python checks if user already has an active session on another PC and blocks login. WPF login doesn't check this. |
+| A1.6 | **Orphaned session recovery** | `auth_service.py:_recover_orphaned_session()` | Not implemented | **TODO** | If a previous session crashed, Python detects the orphan (isSessionActive=true but no computer associated) and recovers the remaining time. |
+| A1.7 | Logout (disassociate computer, clear tokens, end session) | `auth_service.py:logout()` | `AuthService.cs:LogoutAsync()` | DONE | Clears local DB and Firebase user association |
+| A1.8 | **Forgot password (show admin contact)** | `auth_window.py` shows admin contact from metadata | Not implemented | **TODO** | Python auth window has a "forgot password?" link that shows admin phone/email from `OrganizationMetadataService`. |
 
-| # | Python Component | C# Equivalent | Effort | Notes |
-|---|-----------------|---------------|--------|-------|
-| 1.1 | `utils/firebase_config.py` | `Infrastructure/FirebaseConfig.cs` | S | Registry + .env config loading |
-| 1.2 | `utils/registry_config.py` | `Infrastructure/RegistryConfig.cs` | S | `Microsoft.Win32.Registry` |
-| 1.3 | `utils/device_info.py` | `Infrastructure/DeviceInfo.cs` | S | `Environment.MachineName`, `NetworkInterface` |
-| 1.4 | `utils/const.py` | `Infrastructure/AppConstants.cs` | S | Static constants |
-| 1.5 | `utils/error_translations.py` | `Infrastructure/ErrorTranslations.cs` | S | Dictionary mapping |
-| 1.6 | `utils/purchase_constants.py` | `Models/PurchaseStatus.cs` | S | Enum + extension methods |
-| 1.7 | `utils/logger.py` | `Infrastructure/Logging/` | S | Serilog setup (much simpler) |
-| 1.8 | `database/local_db.py` | `Infrastructure/LocalDatabase.cs` | S | SQLite or LiteDB |
-| 1.9 | `services/firebase_client.py` | `Infrastructure/FirebaseClient.cs` | M | `FirebaseDatabase.net` + `FirebaseAuthentication.net` + SSE |
-| 1.10 | `services/base_service.py` | `Services/BaseService.cs` | S | Abstract base with error handling |
-| 1.11 | `services/decorators.py` | N/A (use DI + middleware) | S | Replaced by DI patterns |
+### A2. Session Management
 
-**Phase 1 Total: ~3-4 days**
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A2.1 | Start session (time check, cleanup, update Firebase) | `session_service.py:start_session()` | `SessionService.cs:StartSessionAsync()` | DONE | Sets `isSessionActive`, `sessionStartTime` |
+| A2.2 | Countdown timer (1s interval, decrement remaining time) | `session_service.py:_countdown_timer` | `SessionService.cs` uses `DispatcherTimer` | DONE | Fires `TimeUpdated` event |
+| A2.3 | Sync timer (60s interval, push remaining time to Firebase) | `session_service.py:_sync_timer` | `SessionService.cs` uses `DispatcherTimer` | DONE | Pushes `remainingTime` + `updatedAt` |
+| A2.4 | End session (stop timers, final sync, browser cleanup) | `session_service.py:end_session()` | `SessionService.cs:EndSessionAsync()` | DONE | Calls `BrowserCleanupService`, resets Firebase |
+| A2.5 | 5-minute / 1-minute warnings | `session_service.py` emits `warning_5min`, `warning_1min` | `SessionService.cs` fires `Warning5Min`, `Warning1Min` events | DONE | |
+| A2.6 | **Sync failure/recovery detection** | `session_service.py` emits `sync_failed`, `sync_restored` | `SessionService.cs` fires events | **TODO** | Python tracks consecutive sync failures and emits a signal when sync fails/recovers. WPF has the events defined but the `_SyncToFirebase` method doesn't track failures. |
+| A2.7 | Time expiration check before start | `session_service.py:start_session()` checks remaining time > 0 | `SessionService.cs:StartSessionAsync()` | DONE | |
+| A2.8 | **Operating hours integration in session** | `session_service.py` starts `OperatingHoursService`, handles `hours_ending_soon`/`hours_ended` | `SessionService.cs` | **TODO** | Python starts operating hours monitoring inside `start_session()` and wires up the signals. WPF creates the service but doesn't wire the events to session behavior. |
 
----
+### A3. Print Monitoring
 
-### Phase 2: Business Services (No UI)
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A3.1 | Printer change notification (primary detection) | `print_monitor_service.py:_monitor_thread()` with `FindFirstPrinterChangeNotification` | `PrintMonitorService.cs:MonitorPrintJobs()` | DONE | P/Invoke implementation |
+| A3.2 | Fallback polling (QTimer every 2s) | `print_monitor_service.py:_check_print_jobs()` | `PrintMonitorService.cs` | DONE | `DispatcherTimer` fallback |
+| A3.3 | Pause job → check budget → approve/deny | `print_monitor_service.py:_process_job()` | `PrintMonitorService.cs:ProcessPrintJob()` | DONE | Pause, budget check, resume/cancel |
+| A3.4 | Cost calculation (pages × copies × price per page) | `print_monitor_service.py:_calculate_cost()` | `PrintMonitorService.cs:CalculateCost()` | DONE | B&W vs color pricing |
+| A3.5 | **Budget deduction on Firebase** | `print_monitor_service.py` updates `users/{uid}/printBalance` | `PrintMonitorService.cs` | **TODO** | Python deducts the cost from the user's `printBalance` on Firebase after allowing a job. WPF calculates cost but may not correctly update Firebase. Need to verify the Firebase write path. |
+| A3.6 | **Escaped job handling (charge retroactively)** | `print_monitor_service.py` detects jobs that bypass pause and charges retroactively (allows debt) | `PrintMonitorService.cs` | **TODO** | Critical: some jobs escape the pause. Python handles this by charging after the fact. WPF needs this safety net. |
+| A3.7 | **PrintMonitorService not started** | Started in `session_service.py:start_session()` | Not started anywhere | **TODO** | `PrintMonitorService.StartMonitoring()` is never called. Must be started when session starts. |
 
-| # | Python Component | C# Equivalent | Effort | Notes |
-|---|-----------------|---------------|--------|-------|
-| 2.1 | `services/auth_service.py` | `Services/AuthService.cs` | M | Firebase REST auth, token refresh, single-session |
-| 2.2 | `services/computer_service.py` | `Services/ComputerService.cs` | S | Register/associate computer |
-| 2.3 | `services/organization_metadata_service.py` | `Services/OrganizationService.cs` | S | Org metadata, print pricing, operating hours |
-| 2.4 | `services/package_service.py` | `Services/PackageService.cs` | S | CRUD packages |
-| 2.5 | `services/purchase_service.py` | `Services/PurchaseService.cs` | S | Pending purchases, history |
-| 2.6 | `services/chat_service.py` | `Services/ChatService.cs` | M | SSE streaming, unread messages, cache |
-| 2.7 | `services/operating_hours_service.py` | `Services/OperatingHoursService.cs` | M | DispatcherTimer, signals → events |
-| 2.8 | `services/session_service.py` | `Services/SessionService.cs` | L | Full session lifecycle, countdown, sync, cleanup orchestration |
-| 2.9 | `services/session_manager.py` | (Merge into SessionService) | - | Simplify: one session service |
-| 2.10 | `services/browser_cleanup_service.py` | `Services/BrowserCleanupService.cs` | S | `Process.Start` with `CreateNoWindow` |
-| 2.11 | `services/process_cleanup_service.py` | `Services/ProcessCleanupService.cs` | S | `Process.GetProcesses()`, kill targets |
-| 2.12 | `services/process_restriction_service.py` | `Services/ProcessRestrictionService.cs` | M | DispatcherTimer, process monitoring |
+### A4. Package & Payment Flow
 
-**Phase 2 Total: ~4-5 days**
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A4.1 | Fetch packages from Firebase | `package_service.py:get_all_packages()` | `PackageService.cs:GetAllPackagesAsync()` | DONE | |
+| A4.2 | Calculate final price with discount | `package_service.py:calculate_final_price()` | `PackageService.cs` | DONE | |
+| A4.3 | Create pending purchase | `purchase_service.py:create_pending_purchase()` | `PurchaseService.cs:CreatePendingPurchaseAsync()` | DONE | |
+| A4.4 | Get purchase history | `purchase_service.py:get_user_purchase_history()` | `PurchaseService.cs:GetUserPurchaseHistoryAsync()` | DONE | |
+| A4.5 | Get purchase statistics | `purchase_service.py:get_purchase_statistics()` | `PurchaseService.cs:GetPurchaseStatisticsAsync()` | DONE | |
+| A4.6 | **Payment bridge (Python↔JS communication)** | `payment_bridge.py` uses QWebChannel: JS calls `createPendingPurchase()`, Python responds with `purchase_created` signal | Not implemented | **TODO** | Python uses QWebChannel for bidirectional JS↔Python. WPF must use WebView2's `CoreWebView2.WebMessageReceived` and `PostWebMessageAsString` for the same flow. |
+| A4.7 | **Payment dialog (load URL, inject config, listen for completion)** | `payment_dialog.py:_load_payment_page()` starts local server, loads payment.html, injects Firebase config | `PaymentDialog.xaml.cs` has WebView2 but never loads URL | **TODO** | Python starts `LocalFileServer`, navigates to `http://localhost:{port}/payment.html?...`, and monitors purchase status via Firebase stream or polling. WPF has an empty shell. |
+| A4.8 | **Purchase completion detection (SSE or polling)** | `payment_dialog.py` listens for purchase status change via Firebase stream | Not implemented | **TODO** | When payment completes externally, Python detects the status change on the purchase node and closes the dialog. |
+| A4.9 | **Wire PurchaseRequested to PaymentDialog** | `packages_page.py` opens `PaymentDialog` on package select | `PackagesViewModel.PurchaseRequested` event exists but nothing subscribes | **TODO** | The event fires but no UI code catches it to open the payment dialog. |
 
----
+### A5. Chat / Messaging
 
-### Phase 3: Windows System Services (P/Invoke)
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A5.1 | SSE listener for messages | `chat_service.py:start_listening()` with `db_listen("messages")` | `ChatService.cs:StartListening()` | DONE | |
+| A5.2 | Get unread messages | `chat_service.py:get_unread_messages()` | `ChatService.cs:GetUnreadMessagesAsync()` | DONE | |
+| A5.3 | Mark message as read | `chat_service.py:mark_message_as_read()` | `ChatService.cs:MarkMessageAsReadAsync()` | DONE | |
+| A5.4 | Mark all messages as read | `chat_service.py:mark_all_messages_as_read()` | `ChatService.cs:MarkAllAsReadAsync()` | DONE | |
+| A5.5 | Update last seen | `chat_service.py:update_last_seen()` | `ChatService.cs:UpdateLastSeenAsync()` | DONE | |
+| A5.6 | **ChatService never started** | Started in `home_page.py` on page load | Not started anywhere | **TODO** | `ChatService.StartListening()` is never called. Should start after login with the user's ID. |
+| A5.7 | **HomeViewModel doesn't show unread count** | `home_page.py` updates unread badge from `ChatService` | `HomeViewModel.cs` has `UnreadMessages` property but never updates it | **TODO** | Need to subscribe to `ChatService.MessagesReceived` event and update the count. |
+| A5.8 | **Message modal not wired** | `home_page.py` opens `MessageModal` when messages clicked | No connection between Home UI and MessageDialog | **TODO** | Need to wire a button/click on Home to open MessageDialog. |
 
-| # | Python Component | C# Equivalent | Effort | Notes |
-|---|-----------------|---------------|--------|-------|
-| 3.1 | `services/print_monitor_service.py` | `Services/PrintMonitorService.cs` | L | `System.Printing` + P/Invoke for `FindFirstPrinterChangeNotification`. C# has **much** better printing APIs than Python. |
-| 3.2 | `services/keyboard_restriction_service.py` | `Services/KeyboardRestrictionService.cs` | M | Low-level keyboard hook via `SetWindowsHookEx` P/Invoke. Well-documented in C#. |
-| 3.3 | `services/global_hotkey_service.py` | `Services/GlobalHotkeyService.cs` | S | `RegisterHotKey` Win32 API (simpler than Python `keyboard` library) |
+### A6. Force Logout
 
-**Phase 3 Total: ~3-4 days**
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A6.1 | SSE listener on force logout path | `force_logout_listener.py` listens on `users/{uid}/forceLogout` | `ForceLogoutService.cs` listens on `force_logout/{userId}` | **TODO** | **Path mismatch!** Python listens on `organizations/{orgId}/users/{uid}/forceLogout`. WPF listens on `force_logout/{userId}`. Must align to the actual Firebase schema. |
+| A6.2 | Force logout triggers session end + return to auth | `force_logout_listener.py` emits `force_logout_received` → `main_window` handles it | `ForceLogoutService.cs` fires `ForceLogoutReceived` | **TODO** | Event exists but nothing in App.xaml.cs or MainWindow subscribes to it to actually force-logout the user. |
 
----
+### A7. Keyboard & Process Restrictions
 
-### Phase 4: Theme & Design System
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A7.1 | Low-level keyboard hook (block Alt+Tab, Win, etc.) | `keyboard_restriction_service.py:start()` | `KeyboardRestrictionService.cs:Start()` | DONE | P/Invoke `SetWindowsHookEx` |
+| A7.2 | **KeyboardRestrictionService never started** | Started in `main.py` for kiosk mode | Not started in `App.xaml.cs` | **TODO** | Should start when `--kiosk` flag is present. |
+| A7.3 | Process blacklist monitoring | `process_restriction_service.py:start()` | `ProcessRestrictionService.cs:Start()` | DONE | |
+| A7.4 | Process cleanup before session | `process_cleanup_service.py:cleanup_user_processes()` | `ProcessCleanupService.cs:CleanupUserProcesses()` | DONE | |
+| A7.5 | **GlobalHotkeyService never started** | Started in `main.py` | Not started in `App.xaml.cs` | **TODO** | Needs a window handle (`HWND`). Must start after MainWindow is shown. |
+| A7.6 | **Admin exit hotkey handler** | `global_hotkey_service.py` emits `admin_exit_requested` → shows password dialog → exits | Event exists but nothing handles it | **TODO** | When hotkey pressed, should show password dialog. If correct password entered, close kiosk and return to normal Windows. |
 
-| # | Python Component | C# Equivalent | Effort | Notes |
-|---|-----------------|---------------|--------|-------|
-| 4.1 | `constants/ui_constants.py` (FROST) | `Themes/Colors.xaml` | M | ResourceDictionary with colors, brushes, gradients |
-| 4.2 | `styles/theme.py` | `Themes/Theme.xaml` | M | Global implicit styles for all controls |
-| 4.3 | `styles/tokens.py` | `Themes/Typography.xaml` | S | Font sizes, weights as StaticResources |
-| 4.4 | N/A | `Themes/Animations.xaml` | M | Reusable Storyboard resources |
-| 4.5 | All inline QSS | MaterialDesign + custom styles | M | Massive improvement: XAML styles are declarative, reusable, themeable |
+### A8. Operating Hours
 
-**Phase 4 Total: ~2-3 days**
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A8.1 | Fetch operating hours from metadata | `operating_hours_service.py:_load_settings()` | `OperatingHoursService.cs` loads from Firebase | DONE | |
+| A8.2 | Check if currently within hours | `operating_hours_service.py:is_within_operating_hours()` | `OperatingHoursService.cs:IsWithinOperatingHours()` | DONE | |
+| A8.3 | Grace period handling | `operating_hours_service.py` handles `gracePeriodMinutes`, `graceBehavior` | `OperatingHoursService.cs` | DONE | |
+| A8.4 | **Wire hours_ending/hours_ended to session** | `session_service.py` subscribes to operating hours signals | Events defined but not wired | **TODO** | When hours end, session should end gracefully. |
 
----
+### A9. Computer Registration
 
-### Phase 5: Reusable Controls (UserControls)
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A9.1 | Register computer in Firebase | `computer_service.py:register_computer()` | `ComputerService.cs:RegisterComputerAsync()` | DONE | |
+| A9.2 | Associate user with computer | `computer_service.py:associate_user_with_computer()` | `ComputerService.cs:AssociateUserAsync()` | DONE | |
+| A9.3 | Disassociate user from computer | `computer_service.py:disassociate_user_from_computer()` | `ComputerService.cs:DisassociateUserAsync()` | DONE | |
+| A9.4 | **Computer registration called on login** | `auth_service.py:login()` calls `computer_service.register_computer()` then `associate_user_with_computer()` | Not called in WPF login flow | **TODO** | After successful login, WPF must register the computer and associate the user. |
 
-| # | Python Component | C# Equivalent | Effort | Notes |
-|---|-----------------|---------------|--------|-------|
-| 5.1 | `FrostCard` | `Controls/FrostCard.xaml` | S | Border with shadow, corner radius |
-| 5.2 | `StatCard` | `Controls/StatCard.xaml` | S | Icon + title + value card |
-| 5.3 | `ActionButton` | `Controls/ActionButton.xaml` | S | Styled button (primary/secondary/danger/ghost) with hover animations |
-| 5.4 | `PageHeader` | `Controls/PageHeader.xaml` | S | Gradient title bar |
-| 5.5 | `LoadingSpinner` | `Controls/LoadingSpinner.xaml` | S | ProgressRing or custom Storyboard animation |
-| 5.6 | `EmptyState` | `Controls/EmptyState.xaml` | S | Icon + message placeholder |
-| 5.7 | `StatusBadge` | `Controls/StatusBadge.xaml` | S | Colored label |
-| 5.8 | `FloatingTimer` | `Controls/FloatingTimer.xaml` | M | Topmost, draggable, warning states, return button |
-| 5.9 | `LoadingOverlay` | `Controls/LoadingOverlay.xaml` | S | Full-screen semi-transparent with spinner |
-| 5.10 | `MessageCard` | `Controls/MessageCard.xaml` | S | Message display with hover effect |
-| 5.11 | `PurchaseCard` | `Controls/PurchaseCard.xaml` | S | Purchase history item |
+### A10. Browser Cleanup
 
-**Phase 5 Total: ~2-3 days**
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A10.1 | Close browsers | `browser_cleanup_service.py:close_browsers()` | `BrowserCleanupService.cs:CloseBrowsers()` | DONE | |
+| A10.2 | Clear browser data (cookies, history, sessions) | `browser_cleanup_service.py:cleanup_all_browsers()` for Chrome, Edge, Firefox | `BrowserCleanupService.cs:CleanupAllBrowsers()` | DONE | |
+| A10.3 | **Cleanup with browser close (close first, then clean)** | `browser_cleanup_service.py:cleanup_with_browser_close()` | `BrowserCleanupService.cs` | **TODO** | Python has a specific method that first closes browsers, waits, then cleans data. Verify WPF does the same sequence. |
 
----
+### A11. Configuration & Infrastructure
 
-### Phase 6: Views (XAML Pages + ViewModels)
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A11.1 | Firebase config from registry (production) | `firebase_config.py` + `registry_config.py` | `FirebaseConfig.cs` + `RegistryConfig.cs` | DONE | |
+| A11.2 | Firebase config from .env (development) | `firebase_config.py` uses `python-dotenv` | `DotEnvLoader.cs` + `FirebaseConfig.cs` | DONE | |
+| A11.3 | Structured logging with rotation | `logger.py` with file rotation, context, request ID | `Serilog` in `App.xaml.cs` | DONE | Serilog handles rotation natively |
+| A11.4 | **Log directory: AppData in prod, ./logs in dev** | `logger.py` uses `AppData/Local/SIONYX/logs` in prod | Serilog writes to `logs/` always | **TODO** | Should use `AppData` path in production/kiosk mode. |
+| A11.5 | **Old log cleanup (7 days)** | `logger.py:cleanup_old_logs(days_to_keep=7)` | Not implemented | **TODO** | Serilog's `retainedFileCountLimit` can handle this but it's not configured. |
+| A11.6 | **Crash log writing** | `main.py:_write_crash_log()` | `App.xaml.cs` has global exception handlers but no crash file | **TODO** | Python writes a specific crash log file. WPF should do the same for debugging in production. |
+| A11.7 | Device ID (MAC-based hash) | `device_info.py:get_device_id()` | `DeviceInfo.cs:GetDeviceId()` | DONE | |
+| A11.8 | Error translations (Firebase → Hebrew) | `error_translations.py` | `ErrorTranslations.cs` | DONE | |
 
-| # | Python Component | C# Equivalent | Effort | Notes |
-|---|-----------------|---------------|--------|-------|
-| 6.1 | `auth_window.py` | `Views/Windows/AuthWindow.xaml` + `ViewModels/AuthViewModel.cs` | L | Sliding panels with Storyboard animations. Will look **significantly** better in XAML. |
-| 6.2 | `main_window.py` | `Views/Windows/MainWindow.xaml` + `ViewModels/MainViewModel.cs` | L | Sidebar navigation + Frame content. NavigationService pattern. |
-| 6.3 | `pages/home_page.py` | `Views/Pages/HomePage.xaml` + `ViewModels/HomeViewModel.cs` | M | Stats grid, session controls, messages badge |
-| 6.4 | `pages/packages_page.py` | `Views/Pages/PackagesPage.xaml` + `ViewModels/PackagesViewModel.cs` | M | Scrollable grid, purchase flow |
-| 6.5 | `pages/history_page.py` | `Views/Pages/HistoryPage.xaml` + `ViewModels/HistoryViewModel.cs` | M | Filter/search, sorted list |
-| 6.6 | `pages/help_page.py` | `Views/Pages/HelpPage.xaml` + `ViewModels/HelpViewModel.cs` | S | FAQ accordion, contact cards |
-| 6.7 | `payment_dialog.py` | `Views/Dialogs/PaymentDialog.xaml` + `ViewModels/PaymentViewModel.cs` | M | WebView2 (replaces QWebEngineView). Better JS interop via `CoreWebView2.PostWebMessageAsString`. |
-| 6.8 | `modern_dialogs.py` | `Views/Dialogs/ModernDialog.xaml` (+ MessageBox, Confirm, Toast) | M | Custom Window with fade animation |
-| 6.9 | `alert_modal.py` | `Views/Dialogs/AlertDialog.xaml` | S | Type-based gradient header |
-| 6.10 | `message_modal.py` | `Views/Dialogs/MessageDialog.xaml` + `ViewModels/MessageViewModel.cs` | M | Read/next/finish flow |
-| 6.11 | `force_logout_listener.py` | `Services/ForceLogoutService.cs` | S | SSE listener, raises event |
-| 6.12 | `web/local_server.py` | `Infrastructure/LocalFileServer.cs` | S | `HttpListener` (built-in .NET) |
+### A12. App Lifecycle & DI
 
-**Phase 6 Total: ~6-8 days**
-
----
-
-### Phase 7: App Shell & Integration
-
-| # | Component | Effort | Notes |
-|---|-----------|--------|-------|
-| 7.1 | `App.xaml.cs` - DI container, startup, global exception handling | M | `Microsoft.Extensions.Hosting` |
-| 7.2 | Navigation service (sidebar → pages) | M | Frame-based navigation with transition animations |
-| 7.3 | Kiosk mode (fullscreen, keyboard lock, process restriction) | M | Wire up system services |
-| 7.4 | CLI args (`--kiosk`, `--verbose`) | S | `Environment.GetCommandLineArgs()` |
-| 7.5 | Single-instance enforcement | S | `Mutex` (built-in) |
-| 7.6 | System tray icon | S | `NotifyIcon` |
-| 7.7 | Crash handling + logging | S | `AppDomain.UnhandledException` + Serilog |
-
-**Phase 7 Total: ~2-3 days**
-
----
-
-### Phase 8: Build & Distribution
-
-| # | Component | Effort | Notes |
-|---|-----------|--------|-------|
-| 8.1 | `.csproj` publish profile (single-file, trimmed, AOT) | M | `dotnet publish -c Release -r win-x64 --self-contained` |
-| 8.2 | NSIS installer script | M | Adapt existing `installer.nsi` for .NET output |
-| 8.3 | `build.py` equivalent (or PowerShell script) | M | Version bump, build, upload to Firebase Storage |
-| 8.4 | Firebase Storage upload | S | Reuse existing `build.py` logic or port to C# |
-| 8.5 | Auto-update (optional) | L | Velopack or Squirrel.Windows |
-
-**Phase 8 Total: ~2-3 days**
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| A12.1 | Single-instance enforcement | `main.py` (not explicitly, but implied) | `App.xaml.cs` uses `Mutex` | DONE | |
+| A12.2 | **Auth→Main window transition** | `main.py:_show_main_window()` | `App.xaml.cs:ShowMainWindow()` | **TODO** | Currently crashes after login. Need to debug: likely missing resource `BgPrimaryBrush` in MainWindow.xaml, or DI resolution failure for MainWindow dependencies. |
+| A12.3 | **Main→Auth transition (logout)** | `main_window.py` emits logout → `main.py` shows auth window | `MainViewModel.LogoutRequested` event | **TODO** | Event exists but the subscription in `ShowMainWindow` to handle it may not work correctly. |
+| A12.4 | **Start system services after login** | `main.py:_start_services()` starts keyboard, hotkey, process restriction | `App.xaml.cs:StartSystemServices()` only starts ForceLogout, OperatingHours, ProcessRestriction | **TODO** | Missing: KeyboardRestriction, GlobalHotkey (needs HWND), ChatService, PrintMonitor (on session start). |
+| A12.5 | **Stop system services on logout** | Python stops all services on logout | `App.xaml.cs:StopSystemServices()` | **TODO** | Must cleanly stop all services (SSE listeners, timers, hooks) when user logs out. |
+| A12.6 | CLI args (--kiosk, --verbose) | `main.py` parses args | `App.xaml.cs` parses args | DONE | |
+| A12.7 | **Kiosk mode fullscreen** | `main_window.py` sets fullscreen, no frame, always on top | `MainWindow.xaml` has `WindowStyle="None"` but not fullscreen logic | **TODO** | In kiosk mode: `WindowState="Maximized"`, `Topmost="True"`, no taskbar. |
 
 ---
 
-### Phase 9: Testing
+## Part B: UI/UX Commits (Visual & Interaction)
 
-| # | Component | Effort | Notes |
-|---|-----------|--------|-------|
-| 9.1 | Unit tests for all services | L | xUnit + Moq + FluentAssertions |
-| 9.2 | Unit tests for ViewModels | M | Test commands, property changes, validation |
-| 9.3 | Integration tests | M | Test full flows with mocked Firebase |
-| 9.4 | UI automation tests (optional) | L | Appium or FlaUI for kiosk scenarios |
+### B1. Auth Window
 
-**Phase 9 Total: ~4-5 days (parallel with other phases)**
+| # | Feature | Python Source | Status | Notes |
+|---|---------|-------------|--------|-------|
+| B1.1 | Sliding panel animation (login↔register) | `auth_window.py` with QPropertyAnimation | **TODO** | Currently just shows/hides fields. Should have smooth slide transition. |
+| B1.2 | Loading state on buttons (spinner inside button) | `auth_window.py` shows loading spinner | **TODO** | Buttons should show a spinner when `IsLoading=true`. |
+| B1.3 | Input validation visual feedback | `auth_window.py` highlights invalid fields | **TODO** | Red border on empty required fields. |
+| B1.4 | Password visibility toggle | Not in Python | **TODO** | Nice UX addition: eye icon to show/hide password. |
+| B1.5 | Smooth gradient animation on left panel | Not in Python | **TODO** | Subtle gradient shift animation for polish. |
+| B1.6 | **Forgot password link** | `auth_window.py` has forgot password section | **TODO** | Shows admin contact info from metadata service. |
 
----
+### B2. Main Window & Navigation
 
-## Migration Summary
+| # | Feature | Python Source | Status | Notes |
+|---|---------|-------------|--------|-------|
+| B2.1 | **Missing `BgPrimaryBrush` resource** | N/A | **TODO** | `MainWindow.xaml` references `BgPrimaryBrush` which doesn't exist in `Colors.xaml`. App crashes on navigation. |
+| B2.2 | Sidebar with active page indicator | `main_window.py` highlights active nav button | **TODO** | Active page should have highlighted/selected state on sidebar button. |
+| B2.3 | Page transition animations (fade/slide) | `main_window.py` with QPropertyAnimation | **TODO** | Smooth fade or slide when switching pages in the Frame. |
+| B2.4 | User info in sidebar (name, avatar placeholder) | `main_window.py` shows user name in sidebar | **TODO** | Display logged-in user name and phone in sidebar. |
+| B2.5 | Unread messages badge on sidebar | `main_window.py` shows message count badge | **TODO** | Red badge with count on the Messages/Home nav item. |
+| B2.6 | **Kiosk mode UI (fullscreen, no chrome)** | `main_window.py` kiosk-specific styling | **TODO** | Fullscreen, no title bar, no close button in kiosk mode. |
 
-| Phase | Description | Effort | Dependencies |
-|-------|-------------|--------|-------------|
-| 1 | Foundation (infra, config, Firebase client) | 3-4 days | None |
-| 2 | Business services (auth, session, chat, etc.) | 4-5 days | Phase 1 |
-| 3 | Windows system services (print, keyboard, hotkey) | 3-4 days | Phase 1 |
-| 4 | Theme & design system | 2-3 days | None (parallel) |
-| 5 | Reusable controls | 2-3 days | Phase 4 |
-| 6 | Views + ViewModels | 6-8 days | Phases 2, 3, 5 |
-| 7 | App shell & integration | 2-3 days | Phase 6 |
-| 8 | Build & distribution | 2-3 days | Phase 7 |
-| 9 | Testing | 4-5 days | Parallel |
-| **Total** | | **~28-38 days** | |
+### B3. Home Page
 
----
+| # | Feature | Python Source | Status | Notes |
+|---|---------|-------------|--------|-------|
+| B3.1 | Stats cards (time, print balance, messages) | `home_page.py` with StatCard components | DONE | StatCard controls exist |
+| B3.2 | **Live stat updates from services** | `home_page.py` subscribes to `SessionService.time_updated`, `ChatService` | **TODO** | Stats should update in real-time as session counts down, print balance changes, new messages arrive. |
+| B3.3 | Start/End session buttons with state management | `home_page.py` toggle between start/end | **TODO** | Button text and behavior should change based on session state. |
+| B3.4 | **Operating hours warning banner** | `home_page.py` shows warning when hours ending | **TODO** | Yellow banner at top when operating hours are ending soon. |
+| B3.5 | Welcome message with user name | `home_page.py` shows "שלום, {name}" | **TODO** | Personalized greeting. |
 
-## What Gets Better in WPF
+### B4. Packages Page
 
-| Area | PyQt6 (Current) | WPF (.NET 8) |
-|------|-----------------|-------------|
-| **UI Styling** | QSS (CSS-like, limited) | XAML Styles + Templates (full control over every pixel) |
-| **Animations** | QPropertyAnimation (manual, code-heavy) | Storyboards in XAML (declarative, visual preview) |
-| **Data Binding** | Manual signal/slot wiring | `{Binding}` with automatic change notification |
-| **Component reuse** | Python inheritance (fragile) | UserControl + DataTemplate (composable) |
-| **Theme support** | Manual QSS string building | ResourceDictionary merging (swap entire themes) |
-| **Material Design** | DIY from scratch | MaterialDesignInXAML (complete library) |
-| **Print APIs** | `win32print` via `pywin32` + `ctypes` | `System.Printing` (managed, type-safe) + P/Invoke |
-| **Keyboard hooks** | `ctypes` + `keyboard` lib | `SetWindowsHookEx` P/Invoke (well-documented) |
-| **WebView** | QWebEngineView (bundles Chromium, ~100MB) | WebView2 (uses system Edge, ~2MB) |
-| **Installer size** | ~80-150MB (Python + Qt + Chromium) | ~30-50MB (trimmed .NET + WebView2 bootstrapper) |
-| **Startup time** | 3-5 seconds | <1 second (AOT compiled) |
-| **Memory usage** | ~150-250MB | ~50-100MB |
-| **Testing** | pytest-qt (works but hacky for UI) | xUnit + Moq (clean MVVM testability) |
-| **Async/await** | QThread + signals (complex) | Native `async/await` (simple) |
-| **RTL layout** | Manual `setLayoutDirection` per widget | `FlowDirection="RightToLeft"` on root (cascades) |
+| # | Feature | Python Source | Status | Notes |
+|---|---------|-------------|--------|-------|
+| B4.1 | **Fix `PrintPages` → `Prints` binding** | N/A | **TODO** | XAML binds to `PrintPages` but model property is `Prints`. Binding silently fails. |
+| B4.2 | Package cards with hover effects | `packages_page.py` with FrostCard styling | **TODO** | Cards should lift/shadow on hover. |
+| B4.3 | Discount badge on discounted packages | `packages_page.py` shows discount percentage | **TODO** | Visual badge showing "20% הנחה" etc. |
+| B4.4 | **Open PaymentDialog on package select** | `packages_page.py` opens `PaymentDialog` | **TODO** | Currently `PurchaseRequested` fires but nothing catches it. |
+| B4.5 | Purchase confirmation dialog | `packages_page.py` confirms before payment | **TODO** | "Are you sure?" dialog before starting payment. |
 
----
+### B5. History Page
 
-## Risk Assessment
+| # | Feature | Python Source | Status | Notes |
+|---|---------|-------------|--------|-------|
+| B5.1 | Purchase history list with status badges | `history_page.py` with colored status badges | DONE | PurchaseCard and StatusBadge exist |
+| B5.2 | **StatusBadge color mapping** | `history_page.py` maps status to color | **TODO** | StatusBadge control exists but has no logic to map status strings to colors (pending=yellow, completed=green, failed=red). |
+| B5.3 | Summary statistics (total spent, total purchases) | `history_page.py` shows summary | DONE | HistoryViewModel has totals |
+| B5.4 | Empty state when no purchases | `history_page.py` shows empty message | DONE | EmptyState control exists |
 
-| Risk | Impact | Mitigation |
-|------|--------|-----------|
-| C# learning curve | Medium | C# is very similar to Java/TypeScript; XAML is intuitive |
-| Firebase .NET libraries less mature | Low | `FirebaseDatabase.net` is stable; worst case use REST directly |
-| Print monitor P/Invoke complexity | Low | C# P/Invoke is much cleaner than Python ctypes |
-| Feature parity takes longer than estimated | Medium | Keep PyQt6 version running in parallel; migrate incrementally |
-| WebView2 not installed on target PCs | Low | WebView2 bootstrapper auto-installs Edge WebView2 Runtime |
-| NSIS installer changes | Low | Same NSIS, just different EXE path |
+### B6. Help Page
 
----
+| # | Feature | Python Source | Status | Notes |
+|---|---------|-------------|--------|-------|
+| B6.1 | FAQ accordion (expandable items) | `help_page.py` with collapsible cards | DONE | |
+| B6.2 | Admin contact card | `help_page.py` loads from metadata | DONE | |
 
-## Recommended Execution Order
+### B7. Floating Timer
 
-```
-Week 1:  Phase 1 (Foundation) + Phase 4 (Theme) in parallel
-Week 2:  Phase 2 (Business Services) + Phase 5 (Controls) in parallel
-Week 3:  Phase 3 (System Services) + Phase 6 starts (Auth + Main windows)
-Week 4:  Phase 6 continues (Pages, Dialogs)
-Week 5:  Phase 7 (Integration) + Phase 8 (Build)
-Week 6:  Phase 9 (Testing) + Bug fixes + Polish
-```
+| # | Feature | Python Source | Status | Notes |
+|---|---------|-------------|--------|-------|
+| B7.1 | Topmost draggable window | `floating_timer.py` with frameless, always-on-top | DONE | FloatingTimer control exists |
+| B7.2 | **Show timer when session starts** | `main_window.py:_start_session()` creates FloatingTimer | **TODO** | Timer control exists but is never instantiated or shown when a session begins. |
+| B7.3 | Time remaining display (MM:SS format) | `floating_timer.py` formats time | DONE | |
+| B7.4 | Warning colors (normal→yellow→red) | `floating_timer.py` changes color at 5min/1min | DONE | |
+| B7.5 | "Return to app" button on timer | `floating_timer.py` has button to bring main window to front | **TODO** | |
+| B7.6 | Print balance display on timer | `floating_timer.py` shows print balance | **TODO** | Python timer shows time, usage duration, and print balance. |
 
-**Testing should run continuously alongside each phase, not just at the end.**
+### B8. Payment Dialog
 
----
+| # | Feature | Python Source | Status | Notes |
+|---|---------|-------------|--------|-------|
+| B8.1 | **WebView2 loads payment page** | `payment_dialog.py` loads `localhost:{port}/payment.html` | **TODO** | WebView2 exists in XAML but no code loads a URL. |
+| B8.2 | **Local server starts for payment HTML** | `payment_dialog.py` starts `LocalFileServer` | **TODO** | `LocalFileServer.cs` exists but is not registered in DI or used. |
+| B8.3 | **JS↔C# bridge via WebView2** | `payment_bridge.py` uses QWebChannel | **TODO** | Need `CoreWebView2.WebMessageReceived` handler and `PostWebMessageAsString`. |
+| B8.4 | Payment completion/cancellation handling | `payment_dialog.py` emits signals on completion | **TODO** | |
+| B8.5 | Loading overlay during payment | `payment_dialog.py` shows loading state | **TODO** | |
 
-## Getting Started
+### B9. Dialogs
 
-### Prerequisites
-- .NET 8 SDK
-- Visual Studio 2022 or Rider
-- WebView2 Runtime (for dev testing)
-
-### First Commands
-```bash
-# From repo root
-cd sionyx-kiosk-wpf
-
-# Create solution and project
-dotnet new sln -n SionyxKiosk
-dotnet new wpf -n SionyxKiosk -o src/SionyxKiosk
-dotnet sln add src/SionyxKiosk/SionyxKiosk.csproj
-
-# Create test project
-dotnet new xunit -n SionyxKiosk.Tests -o tests/SionyxKiosk.Tests
-dotnet sln add tests/SionyxKiosk.Tests/SionyxKiosk.Tests.csproj
-dotnet add tests/SionyxKiosk.Tests reference src/SionyxKiosk/SionyxKiosk.csproj
-
-# Add core packages
-cd src/SionyxKiosk
-dotnet add package MaterialDesignThemes
-dotnet add package MaterialDesignColors
-dotnet add package CommunityToolkit.Mvvm
-dotnet add package Microsoft.Extensions.Hosting
-dotnet add package Microsoft.Extensions.DependencyInjection
-dotnet add package FirebaseDatabase.net
-dotnet add package FirebaseAuthentication.net
-dotnet add package Microsoft.Web.WebView2
-dotnet add package Serilog
-dotnet add package Serilog.Sinks.File
-dotnet add package Serilog.Sinks.Console
-
-# Test packages
-cd ../../tests/SionyxKiosk.Tests
-dotnet add package Moq
-dotnet add package FluentAssertions
-```
+| # | Feature | Python Source | Status | Notes |
+|---|---------|-------------|--------|-------|
+| B9.1 | Alert dialog (info/success/warning/error) | `alert_modal.py` | DONE | AlertDialog exists |
+| B9.2 | Confirmation dialog | `modern_dialogs.py` | DONE | ModernDialog exists |
+| B9.3 | Message dialog (read messages flow) | `message_modal.py` | DONE | MessageDialog exists |
+| B9.4 | **Message accessibility (keyboard nav, screen reader)** | `message_accessibility.py` | **TODO** | Python has accessibility features for messages. |
 
 ---
 
-## Status Tracker
+## Part C: Build & Distribution
 
-| Phase | Status | Notes |
-|-------|--------|-------|
-| Phase 1: Foundation | DONE | .NET 8 SDK, solution scaffolded, NuGet packages. Infrastructure: RegistryConfig, FirebaseConfig, DotEnvLoader, DeviceInfo, AppConstants, ErrorTranslations, PurchaseStatus, LoggingSetup, LocalDatabase, FirebaseClient, SseListener, BaseService. |
-| Phase 2: Business Services | DONE | AuthService, ComputerService, OrganizationMetadataService, PackageService, PurchaseService, ChatService (SSE), OperatingHoursService, SessionService (full lifecycle with countdown/sync/warnings), BrowserCleanupService, ProcessCleanupService, ProcessRestrictionService. Models: UserData, Package, Purchase, OperatingHoursSettings. **Build: 0 errors, 0 warnings.** |
-| Phase 3: System Services | DONE | PrintMonitorService (P/Invoke for FindFirstPrinterChangeNotification + System.Printing), KeyboardRestrictionService (SetWindowsHookEx low-level hook), GlobalHotkeyService (RegisterHotKey via Win32). **Build: 0 errors, 0 warnings.** |
-| Phase 4: Theme & Design | DONE | Colors.xaml (full FROST palette + gradients), Typography.xaml (modular scale + semantic text styles), Theme.xaml (global implicit styles: inputs, buttons, tooltips, spacing, radii), Animations.xaml (fade, slide, scale, pulse, spinner storyboards). **Build: 0 errors, 0 warnings.** |
-| Phase 5: Reusable Controls | DONE | FrostCard, StatCard, PageHeader, LoadingSpinner, EmptyState, StatusBadge, LoadingOverlay, MessageCard, FloatingTimer (topmost draggable, warning states), PurchaseCard, StringToVisibilityConverter. All with DependencyProperties. **Build: 0 errors, 0 warnings.** |
-| Phase 6: Views + ViewModels | DONE | ViewModels: Auth, Main, Home, Packages, History, Help, Payment, Message (CommunityToolkit.Mvvm). Windows: AuthWindow (dual-panel), MainWindow (sidebar+Frame). Pages: Home, Packages, History, Help. Dialogs: Alert, Modern, Message, Payment (WebView2). Services: ForceLogoutService, LocalFileServer (HttpListener). **Build: 0 errors, 0 warnings.** |
-| Phase 7: App Shell | DONE | App.xaml.cs: DI container (Microsoft.Extensions.Hosting), Serilog, single-instance Mutex, global exception handlers, CLI args (--kiosk, --verbose), Auth→Main window lifecycle, auto-login, system service startup/shutdown, theme ResourceDictionary merging. Removed placeholder MainWindow. **Build: 0 errors, 0 warnings.** |
-| Phase 8: Build & Distribution | DONE | PublishProfile (win-x64, single-file, self-contained, trimmed), NSIS installer (adapted for .NET 8 output with kiosk user setup, security restrictions, auto-start), build.ps1 (PowerShell build script with semantic versioning, dotnet publish, NSIS, test gating), version.json. **Build: 0 errors, 0 warnings.** |
-| Phase 9: Testing | DONE | xUnit + Moq + FluentAssertions. 50 tests: ViewModels (Auth, Main, Help, Message), Models (UserData, Package, Purchase, PurchaseStatus), Infrastructure (AppConstants, DeviceInfo, ErrorTranslations, LocalFileServer), Services (ProcessCleanup, ProcessRestriction, ForceLogout). **49 passed, 1 skipped, 0 failed.** |
+| # | Feature | Python Source | WPF File | Status | Notes |
+|---|---------|-------------|----------|--------|-------|
+| C1 | NSIS installer | `installer.nsi` | `installer.nsi` | DONE | Adapted for .NET output |
+| C2 | Build script (version, compile, package) | `build.py` | `build.ps1` | DONE | PowerShell equivalent |
+| C3 | **Firebase Storage upload** | `build.py:upload_to_firebase()` uploads installer to Firebase Storage and updates `public/latestRelease` | `build.ps1` does not upload | **TODO** | Python build script uploads the installer and updates the download URL. WPF build script only builds locally. |
+| C4 | **payment.html template** | `templates/payment.html` | Not copied to WPF project | **TODO** | The payment HTML file that gets served by LocalFileServer must be included in the WPF project as an embedded resource or content file. |
+
+---
+
+## Part D: Testing
+
+| # | Feature | Status | Notes |
+|---|---------|--------|-------|
+| D1 | ViewModels unit tests | DONE | Auth, Main, Help, Message |
+| D2 | Models unit tests | DONE | UserData, Package, Purchase |
+| D3 | Infrastructure unit tests | DONE | AppConstants, DeviceInfo, ErrorTranslations |
+| D4 | **Service integration tests** | **TODO** | Auth flow, session lifecycle, print monitor with mock Firebase |
+| D5 | **Payment flow tests** | **TODO** | End-to-end payment with mock WebView |
+| D6 | **UI automation tests** | **TODO** | FlaUI for kiosk scenario testing |
+
+---
+
+## Execution Plan
+
+### Round 1: LOGIC Commits (Python → C#, no UI changes)
+
+Order of commits (each = 1 Git commit):
+
+1. **LOGIC: Fix token persistence** (A1.3, A1.4) — Store real refresh token, restore on startup
+2. **LOGIC: Fix Auth→Main transition** (A12.2) — Debug and fix window transition crash
+3. **LOGIC: Single-session enforcement** (A1.5) — Block login if session active elsewhere
+4. **LOGIC: Orphaned session recovery** (A1.6) — Detect and recover crashed sessions
+5. **LOGIC: Computer registration on login** (A9.4) — Register PC and associate user after login
+6. **LOGIC: Wire ChatService startup** (A5.6, A5.7) — Start listening, update unread count
+7. **LOGIC: Wire ForceLogout end-to-end** (A6.1, A6.2) — Fix path, wire event to logout
+8. **LOGIC: Wire PrintMonitor to session** (A3.7, A3.5, A3.6) — Start on session, budget deduction, escaped jobs
+9. **LOGIC: Wire OperatingHours to session** (A2.8, A8.4) — Hours ending → session end
+10. **LOGIC: Payment bridge (WebView2↔C#)** (A4.6, A4.7, A4.8) — Full payment flow
+11. **LOGIC: Wire PurchaseRequested to PaymentDialog** (A4.9) — Connect packages to payment
+12. **LOGIC: Start system services properly** (A7.2, A7.5, A7.6, A12.4, A12.5) — All services started/stopped correctly
+13. **LOGIC: Kiosk mode fullscreen** (A12.7) — Fullscreen, no chrome in kiosk mode
+14. **LOGIC: Sync failure tracking** (A2.6) — Track consecutive failures, emit events
+15. **LOGIC: Log directory & cleanup** (A11.4, A11.5, A11.6) — AppData in prod, 7-day rotation, crash log
+16. **LOGIC: Forgot password flow** (A1.8) — Show admin contact
+
+### Round 2: UI/UX Commits (Visual & Polish)
+
+17. **UI/UX: Fix MainWindow `BgPrimaryBrush`** (B2.1) — Add missing resource
+18. **UI/UX: Auth window animations & polish** (B1.1–B1.6) — Slide, loading, validation, forgot password
+19. **UI/UX: Main window sidebar & navigation** (B2.2–B2.6) — Active indicator, transitions, user info, badge
+20. **UI/UX: Home page live updates** (B3.1–B3.5) — Real-time stats, session buttons, welcome, warnings
+21. **UI/UX: Packages page polish** (B4.1–B4.5) — Fix binding, hover effects, discount badge, purchase flow
+22. **UI/UX: History page StatusBadge colors** (B5.2) — Color mapping
+23. **UI/UX: Floating timer full integration** (B7.2–B7.6) — Show on session, return button, print balance
+24. **UI/UX: Payment dialog full UI** (B8.1–B8.5) — WebView, loading, completion
+25. **UI/UX: Modern design overhaul** — Final polish pass across all screens
+
+---
+
+## Progress Tracker
+
+| Commit # | Type | Description | Status |
+|----------|------|-------------|--------|
+| 1 | LOGIC | Fix token persistence + auto-login | TODO |
+| 2 | LOGIC | Fix Auth→Main window transition | TODO |
+| 3 | LOGIC | Single-session enforcement | TODO |
+| 4 | LOGIC | Orphaned session recovery | TODO |
+| 5 | LOGIC | Computer registration on login | TODO |
+| 6 | LOGIC | Wire ChatService startup + unread count | TODO |
+| 7 | LOGIC | Wire ForceLogout end-to-end | TODO |
+| 8 | LOGIC | Wire PrintMonitor to session lifecycle | TODO |
+| 9 | LOGIC | Wire OperatingHours to session | TODO |
+| 10 | LOGIC | Payment bridge (WebView2) | TODO |
+| 11 | LOGIC | Wire PurchaseRequested → PaymentDialog | TODO |
+| 12 | LOGIC | Start/stop all system services properly | TODO |
+| 13 | LOGIC | Kiosk mode fullscreen | TODO |
+| 14 | LOGIC | Sync failure tracking | TODO |
+| 15 | LOGIC | Log directory + cleanup + crash log | TODO |
+| 16 | LOGIC | Forgot password flow | TODO |
+| 17 | UI/UX | Fix MainWindow BgPrimaryBrush | TODO |
+| 18 | UI/UX | Auth window animations & polish | TODO |
+| 19 | UI/UX | Main window sidebar & navigation | TODO |
+| 20 | UI/UX | Home page live updates & session UI | TODO |
+| 21 | UI/UX | Packages page polish + payment wiring | TODO |
+| 22 | UI/UX | History page StatusBadge colors | TODO |
+| 23 | UI/UX | Floating timer full integration | TODO |
+| 24 | UI/UX | Payment dialog full UI | TODO |
+| 25 | UI/UX | Modern design overhaul - final polish | TODO |
