@@ -1,5 +1,11 @@
 {
   "rules": {
+    "public": {
+      "latestRelease": {
+        ".read": true,
+        ".write": false
+      }
+    },
     "organizations": {
       ".read": false,
       ".write": false,
@@ -21,7 +27,7 @@
               ".validate": "newData.isNumber() && newData.val() >= 0"
             },
             "printBalance": {
-              ".validate": "newData.isNumber() && newData.val() >= 0"
+              ".validate": "newData.isNumber()"
             },
             "forceLogout": {
               ".validate": "newData.isBoolean()"

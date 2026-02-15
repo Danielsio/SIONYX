@@ -495,8 +495,10 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
                 # Fallback to current directory
                 service_key_path = Path("serviceAccountKey.json")
             cred = credentials.Certificate(str(service_key_path))
+            project_id = config["firebase"]["project_id"]
             firebase_admin.initialize_app(cred, {
-                "storageBucket": config["firebase"]["storage_bucket"]
+                "storageBucket": config["firebase"]["storage_bucket"],
+                "databaseURL": f"https://{project_id}-default-rtdb.europe-west1.firebasedatabase.app",
             })
         
         bucket = storage.bucket()
@@ -549,6 +551,26 @@ def upload_to_firebase(installer_path: Path, version_data: dict, config: dict) -
         metadata_token = _ensure_download_token(metadata_blob)
         metadata_url = _get_firebase_download_url(bucket_name, "releases/latest.json", metadata_token)
         print_success(f"Version metadata uploaded: {metadata_url}")
+        
+        # Also write release metadata to RTDB at public/latestRelease
+        # This is accessible without auth (landing page download button)
+        # and avoids the Storage 403 issue with uniform bucket-level access
+        try:
+            from firebase_admin import db as rtdb
+            
+            rtdb_metadata = {
+                "version": version,
+                "downloadUrl": installer_url,
+                "filename": installer_filename,
+                "buildNumber": version_data["buildNumber"],
+                "releaseDate": datetime.now().isoformat(),
+                "fileSize": installer_path.stat().st_size if installer_path.exists() else 0,
+            }
+            
+            rtdb.reference("public/latestRelease").set(rtdb_metadata)
+            print_success("Release metadata written to RTDB: public/latestRelease")
+        except Exception as e:
+            print_warning(f"Could not write to RTDB (non-fatal): {e}")
         
         return True
         
