@@ -1,0 +1,11 @@
+<UserControl x:Class="SionyxKiosk.Views.Controls.StatusBadge"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border x:Name="BadgeBorder" CornerRadius="12" Padding="12,4"
+            Background="{Binding BadgeBackground, RelativeSource={RelativeSource AncestorType=UserControl}}">
+        <TextBlock Text="{Binding Text, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                   FontSize="{StaticResource FontSizeSm}" FontWeight="SemiBold"
+                   Foreground="{Binding BadgeForeground, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                   HorizontalAlignment="Center" />
+    </Border>
+</UserControl>

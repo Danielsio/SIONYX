@@ -1,0 +1,28 @@
+<UserControl x:Class="SionyxKiosk.Views.Controls.LoadingSpinner"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="40" Height="40">
+    <Grid>
+        <Ellipse Width="40" Height="40" Stroke="{StaticResource PrimaryLightBrush}"
+                 StrokeThickness="4" />
+        <Ellipse x:Name="Spinner" Width="40" Height="40"
+                 Stroke="{StaticResource PrimaryBrush}" StrokeThickness="4"
+                 StrokeDashArray="2 3" StrokeDashCap="Round"
+                 RenderTransformOrigin="0.5,0.5">
+            <Ellipse.RenderTransform>
+                <RotateTransform x:Name="SpinnerRotation" Angle="0" />
+            </Ellipse.RenderTransform>
+        </Ellipse>
+    </Grid>
+    <UserControl.Triggers>
+        <EventTrigger RoutedEvent="Loaded">
+            <BeginStoryboard>
+                <Storyboard RepeatBehavior="Forever">
+                    <DoubleAnimation Storyboard.TargetName="SpinnerRotation"
+                                     Storyboard.TargetProperty="Angle"
+                                     From="0" To="360" Duration="0:0:1" />
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+    </UserControl.Triggers>
+</UserControl>

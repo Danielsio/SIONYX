@@ -1,0 +1,34 @@
+<UserControl x:Class="SionyxKiosk.Views.Controls.PurchaseCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:SionyxKiosk.Views.Controls">
+    <Border Background="White" CornerRadius="{StaticResource RadiusMd}"
+            Padding="20,16" Margin="0,0,0,8"
+            BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Package info -->
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="{Binding PackageName, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           FontSize="{StaticResource FontSizeBase}" FontWeight="SemiBold"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Text="{Binding PurchaseDate, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           FontSize="{StaticResource FontSizeSm}" Foreground="{StaticResource TextMutedBrush}"
+                           Margin="0,4,0,0" />
+            </StackPanel>
+
+            <!-- Amount + Status -->
+            <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Amount, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           FontSize="{StaticResource FontSizeLg}" FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" />
+                <controls:StatusBadge Text="{Binding Status, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      HorizontalAlignment="Right" Margin="0,4,0,0" />
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>
