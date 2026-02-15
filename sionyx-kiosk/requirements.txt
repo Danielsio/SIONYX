@@ -7,9 +7,6 @@ PyQt6-WebEngine
 # HTTP Client
 requests
 
-# Firebase Realtime Database Streaming
-sseclient-py
-
 # Security & Encryption
 cryptography
 
@@ -21,12 +18,6 @@ psutil
 
 # Executable Builder
 pyinstaller
-
-# Logging with Colors
-colorlog
-
-# JSON Web Tokens
-PyJWT
 
 # Global Hotkey Support
 keyboard
