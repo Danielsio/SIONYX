@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Card, Row, Col, Typography, Space, Spin, Empty, App, Tag, Avatar } from 'antd';
+import { Card, Row, Col, Typography, Space, Spin, Empty, App, Tag, Avatar, Alert, Button } from 'antd';
 import { motion } from 'framer-motion';
 import {
   UserOutlined,
@@ -9,6 +9,7 @@ import {
   DollarOutlined,
   DesktopOutlined,
   PrinterOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -48,6 +49,7 @@ const itemVariants = {
 
 const OverviewPage = () => {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [pricing, setPricing] = useState({
     blackAndWhitePrice: 1.0,
     colorPrice: 3.0,
@@ -64,14 +66,18 @@ const OverviewPage = () => {
 
   const loadData = async () => {
     setLoading(true);
+    setError(null);
 
     if (!orgId) {
       logger.error('Organization ID not found');
+      setError('מזהה ארגון לא נמצא. אנא התחבר שוב.');
       setLoading(false);
       return;
     }
 
     logger.info('Loading data for organization:', orgId);
+
+    const errors = [];
 
     // Load statistics
     const statsResult = await getOrganizationStats(orgId);
@@ -79,6 +85,7 @@ const OverviewPage = () => {
       setStats(statsResult.stats);
     } else {
       logger.error('Failed to load stats:', statsResult.error);
+      errors.push('סטטיסטיקות');
     }
 
     // Load pricing
@@ -87,6 +94,7 @@ const OverviewPage = () => {
       setPricing(pricingResult.pricing);
     } else {
       logger.error('Failed to load pricing:', pricingResult.error);
+      errors.push('מחירי הדפסה');
     }
 
     // Load recently active users
@@ -102,6 +110,12 @@ const OverviewPage = () => {
         })
         .slice(0, 5);
       setRecentUsers(activeUsers);
+    } else {
+      errors.push('משתמשים פעילים');
+    }
+
+    if (errors.length > 0) {
+      setError(`שגיאה בטעינת: ${errors.join(', ')}`);
     }
 
     setLoading(false);
@@ -128,6 +142,23 @@ const OverviewPage = () => {
         animate="visible"
       >
         <Space direction='vertical' size={28} style={{ width: '100%' }}>
+          {/* Error Banner */}
+          {error && (
+            <Alert
+              message='שגיאה בטעינת נתונים'
+              description={error}
+              type='error'
+              showIcon
+              closable
+              action={
+                <Button size='small' icon={<ReloadOutlined />} onClick={loadData}>
+                  נסה שוב
+                </Button>
+              }
+              style={{ borderRadius: 12 }}
+            />
+          )}
+
           {/* Header */}
           <motion.div variants={itemVariants}>
             <Title level={2} style={{ marginBottom: 8, fontWeight: 700, color: '#1f2937' }}>
