@@ -1,5 +1,6 @@
 import { ref, get, update } from 'firebase/database';
 import { database } from '../config/firebase';
+import { logger } from '../utils/logger';
 
 /**
  * Print Pricing Service for Admin Dashboard
@@ -32,7 +33,7 @@ export const getPrintPricing = async orgId => {
       pricing,
     };
   } catch (error) {
-    console.error('Error getting print pricing:', error);
+    logger.error('Error getting print pricing:', error);
     return {
       success: false,
       error: 'Failed to get print pricing',
@@ -45,7 +46,7 @@ export const getPrintPricing = async orgId => {
  */
 export const updatePrintPricing = async (orgId, pricingData) => {
   try {
-    console.log('Updating print pricing for org:', orgId, 'with data:', pricingData);
+    logger.info('Updating print pricing for org:', orgId, 'with data:', pricingData);
     
     const metadataRef = ref(database, `organizations/${orgId}/metadata`);
     
@@ -66,18 +67,18 @@ export const updatePrintPricing = async (orgId, pricingData) => {
       colorPrice: parseFloat(colorPrice),
     };
 
-    console.log('Update data:', updateData);
-    console.log('Database path:', `organizations/${orgId}/metadata`);
+    logger.info('Update data:', updateData);
+    logger.info('Database path:', `organizations/${orgId}/metadata`);
 
     await update(metadataRef, updateData);
 
-    console.log('Print pricing updated successfully');
+    logger.info('Print pricing updated successfully');
     return {
       success: true,
       message: 'Print pricing updated successfully',
     };
   } catch (error) {
-    console.error('Error updating print pricing:', error);
+    logger.error('Error updating print pricing:', error);
     return {
       success: false,
       error: `Failed to update print pricing: ${error.message}`,

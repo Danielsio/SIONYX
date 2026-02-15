@@ -36,6 +36,7 @@ import {
   sendMessage,
   isUserActive,
 } from '../services/chatService';
+import { logger } from '../utils/logger';
 
 dayjs.extend(relativeTime);
 dayjs.locale('he');
@@ -85,7 +86,7 @@ const MessagesPage = () => {
         setMessages(messagesResult.messages);
       }
     } catch (error) {
-      console.error('Error loading data:', error);
+      logger.error('Error loading data:', error);
       message.error('שגיאה בטעינת הנתונים');
     } finally {
       setLoading(false);
@@ -107,7 +108,7 @@ const MessagesPage = () => {
         setUserMessages(sorted);
       }
     } catch (error) {
-      console.error('Error loading chat:', error);
+      logger.error('Error loading chat:', error);
       message.error('שגיאה בטעינת ההודעות');
     } finally {
       setLoadingChat(false);
@@ -137,7 +138,7 @@ const MessagesPage = () => {
         message.error('שגיאה בשליחה');
       }
     } catch (error) {
-      console.error('Error sending:', error);
+      logger.error('Error sending:', error);
       message.error('שגיאה בשליחה');
     } finally {
       setSending(false);

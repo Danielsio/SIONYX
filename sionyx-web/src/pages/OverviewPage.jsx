@@ -19,6 +19,7 @@ import { formatMinutesHebrew } from '../utils/timeFormatter';
 import { getAllUsers } from '../services/userService';
 import { getUserStatus, getStatusLabel, getStatusColor } from '../constants/userStatus';
 import StatCard, { MiniStatCard } from '../components/StatCard';
+import { logger } from '../utils/logger';
 
 const { Title, Text } = Typography;
 
@@ -65,19 +66,19 @@ const OverviewPage = () => {
     setLoading(true);
 
     if (!orgId) {
-      console.error('Organization ID not found');
+      logger.error('Organization ID not found');
       setLoading(false);
       return;
     }
 
-    console.log('Loading data for organization:', orgId);
+    logger.info('Loading data for organization:', orgId);
 
     // Load statistics
     const statsResult = await getOrganizationStats(orgId);
     if (statsResult.success) {
       setStats(statsResult.stats);
     } else {
-      console.error('Failed to load stats:', statsResult.error);
+      logger.error('Failed to load stats:', statsResult.error);
     }
 
     // Load pricing
@@ -85,7 +86,7 @@ const OverviewPage = () => {
     if (pricingResult.success) {
       setPricing(pricingResult.pricing);
     } else {
-      console.error('Failed to load pricing:', pricingResult.error);
+      logger.error('Failed to load pricing:', pricingResult.error);
     }
 
     // Load recently active users

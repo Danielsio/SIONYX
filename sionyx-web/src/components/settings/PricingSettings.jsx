@@ -22,6 +22,7 @@ import {
 } from '@ant-design/icons';
 import { getPrintPricing, updatePrintPricing } from '../../services/pricingService';
 import { useOrgId } from '../../hooks/useOrgId';
+import { logger } from '../../utils/logger';
 
 const { Text } = Typography;
 
@@ -85,7 +86,7 @@ const PricingSettings = () => {
         message.error(result.error || 'נכשל בעדכון המחירים');
       }
     } catch (error) {
-      console.error('Validation failed:', error);
+      logger.error('Validation failed:', error);
     } finally {
       setSaving(false);
     }

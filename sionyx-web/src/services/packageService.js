@@ -2,6 +2,7 @@ import { ref, get, set, update, remove, push } from 'firebase/database';
 import { database } from '../config/firebase';
 import { useAuthStore } from '../store/authStore';
 import { isSupervisorPendingActivation } from '../utils/roles';
+import { logger } from '../utils/logger';
 
 const normalizePackageData = packageData => ({
   ...packageData,
@@ -49,7 +50,7 @@ export const getAllPackages = async orgId => {
       packages,
     };
   } catch (error) {
-    console.error('Error getting packages:', error);
+    logger.error('Error getting packages:', error);
     return {
       success: false,
       error: error.message,
@@ -80,7 +81,7 @@ export const createPackage = async (orgId, packageData) => {
       message: 'Package created successfully',
     };
   } catch (error) {
-    console.error('Error creating package:', error);
+    logger.error('Error creating package:', error);
     return {
       success: false,
       error: error.message,
@@ -107,7 +108,7 @@ export const updatePackage = async (orgId, packageId, updates) => {
       message: 'Package updated successfully',
     };
   } catch (error) {
-    console.error('Error updating package:', error);
+    logger.error('Error updating package:', error);
     return {
       success: false,
       error: error.message,
@@ -128,7 +129,7 @@ export const deletePackage = async (orgId, packageId) => {
       message: 'Package deleted successfully',
     };
   } catch (error) {
-    console.error('Error deleting package:', error);
+    logger.error('Error deleting package:', error);
     return {
       success: false,
       error: error.message,
