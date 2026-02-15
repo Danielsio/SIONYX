@@ -87,7 +87,10 @@ export const signInAdmin = async (phone, password, orgId) => {
     let supervisorActive = undefined;
     if (effectiveRole === ROLES.SUPERVISOR) {
       try {
-        const settingsRef = ref(database, `organizations/${cleanOrgId}/metadata/settings/supervisorActive`);
+        const settingsRef = ref(
+          database,
+          `organizations/${cleanOrgId}/metadata/settings/supervisorActive`
+        );
         const settingsSnapshot = await get(settingsRef);
         supervisorActive = settingsSnapshot.exists() ? settingsSnapshot.val() === true : false;
       } catch (e) {
@@ -192,7 +195,10 @@ export const getCurrentAdminData = async () => {
     let supervisorActive = undefined;
     if (effectiveRole === ROLES.SUPERVISOR) {
       try {
-        const settingsRef = ref(database, `organizations/${orgId}/metadata/settings/supervisorActive`);
+        const settingsRef = ref(
+          database,
+          `organizations/${orgId}/metadata/settings/supervisorActive`
+        );
         const settingsSnapshot = await get(settingsRef);
         supervisorActive = settingsSnapshot.exists() ? settingsSnapshot.val() === true : false;
       } catch (e) {

@@ -33,11 +33,7 @@ import {
   forceLogoutUser,
   deleteComputer,
 } from '../services/computerService';
-import {
-  getUserStatus,
-  getStatusLabel,
-  getStatusColor,
-} from '../constants/userStatus';
+import { getUserStatus, getStatusLabel, getStatusColor } from '../constants/userStatus';
 import { useAuthStore } from '../store/authStore';
 import { logger } from '../utils/logger';
 
@@ -51,9 +47,9 @@ const ComputersPage = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [actionLoading, setActionLoading] = useState({});
-  
+
   const user = useAuthStore(state => state.user);
-  
+
   useEffect(() => {
     loadData();
   }, []);
@@ -168,12 +164,13 @@ const ComputersPage = () => {
   // User Card Component - for active users display
   const UserCard = ({ user }) => {
     const [expanded, setExpanded] = useState(false);
-    const remainingColor = user.remainingTime > 3600 ? '#52c41a' : user.remainingTime > 1800 ? '#faad14' : '#ff4d4f';
-    
+    const remainingColor =
+      user.remainingTime > 3600 ? '#52c41a' : user.remainingTime > 1800 ? '#faad14' : '#ff4d4f';
+
     // Use centralized status logic - map activeUsers data to getUserStatus format
     // Users in activeUsers list are always logged in (isLoggedIn: true)
     const userStatus = getUserStatus({
-      isLoggedIn: true,  // They're in activeUsers, so they're logged in
+      isLoggedIn: true, // They're in activeUsers, so they're logged in
       isSessionActive: user.sessionActive,
     });
     const statusLabel = getStatusLabel(userStatus);
@@ -181,7 +178,7 @@ const ComputersPage = () => {
 
     return (
       <Card
-        size="small"
+        size='small'
         style={{
           marginBottom: 12,
           borderRadius: 8,
@@ -192,16 +189,15 @@ const ComputersPage = () => {
         onClick={() => setExpanded(!expanded)}
       >
         {/* Main Row - Always Visible */}
-        <Row align="middle" justify="space-between" gutter={[8, 8]}>
+        <Row align='middle' justify='space-between' gutter={[8, 8]}>
           {/* User Name & Status */}
-          <Col flex="auto">
+          <Col flex='auto'>
             <Space size={8}>
               <UserOutlined style={{ color: '#1890ff', fontSize: 18 }} />
-              <Text strong style={{ fontSize: 15 }}>{user.userName}</Text>
-              <Tag 
-                color={statusColor} 
-                style={{ marginRight: 0 }}
-              >
+              <Text strong style={{ fontSize: 15 }}>
+                {user.userName}
+              </Text>
+              <Tag color={statusColor} style={{ marginRight: 0 }}>
                 {statusLabel}
               </Tag>
             </Space>
@@ -209,24 +205,24 @@ const ComputersPage = () => {
 
           {/* Quick Info & Actions */}
           <Col>
-            <Space size={8} align="center">
+            <Space size={8} align='center'>
               {/* Remaining Time */}
-              <Tag 
-                icon={<ClockCircleOutlined />} 
+              <Tag
+                icon={<ClockCircleOutlined />}
                 color={user.remainingTime > 1800 ? 'default' : 'error'}
                 style={{ marginRight: 0 }}
               >
                 {formatDuration(user.remainingTime)}
               </Tag>
-              
+
               {/* Logout Button */}
               <Button
-                type="link"
+                type='link'
                 danger
-                size="small"
+                size='small'
                 icon={<LogoutOutlined />}
                 loading={actionLoading[`logout-${user.userId}`]}
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   handleForceLogout(user.userId, user.computerId);
                 }}
@@ -234,7 +230,7 @@ const ComputersPage = () => {
               >
                 נתק
               </Button>
-              
+
               {/* Expand Icon */}
               {expanded ? (
                 <UpOutlined style={{ color: '#bfbfbf', fontSize: 12 }} />
@@ -247,33 +243,35 @@ const ComputersPage = () => {
 
         {/* Expanded Details */}
         {expanded && (
-          <div style={{ 
-            marginTop: 12, 
-            paddingTop: 12, 
-            borderTop: '1px solid #f0f0f0' 
-          }}>
+          <div
+            style={{
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: '1px solid #f0f0f0',
+            }}
+          >
             <Row gutter={[16, 8]}>
               <Col xs={12} sm={8}>
                 <Space size={4}>
                   <DesktopOutlined style={{ color: '#8c8c8c' }} />
-                  <Text type="secondary">מחשב:</Text>
+                  <Text type='secondary'>מחשב:</Text>
                   <Text strong>{user.computerName}</Text>
                 </Space>
               </Col>
               <Col xs={12} sm={8}>
                 <Space size={4}>
                   <PhoneOutlined style={{ color: '#8c8c8c' }} />
-                  <Text type="secondary">טלפון:</Text>
+                  <Text type='secondary'>טלפון:</Text>
                   <Text>{user.userPhone}</Text>
                 </Space>
               </Col>
               <Col xs={12} sm={8}>
                 <Space size={4}>
                   <ClockCircleOutlined style={{ color: '#8c8c8c' }} />
-                  <Text type="secondary">זמן פעילות:</Text>
+                  <Text type='secondary'>זמן פעילות:</Text>
                   <Text strong style={{ color: '#52c41a' }}>
-                    {user.sessionActive && user.sessionStartTime 
-                      ? formatSessionTime(user.sessionStartTime) 
+                    {user.sessionActive && user.sessionStartTime
+                      ? formatSessionTime(user.sessionStartTime)
                       : '--'}
                   </Text>
                 </Space>
@@ -293,7 +291,7 @@ const ComputersPage = () => {
 
     return (
       <Card
-        size="small"
+        size='small'
         style={{
           marginBottom: 12,
           borderRadius: 8,
@@ -301,16 +299,15 @@ const ComputersPage = () => {
         }}
         styles={{ body: { padding: '12px 16px' } }}
       >
-        <Row align="middle" justify="space-between" gutter={[8, 8]}>
+        <Row align='middle' justify='space-between' gutter={[8, 8]}>
           {/* Computer Name & Status */}
-          <Col flex="auto">
+          <Col flex='auto'>
             <Space size={8}>
               <DesktopOutlined style={{ color: isActive ? '#52c41a' : '#bfbfbf', fontSize: 18 }} />
-              <Text strong style={{ fontSize: 15 }}>{computer.computerName}</Text>
-              <Tag 
-                color={isActive ? 'success' : 'default'} 
-                style={{ marginRight: 0 }}
-              >
+              <Text strong style={{ fontSize: 15 }}>
+                {computer.computerName}
+              </Text>
+              <Tag color={isActive ? 'success' : 'default'} style={{ marginRight: 0 }}>
                 {isActive ? 'פעיל' : 'לא פעיל'}
               </Tag>
             </Space>
@@ -318,17 +315,19 @@ const ComputersPage = () => {
 
           {/* Current User Status */}
           <Col>
-            <Space size={8} align="center">
+            <Space size={8} align='center'>
               {hasUser ? (
                 <>
                   <Space size={4}>
                     <UserOutlined style={{ color: '#1890ff' }} />
-                    <Text strong style={{ color: '#1890ff' }}>{computer.currentUserName}</Text>
+                    <Text strong style={{ color: '#1890ff' }}>
+                      {computer.currentUserName}
+                    </Text>
                   </Space>
                   <Button
-                    type="link"
+                    type='link'
                     danger
-                    size="small"
+                    size='small'
                     icon={<LogoutOutlined />}
                     loading={actionLoading[`logout-${computer.currentUserId}`]}
                     onClick={() => handleForceLogout(computer.currentUserId, computer.computerId)}
@@ -338,14 +337,14 @@ const ComputersPage = () => {
                   </Button>
                 </>
               ) : (
-                <Tag icon={<CheckCircleOutlined />} color="default">
+                <Tag icon={<CheckCircleOutlined />} color='default'>
                   לא בשימוש כעת
                 </Tag>
               )}
               <Button
-                type="text"
+                type='text'
                 danger
-                size="small"
+                size='small'
                 icon={<DeleteOutlined />}
                 loading={actionLoading[`delete-${computer.computerId}`]}
                 onClick={() => handleDeleteComputer(computer.computerId)}
@@ -365,7 +364,7 @@ const ComputersPage = () => {
 
     return (
       <Card
-        size="small"
+        size='small'
         style={{
           marginBottom: 12,
           borderRadius: 8,
@@ -373,16 +372,15 @@ const ComputersPage = () => {
         }}
         styles={{ body: { padding: '12px 16px' } }}
       >
-        <Row align="middle" justify="space-between">
+        <Row align='middle' justify='space-between'>
           {/* Computer Name & Status */}
           <Col>
             <Space size={8}>
               <DesktopOutlined style={{ color: isActive ? '#52c41a' : '#bfbfbf', fontSize: 18 }} />
-              <Text strong style={{ fontSize: 15 }}>{computer.computerName}</Text>
-              <Tag 
-                color={isActive ? 'success' : 'default'} 
-                style={{ marginRight: 0 }}
-              >
+              <Text strong style={{ fontSize: 15 }}>
+                {computer.computerName}
+              </Text>
+              <Tag color={isActive ? 'success' : 'default'} style={{ marginRight: 0 }}>
                 {isActive ? 'פעיל' : 'לא פעיל'}
               </Tag>
             </Space>
@@ -391,9 +389,9 @@ const ComputersPage = () => {
           {/* Delete Button */}
           <Col>
             <Button
-              type="text"
+              type='text'
               danger
-              size="small"
+              size='small'
               icon={<DeleteOutlined />}
               loading={actionLoading[`delete-${computerId}`]}
               onClick={() => handleDeleteComputer(computerId)}
@@ -472,9 +470,7 @@ const ComputersPage = () => {
       children: (
         <div>
           {computers.length > 0 ? (
-            computers.map(computer => (
-              <AllComputerCard key={computer.id} computer={computer} />
-            ))
+            computers.map(computer => <AllComputerCard key={computer.id} computer={computer} />)
           ) : (
             <div style={{ textAlign: 'center', padding: '40px 0', color: '#bfbfbf' }}>
               <DesktopOutlined style={{ fontSize: 48, marginBottom: 16 }} />

@@ -6,12 +6,14 @@ import AnimatedBackground from './AnimatedBackground';
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, style, className, ...props }) => (
-      <div style={style} className={className} data-testid="motion-div" {...props}>{children}</div>
+      <div style={style} className={className} data-testid='motion-div' {...props}>
+        {children}
+      </div>
     ),
     span: ({ children, ...props }) => <span {...props}>{children}</span>,
     svg: ({ children, ...props }) => <svg {...props}>{children}</svg>,
-    circle: (props) => <circle {...props} />,
-    path: (props) => <path {...props} />,
+    circle: props => <circle {...props} />,
+    path: props => <path {...props} />,
   },
   AnimatePresence: ({ children }) => children,
   useMotionValue: () => ({ get: () => 0, set: vi.fn() }),
@@ -54,7 +56,7 @@ const mockContext = {
 
 beforeEach(() => {
   HTMLCanvasElement.prototype.getContext = vi.fn(() => mockContext);
-  
+
   // Mock requestAnimationFrame
   vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
     return setTimeout(cb, 16);
@@ -67,106 +69,96 @@ beforeEach(() => {
 describe('AnimatedBackground', () => {
   it('renders without crashing', () => {
     const { container } = render(<AnimatedBackground />);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with children', () => {
     const { container } = render(
       <AnimatedBackground>
-        <div data-testid="child">Content</div>
+        <div data-testid='child'>Content</div>
       </AnimatedBackground>
     );
-    
+
     // Check container rendered
     expect(container).toBeInTheDocument();
   });
 
   it('renders with particles variant', () => {
-    const { container } = render(<AnimatedBackground variant="particles" />);
-    
+    const { container } = render(<AnimatedBackground variant='particles' />);
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with gradient variant', () => {
-    const { container } = render(<AnimatedBackground variant="gradient" />);
-    
+    const { container } = render(<AnimatedBackground variant='gradient' />);
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with mesh variant', () => {
-    const { container } = render(<AnimatedBackground variant="mesh" />);
-    
+    const { container } = render(<AnimatedBackground variant='mesh' />);
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with waves variant', () => {
-    const { container } = render(<AnimatedBackground variant="waves" />);
-    
+    const { container } = render(<AnimatedBackground variant='waves' />);
+
     expect(container).toBeInTheDocument();
   });
 
   it('applies custom colors', () => {
-    const { container } = render(
-      <AnimatedBackground 
-        colors={['#ff0000', '#00ff00', '#0000ff']}
-      />
-    );
-    
+    const { container } = render(<AnimatedBackground colors={['#ff0000', '#00ff00', '#0000ff']} />);
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with interactive mode', () => {
     const { container } = render(<AnimatedBackground interactive />);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with density prop', () => {
     const { container } = render(<AnimatedBackground density={50} />);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with speed prop', () => {
     const { container } = render(<AnimatedBackground speed={2} />);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('applies custom styles', () => {
-    const { container } = render(
-      <AnimatedBackground style={{ opacity: 0.5 }} />
-    );
-    
+    const { container } = render(<AnimatedBackground style={{ opacity: 0.5 }} />);
+
     expect(container).toBeInTheDocument();
   });
 
   it('applies custom className', () => {
-    const { container } = render(
-      <AnimatedBackground className="custom-bg" />
-    );
-    
+    const { container } = render(<AnimatedBackground className='custom-bg' />);
+
     expect(container).toBeInTheDocument();
   });
 
   it('handles disabled state', () => {
-    const { container } = render(
-      <AnimatedBackground disabled />
-    );
-    
+    const { container } = render(<AnimatedBackground disabled />);
+
     expect(container).toBeInTheDocument();
   });
 
   it('renders with blur effect', () => {
     const { container } = render(<AnimatedBackground blur={10} />);
-    
+
     expect(container).toBeInTheDocument();
   });
 
   it('handles reduced motion preference', () => {
     const { container } = render(<AnimatedBackground reducedMotion />);
-    
+
     expect(container).toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 /**
  * Role utilities for RBAC (Role-Based Access Control)
- * 
+ *
  * Role hierarchy: user < admin < supervisor
  */
 
@@ -22,17 +22,17 @@ export const ROLE_HIERARCHY = {
  */
 export const getUserRole = user => {
   if (!user) return ROLES.USER;
-  
+
   // New role field takes precedence
   if (user.role) {
     return user.role;
   }
-  
+
   // Fallback to isAdmin for backwards compatibility
   if (user.isAdmin === true) {
     return ROLES.ADMIN;
   }
-  
+
   return ROLES.USER;
 };
 

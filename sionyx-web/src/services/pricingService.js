@@ -47,15 +47,18 @@ export const getPrintPricing = async orgId => {
 export const updatePrintPricing = async (orgId, pricingData) => {
   try {
     logger.info('Updating print pricing for org:', orgId, 'with data:', pricingData);
-    
+
     const metadataRef = ref(database, `organizations/${orgId}/metadata`);
-    
+
     // Validate pricing data
     const { blackAndWhitePrice, colorPrice } = pricingData;
-    
-    if (typeof blackAndWhitePrice !== 'number' && typeof blackAndWhitePrice !== 'string' ||
-        typeof colorPrice !== 'number' && typeof colorPrice !== 'string' ||
-        Number(blackAndWhitePrice) <= 0 || Number(colorPrice) <= 0) {
+
+    if (
+      (typeof blackAndWhitePrice !== 'number' && typeof blackAndWhitePrice !== 'string') ||
+      (typeof colorPrice !== 'number' && typeof colorPrice !== 'string') ||
+      Number(blackAndWhitePrice) <= 0 ||
+      Number(colorPrice) <= 0
+    ) {
       return {
         success: false,
         error: 'Prices must be greater than 0',

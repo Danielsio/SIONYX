@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { registerOrganization, getOrganizationMetadata, getOrganizationStats } from './organizationService';
+import {
+  registerOrganization,
+  getOrganizationMetadata,
+  getOrganizationStats,
+} from './organizationService';
 import { database, functions } from '../config/firebase';
 import { ref, get } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';

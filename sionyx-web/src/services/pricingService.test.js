@@ -142,5 +142,3 @@ describe('pricingService', () => {
     });
   });
 });
-
-

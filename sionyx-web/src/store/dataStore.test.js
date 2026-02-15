@@ -119,10 +119,7 @@ describe('dataStore', () => {
     });
 
     it('preserves existing packages', () => {
-      useDataStore.getState().setPackages([
-        { id: 'pkg-1' },
-        { id: 'pkg-2' },
-      ]);
+      useDataStore.getState().setPackages([{ id: 'pkg-1' }, { id: 'pkg-2' }]);
 
       useDataStore.getState().addPackage({ id: 'pkg-3' });
 
@@ -147,9 +144,9 @@ describe('dataStore', () => {
     });
 
     it('partially updates package (merges properties)', () => {
-      useDataStore.getState().setPackages([
-        { id: 'pkg-1', name: 'Original', price: 10, description: 'Test' },
-      ]);
+      useDataStore
+        .getState()
+        .setPackages([{ id: 'pkg-1', name: 'Original', price: 10, description: 'Test' }]);
 
       useDataStore.getState().updatePackage('pkg-1', { price: 20 });
 
@@ -160,9 +157,7 @@ describe('dataStore', () => {
     });
 
     it('does nothing if package id not found', () => {
-      useDataStore.getState().setPackages([
-        { id: 'pkg-1', name: 'Original' },
-      ]);
+      useDataStore.getState().setPackages([{ id: 'pkg-1', name: 'Original' }]);
 
       useDataStore.getState().updatePackage('non-existent', { name: 'Updated' });
 
@@ -200,9 +195,7 @@ describe('dataStore', () => {
     });
 
     it('does nothing if package id not found', () => {
-      useDataStore.getState().setPackages([
-        { id: 'pkg-1', name: 'First' },
-      ]);
+      useDataStore.getState().setPackages([{ id: 'pkg-1', name: 'First' }]);
 
       useDataStore.getState().removePackage('non-existent');
 
@@ -218,11 +211,7 @@ describe('dataStore', () => {
     });
 
     it('removes correct package when multiple exist', () => {
-      useDataStore.getState().setPackages([
-        { id: 'pkg-1' },
-        { id: 'pkg-2' },
-        { id: 'pkg-3' },
-      ]);
+      useDataStore.getState().setPackages([{ id: 'pkg-1' }, { id: 'pkg-2' }, { id: 'pkg-3' }]);
 
       useDataStore.getState().removePackage('pkg-2');
 
@@ -247,9 +236,9 @@ describe('dataStore', () => {
     });
 
     it('partially updates user (merges properties)', () => {
-      useDataStore.getState().setUsers([
-        { uid: 'user-1', firstName: 'John', remainingTime: 100, printBalance: 50 },
-      ]);
+      useDataStore
+        .getState()
+        .setUsers([{ uid: 'user-1', firstName: 'John', remainingTime: 100, printBalance: 50 }]);
 
       useDataStore.getState().updateUser('user-1', { remainingTime: 200 });
 
@@ -260,9 +249,7 @@ describe('dataStore', () => {
     });
 
     it('does nothing if user uid not found', () => {
-      useDataStore.getState().setUsers([
-        { uid: 'user-1', firstName: 'John' },
-      ]);
+      useDataStore.getState().setUsers([{ uid: 'user-1', firstName: 'John' }]);
 
       useDataStore.getState().updateUser('non-existent', { firstName: 'Updated' });
 
@@ -270,9 +257,9 @@ describe('dataStore', () => {
     });
 
     it('can update multiple properties at once', () => {
-      useDataStore.getState().setUsers([
-        { uid: 'user-1', firstName: 'John', lastName: 'Doe', isAdmin: false },
-      ]);
+      useDataStore
+        .getState()
+        .setUsers([{ uid: 'user-1', firstName: 'John', lastName: 'Doe', isAdmin: false }]);
 
       useDataStore.getState().updateUser('user-1', {
         firstName: 'Johnny',
@@ -309,5 +296,3 @@ describe('dataStore', () => {
     });
   });
 });
-
-

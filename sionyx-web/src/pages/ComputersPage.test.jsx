@@ -12,7 +12,7 @@ import {
 // Mock dependencies
 vi.mock('../services/computerService');
 vi.mock('../store/authStore', () => ({
-  useAuthStore: vi.fn((selector) => {
+  useAuthStore: vi.fn(selector => {
     const state = { user: { orgId: 'my-org', uid: 'admin-123', role: 'admin', isAdmin: true } };
     return selector(state);
   }),
@@ -253,16 +253,18 @@ describe('ComputersPage', () => {
       // Using centralized userStatus: CONNECTED status = "מושהה" (on hold)
       getActiveComputerUsers.mockResolvedValue({
         success: true,
-        data: [{
-          userId: 'user-1',
-          userName: 'יוסי כהן',
-          computerId: 'comp-1',
-          computerName: 'PC-001',
-          loginTime: new Date(Date.now() - 1800000).toISOString(),
-          sessionActive: false, // NOT in paid session
-          sessionStartTime: null, // No session started
-          remainingTime: 3600,
-        }],
+        data: [
+          {
+            userId: 'user-1',
+            userName: 'יוסי כהן',
+            computerId: 'comp-1',
+            computerName: 'PC-001',
+            loginTime: new Date(Date.now() - 1800000).toISOString(),
+            sessionActive: false, // NOT in paid session
+            sessionStartTime: null, // No session started
+            remainingTime: 3600,
+          },
+        ],
       });
 
       render(<ComputersPage />);
@@ -280,20 +282,22 @@ describe('ComputersPage', () => {
 
     it('should show "--" activity time when session has not started', async () => {
       const user = userEvent.setup();
-      
+
       // Mock user who is logged in but hasn't started paid session
       getActiveComputerUsers.mockResolvedValue({
         success: true,
-        data: [{
-          userId: 'user-1',
-          userName: 'יוסי כהן',
-          computerId: 'comp-1',
-          computerName: 'PC-001',
-          loginTime: new Date(Date.now() - 3600000).toISOString(), // Logged in 1 hour ago
-          sessionActive: false,
-          sessionStartTime: null, // No paid session started!
-          remainingTime: 3600,
-        }],
+        data: [
+          {
+            userId: 'user-1',
+            userName: 'יוסי כהן',
+            computerId: 'comp-1',
+            computerName: 'PC-001',
+            loginTime: new Date(Date.now() - 3600000).toISOString(), // Logged in 1 hour ago
+            sessionActive: false,
+            sessionStartTime: null, // No paid session started!
+            remainingTime: 3600,
+          },
+        ],
       });
 
       render(<ComputersPage />);
@@ -323,16 +327,18 @@ describe('ComputersPage', () => {
       // User logged into computer 2 hours ago, but started session 30 minutes ago
       getActiveComputerUsers.mockResolvedValue({
         success: true,
-        data: [{
-          userId: 'user-1',
-          userName: 'יוסי כהן',
-          computerId: 'comp-1',
-          computerName: 'PC-001',
-          loginTime: new Date(now - 7200000).toISOString(), // 2 hours ago
-          sessionActive: true,
-          sessionStartTime: new Date(now - 1800000).toISOString(), // 30 minutes ago
-          remainingTime: 3600,
-        }],
+        data: [
+          {
+            userId: 'user-1',
+            userName: 'יוסי כהן',
+            computerId: 'comp-1',
+            computerName: 'PC-001',
+            loginTime: new Date(now - 7200000).toISOString(), // 2 hours ago
+            sessionActive: true,
+            sessionStartTime: new Date(now - 1800000).toISOString(), // 30 minutes ago
+            remainingTime: 3600,
+          },
+        ],
       });
 
       render(<ComputersPage />);
@@ -351,5 +357,3 @@ describe('ComputersPage', () => {
     });
   });
 });
-
-

@@ -55,8 +55,8 @@ vi.mock('../config/firebase', () => ({
 // ============================================
 
 vi.mock('@ant-design/icons', () => {
-  const createMockIcon = (name) => {
-    const MockIcon = (_props) => {
+  const createMockIcon = name => {
+    const MockIcon = _props => {
       // Return a span with the icon name for testing
       return `[${name}]`;
     };
@@ -147,7 +147,7 @@ vi.mock('@ant-design/icons', () => {
 // Mock framer-motion
 vi.mock('framer-motion', () => {
   const React = require('react');
-  
+
   // Create a mock motion value
   const createMockMotionValue = (initial = 0) => ({
     get: vi.fn(() => initial),
@@ -155,30 +155,30 @@ vi.mock('framer-motion', () => {
     onChange: vi.fn(() => () => {}),
     isAnimating: vi.fn(() => false),
   });
-  
-  const createMotionComponent = (tag) => {
+
+  const createMotionComponent = tag => {
     const MotionComponent = React.forwardRef((props, ref) => {
-      const { 
-        children, 
-        initial, 
-        animate, 
-        exit, 
-        whileHover, 
-        whileTap, 
-        whileInView, 
-        variants, 
+      const {
+        children,
+        initial,
+        animate,
+        exit,
+        whileHover,
+        whileTap,
+        whileInView,
+        variants,
         transition,
         onAnimationComplete,
         drag,
         dragConstraints,
-        ...rest 
+        ...rest
       } = props;
       return React.createElement(tag, { ...rest, ref }, children);
     });
     MotionComponent.displayName = `motion.${tag}`;
     return MotionComponent;
   };
-  
+
   return {
     motion: {
       div: createMotionComponent('div'),
@@ -195,9 +195,9 @@ vi.mock('framer-motion', () => {
       img: createMotionComponent('img'),
       footer: createMotionComponent('footer'),
     },
-    useScroll: vi.fn(() => ({ 
-      scrollY: createMockMotionValue(0), 
-      scrollYProgress: createMockMotionValue(0) 
+    useScroll: vi.fn(() => ({
+      scrollY: createMockMotionValue(0),
+      scrollYProgress: createMockMotionValue(0),
     })),
     useTransform: vi.fn(() => createMockMotionValue(0)),
     useSpring: vi.fn(() => createMockMotionValue(0)),
@@ -275,11 +275,11 @@ Element.prototype.scrollIntoView = vi.fn();
 // Mock localStorage
 const localStorageMock = {
   store: {},
-  getItem: vi.fn((key) => localStorageMock.store[key] || null),
+  getItem: vi.fn(key => localStorageMock.store[key] || null),
   setItem: vi.fn((key, value) => {
     localStorageMock.store[key] = String(value);
   }),
-  removeItem: vi.fn((key) => {
+  removeItem: vi.fn(key => {
     delete localStorageMock.store[key];
   }),
   clear: vi.fn(() => {
@@ -294,7 +294,7 @@ Object.defineProperty(window, 'localStorage', {
 // Mock matchMedia for responsive components
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation(query => ({
     matches: false,
     media: query,
     onchange: null,
@@ -340,8 +340,8 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
 }));
 
 // Mock requestAnimationFrame
-window.requestAnimationFrame = vi.fn((cb) => setTimeout(cb, 16));
-window.cancelAnimationFrame = vi.fn((id) => clearTimeout(id));
+window.requestAnimationFrame = vi.fn(cb => setTimeout(cb, 16));
+window.cancelAnimationFrame = vi.fn(id => clearTimeout(id));
 
 // Mock scrollTo
 window.scrollTo = vi.fn();

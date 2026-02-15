@@ -13,13 +13,13 @@ vi.mock('../services/authService');
 const mockNavigate = vi.fn();
 const mockLocation = { pathname: '/admin' };
 
-vi.mock('react-router-dom', async (importOriginal) => {
+vi.mock('react-router-dom', async importOriginal => {
   const actual = await importOriginal();
   return {
     ...actual,
     useNavigate: () => mockNavigate,
     useLocation: () => mockLocation,
-    Outlet: () => <div data-testid="outlet">Page Content</div>,
+    Outlet: () => <div data-testid='outlet'>Page Content</div>,
   };
 });
 
@@ -34,7 +34,7 @@ const renderMainLayout = (userOverride = null) => {
     phoneNumber: '0501234567',
   };
 
-  useAuthStore.mockImplementation((selector) => {
+  useAuthStore.mockImplementation(selector => {
     const state = {
       user: mockUser,
       logout: mockLogout,

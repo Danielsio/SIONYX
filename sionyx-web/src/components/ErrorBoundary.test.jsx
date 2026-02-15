@@ -7,13 +7,13 @@ const ThrowError = ({ shouldThrow = true }) => {
   if (shouldThrow) {
     throw new Error('Test error message');
   }
-  return <div data-testid="child-content">Child Content</div>;
+  return <div data-testid='child-content'>Child Content</div>;
 };
 
 describe('ErrorBoundary', () => {
   // Suppress console.error during tests since we're testing error scenarios
   const originalConsoleError = console.error;
-  
+
   beforeEach(() => {
     console.error = vi.fn();
   });
@@ -76,7 +76,7 @@ describe('ErrorBoundary', () => {
   it('shows error details in development mode', () => {
     // Mock import.meta.env.DEV to true
     const originalDev = import.meta.env.DEV;
-    
+
     // In test environment, DEV should be true
     render(
       <ErrorBoundary>
@@ -93,9 +93,13 @@ describe('ErrorBoundary', () => {
 
   it('captures error info in state', () => {
     let errorBoundaryRef;
-    
+
     render(
-      <ErrorBoundary ref={(ref) => { errorBoundaryRef = ref; }}>
+      <ErrorBoundary
+        ref={ref => {
+          errorBoundaryRef = ref;
+        }}
+      >
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
@@ -110,7 +114,7 @@ describe('ErrorBoundary', () => {
     beforeEach(() => {
       originalLocation = window.location;
       delete window.location;
-      window.location = { 
+      window.location = {
         reload: vi.fn(),
         href: '',
       };
@@ -145,5 +149,3 @@ describe('ErrorBoundary', () => {
     });
   });
 });
-
-

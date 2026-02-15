@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ref, get, set, push, update, query, orderByChild, equalTo, onValue } from 'firebase/database';
+import {
+  ref,
+  get,
+  set,
+  push,
+  update,
+  query,
+  orderByChild,
+  equalTo,
+  onValue,
+} from 'firebase/database';
 import {
   sendMessage,
   getAllMessages,
@@ -298,5 +308,3 @@ describe('chatService', () => {
     });
   });
 });
-
-

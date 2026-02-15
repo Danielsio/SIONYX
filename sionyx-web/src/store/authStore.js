@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getUserRole, hasRole as checkRole, isAdminOrAbove, isSupervisor, ROLES } from '../utils/roles.js';
+import {
+  getUserRole,
+  hasRole as checkRole,
+  isAdminOrAbove,
+  isSupervisor,
+  ROLES,
+} from '../utils/roles.js';
 
 export const useAuthStore = create(
   persist(
@@ -30,11 +36,11 @@ export const useAuthStore = create(
 
       // Role helpers
       getRole: () => getUserRole(get().user),
-      
+
       hasRole: requiredRole => checkRole(get().user, requiredRole),
-      
+
       isAdminOrAbove: () => isAdminOrAbove(get().user),
-      
+
       isSupervisor: () => isSupervisor(get().user),
     }),
     {

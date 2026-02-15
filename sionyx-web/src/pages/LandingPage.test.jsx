@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 // Mock dependencies
 vi.mock('../services/organizationService');
 vi.mock('../services/downloadService');
-vi.mock('react-router-dom', async (importOriginal) => {
+vi.mock('react-router-dom', async importOriginal => {
   const actual = await importOriginal();
   return {
     ...actual,
@@ -20,17 +20,25 @@ vi.mock('react-router-dom', async (importOriginal) => {
 // Mock animated components to avoid complex framer-motion/gsap interactions
 vi.mock('../components/animated', () => {
   const React = require('react');
-  
+
   return {
     AnimatedBackground: () => React.createElement('div', { 'data-testid': 'animated-background' }),
-    AnimatedButton: ({ children, onClick, icon, loading, fullWidth, variant, size, magnetic, ...props }) => 
-      React.createElement('button', { onClick, ...props }, icon, children),
-    AnimatedCard: ({ children, onClick, tilt, glow, entrance, delay, variant, ...props }) => 
+    AnimatedButton: ({
+      children,
+      onClick,
+      icon,
+      loading,
+      fullWidth,
+      variant,
+      size,
+      magnetic,
+      ...props
+    }) => React.createElement('button', { onClick, ...props }, icon, children),
+    AnimatedCard: ({ children, onClick, tilt, glow, entrance, delay, variant, ...props }) =>
       React.createElement('div', { onClick, ...props }, children),
-    GlowingText: ({ children, color, glowIntensity, pulse }) => 
+    GlowingText: ({ children, color, glowIntensity, pulse }) =>
       React.createElement('span', null, children),
-    GradientText: ({ children, gradient, animate }) => 
-      React.createElement('span', null, children),
+    GradientText: ({ children, gradient, animate }) => React.createElement('span', null, children),
   };
 });
 
@@ -72,7 +80,7 @@ describe('LandingPage', () => {
 
     // SIONYX is rendered as individual animated letters - there may be multiple S's (logo + title)
     const letters = ['S', 'I', 'O', 'N', 'Y', 'X'];
-    letters.forEach((letter) => {
+    letters.forEach(letter => {
       const elements = screen.getAllByText(letter);
       expect(elements.length).toBeGreaterThan(0);
     });
@@ -349,9 +357,11 @@ describe('LandingPage', () => {
   it('does not warn about release fetch after unmount', async () => {
     // Create a deferred promise that we control
     let rejectRelease;
-    getLatestRelease.mockReturnValue(new Promise((_, reject) => {
-      rejectRelease = reject;
-    }));
+    getLatestRelease.mockReturnValue(
+      new Promise((_, reject) => {
+        rejectRelease = reject;
+      })
+    );
 
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -376,7 +386,7 @@ describe('LandingPage', () => {
     const gsap = await import('gsap');
 
     // Make gsap.fromTo throw when called with null (simulates real GSAP behavior)
-    gsap.default.fromTo.mockImplementation((target) => {
+    gsap.default.fromTo.mockImplementation(target => {
       if (!target) throw new Error('GSAP: Cannot tween a null target');
     });
 
@@ -497,7 +507,7 @@ describe('LandingPage', () => {
       const orgNameInput = screen.getByLabelText(/שם הארגון/);
       expect(orgNameInput).toBeInTheDocument();
       expect(orgNameInput.tagName).toBe('INPUT');
-      
+
       // Inputs should be inside the modal body
       const modalBody = document.querySelector('.ant-modal-body');
       expect(modalBody).toContainElement(orgNameInput);

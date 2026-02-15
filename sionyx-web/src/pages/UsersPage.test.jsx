@@ -28,10 +28,10 @@ vi.mock('../hooks/useOrgId', () => ({
 
 // Mock dayjs
 vi.mock('dayjs', () => {
-  const dayjs = (date) => ({
+  const dayjs = date => ({
     format: () => '15/01/2024',
     fromNow: () => 'לפני שעה',
-    unix: () => date ? new Date(date).getTime() / 1000 : Date.now() / 1000,
+    unix: () => (date ? new Date(date).getTime() / 1000 : Date.now() / 1000),
   });
   dayjs.extend = () => {};
   dayjs.locale = () => {};
@@ -70,12 +70,12 @@ const renderUsersPage = (usersOverride = mockUsers) => {
   const mockSetUsers = vi.fn();
   const mockUpdateUser = vi.fn();
 
-  useAuthStore.mockImplementation((selector) => {
+  useAuthStore.mockImplementation(selector => {
     const state = { user: { orgId: 'my-org', uid: 'admin-123', role: 'admin', isAdmin: true } };
     return selector(state);
   });
 
-  useDataStore.mockImplementation((selector) => {
+  useDataStore.mockImplementation(selector => {
     const state = {
       users: usersOverride,
       setUsers: mockSetUsers,
@@ -365,12 +365,12 @@ describe('UsersPage - Send Message Guard', () => {
     const mockUpdateUser = vi.fn();
 
     // User has orgId but uid is undefined
-    useAuthStore.mockImplementation((selector) => {
+    useAuthStore.mockImplementation(selector => {
       const state = { user: { orgId: 'my-org', uid: undefined, role: 'admin', isAdmin: true } };
       return selector(state);
     });
 
-    useDataStore.mockImplementation((selector) => {
+    useDataStore.mockImplementation(selector => {
       const state = {
         users: mockUsers,
         setUsers: mockSetUsers,
@@ -439,12 +439,12 @@ describe('UsersPage - Admin Self-Revoke Prevention', () => {
     const mockSetUsers = vi.fn();
     const mockUpdateUser = vi.fn();
 
-    useAuthStore.mockImplementation((selector) => {
+    useAuthStore.mockImplementation(selector => {
       const state = { user: { orgId: 'my-org', uid: currentUserId, role: 'admin', isAdmin: true } };
       return selector(state);
     });
 
-    useDataStore.mockImplementation((selector) => {
+    useDataStore.mockImplementation(selector => {
       const state = {
         users: users,
         setUsers: mockSetUsers,
@@ -571,12 +571,12 @@ describe('UsersPage - Password Reset', () => {
     const mockSetUsers = vi.fn();
     const mockUpdateUser = vi.fn();
 
-    useAuthStore.mockImplementation((selector) => {
+    useAuthStore.mockImplementation(selector => {
       const state = { user: { orgId: 'my-org', uid: 'admin-123', role: 'admin', isAdmin: true } };
       return selector(state);
     });
 
-    useDataStore.mockImplementation((selector) => {
+    useDataStore.mockImplementation(selector => {
       const state = {
         users: mockUsers,
         setUsers: mockSetUsers,
@@ -711,7 +711,7 @@ describe('UsersPage - Password Reset', () => {
       // Find password inputs in modal using placeholder text
       const newPasswordInput = screen.getByPlaceholderText(/לפחות 6 תווים/);
       const confirmPasswordInput = screen.getByPlaceholderText(/הכנס שוב/);
-      
+
       await user.type(newPasswordInput, 'newPassword123');
       await user.type(confirmPasswordInput, 'newPassword123');
 
@@ -727,7 +727,7 @@ describe('UsersPage - Password Reset', () => {
 
   it('shows error when password reset fails', async () => {
     resetUserPassword.mockResolvedValue({ success: false, error: 'שגיאה באיפוס הסיסמה' });
-    
+
     const user = userEvent.setup();
     renderForPasswordReset();
 
@@ -821,12 +821,12 @@ describe('UsersPage - orgId dependency', () => {
   it('reloads data when orgId changes from null to a value', async () => {
     mockUseOrgId.mockReturnValue(null);
 
-    useAuthStore.mockImplementation((selector) => {
+    useAuthStore.mockImplementation(selector => {
       const state = { user: { orgId: null, uid: 'admin-123', role: 'admin', isAdmin: true } };
       return selector(state);
     });
 
-    useDataStore.mockImplementation((selector) => {
+    useDataStore.mockImplementation(selector => {
       const state = {
         users: [],
         setUsers: vi.fn(),

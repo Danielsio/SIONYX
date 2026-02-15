@@ -46,14 +46,16 @@ function App() {
   }, []);
 
   const LoadingFallback = () => (
-    <div style={{ 
-      display: 'flex', 
-      justifyContent: 'center', 
-      alignItems: 'center', 
-      minHeight: '100vh',
-      direction: 'rtl'
-    }}>
-      <Spin size="large" />
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        direction: 'rtl',
+      }}
+    >
+      <Spin size='large' />
     </div>
   );
 

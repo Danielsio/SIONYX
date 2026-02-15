@@ -96,11 +96,11 @@ describe('userStatus constants', () => {
 
     it('returns CONNECTED for logged in user who ended session but did not logout', () => {
       // This is the key scenario: user logged in, started session, then ended it
-      const user = { 
-        isLoggedIn: true, 
+      const user = {
+        isLoggedIn: true,
         isSessionActive: false,
-        currentComputerId: 'computer-123',  // Still has computer association
-        currentComputerName: 'PC-1'
+        currentComputerId: 'computer-123', // Still has computer association
+        currentComputerName: 'PC-1',
       };
       expect(getUserStatus(user)).toBe(USER_STATUS.CONNECTED);
     });
@@ -146,5 +146,3 @@ describe('userStatus constants', () => {
     });
   });
 });
-
-

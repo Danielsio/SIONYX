@@ -12,7 +12,7 @@ describe('useOrgId', () => {
 
   describe('useOrgId hook', () => {
     it('returns orgId from auth store', () => {
-      useAuthStore.mockImplementation((selector) => {
+      useAuthStore.mockImplementation(selector => {
         const state = {
           getOrgId: () => 'test-org-123',
         };
@@ -25,7 +25,7 @@ describe('useOrgId', () => {
     });
 
     it('returns null when no orgId available', () => {
-      useAuthStore.mockImplementation((selector) => {
+      useAuthStore.mockImplementation(selector => {
         const state = {
           getOrgId: () => null,
         };
@@ -38,7 +38,7 @@ describe('useOrgId', () => {
     });
 
     it('returns undefined when getOrgId returns undefined', () => {
-      useAuthStore.mockImplementation((selector) => {
+      useAuthStore.mockImplementation(selector => {
         const state = {
           getOrgId: () => undefined,
         };

@@ -297,7 +297,7 @@ export const forceLogoutUser = async (userId, computerId) => {
       currentComputerId: null,
       currentComputerName: null,
       isSessionActive: false,
-      isLoggedIn: false,  // User is now logged out
+      isLoggedIn: false, // User is now logged out
       sessionStartTime: null,
       lastComputerLogout: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

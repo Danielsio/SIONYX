@@ -3,7 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App as AntApp } from 'antd';
 import OperatingHoursSettings from './OperatingHoursSettings';
-import { getOperatingHours, updateOperatingHours, DEFAULT_OPERATING_HOURS } from '../../services/settingsService';
+import {
+  getOperatingHours,
+  updateOperatingHours,
+  DEFAULT_OPERATING_HOURS,
+} from '../../services/settingsService';
 
 vi.mock('../../services/settingsService');
 const mockUseOrgId = vi.fn(() => 'my-org');
@@ -13,9 +17,9 @@ vi.mock('../../hooks/useOrgId', () => ({
 
 // Mock dayjs with all methods required by Ant Design TimePicker
 vi.mock('dayjs', () => {
-  const createDayjsInstance = (date) => {
+  const createDayjsInstance = date => {
     const instance = {
-      format: (fmt) => (typeof date === 'string' ? date : '06:00'),
+      format: fmt => (typeof date === 'string' ? date : '06:00'),
       isValid: () => true,
       hour: () => 6,
       minute: () => 0,
@@ -40,9 +44,9 @@ vi.mock('dayjs', () => {
     };
     return instance;
   };
-  
-  const dayjs = (date) => createDayjsInstance(date);
-  dayjs.isDayjs = (obj) => obj && obj.$isDayjsObject === true;
+
+  const dayjs = date => createDayjsInstance(date);
+  dayjs.isDayjs = obj => obj && obj.$isDayjsObject === true;
   dayjs.extend = () => {};
   dayjs.locale = () => {};
   return { default: dayjs };

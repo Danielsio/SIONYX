@@ -19,7 +19,7 @@ const getStorageBucket = () => {
  * Uses the firebasestorage.googleapis.com endpoint which respects
  * Firebase Security Rules (unlike storage.googleapis.com which needs IAM/ACL).
  */
-const getFirebaseStorageUrl = (path) => {
+const getFirebaseStorageUrl = path => {
   const bucket = getStorageBucket();
   const encodedPath = encodeURIComponent(path);
   return `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}`;

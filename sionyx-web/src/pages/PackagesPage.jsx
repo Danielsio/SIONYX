@@ -249,14 +249,12 @@ const PackagesPage = () => {
               {pkg.discountPercent}% הנחה
             </Tag>
           )}
-          <div onClick={e => e.stopPropagation()} style={{ position: 'absolute', top: 8, right: 8 }}>
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ position: 'absolute', top: 8, right: 8 }}
+          >
             <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-              <Button
-                type='text'
-                icon={<MoreOutlined />}
-                style={{ color: '#fff' }}
-                size='small'
-              />
+              <Button type='text' icon={<MoreOutlined />} style={{ color: '#fff' }} size='small' />
             </Dropdown>
           </div>
           <div style={{ textAlign: 'center', paddingTop: 8 }}>
@@ -396,10 +394,7 @@ const PackagesPage = () => {
         </div>
       ) : packages.length === 0 ? (
         <Card>
-          <Empty
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description='אין חבילות'
-          >
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description='אין חבילות'>
             <Button type='primary' icon={<PlusOutlined />} onClick={handleCreate}>
               צור חבילה ראשונה
             </Button>
@@ -505,9 +500,9 @@ const PackagesPage = () => {
             tooltip='מספר ימים שהחבילה תקפה אחרי הרכישה. השאר 0 ללא תוקף.'
             rules={[{ type: 'number', min: 0, message: 'חייב להיות חיובי' }]}
           >
-            <InputNumber 
-              style={{ width: '100%' }} 
-              placeholder='0 = ללא הגבלה' 
+            <InputNumber
+              style={{ width: '100%' }}
+              placeholder='0 = ללא הגבלה'
               min={0}
               addonAfter='ימים'
             />
@@ -577,7 +572,11 @@ const PackagesPage = () => {
             </Descriptions.Item>
             <Descriptions.Item label='מחיר סופי'>
               <Text strong style={{ color: '#52c41a', fontSize: 18 }}>
-                ₪{calculateFinalPrice(viewingPackage.price, viewingPackage.discountPercent).finalPrice.toFixed(2)}
+                ₪
+                {calculateFinalPrice(
+                  viewingPackage.price,
+                  viewingPackage.discountPercent
+                ).finalPrice.toFixed(2)}
               </Text>
             </Descriptions.Item>
             <Descriptions.Item label='זמן כלול'>
@@ -587,12 +586,14 @@ const PackagesPage = () => {
               {viewingPackage.prints ? `₪${viewingPackage.prints}` : 'אין'}
             </Descriptions.Item>
             <Descriptions.Item label='תוקף'>
-              {viewingPackage.validityDays > 0 
-                ? `${viewingPackage.validityDays} ימים` 
+              {viewingPackage.validityDays > 0
+                ? `${viewingPackage.validityDays} ימים`
                 : 'ללא הגבלה'}
             </Descriptions.Item>
             <Descriptions.Item label='נוצר'>
-              {viewingPackage.createdAt ? dayjs(viewingPackage.createdAt).format('DD/MM/YYYY HH:mm') : 'לא זמין'}
+              {viewingPackage.createdAt
+                ? dayjs(viewingPackage.createdAt).format('DD/MM/YYYY HH:mm')
+                : 'לא זמין'}
             </Descriptions.Item>
           </Descriptions>
         )}
