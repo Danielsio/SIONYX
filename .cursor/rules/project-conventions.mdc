@@ -1,5 +1,5 @@
 ---
-description: SIONYX project conventions - release workflow, shell, testing, and architecture rules
+description: SIONYX project conventions - release workflow, shell, testing, and Makefile commands
 alwaysApply: true
 ---
 
@@ -8,46 +8,67 @@ alwaysApply: true
 ## Repository Structure
 - `sionyx-web/` -- React web admin dashboard (Firebase Hosting)
 - `sionyx-kiosk/` -- PyQt6 kiosk desktop app (PyInstaller + NSIS installer)
-- `scripts/` -- Management scripts (Python)
+- `scripts/` -- CI/CD management scripts (Python)
+- `Makefile` -- All build/test/deploy commands (run from repo root)
 
 ## Shell Environment
 - User runs **PowerShell on Windows**. Do NOT use bash syntax.
 - No `&&` chaining -- use `;` or separate commands
 - No `head`/`tail` -- use `Select-Object -First N` / `Select-Object -Last N`
 - Git commit messages: use `$msg = @"..."@` then `git commit -m $msg`
+- For `firebase deploy --only`, quote the argument: `--only "hosting,database"`
+
+## Makefile Commands (use these instead of raw commands)
+
+### Kiosk Release (atomic: branch -> build -> merge -> tag -> push)
+- `make release-patch` -- Full patch release (e.g., 1.1.3 -> 1.1.4)
+- `make release-minor` -- Full minor release (e.g., 1.1.3 -> 1.2.0)
+- `make release-major` -- Full major release (e.g., 1.1.3 -> 2.0.0)
+- `make release-dry` -- Preview what would happen (no changes)
+- These call `scripts/release.py` which handles everything atomically
+
+### Kiosk Build (without full release)
+- `make build` or `make build-patch` -- Build installer with patch bump
+- `make build-local` -- Build without uploading to Firebase
+- `make build-dry` -- Preview version changes
+- `make version` -- Show current version
+- Override coverage check: `make build SKIP_COV=true`
+- **NEVER bump version.json manually** -- `build.py` / `release.py` handle it
+
+### Kiosk Development & Testing
+- `make dev` -- Run desktop app
+- `make test` -- Run all kiosk tests
+- `make test-cov` -- Tests with coverage report
+- `make test-fast` -- Fast tests only (utils + services)
+- `make test-unit` -- Unit tests only (no integration)
+- `make test-int` -- Integration tests only
+- `make lint` / `make format` -- Code quality
+
+### Web Admin
+- `make web-dev` -- Run dev server
+- `make web-test` -- Run tests (watch mode)
+- `make web-test-run` -- Run tests once
+- `make web-build` -- Build for production
+- `make web-deploy` -- Full deploy (runs tests, builds, deploys to Firebase)
+- `make web-deploy-hosting` -- Deploy hosting only
+- `make web-deploy-database` -- Deploy database rules only
+
+### Git Workflow
+- `make merge-feature` -- Merge feature branch to main (with coverage check)
+- `make merge-release` -- Merge release branch to main (create tag)
 
 ## Versioning Rules
 - **Version tags are ONLY for the kiosk app** (e.g., `v2.1.3`)
-- **Web app has NO version tags** -- it always deploys the latest pushed code
-- Never bump `version.json` manually -- `build.py` handles it
-
-## Kiosk Release Workflow
-1. Push all code changes to remote first
-2. Run `python build.py --patch` (or `--minor`/`--major`) from `sionyx-kiosk/`
-3. The script handles: tests, coverage check, version bump, PyInstaller build, NSIS installer, Firebase Storage upload
-4. If coverage drops >0.1%, use `--skip-coverage-check` only if the drop is justified
-5. After build.py finishes, commit the updated `version.json` and create an annotated tag
-6. Push commit + tag to remote
-
-## Web Release Workflow
-1. Build: `npm run build` in `sionyx-web/`
-2. Deploy: `firebase deploy --only "hosting,database"` (quotes required for PowerShell)
-3. No version bump, no tags
+- **Web app has NO version tags** -- always deploys latest pushed code
+- Never create version tags manually -- `make release-*` handles it
 
 ## Testing
-- **Web:** Vitest + @testing-library/react. Run with `npx vitest run`
-- **Kiosk:** pytest + pytest-qt + pytest-mock. Run with `python -m pytest`
 - **Bug fixes follow TDD:** write failing test first, then implement fix, then commit
 - Each bug fix gets its own commit with clear explanation
-
-## Firebase
-- Realtime Database for app data, rules in `database.rules.json`
-- Storage for kiosk installer releases
-- Hosting for the web app
-- Functions for backend logic (e.g., `resetUserPassword`)
+- Kiosk tests colocated as `*_test.py` next to source files
+- Web tests use Vitest + @testing-library/react
 
 ## Code Patterns
 - Web state management: Zustand stores
 - Web org context: always use `useOrgId()` hook, include `orgId` in `useEffect` deps
 - Kiosk singletons: `LocalDatabase`, `FirebaseClient` use `__new__` + `_initialized` guard
-- Kiosk tests colocated as `*_test.py` next to source files
