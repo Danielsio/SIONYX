@@ -180,16 +180,17 @@ const MainLayout = () => {
             boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
           }}
         >
-          <img
-            src='/logo.png'
-            alt='SIONYX'
+          <span
             style={{
-              height: collapsed ? 20 : 24,
-              width: collapsed ? 20 : 24,
-              objectFit: 'contain',
-              filter: 'brightness(0) invert(1)',
+              color: '#fff',
+              fontSize: collapsed ? 16 : 18,
+              fontWeight: 800,
+              lineHeight: 1,
+              userSelect: 'none',
             }}
-          />
+          >
+            S
+          </span>
         </motion.div>
         <AnimatePresence>
           {!collapsed && (
