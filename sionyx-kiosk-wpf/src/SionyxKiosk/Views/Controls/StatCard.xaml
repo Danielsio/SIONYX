@@ -1,0 +1,40 @@
+<UserControl x:Class="SionyxKiosk.Views.Controls.StatCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="280" Height="140">
+    <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="24"
+            SnapsToDevicePixels="True">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="16" ShadowDepth="4" Direction="270"
+                              Color="#0F172A" Opacity="0.08" />
+        </Border.Effect>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Title -->
+            <TextBlock Grid.Row="0" Grid.Column="0"
+                       Text="{Binding Title, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       Style="{StaticResource TextCaption}"
+                       Margin="0,0,0,8" />
+
+            <!-- Icon -->
+            <TextBlock Grid.Row="0" Grid.Column="1"
+                       Text="{Binding Icon, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       FontSize="24" Foreground="{StaticResource PrimaryBrush}"
+                       VerticalAlignment="Top" />
+
+            <!-- Value -->
+            <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                       Text="{Binding Value, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       Style="{StaticResource TextH2}"
+                       VerticalAlignment="Bottom" />
+        </Grid>
+    </Border>
+</UserControl>

@@ -1,0 +1,59 @@
+<UserControl x:Class="SionyxKiosk.Views.Controls.MessageCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Cursor="Hand">
+    <Border x:Name="CardBorder" Background="White" CornerRadius="{StaticResource RadiusMd}"
+            Padding="16,14" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+            Margin="0,0,0,8">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270"
+                              Color="#0F172A" Opacity="0.04" />
+        </Border.Effect>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Unread dot -->
+            <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{StaticResource PrimaryBrush}"
+                     VerticalAlignment="Top" Margin="0,6,12,0" />
+
+            <!-- Content -->
+            <StackPanel Grid.Column="1">
+                <TextBlock Text="{Binding SenderName, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           FontWeight="SemiBold" FontSize="{StaticResource FontSizeBase}"
+                           Foreground="{StaticResource TextPrimaryBrush}" />
+                <TextBlock Text="{Binding MessageText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                           FontSize="{StaticResource FontSizeSm}" Foreground="{StaticResource TextSecondaryBrush}"
+                           TextTrimming="CharacterEllipsis" MaxHeight="40" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <!-- Timestamp -->
+            <TextBlock Grid.Column="2" Text="{Binding Timestamp, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                       FontSize="{StaticResource FontSizeXs}" Foreground="{StaticResource TextMutedBrush}"
+                       VerticalAlignment="Top" />
+        </Grid>
+        <Border.Triggers>
+            <EventTrigger RoutedEvent="MouseEnter">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <ColorAnimation Storyboard.TargetName="CardBorder"
+                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                        To="#F8FAFC" Duration="0:0:0.15" />
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+            <EventTrigger RoutedEvent="MouseLeave">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <ColorAnimation Storyboard.TargetName="CardBorder"
+                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                        To="White" Duration="0:0:0.15" />
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Border.Triggers>
+    </Border>
+</UserControl>
