@@ -39,6 +39,7 @@ import {
   getStatusColor,
 } from '../constants/userStatus';
 import { useAuthStore } from '../store/authStore';
+import { logger } from '../utils/logger';
 
 const { Title, Text } = Typography;
 
@@ -80,7 +81,7 @@ const ComputersPage = () => {
       }
     } catch (err) {
       setError('נכשל בטעינת נתוני המחשבים');
-      console.error('Error loading data:', err);
+      logger.error('Error loading data:', err);
     } finally {
       setLoading(false);
     }

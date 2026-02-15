@@ -26,6 +26,7 @@ import {
 import dayjs from 'dayjs';
 import { getOperatingHours, updateOperatingHours, DEFAULT_OPERATING_HOURS } from '../../services/settingsService';
 import { useOrgId } from '../../hooks/useOrgId';
+import { logger } from '../../utils/logger';
 
 const { Text, Title } = Typography;
 
@@ -98,7 +99,7 @@ const OperatingHoursSettings = () => {
         message.error(result.error || 'נכשל בעדכון ההגדרות');
       }
     } catch (error) {
-      console.error('Validation failed:', error);
+      logger.error('Validation failed:', error);
     } finally {
       setSaving(false);
     }

@@ -5,6 +5,8 @@
  * with automatic version discovery.
  */
 
+import { logger } from '../utils/logger';
+
 // Firebase Storage base URL - use proxy in dev to bypass CORS
 const STORAGE_BASE_URL = import.meta.env.DEV 
   ? '/storage-proxy' 
@@ -38,7 +40,7 @@ const fetchLatestMetadata = async () => {
 
     return await response.json();
   } catch (error) {
-    console.warn('Could not fetch latest.json metadata:', error.message);
+    logger.warn('Could not fetch latest.json metadata:', error.message);
     return null;
   }
 };
@@ -84,7 +86,7 @@ export const getAvailableVersions = async () => {
  */
 export const downloadFile = async (url, filename) => {
   try {
-    console.log(`Starting download: ${filename} from ${url}`);
+    logger.info(`Starting download: ${filename} from ${url}`);
 
     if (!url || !url.startsWith('http')) {
       throw new Error('Invalid download URL');
@@ -101,9 +103,9 @@ export const downloadFile = async (url, filename) => {
     link.click();
     document.body.removeChild(link);
 
-    console.log(`Download initiated: ${filename}`);
+    logger.info(`Download initiated: ${filename}`);
   } catch (error) {
-    console.error('Download failed:', error);
+    logger.error('Download failed:', error);
     throw new Error(`Download failed: ${error.message}`);
   }
 };
@@ -117,7 +119,7 @@ export const downloadFile = async (url, filename) => {
  */
 export const downloadFileWithProgress = async (url, filename, onProgress) => {
   try {
-    console.log(`Starting download: ${filename}`);
+    logger.info(`Starting download: ${filename}`);
 
     if (!url || !url.startsWith('http')) {
       throw new Error('Invalid download URL');
@@ -138,9 +140,9 @@ export const downloadFileWithProgress = async (url, filename, onProgress) => {
 
     if (onProgress) setTimeout(() => onProgress(100, 100), 100);
 
-    console.log(`Download initiated: ${filename}`);
+    logger.info(`Download initiated: ${filename}`);
   } catch (error) {
-    console.error('Download failed:', error);
+    logger.error('Download failed:', error);
     throw new Error(`Download failed: ${error.message}`);
   }
 };

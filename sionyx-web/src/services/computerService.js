@@ -3,11 +3,12 @@
  * Handles computer/PC tracking and management
  */
 
-import { ref, get, set, update, remove, query, orderByChild, equalTo } from 'firebase/database';
+import { ref, get, update, remove } from 'firebase/database';
 import { database } from '../config/firebase';
 import { getOrgId } from '../hooks/useOrgId';
 import { useAuthStore } from '../store/authStore';
 import { isSupervisorPendingActivation } from '../utils/roles';
+import { logger } from '../utils/logger';
 
 /**
  * Get all computers in the organization
@@ -42,7 +43,7 @@ export const getAllComputers = async () => {
       };
     }
   } catch (error) {
-    console.error('Error fetching computers:', error);
+    logger.error('Error fetching computers:', error);
     return {
       success: false,
       error: 'Failed to fetch computers',
@@ -142,7 +143,7 @@ export const getComputerUsageStats = async () => {
       data: stats,
     };
   } catch (error) {
-    console.error('Error getting computer usage stats:', error);
+    logger.error('Error getting computer usage stats:', error);
     return {
       success: false,
       error: 'Failed to get computer usage statistics',
@@ -174,7 +175,7 @@ export const getComputerById = async computerId => {
       };
     }
   } catch (error) {
-    console.error('Error fetching computer:', error);
+    logger.error('Error fetching computer:', error);
     return {
       success: false,
       error: 'Failed to fetch computer',
@@ -202,7 +203,7 @@ export const updateComputer = async (computerId, updates) => {
       success: true,
     };
   } catch (error) {
-    console.error('Error updating computer:', error);
+    logger.error('Error updating computer:', error);
     return {
       success: false,
       error: 'Failed to update computer',
@@ -223,7 +224,7 @@ export const deleteComputer = async computerId => {
       success: true,
     };
   } catch (error) {
-    console.error('Error deleting computer:', error);
+    logger.error('Error deleting computer:', error);
     return {
       success: false,
       error: 'Failed to delete computer',
@@ -275,7 +276,7 @@ export const getActiveComputerUsers = async () => {
       data: activeUsers,
     };
   } catch (error) {
-    console.error('Error getting active computer users:', error);
+    logger.error('Error getting active computer users:', error);
     return {
       success: false,
       error: 'Failed to get active computer users',
@@ -315,7 +316,7 @@ export const forceLogoutUser = async (userId, computerId) => {
       success: true,
     };
   } catch (error) {
-    console.error('Error forcing logout:', error);
+    logger.error('Error forcing logout:', error);
     return {
       success: false,
       error: 'Failed to force logout user',

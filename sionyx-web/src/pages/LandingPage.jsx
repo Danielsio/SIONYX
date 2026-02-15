@@ -47,6 +47,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import { registerOrganization } from '../services/organizationService';
 import { downloadFile, getLatestRelease, formatVersion } from '../services/downloadService';
+import { logger } from '../utils/logger';
 import {
   AnimatedBackground,
   AnimatedButton,
@@ -1345,7 +1346,7 @@ const LandingPage = memo(() => {
         const release = await getLatestRelease();
         if (mounted) setReleaseInfo(release);
       } catch (error) {
-        if (mounted) console.warn('Could not fetch release info:', error);
+        if (mounted) logger.warn('Could not fetch release info:', error);
       }
     };
     fetchReleaseInfo();
@@ -1382,7 +1383,7 @@ const LandingPage = memo(() => {
       await downloadFile(releaseInfo.downloadUrl, releaseInfo.fileName);
       message.success('ההורדה הושלמה בהצלחה!');
     } catch (error) {
-      console.error('Download error:', error);
+      logger.error('Download error:', error);
       message.error(error.message || 'שגיאה בהורדה. נסה שוב.');
     } finally {
       setDownloadLoading(false);

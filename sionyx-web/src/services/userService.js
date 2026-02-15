@@ -3,6 +3,7 @@ import { httpsCallable } from 'firebase/functions';
 import { database, functions } from '../config/firebase';
 import { useAuthStore } from '../store/authStore';
 import { isSupervisorPendingActivation } from '../utils/roles';
+import { logger } from '../utils/logger';
 
 /**
  * Get all users in an organization
@@ -42,7 +43,7 @@ export const getAllUsers = async orgId => {
       users,
     };
   } catch (error) {
-    console.error('Error getting users:', error);
+    logger.error('Error getting users:', error);
     return {
       success: false,
       error: error.message,
@@ -86,7 +87,7 @@ export const getUserPurchaseHistory = async (orgId, userId) => {
       purchases: userPurchases,
     };
   } catch (error) {
-    console.error('Error getting user purchases:', error);
+    logger.error('Error getting user purchases:', error);
     return {
       success: false,
       error: error.message,
@@ -141,7 +142,7 @@ export const adjustUserBalance = async (orgId, userId, adjustments) => {
       },
     };
   } catch (error) {
-    console.error('Error adjusting user balance:', error);
+    logger.error('Error adjusting user balance:', error);
     return {
       success: false,
       error: error.message,
@@ -176,7 +177,7 @@ export const grantAdminPermission = async (orgId, userId) => {
       message: 'Admin permission granted successfully',
     };
   } catch (error) {
-    console.error('Error granting admin permission:', error);
+    logger.error('Error granting admin permission:', error);
     return {
       success: false,
       error: error.message,
@@ -211,7 +212,7 @@ export const revokeAdminPermission = async (orgId, userId) => {
       message: 'Admin permission revoked successfully',
     };
   } catch (error) {
-    console.error('Error revoking admin permission:', error);
+    logger.error('Error revoking admin permission:', error);
     return {
       success: false,
       error: error.message,
@@ -233,7 +234,7 @@ export const resetUserPassword = async (orgId, userId, newPassword) => {
       message: result.data.message || 'הסיסמה אופסה בהצלחה',
     };
   } catch (error) {
-    console.error('Error resetting user password:', error);
+    logger.error('Error resetting user password:', error);
     
     // Extract error message from Firebase function error
     const errorMessage = error.message || 'שגיאה באיפוס הסיסמה';
@@ -302,7 +303,7 @@ export const kickUser = async (orgId, userId) => {
       message: 'User has been kicked successfully',
     };
   } catch (error) {
-    console.error('Error kicking user:', error);
+    logger.error('Error kicking user:', error);
     return {
       success: false,
       error: error.message,

@@ -40,6 +40,7 @@ import {
   calculateFinalPrice,
 } from '../services/packageService';
 import dayjs from 'dayjs';
+import { logger } from '../utils/logger';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -162,7 +163,7 @@ const PackagesPage = () => {
         }
       }
     } catch (error) {
-      console.error('Validation failed:', error);
+      logger.error('Validation failed:', error);
     }
   };
 

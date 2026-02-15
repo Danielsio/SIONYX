@@ -1,6 +1,7 @@
 import { Component } from 'react';
 import { Result, Button, Typography, Card } from 'antd';
 import { ReloadOutlined, HomeOutlined, BugOutlined } from '@ant-design/icons';
+import { logger } from '../utils/logger';
 
 const { Text, Paragraph } = Typography;
 
@@ -25,7 +26,7 @@ class ErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     // Log error to console for debugging
-    console.error('Error Boundary caught an error:', error, errorInfo);
+    logger.error('Error Boundary caught an error:', error, errorInfo);
     
     this.setState({
       error,

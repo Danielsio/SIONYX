@@ -3,9 +3,10 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { ref, get, set } from 'firebase/database';
+import { ref, get } from 'firebase/database';
 import { auth, database } from '../config/firebase';
 import { isAdminOrAbove, getUserRole, ROLES } from '../utils/roles';
+import { logger } from '../utils/logger';
 
 /**
  * Convert phone number to email format for Firebase Auth
@@ -44,7 +45,7 @@ export const signInAdmin = async (phone, password, orgId) => {
     // Convert phone to email format (same as desktop app)
     const email = phoneToEmail(phone);
 
-    console.log('Signing in:', { phone, email, orgId: cleanOrgId });
+    logger.info('Signing in:', { phone, email, orgId: cleanOrgId });
 
     // Sign in with Firebase Auth
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -90,7 +91,7 @@ export const signInAdmin = async (phone, password, orgId) => {
         const settingsSnapshot = await get(settingsRef);
         supervisorActive = settingsSnapshot.exists() ? settingsSnapshot.val() === true : false;
       } catch (e) {
-        console.warn('Could not fetch supervisor activation status:', e);
+        logger.warn('Could not fetch supervisor activation status:', e);
         supervisorActive = false;
       }
     }
@@ -107,7 +108,7 @@ export const signInAdmin = async (phone, password, orgId) => {
       },
     };
   } catch (error) {
-    console.error('Sign in error:', error);
+    logger.error('Sign in error:', error);
 
     // User-friendly error messages
     let errorMessage = 'An error occurred during sign in';
@@ -137,7 +138,7 @@ export const signOut = async () => {
     localStorage.removeItem('adminOrgId');
     return { success: true };
   } catch (error) {
-    console.error('Sign out error:', error);
+    logger.error('Sign out error:', error);
     return {
       success: false,
       error: error.message,
@@ -195,7 +196,7 @@ export const getCurrentAdminData = async () => {
         const settingsSnapshot = await get(settingsRef);
         supervisorActive = settingsSnapshot.exists() ? settingsSnapshot.val() === true : false;
       } catch (e) {
-        console.warn('Could not fetch supervisor activation status:', e);
+        logger.warn('Could not fetch supervisor activation status:', e);
         supervisorActive = false;
       }
     }
@@ -211,7 +212,7 @@ export const getCurrentAdminData = async () => {
       },
     };
   } catch (error) {
-    console.error('Error getting admin data:', error);
+    logger.error('Error getting admin data:', error);
     return {
       success: false,
       error: error.message,

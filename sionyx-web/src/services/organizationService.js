@@ -3,6 +3,7 @@ import { ref, get } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
 import { useAuthStore } from '../store/authStore';
 import { isSupervisorPendingActivation } from '../utils/roles';
+import { logger } from '../utils/logger';
 
 /**
  * Organization Service
@@ -22,7 +23,7 @@ const decodeData = encodedData => {
   try {
     return JSON.parse(atob(encodedData));
   } catch (error) {
-    console.error('Error decoding data:', error);
+    logger.error('Error decoding data:', error);
     return null;
   }
 };
@@ -35,7 +36,7 @@ const decodeCloudFunctionData = encodedData => {
     const jsonString = atob(encodedData);
     return JSON.parse(jsonString);
   } catch (error) {
-    console.error('Error decoding Cloud Function data:', error);
+    logger.error('Error decoding Cloud Function data:', error);
     return null;
   }
 };
@@ -51,7 +52,7 @@ const decodeCloudFunctionData = encodedData => {
  */
 export const registerOrganization = async organizationData => {
   try {
-    console.log('Calling Cloud Function for organization registration:', {
+    logger.info('Calling Cloud Function for organization registration:', {
       hasData: !!organizationData,
     });
 
@@ -61,10 +62,10 @@ export const registerOrganization = async organizationData => {
     // Call the Cloud Function
     const result = await registerOrg(organizationData);
 
-    console.log('Organization registered successfully:', result.data);
+    logger.info('Organization registered successfully:', result.data);
     return result.data;
   } catch (error) {
-    console.error('Error calling Cloud Function:', error);
+    logger.error('Error calling Cloud Function:', error);
 
     // Handle Firebase Functions errors
     if (error.code) {
@@ -126,7 +127,7 @@ export const getOrganizationMetadata = async orgId => {
       };
     }
   } catch (error) {
-    console.error('Error getting organization metadata:', error);
+    logger.error('Error getting organization metadata:', error);
     return {
       success: false,
       error: 'Failed to get organization metadata',
@@ -205,7 +206,7 @@ export const getOrganizationStats = async orgId => {
       },
     };
   } catch (error) {
-    console.error('Error getting organization stats:', error);
+    logger.error('Error getting organization stats:', error);
     return {
       success: false,
       error: 'Failed to get organization statistics',

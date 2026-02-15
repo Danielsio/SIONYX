@@ -12,6 +12,7 @@ import {
 import { database } from '../config/firebase';
 import { useAuthStore } from '../store/authStore';
 import { isSupervisorPendingActivation } from '../utils/roles';
+import { logger } from '../utils/logger';
 
 /**
  * Send a message from admin to user
@@ -44,7 +45,7 @@ export const sendMessage = async (orgId, toUserId, message, fromAdminId) => {
       message: messageData,
     };
   } catch (error) {
-    console.error('Error sending message:', error);
+    logger.error('Error sending message:', error);
     return {
       success: false,
       error: error.message,
@@ -86,7 +87,7 @@ export const getAllMessages = async orgId => {
       messages,
     };
   } catch (error) {
-    console.error('Error getting messages:', error);
+    logger.error('Error getting messages:', error);
     return {
       success: false,
       error: error.message,
@@ -131,7 +132,7 @@ export const getMessagesForUser = async (orgId, userId) => {
       messages,
     };
   } catch (error) {
-    console.error('Error getting user messages:', error);
+    logger.error('Error getting user messages:', error);
     return {
       success: false,
       error: error.message,
@@ -173,7 +174,7 @@ export const getUnreadMessages = async (orgId, userId) => {
       messages,
     };
   } catch (error) {
-    console.error('Error getting unread messages:', error);
+    logger.error('Error getting unread messages:', error);
     return {
       success: false,
       error: error.message,
@@ -198,7 +199,7 @@ export const markMessageAsRead = async (orgId, messageId) => {
       success: true,
     };
   } catch (error) {
-    console.error('Error marking message as read:', error);
+    logger.error('Error marking message as read:', error);
     return {
       success: false,
       error: error.message,
@@ -238,7 +239,7 @@ export const listenToUserMessages = (orgId, userId, callback) => {
       }
     },
     error => {
-      console.error('Error listening to messages:', error);
+      logger.error('Error listening to messages:', error);
       callback({
         success: false,
         error: error.message,
@@ -265,7 +266,7 @@ export const updateUserLastSeen = async (orgId, userId) => {
       success: true,
     };
   } catch (error) {
-    console.error('Error updating last seen:', error);
+    logger.error('Error updating last seen:', error);
     return {
       success: false,
       error: error.message,

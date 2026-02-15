@@ -61,6 +61,7 @@ import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
 import dayjs from 'dayjs';
 import StatCard from '../components/StatCard';
+import { logger } from '../utils/logger';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -127,16 +128,16 @@ const UsersPage = () => {
       return;
     }
 
-    console.log('Loading users for organization:', orgId);
+    logger.info('Loading users for organization:', orgId);
 
     const result = await getAllUsers(orgId);
 
     if (result.success) {
       setUsers(result.users);
-      console.log(`Loaded ${result.users.length} users`);
+      logger.info(`Loaded ${result.users.length} users`);
     } else {
       message.error(result.error || 'Failed to load users');
-      console.error('Failed to load users:', result.error);
+      logger.error('Failed to load users:', result.error);
     }
 
     setLoading(false);
@@ -152,9 +153,9 @@ const UsersPage = () => {
     const purchaseResult = await getUserPurchaseHistory(orgId, record.uid);
     if (purchaseResult.success) {
       setUserPurchases(purchaseResult.purchases);
-      console.log(`Loaded ${purchaseResult.purchases.length} purchases for user ${record.uid}`);
+      logger.info(`Loaded ${purchaseResult.purchases.length} purchases for user ${record.uid}`);
     } else {
-      console.error('Failed to load user purchases:', purchaseResult.error);
+      logger.error('Failed to load user purchases:', purchaseResult.error);
     }
     setLoadingPurchases(false);
 
@@ -162,9 +163,9 @@ const UsersPage = () => {
     const messageResult = await getMessagesForUser(orgId, record.uid);
     if (messageResult.success) {
       setUserMessages(messageResult.messages);
-      console.log(`Loaded ${messageResult.messages.length} messages for user ${record.uid}`);
+      logger.info(`Loaded ${messageResult.messages.length} messages for user ${record.uid}`);
     } else {
-      console.error('Failed to load user messages:', messageResult.error);
+      logger.error('Failed to load user messages:', messageResult.error);
     }
     setLoadingMessages(false);
   };
@@ -215,7 +216,7 @@ const UsersPage = () => {
         message.error(result.error || 'Failed to update balance');
       }
     } catch (error) {
-      console.error('Validation failed:', error);
+      logger.error('Validation failed:', error);
     } finally {
       setAdjusting(false);
     }
@@ -299,7 +300,7 @@ const UsersPage = () => {
             message.error(result.error || 'Failed to kick user');
           }
         } catch (error) {
-          console.error('Error kicking user:', error);
+          logger.error('Error kicking user:', error);
           message.error('An error occurred while kicking user');
         } finally {
           setKicking(false);
@@ -344,7 +345,7 @@ const UsersPage = () => {
         message.error(result.error || 'שגיאה באיפוס הסיסמה');
       }
     } catch (error) {
-      console.error('Password reset validation failed:', error);
+      logger.error('Password reset validation failed:', error);
     } finally {
       setResettingPassword(false);
     }
@@ -377,7 +378,7 @@ const UsersPage = () => {
         message.error(result.error || 'נכשל בשליחת ההודעה');
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
       message.error('שגיאה בשליחת ההודעה');
     } finally {
       setSending(false);

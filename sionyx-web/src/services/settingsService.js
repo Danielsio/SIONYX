@@ -1,5 +1,6 @@
 import { ref, get, update } from 'firebase/database';
 import { database } from '../config/firebase';
+import { logger } from '../utils/logger';
 
 /**
  * Settings Service for Admin Dashboard
@@ -45,7 +46,7 @@ export const getOperatingHours = async orgId => {
       operatingHours,
     };
   } catch (error) {
-    console.error('Error getting operating hours:', error);
+    logger.error('Error getting operating hours:', error);
     return {
       success: false,
       error: 'Failed to get operating hours settings',
@@ -58,7 +59,7 @@ export const getOperatingHours = async orgId => {
  */
 export const updateOperatingHours = async (orgId, operatingHoursData) => {
   try {
-    console.log('Updating operating hours for org:', orgId, 'with data:', operatingHoursData);
+    logger.info('Updating operating hours for org:', orgId, 'with data:', operatingHoursData);
 
     const settingsRef = ref(database, `organizations/${orgId}/metadata/settings/operatingHours`);
 
@@ -103,13 +104,13 @@ export const updateOperatingHours = async (orgId, operatingHoursData) => {
 
     await update(settingsRef, updateData);
 
-    console.log('Operating hours updated successfully');
+    logger.info('Operating hours updated successfully');
     return {
       success: true,
       message: 'Operating hours updated successfully',
     };
   } catch (error) {
-    console.error('Error updating operating hours:', error);
+    logger.error('Error updating operating hours:', error);
     return {
       success: false,
       error: `Failed to update operating hours: ${error.message}`,
@@ -148,7 +149,7 @@ export const getAllSettings = async orgId => {
       },
     };
   } catch (error) {
-    console.error('Error getting all settings:', error);
+    logger.error('Error getting all settings:', error);
     return {
       success: false,
       error: 'Failed to get settings',
