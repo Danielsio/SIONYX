@@ -1,5 +1,6 @@
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using Serilog;
 
@@ -14,7 +15,7 @@ public class LocalFileServer : IDisposable
     private static readonly ILogger Log = Serilog.Log.ForContext<LocalFileServer>();
     private HttpListener? _listener;
     private readonly string _rootDir;
-    private readonly int _port;
+    private int _port;
     private CancellationTokenSource? _cts;
     private Task? _serverTask;
 
@@ -23,7 +24,14 @@ public class LocalFileServer : IDisposable
     public LocalFileServer(string rootDir, int port = 8765)
     {
         _rootDir = rootDir;
-        _port = port;
+        _port = port <= 0 ? FindFreePort() : port;
+    }
+
+    private static int FindFreePort()
+    {
+        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        return ((IPEndPoint)socket.LocalEndPoint!).Port;
     }
 
     public void Start()
