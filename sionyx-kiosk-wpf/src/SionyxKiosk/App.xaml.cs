@@ -1,13 +1,281 @@
-﻿using System.Configuration;
-using System.Data;
+using System.Threading;
 using System.Windows;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Serilog;
+using SionyxKiosk.Infrastructure;
+using SionyxKiosk.Services;
+using SionyxKiosk.ViewModels;
+using SionyxKiosk.Views.Pages;
+using SionyxKiosk.Views.Windows;
 
 namespace SionyxKiosk;
 
 /// <summary>
-/// Interaction logic for App.xaml
+/// Application entry point. Sets up DI, Serilog, single-instance mutex,
+/// and manages the Auth → Main window lifecycle.
 /// </summary>
 public partial class App : Application
 {
-}
+    private static Mutex? _singleInstanceMutex;
+    private IHost? _host;
 
+    protected override async void OnStartup(StartupEventArgs e)
+    {
+        base.OnStartup(e);
+
+        // ── Single-instance enforcement ──────────────────────────
+        _singleInstanceMutex = new Mutex(true, "SionyxKiosk_SingleInstance", out bool isNew);
+        if (!isNew)
+        {
+            MessageBox.Show("SIONYX כבר פועל.", "SIONYX", MessageBoxButton.OK, MessageBoxImage.Information);
+            Shutdown();
+            return;
+        }
+
+        // ── Serilog ──────────────────────────────────────────────
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.Console()
+            .WriteTo.File("logs/sionyx-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 14)
+            .CreateLogger();
+
+        Log.Information("SIONYX Kiosk WPF starting, version {Version}", GetVersion());
+
+        // ── Global exception handlers ────────────────────────────
+        DispatcherUnhandledException += (_, ex) =>
+        {
+            Log.Fatal(ex.Exception, "Unhandled UI exception");
+            ex.Handled = true;
+        };
+        AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
+        {
+            Log.Fatal(ex.ExceptionObject as Exception, "Unhandled domain exception");
+        };
+        TaskScheduler.UnobservedTaskException += (_, ex) =>
+        {
+            Log.Error(ex.Exception, "Unobserved task exception");
+            ex.SetObserved();
+        };
+
+        // ── Host + DI Container ──────────────────────────────────
+        _host = Host.CreateDefaultBuilder()
+            .UseSerilog()
+            .ConfigureServices((_, services) =>
+            {
+                // Infrastructure
+                services.AddSingleton<FirebaseClient>();
+                // RegistryConfig is static, no DI needed
+
+                // Business Services
+                services.AddSingleton<AuthService>();
+                services.AddSingleton<ComputerService>();
+                services.AddSingleton<SessionService>();
+                services.AddSingleton<ChatService>();
+                services.AddSingleton<PackageService>();
+                services.AddSingleton<PurchaseService>();
+                services.AddSingleton<OrganizationMetadataService>();
+                services.AddSingleton<OperatingHoursService>();
+                services.AddSingleton<ForceLogoutService>();
+
+                // System Services
+                services.AddSingleton<PrintMonitorService>();
+                services.AddSingleton<KeyboardRestrictionService>();
+                services.AddSingleton<GlobalHotkeyService>();
+                services.AddSingleton<ProcessRestrictionService>();
+                services.AddSingleton<ProcessCleanupService>();
+                services.AddSingleton<BrowserCleanupService>();
+
+                // ViewModels
+                services.AddTransient<AuthViewModel>();
+                services.AddTransient<MainViewModel>();
+                services.AddTransient<HomeViewModel>(sp =>
+                {
+                    var session = sp.GetRequiredService<SessionService>();
+                    var chat = sp.GetRequiredService<ChatService>();
+                    var auth = sp.GetRequiredService<AuthService>();
+                    return new HomeViewModel(session, chat, auth.CurrentUser!);
+                });
+                services.AddTransient<PackagesViewModel>(sp =>
+                {
+                    var pkg = sp.GetRequiredService<PackageService>();
+                    var purchase = sp.GetRequiredService<PurchaseService>();
+                    var auth = sp.GetRequiredService<AuthService>();
+                    return new PackagesViewModel(pkg, purchase, auth.CurrentUser?.Uid ?? "");
+                });
+                services.AddTransient<HistoryViewModel>(sp =>
+                {
+                    var purchase = sp.GetRequiredService<PurchaseService>();
+                    var auth = sp.GetRequiredService<AuthService>();
+                    return new HistoryViewModel(purchase, auth.CurrentUser?.Uid ?? "");
+                });
+                services.AddTransient<HelpViewModel>();
+                services.AddTransient<PaymentViewModel>(sp =>
+                {
+                    var purchase = sp.GetRequiredService<PurchaseService>();
+                    var auth = sp.GetRequiredService<AuthService>();
+                    return new PaymentViewModel(purchase, auth.CurrentUser?.Uid ?? "");
+                });
+                services.AddTransient<MessageViewModel>();
+
+                // Views
+                services.AddTransient<AuthWindow>();
+                services.AddTransient<MainWindow>(sp =>
+                {
+                    var vm = sp.GetRequiredService<MainViewModel>();
+                    return new MainWindow(vm, sp);
+                });
+                services.AddTransient<HomePage>();
+                services.AddTransient<PackagesPage>();
+                services.AddTransient<HistoryPage>();
+                services.AddTransient<HelpPage>();
+            })
+            .Build();
+
+        await _host.StartAsync();
+
+        // ── Start with Auth or Main ──────────────────────────────
+        var isKiosk = e.Args.Contains("--kiosk");
+        var isVerbose = e.Args.Contains("--verbose");
+
+        if (isVerbose)
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Verbose()
+                .WriteTo.Console()
+                .WriteTo.File("logs/sionyx-.log", rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+
+        ShowAuthWindow();
+    }
+
+    private void ShowAuthWindow()
+    {
+        var authVm = _host!.Services.GetRequiredService<AuthViewModel>();
+
+        authVm.LoginSucceeded += () =>
+        {
+            Current.Dispatcher.Invoke(() =>
+            {
+                MainWindow?.Close();
+                ShowMainWindow();
+            });
+        };
+
+        authVm.RegistrationSucceeded += () =>
+        {
+            Current.Dispatcher.Invoke(() =>
+            {
+                MainWindow?.Close();
+                ShowMainWindow();
+            });
+        };
+
+        var authWindow = new AuthWindow(authVm);
+        authWindow.Show();
+        MainWindow = authWindow;
+
+        // Try auto-login
+        _ = TryAutoLoginAsync(authVm);
+    }
+
+    private async Task TryAutoLoginAsync(AuthViewModel authVm)
+    {
+        var auth = _host!.Services.GetRequiredService<AuthService>();
+        var isLoggedIn = await auth.IsLoggedInAsync();
+        if (isLoggedIn)
+        {
+            authVm.TriggerAutoLogin();
+        }
+    }
+
+    private void ShowMainWindow()
+    {
+        var mainWindow = _host!.Services.GetRequiredService<MainWindow>();
+
+        var mainVm = (MainViewModel)mainWindow.DataContext;
+        mainVm.LogoutRequested += () =>
+        {
+            Current.Dispatcher.Invoke(() =>
+            {
+                mainWindow.Close();
+                ShowAuthWindow();
+            });
+        };
+
+        // Start system services
+        StartSystemServices();
+
+        mainWindow.Show();
+        MainWindow = mainWindow;
+    }
+
+    private void StartSystemServices()
+    {
+        try
+        {
+            var auth = _host!.Services.GetRequiredService<AuthService>();
+
+            // Force logout listener
+            var forceLogout = _host.Services.GetRequiredService<ForceLogoutService>();
+            forceLogout.StartListening(auth.CurrentUser?.Uid ?? "");
+            forceLogout.ForceLogout += reason =>
+            {
+                Log.Warning("Force logout received: {Reason}", reason);
+                Current.Dispatcher.Invoke(async () =>
+                {
+                    await auth.LogoutAsync();
+                    MainWindow?.Close();
+                    ShowAuthWindow();
+                });
+            };
+
+            // Operating hours monitoring
+            var hours = _host.Services.GetRequiredService<OperatingHoursService>();
+            hours.StartMonitoring();
+
+            // Process restriction
+            var procRestrict = _host.Services.GetRequiredService<ProcessRestrictionService>();
+            procRestrict.Start();
+
+            Log.Information("System services started successfully");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error starting system services");
+        }
+    }
+
+    protected override async void OnExit(ExitEventArgs e)
+    {
+        Log.Information("SIONYX Kiosk shutting down");
+
+        try
+        {
+            // Stop system services
+            _host?.Services.GetService<ProcessRestrictionService>()?.Stop();
+            _host?.Services.GetService<KeyboardRestrictionService>()?.Stop();
+            _host?.Services.GetService<GlobalHotkeyService>()?.Stop();
+            _host?.Services.GetService<OperatingHoursService>()?.StopMonitoring();
+            _host?.Services.GetService<ForceLogoutService>()?.StopListening();
+            _host?.Services.GetService<ChatService>()?.StopListening();
+            _host?.Services.GetService<PrintMonitorService>()?.StopMonitoring();
+
+            if (_host != null) await _host.StopAsync();
+            _host?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error during shutdown");
+        }
+        finally
+        {
+            _singleInstanceMutex?.ReleaseMutex();
+            _singleInstanceMutex?.Dispose();
+            Log.CloseAndFlush();
+        }
+
+        base.OnExit(e);
+    }
+
+    private static string GetVersion() => "1.0.0";
+}

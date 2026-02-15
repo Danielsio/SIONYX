@@ -75,4 +75,7 @@ public partial class AuthViewModel : ObservableObject
         IsLoginMode = !IsLoginMode;
         ErrorMessage = "";
     }
+
+    /// <summary>Called by App when auto-login succeeds.</summary>
+    public void TriggerAutoLogin() => LoginSucceeded?.Invoke();
 }
