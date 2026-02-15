@@ -135,10 +135,12 @@ class LocalDatabase:
             conn.close()
 
     def _get_encryption_key(self) -> bytes:
-        """Generate encryption key from machine-specific data"""
-        # Use a consistent key based on machine
-        # In production, use hardware ID or similar
-        machine_id = "sionyx-kiosk-app"  # Simple for now
+        """Generate encryption key from machine-specific hardware data"""
+        from utils.device_info import get_device_id
+
+        # Use hardware-derived device ID (MAC address or machine hash)
+        # Salted with app name to prevent reuse across applications
+        machine_id = f"sionyx-kiosk-{get_device_id()}"
 
         # Derive key
         key_material = hashlib.sha256(machine_id.encode()).digest()
