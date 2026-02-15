@@ -9,10 +9,17 @@ logged-in accounts (Gmail, Facebook, etc.)
 import os
 import shutil
 import sqlite3
+import subprocess
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
 from utils.logger import get_logger
+
+# Hide console window on Windows when spawning subprocesses (tasklist, taskkill)
+_SUBPROCESS_FLAGS = (
+    subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+)
 
 
 logger = get_logger(__name__)
@@ -258,8 +265,6 @@ class BrowserCleanupService:
         Returns:
             True if the browser process is running
         """
-        import subprocess
-
         process_names = {
             "chrome": ["chrome.exe"],
             "edge": ["msedge.exe"],
@@ -274,6 +279,7 @@ class BrowserCleanupService:
                 capture_output=True,
                 text=True,
                 timeout=5,
+                creationflags=_SUBPROCESS_FLAGS,
             )
             output = result.stdout.lower()
             return any(name.lower() in output for name in names)
@@ -288,8 +294,6 @@ class BrowserCleanupService:
         Returns:
             Dict with browser name -> success status
         """
-        import subprocess
-
         results = {}
         browsers = {
             "chrome": "chrome.exe",
@@ -305,6 +309,7 @@ class BrowserCleanupService:
                         ["taskkill", "/IM", process, "/F"],
                         capture_output=True,
                         timeout=10,
+                        creationflags=_SUBPROCESS_FLAGS,
                     )
                     results[name] = True
                     logger.info(f"Closed {name}")
