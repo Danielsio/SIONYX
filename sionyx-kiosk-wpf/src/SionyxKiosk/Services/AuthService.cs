@@ -25,17 +25,36 @@ public class AuthService : BaseService
     /// <summary>Check if user is already logged in via stored token.</summary>
     public async Task<bool> IsLoggedInAsync()
     {
-        var storedToken = _localDb.Get("refresh_token");
-        if (string.IsNullOrEmpty(storedToken)) return false;
+        var storedRefreshToken = _localDb.Get("refresh_token");
+        var storedUserId = _localDb.Get("user_id");
+        if (string.IsNullOrEmpty(storedRefreshToken) || string.IsNullOrEmpty(storedUserId))
+            return false;
+
+        // Restore the saved refresh token into FirebaseClient so it can refresh
+        Firebase.RestoreAuth("", storedRefreshToken, storedUserId);
 
         var refreshed = await Firebase.RefreshTokenAsync();
-        if (!refreshed) return false;
+        if (!refreshed)
+        {
+            // Token expired or revoked — clear local storage
+            _localDb.Delete("refresh_token");
+            _localDb.Delete("user_id");
+            _localDb.Delete("phone");
+            Firebase.ClearAuth();
+            return false;
+        }
 
+        // Fetch user data from Firebase
         var userResult = await Firebase.DbGetAsync($"users/{Firebase.UserId}");
         if (!userResult.Success || userResult.Data is not JsonElement data || data.ValueKind == JsonValueKind.Null)
             return false;
 
         CurrentUser = ParseUserData(data, Firebase.UserId!);
+
+        // Update stored refresh token in case it was rotated during refresh
+        if (!string.IsNullOrEmpty(Firebase.RefreshToken))
+            _localDb.Set("refresh_token", Firebase.RefreshToken);
+
         Logger.Information("User auto-logged in: {UserId}", Firebase.UserId);
 
         await RecoverOrphanedSessionAsync(Firebase.UserId!, data);
@@ -71,8 +90,8 @@ public class AuthService : BaseService
         await RecoverOrphanedSessionAsync(uid, userData);
         await HandleComputerRegistrationAsync(uid);
 
-        // Store tokens locally
-        _localDb.Set("refresh_token", "stored"); // Token is in FirebaseClient
+        // Store tokens locally — persist the REAL refresh token for auto-login
+        _localDb.Set("refresh_token", Firebase.RefreshToken ?? "");
         _localDb.Set("user_id", uid);
         _localDb.Set("phone", phone);
 
@@ -120,7 +139,7 @@ public class AuthService : BaseService
             PhoneNumber = phone, Email = email ?? "", CreatedAt = now, UpdatedAt = now,
         };
 
-        _localDb.Set("refresh_token", "stored");
+        _localDb.Set("refresh_token", Firebase.RefreshToken ?? "");
         _localDb.Set("user_id", uid);
         _localDb.Set("phone", phone);
 

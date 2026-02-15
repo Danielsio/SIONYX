@@ -14,6 +14,10 @@ public partial class AuthWindow : Window
         Resources["InverseBool"] = new InverseBoolConverter();
         InitializeComponent();
 
+        // WPF PasswordBox doesn't support binding for security.
+        // Wire it manually via PasswordChanged event.
+        PasswordInput.PasswordChanged += (_, _) => viewModel.Password = PasswordInput.Password;
+
         viewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(AuthViewModel.IsLoginMode))

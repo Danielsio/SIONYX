@@ -92,6 +92,7 @@
     <SolidColorBrush x:Key="TextInverseBrush" Color="{StaticResource WhiteColor}" />
 
     <!-- Backgrounds -->
+    <SolidColorBrush x:Key="BgPrimaryBrush" Color="{StaticResource SnowColor}" />
     <SolidColorBrush x:Key="BgPageBrush" Color="#F3F5FB" />
     <SolidColorBrush x:Key="BgCardBrush" Color="{StaticResource WhiteColor}" />
     <SolidColorBrush x:Key="BgSidebarBrush" Color="{StaticResource Gray900Color}" />
