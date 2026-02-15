@@ -40,6 +40,7 @@ public class SessionService : BaseService, IDisposable
     private bool _warned1Min;
 
     // Events (replace PyQt signals)
+    public event Action? SessionStarted;
     public event Action<int>? TimeUpdated;           // remaining seconds
     public event Action<string>? SessionEnded;        // reason: expired, user, error, hours
     public event Action? Warning5Min;
@@ -117,6 +118,7 @@ public class SessionService : BaseService, IDisposable
         OperatingHours.StartMonitoring();
 
         Logger.Information("Session started (remaining: {Time}s)", initialRemainingTime);
+        SessionStarted?.Invoke();
         return Success(new { SessionId });
     }
 
