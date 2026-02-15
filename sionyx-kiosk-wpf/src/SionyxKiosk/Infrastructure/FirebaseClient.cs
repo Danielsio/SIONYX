@@ -34,6 +34,7 @@ public sealed class FirebaseClient : IDisposable
     private readonly SemaphoreSlim _tokenLock = new(1, 1);
 
     public string? UserId => _userId;
+    public string? RefreshToken => _refreshToken;
     public string OrgId => _orgId;
     public bool IsAuthenticated => _idToken != null && _userId != null;
 
