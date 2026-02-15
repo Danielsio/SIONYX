@@ -258,15 +258,27 @@ class PrintMonitorService(QObject):
             logger.error(f"Error getting user budget: {e}")
             return 0.0
 
-    def _deduct_budget(self, amount: float) -> bool:
-        """Deduct amount from user's print budget."""
+    def _deduct_budget(
+        self, amount: float, allow_negative: bool = False
+    ) -> bool:
+        """
+        Deduct amount from user's print budget.
+
+        Args:
+            amount: Amount to deduct.
+            allow_negative: If True, balance can go below zero (for escaped
+                jobs that already printed). Creates a debt.
+        """
         db_path = f"users/{self.user_id}"
         logger.debug(
             f"Deducting {amount}₪ from user budget at path: {db_path}"
         )
         try:
             current_budget = self._get_user_budget(force_refresh=True)
-            new_budget = max(0.0, current_budget - amount)
+            if allow_negative:
+                new_budget = current_budget - amount
+            else:
+                new_budget = max(0.0, current_budget - amount)
 
             logger.debug(
                 f"Budget calculation: "
@@ -670,55 +682,67 @@ class PrintMonitorService(QObject):
         """
         Process a newly detected print job.
 
-        Critical flow (order matters!):
-        1. Read job info FIRST (so we have cost data no matter what)
-        2. Try to pause the job
-        3a. If paused: budget check → approve or deny
-        3b. If job escaped: charge retroactively (it already printed)
+        Critical flow (order matters for minimum escape window!):
+        1. PAUSE IMMEDIATELY (don't wait - minimize escape window)
+        2. If paused: read info while job is frozen → budget check
+        3. If escaped: read whatever info we have → charge retroactively
         """
         job_id = job_data.get("JobId", 0)
+        doc_name = job_data.get("pDocument", "Unknown")
 
         # ---------------------------------------------------------------
-        # STEP 1: Read job info BEFORE trying to pause
-        # This ensures we always have the cost data, even if the job
-        # completes before we can pause it.
-        # ---------------------------------------------------------------
-
-        # If still spooling, wait briefly for accurate page count
-        final_data = self._wait_for_spool_complete(
-            printer_name, job_id, job_data
-        )
-
-        details = self._extract_job_details(final_data)
-        doc_name = details["doc_name"]
-        pages = details["pages"]
-        copies = details["copies"]
-        is_color = details["is_color"]
-        billable_pages = pages * copies
-        cost = self._calculate_cost(pages, copies, is_color)
-
-        logger.info(
-            f"Job {job_id}: '{doc_name}' - {pages} pages × {copies} copies, "
-            f"{'COLOR' if is_color else 'B&W'}, cost={cost}₪"
-        )
-
-        # ---------------------------------------------------------------
-        # STEP 2: Try to pause the job
+        # STEP 1: PAUSE IMMEDIATELY - don't read info first, don't wait
+        # for spool. Every millisecond counts to prevent escape.
         # ---------------------------------------------------------------
         job_paused = self._pause_job(printer_name, job_id)
 
         if job_paused:
             # =============================================================
-            # STEP 3a: Job is paused - we have full control
+            # STEP 2a: Job is PAUSED - we have full control.
+            # Now we can safely take our time to read info.
             # =============================================================
+
+            # Wait for spool to complete (job is frozen, no rush)
+            final_data = self._wait_for_spool_complete(
+                printer_name, job_id, job_data
+            )
+            details = self._extract_job_details(final_data)
+            doc_name = details["doc_name"]
+            pages = details["pages"]
+            copies = details["copies"]
+            is_color = details["is_color"]
+            billable_pages = pages * copies
+            cost = self._calculate_cost(pages, copies, is_color)
+
+            logger.info(
+                f"Job {job_id}: '{doc_name}' - "
+                f"{pages} pages × {copies} copies, "
+                f"{'COLOR' if is_color else 'B&W'}, cost={cost}₪"
+            )
+
             self._handle_paused_job(
                 printer_name, job_id, doc_name, billable_pages, cost
             )
         else:
             # =============================================================
-            # STEP 3b: Job escaped (already printing/completed)
-            # Charge retroactively - the job printed, but we still bill.
+            # STEP 2b: Job ESCAPED (already printing/completed).
+            # Read whatever info we already have and charge retroactively.
             # =============================================================
+            details = self._extract_job_details(job_data)
+            doc_name = details["doc_name"]
+            pages = details["pages"]
+            copies = details["copies"]
+            is_color = details["is_color"]
+            billable_pages = pages * copies
+            cost = self._calculate_cost(pages, copies, is_color)
+
+            logger.info(
+                f"Job {job_id}: '{doc_name}' - "
+                f"{pages} pages × {copies} copies, "
+                f"{'COLOR' if is_color else 'B&W'}, cost={cost}₪ "
+                f"(ESCAPED)"
+            )
+
             self._handle_escaped_job(doc_name, billable_pages, cost)
 
     def _handle_paused_job(
@@ -771,12 +795,13 @@ class PrintMonitorService(QObject):
         """
         Handle a job that escaped our pause (already printing/completed).
 
-        The job already printed - we can't stop it. But we CAN still
-        charge for it retroactively to prevent budget abuse.
+        The job already printed - we can't stop it. We ALWAYS charge the
+        full amount, even if it drives the balance negative (creating a
+        debt). This prevents "free printing" exploits.
 
-        This is the "worst case" scenario for fast jobs on fast printers.
-        It happens rarely (most jobs are caught), but when it does,
-        the user is still billed correctly.
+        A negative balance means the user owes money. The admin can see
+        this in the dashboard and handle it (e.g., require payment before
+        next session).
         """
         logger.warning(
             f"Job escaped pause: '{doc_name}' - charging retroactively"
@@ -784,10 +809,19 @@ class PrintMonitorService(QObject):
 
         budget = self._get_user_budget(force_refresh=True)
 
-        if budget >= cost:
-            # Full charge
-            if self._deduct_budget(cost):
-                remaining = budget - cost
+        # ALWAYS charge the full amount - allow negative balance (debt)
+        if self._deduct_budget(cost, allow_negative=True):
+            remaining = budget - cost
+            if remaining < 0:
+                logger.warning(
+                    f"Retroactive charge created DEBT: '{doc_name}' - "
+                    f"{cost}₪, balance now {remaining}₪"
+                )
+                # Emit with negative remaining to signal debt
+                self.job_allowed.emit(
+                    doc_name, billable_pages, cost, remaining
+                )
+            else:
                 logger.info(
                     f"Retroactive charge: '{doc_name}' - {cost}₪, "
                     f"remaining {remaining}₪"
@@ -795,23 +829,8 @@ class PrintMonitorService(QObject):
                 self.job_allowed.emit(
                     doc_name, billable_pages, cost, remaining
                 )
-            else:
-                logger.error(
-                    f"Retroactive deduction failed for '{doc_name}'"
-                )
-                self.error_occurred.emit("שגיאה בחיוב הדפסה")
         else:
-            # Partial charge - deduct whatever they have
-            if budget > 0:
-                self._deduct_budget(budget)
-                logger.warning(
-                    f"Partial retroactive charge: '{doc_name}' - "
-                    f"needed {cost}₪, deducted {budget}₪"
-                )
-            else:
-                logger.warning(
-                    f"No budget to charge for escaped job '{doc_name}'"
-                )
-
-            # Still notify about the overage
-            self.job_allowed.emit(doc_name, billable_pages, cost, 0.0)
+            logger.error(
+                f"Retroactive deduction failed for '{doc_name}'"
+            )
+            self.error_occurred.emit("שגיאה בחיוב הדפסה")

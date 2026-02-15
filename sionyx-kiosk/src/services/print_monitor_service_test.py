@@ -431,6 +431,7 @@ class TestBudget:
     def test_deduct_budget_cannot_go_negative(
         self, print_monitor, mock_firebase
     ):
+        """Default deduction floors at 0 (no debt)"""
         mock_firebase.db_get.return_value = {
             "success": True,
             "data": {"printBalance": 5.0},
@@ -439,6 +440,34 @@ class TestBudget:
         print_monitor._deduct_budget(10.0)
         call_args = mock_firebase.db_update.call_args
         assert call_args[0][1]["printBalance"] == 0.0
+
+    def test_deduct_budget_allow_negative_creates_debt(
+        self, print_monitor, mock_firebase
+    ):
+        """allow_negative=True lets balance go below zero (debt)"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {"printBalance": 3.0},
+        }
+        mock_firebase.db_update.return_value = {"success": True}
+        result = print_monitor._deduct_budget(10.0, allow_negative=True)
+        assert result is True
+        call_args = mock_firebase.db_update.call_args
+        assert call_args[0][1]["printBalance"] == -7.0
+
+    def test_deduct_budget_allow_negative_zero_balance(
+        self, print_monitor, mock_firebase
+    ):
+        """allow_negative=True with zero balance → negative balance"""
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {"printBalance": 0.0},
+        }
+        mock_firebase.db_update.return_value = {"success": True}
+        result = print_monitor._deduct_budget(5.0, allow_negative=True)
+        assert result is True
+        call_args = mock_firebase.db_update.call_args
+        assert call_args[0][1]["printBalance"] == -5.0
 
     def test_deduct_budget_exception(self, print_monitor, mock_firebase):
         mock_firebase.db_update.side_effect = Exception("DB error")
@@ -824,7 +853,8 @@ class TestPausedJobHandling:
 
 class TestEscapedJobHandling:
     """Tests for _handle_escaped_job - when the job printed before we could
-    pause it. The key principle: ALWAYS charge, even if we can't stop it."""
+    pause it. The key principle: ALWAYS charge the full amount, even into
+    negative balance (debt). No free prints."""
 
     def test_full_charge_sufficient_budget(
         self, print_monitor, mock_firebase
@@ -844,10 +874,11 @@ class TestEscapedJobHandling:
         assert len(signals) == 1
         assert signals[0] == ("Doc", 5, 5.0, 45.0)
 
-    def test_partial_charge_insufficient_budget(
+    def test_insufficient_budget_creates_debt(
         self, print_monitor, mock_firebase
     ):
-        """Escaped job with partial budget → charge whatever they have"""
+        """Escaped job with insufficient budget → full charge, negative
+        balance (debt). The job already printed, can't undo it."""
         mock_firebase.db_get.return_value = {
             "success": True,
             "data": {"printBalance": 3.0},
@@ -859,26 +890,32 @@ class TestEscapedJobHandling:
 
         print_monitor._handle_escaped_job("Doc", 10, 10.0)
 
-        # Should still notify (user sees the charge)
         assert len(signals) == 1
-        # Deducted whatever was available (3.0)
-        mock_firebase.db_update.assert_called()
+        # Full charge of 10.0 from 3.0 → remaining = -7.0 (debt)
+        assert signals[0] == ("Doc", 10, 10.0, -7.0)
+        # Verify full amount deducted (allow_negative=True)
+        call_args = mock_firebase.db_update.call_args
+        assert call_args[0][1]["printBalance"] == -7.0
 
-    def test_no_budget_at_all(self, print_monitor, mock_firebase):
-        """Escaped job with zero budget → can't charge, still notify"""
+    def test_zero_budget_creates_debt(self, print_monitor, mock_firebase):
+        """Escaped job with zero budget → full charge, creates debt.
+        No free prints - the user owes the full amount."""
         mock_firebase.db_get.return_value = {
             "success": True,
             "data": {"printBalance": 0.0},
         }
+        mock_firebase.db_update.return_value = {"success": True}
 
         signals = []
         print_monitor.job_allowed.connect(lambda *a: signals.append(a))
 
         print_monitor._handle_escaped_job("Doc", 5, 5.0)
 
-        # Should still emit notification
         assert len(signals) == 1
-        assert signals[0] == ("Doc", 5, 5.0, 0.0)
+        # 0.0 - 5.0 = -5.0 (debt)
+        assert signals[0] == ("Doc", 5, 5.0, -5.0)
+        call_args = mock_firebase.db_update.call_args
+        assert call_args[0][1]["printBalance"] == -5.0
 
     def test_deduction_error_emits_signal(self, print_monitor, mock_firebase):
         """Escaped job deduction failure → error signal"""
@@ -1004,6 +1041,36 @@ class TestHandleNewJob:
         assert pages == 3
         assert cost == 3.0
         assert remaining == 47.0
+
+    def test_job_escaped_zero_budget_creates_debt(
+        self, print_monitor, mock_firebase
+    ):
+        """Full flow: escaped job + zero budget → debt (no free prints)"""
+        print_monitor._bw_price = 2.0
+        mock_firebase.db_get.return_value = {
+            "success": True,
+            "data": {"printBalance": 0.0},
+        }
+        mock_firebase.db_update.return_value = {"success": True}
+
+        job_data = {
+            "JobId": 1,
+            "pDocument": "Free Attempt",
+            "TotalPages": 5,
+            "Status": 0,
+        }
+
+        signals = []
+        print_monitor.job_allowed.connect(lambda *a: signals.append(a))
+
+        with patch.object(print_monitor, "_pause_job", return_value=False):
+            print_monitor._handle_new_job("Printer1", job_data)
+
+        assert len(signals) == 1
+        _, pages, cost, remaining = signals[0]
+        assert pages == 5
+        assert cost == 10.0
+        assert remaining == -10.0  # Debt!
 
     def test_job_with_copies_and_color(self, print_monitor, mock_firebase):
         """Full flow: color job with copies → correct cost calculation"""
