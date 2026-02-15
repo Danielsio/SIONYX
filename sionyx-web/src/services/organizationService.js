@@ -13,7 +13,7 @@ import { isSupervisorPendingActivation } from '../utils/roles';
  * - Getting organization statistics for the admin dashboard
  */
 
-// Simple base64 encoding for sensitive data (can be upgraded to proper encryption later)
+// Base64 encoding for NEDARIM credentials (stored in Firebase RTDB behind security rules)
 const encodeData = data => {
   return btoa(JSON.stringify(data));
 };
