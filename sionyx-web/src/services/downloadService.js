@@ -26,18 +26,48 @@ const getFirebaseStorageUrl = path => {
 };
 
 /**
- * Fetch the latest release metadata from Firebase Storage
+ * Get Firebase RTDB URL for public data
+ */
+const getRtdbUrl = path => {
+  const databaseUrl = import.meta.env.VITE_FIREBASE_DATABASE_URL;
+  return `${databaseUrl}/${path}.json`;
+};
+
+/**
+ * Fetch the latest release metadata.
+ *
+ * Primary: Firebase Realtime Database (public/latestRelease)
+ *   - No auth needed, no Storage 403 issues
+ *   - Written by build.py during each release
+ *
+ * Fallback: Firebase Storage (releases/latest.json)
+ *   - May fail with 403 if uniform bucket-level access is enabled
+ *
  * @returns {Promise<Object>} Release metadata
  */
 const fetchLatestMetadata = async () => {
-  // Add timestamp to bust browser cache
-  const cacheBuster = `t=${Date.now()}`;
-  const metadataUrl = `${getFirebaseStorageUrl('releases/latest.json')}?alt=media&${cacheBuster}`;
-
+  // PRIMARY: Fetch from RTDB (reliable, no auth needed)
   try {
-    const response = await fetch(metadataUrl, {
-      cache: 'no-store', // Stronger than no-cache - never use cache
-    });
+    const rtdbUrl = `${getRtdbUrl('public/latestRelease')}&t=${Date.now()}`;
+    const response = await fetch(rtdbUrl, { cache: 'no-store' });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.downloadUrl) {
+        logger.info('Release metadata loaded from RTDB');
+        return data;
+      }
+    }
+  } catch (error) {
+    logger.warn('RTDB fetch failed, trying Storage fallback:', error.message);
+  }
+
+  // FALLBACK: Fetch from Firebase Storage
+  try {
+    const cacheBuster = `t=${Date.now()}`;
+    const metadataUrl = `${getFirebaseStorageUrl('releases/latest.json')}?alt=media&${cacheBuster}`;
+
+    const response = await fetch(metadataUrl, { cache: 'no-store' });
 
     if (!response.ok) {
       throw new Error(`Failed to fetch metadata: ${response.status}`);
