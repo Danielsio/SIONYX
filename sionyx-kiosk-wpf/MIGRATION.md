@@ -346,8 +346,8 @@ dotnet add package FluentAssertions
 
 | Phase | Status | Notes |
 |-------|--------|-------|
-| Phase 1: Foundation | IN PROGRESS | .NET 8 SDK installed, solution scaffolded, all NuGet packages added. Components completed: RegistryConfig, FirebaseConfig, DotEnvLoader, DeviceInfo, AppConstants, ErrorTranslations, PurchaseStatus, LoggingSetup, LocalDatabase, FirebaseClient (auth+RTDB+SSE), SseListener, BaseService. **Build: 0 errors, 0 warnings.** |
-| Phase 2: Business Services | NOT STARTED | |
+| Phase 1: Foundation | DONE | .NET 8 SDK, solution scaffolded, NuGet packages. Infrastructure: RegistryConfig, FirebaseConfig, DotEnvLoader, DeviceInfo, AppConstants, ErrorTranslations, PurchaseStatus, LoggingSetup, LocalDatabase, FirebaseClient, SseListener, BaseService. |
+| Phase 2: Business Services | DONE | AuthService, ComputerService, OrganizationMetadataService, PackageService, PurchaseService, ChatService (SSE), OperatingHoursService, SessionService (full lifecycle with countdown/sync/warnings), BrowserCleanupService, ProcessCleanupService, ProcessRestrictionService. Models: UserData, Package, Purchase, OperatingHoursSettings. **Build: 0 errors, 0 warnings.** |
 | Phase 3: System Services | NOT STARTED | |
 | Phase 4: Theme & Design | NOT STARTED | |
 | Phase 5: Reusable Controls | NOT STARTED | |
