@@ -23,17 +23,17 @@
                                    Foreground="White" Margin="0,0,0,14" />
                         <!-- User avatar circle + name -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <Border Width="38" Height="38" CornerRadius="19"
-                                    Background="{StaticResource PrimaryGradient}" Margin="0,0,12,0">
-                                <TextBlock x:Name="AvatarInitials" Text="?" FontSize="15"
+                            <Border Width="44" Height="44" CornerRadius="22"
+                                    Background="{StaticResource PrimaryGradient}" Margin="0,0,14,0">
+                                <TextBlock x:Name="AvatarInitials" Text="?" FontSize="17"
                                            FontWeight="SemiBold" Foreground="White"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{Binding CurrentUser.FullName}" FontSize="14"
+                                <TextBlock Text="{Binding CurrentUser.FullName}" FontSize="16"
                                            FontWeight="SemiBold" Foreground="White" />
-                                <TextBlock Text="{Binding CurrentUser.PhoneNumber}" FontSize="11"
-                                           Foreground="#FFFFFF66" />
+                                <TextBlock Text="{Binding CurrentUser.PhoneNumber}" FontSize="13"
+                                           Foreground="#FFFFFF88" />
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
@@ -65,7 +65,7 @@
 
         <!-- MAIN CONTENT -->
         <Grid Grid.Column="1" Background="{StaticResource BgPrimaryBrush}">
-            <Frame x:Name="ContentFrame" NavigationUIVisibility="Hidden" Margin="32" />
+            <Frame x:Name="ContentFrame" NavigationUIVisibility="Hidden" Margin="40,36" />
 
             <!-- Toast overlay (top of content area) -->
             <controls:ToastNotification x:Name="Toast"

@@ -2,9 +2,9 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Cursor="Hand">
-    <Border x:Name="CardBorder" Background="White" CornerRadius="{StaticResource RadiusMd}"
-            Padding="16,14" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
-            Margin="0,0,0,8">
+    <Border x:Name="CardBorder" Background="White" CornerRadius="{StaticResource RadiusLg}"
+            Padding="22,18" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+            Margin="0,0,0,10">
         <Border.Effect>
             <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270"
                               Color="#0F172A" Opacity="0.04" />

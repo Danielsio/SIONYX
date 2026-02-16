@@ -3,71 +3,110 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False"
-        Width="380" Height="90" ResizeMode="NoResize"
+        Width="520" Height="110" ResizeMode="NoResize"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
-    <Border x:Name="TimerBorder" CornerRadius="16" Padding="20,12"
+    <Border x:Name="TimerBorder" CornerRadius="20" Padding="28,0"
             ClipToBounds="True">
         <Border.Background>
-            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0.6">
                 <GradientStop Color="#1E1B4B" Offset="0" />
-                <GradientStop Color="#312E81" Offset="1" />
+                <GradientStop Color="#312E81" Offset="0.5" />
+                <GradientStop Color="#3730A3" Offset="1" />
             </LinearGradientBrush>
         </Border.Background>
         <Border.Effect>
-            <DropShadowEffect BlurRadius="30" ShadowDepth="4" Direction="270"
-                              Color="#000000" Opacity="0.35" />
+            <DropShadowEffect BlurRadius="36" ShadowDepth="6" Direction="270"
+                              Color="#000000" Opacity="0.4" />
         </Border.Effect>
-        <Grid>
+        <Grid VerticalAlignment="Center">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Time remaining (primary) -->
+            <!-- Time remaining (primary hero) -->
             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                 <TextBlock x:Name="TimeText" Text="00:00:00"
-                           FontSize="26" FontWeight="Bold" FontFamily="Cascadia Code, Consolas"
+                           FontSize="36" FontWeight="Bold" FontFamily="Cascadia Code, Consolas"
                            Foreground="White" />
-                <TextBlock x:Name="TimeLabel" Text="זמן נותר" FontSize="11"
-                           Foreground="#A5B4FC" FontWeight="Medium" />
+                <TextBlock x:Name="TimeLabel" Text="זמן נותר" FontSize="14"
+                           Foreground="#A5B4FC" FontWeight="Medium" Margin="2,2,0,0" />
             </StackPanel>
 
-            <!-- Usage time + Print balance (secondary) -->
-            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                <TextBlock x:Name="UsageText" Text="00:00" FontSize="13" FontFamily="Cascadia Code, Consolas"
-                           Foreground="#C7D2FE" />
-                <TextBlock x:Name="PrintText" Text="0.00 ₪" FontSize="13" FontFamily="Cascadia Code, Consolas"
-                           Foreground="#C7D2FE" />
+            <!-- Vertical separator -->
+            <Border Grid.Column="1" Width="1" Background="#FFFFFF18"
+                    Margin="24,8" VerticalAlignment="Stretch" />
+
+            <!-- Usage time + Print balance -->
+            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="⏱" FontSize="14" Foreground="#A5B4FC"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock x:Name="UsageText" Text="00:00" FontSize="18"
+                               FontFamily="Cascadia Code, Consolas"
+                               FontWeight="SemiBold" Foreground="#E0E7FF" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🖨" FontSize="14" Foreground="#A5B4FC"
+                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <TextBlock x:Name="PrintText" Text="0.00 ₪" FontSize="18"
+                               FontFamily="Cascadia Code, Consolas"
+                               FontWeight="SemiBold" Foreground="#E0E7FF" />
+                </StackPanel>
             </StackPanel>
 
             <!-- Offline indicator -->
-            <Border x:Name="OfflineBadge" Grid.Column="2" Visibility="Collapsed"
-                    Background="#FEF3C7" CornerRadius="8" Padding="8,3" Margin="10,0,0,0"
-                    VerticalAlignment="Center">
-                <TextBlock Text="⚠ Offline" FontSize="11" FontWeight="SemiBold"
+            <Border x:Name="OfflineBadge" Grid.Column="3" Visibility="Collapsed"
+                    Background="#FEF3C7" CornerRadius="10" Padding="12,6" Margin="16,0,0,0"
+                    VerticalAlignment="Center" HorizontalAlignment="Left">
+                <TextBlock Text="⚠ Offline" FontSize="14" FontWeight="SemiBold"
                            Foreground="#92400E" />
             </Border>
 
-            <!-- Return to app button -->
-            <Button Grid.Column="3" Content="↩"
-                    FontSize="20" Width="40" Height="40" Padding="0"
-                    ToolTip="חזרה לאפליקציה" Margin="10,0,0,0"
-                    Foreground="#C7D2FE" Background="Transparent" BorderThickness="0"
+            <!-- Return to app button — polished pill shape -->
+            <Button Grid.Column="4"
+                    ToolTip="חזרה לאפליקציה" Margin="16,0,0,0"
                     Cursor="Hand" Click="ReturnButton_Click">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bg" Background="#FFFFFF10" CornerRadius="10"
-                                Width="{TemplateBinding Width}" Height="{TemplateBinding Height}">
-                            <TextBlock Text="{TemplateBinding Content}"
-                                       FontSize="{TemplateBinding FontSize}"
-                                       Foreground="#C7D2FE"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border x:Name="bg" CornerRadius="14" Padding="16,10"
+                                SnapsToDevicePixels="True">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#6366F1" Offset="0" />
+                                    <GradientStop Color="#818CF8" Offset="1" />
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="↩" FontSize="18" Foreground="White"
+                                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                                <TextBlock Text="חזרה" FontSize="15" FontWeight="SemiBold"
+                                           Foreground="White" VerticalAlignment="Center" />
+                            </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="bg" Property="Background" Value="#FFFFFF22" />
+                                <Setter TargetName="bg" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#818CF8" Offset="0" />
+                                            <GradientStop Color="#A5B4FC" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bg" Property="Background">
+                                    <Setter.Value>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop Color="#4F46E5" Offset="0" />
+                                            <GradientStop Color="#6366F1" Offset="1" />
+                                        </LinearGradientBrush>
+                                    </Setter.Value>
+                                </Setter>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>

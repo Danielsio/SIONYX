@@ -5,15 +5,15 @@
     <UserControl.Resources>
         <local:StringToVisibilityConverter x:Key="StringToVisibility" />
     </UserControl.Resources>
-    <Border CornerRadius="{StaticResource RadiusXl}" Padding="32,24"
+    <Border CornerRadius="{StaticResource RadiusXl}" Padding="40,32"
             Background="{StaticResource HeroGradient}">
         <StackPanel>
             <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                       FontSize="{StaticResource FontSize2Xl}" FontWeight="Bold"
+                       FontSize="{StaticResource FontSize3Xl}" FontWeight="Bold"
                        Foreground="White" />
             <TextBlock Text="{Binding Subtitle, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                       FontSize="{StaticResource FontSizeBase}" Foreground="#E0E7FF"
-                       Margin="0,4,0,0"
+                       FontSize="{StaticResource FontSizeLg}" Foreground="#E0E7FF"
+                       Margin="0,6,0,0"
                        Visibility="{Binding Subtitle, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource StringToVisibility}}" />
         </StackPanel>
     </Border>

@@ -28,7 +28,7 @@
         <Storyboard x:Key="SlideToRegister">
             <DoubleAnimation Storyboard.TargetName="BrandOverlay"
                              Storyboard.TargetProperty="(Canvas.Left)"
-                             To="450" Duration="0:0:0.5">
+                             To="500" Duration="0:0:0.5">
                 <DoubleAnimation.EasingFunction>
                     <CubicEase EasingMode="EaseInOut" />
                 </DoubleAnimation.EasingFunction>
@@ -46,7 +46,7 @@
         <!-- Centered card — white card on dark bg = strong elevation -->
         <Border CornerRadius="20" Background="White" ClipToBounds="True"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                Width="900" Height="620">
+                Width="1000" Height="700">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="120" ShadowDepth="0" Opacity="0.35" Color="#6366F1" />
             </Border.Effect>
@@ -54,14 +54,14 @@
             <!-- Canvas uses LTR so pixel coordinates work predictably.
                  Each form panel sets RTL for Hebrew content. -->
             <Canvas FlowDirection="LeftToRight">
-                <!-- LOGIN form (right side, position 450..900) -->
-                <StackPanel x:Name="LoginPanel" Canvas.Left="450" Canvas.Top="0"
-                            Width="450" Height="620" Opacity="1"
+                <!-- LOGIN form (right side, position 500..1000) -->
+                <StackPanel x:Name="LoginPanel" Canvas.Left="500" Canvas.Top="0"
+                            Width="500" Height="700" Opacity="1"
                             FlowDirection="RightToLeft">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
-                                  Height="620">
-                        <StackPanel VerticalAlignment="Center" Margin="52,60">
+                                  Height="700">
+                        <StackPanel VerticalAlignment="Center" Margin="60,60">
                             <TextBlock Text="ברוכים הבאים" Style="{StaticResource TextH1}" Margin="0,0,0,6" />
                             <TextBlock Text="התחבר לחשבון שלך"
                                        Style="{StaticResource TextSubtitle}" Margin="0,0,0,36" />
@@ -99,14 +99,14 @@
                     </ScrollViewer>
                 </StackPanel>
 
-                <!-- REGISTER form (left side, position 0..450) -->
+                <!-- REGISTER form (left side, position 0..500) -->
                 <StackPanel x:Name="RegisterPanel" Canvas.Left="0" Canvas.Top="0"
-                            Width="450" Height="620" Opacity="0" IsHitTestVisible="False"
+                            Width="500" Height="700" Opacity="0" IsHitTestVisible="False"
                             FlowDirection="RightToLeft">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
-                                  Height="620">
-                        <StackPanel VerticalAlignment="Center" Margin="52,50">
+                                  Height="700">
+                        <StackPanel VerticalAlignment="Center" Margin="60,40">
                             <TextBlock Text="ברוכים הבאים" Style="{StaticResource TextH1}" Margin="0,0,0,6" />
                             <TextBlock Text="צור חשבון חדש"
                                        Style="{StaticResource TextSubtitle}" Margin="0,0,0,30" />
@@ -148,7 +148,7 @@
                      Login: Left=-3 (outer left/top/bottom clipped, right interior corners show).
                      Register: Left=450 (outer right/top/bottom clipped, left interior corners show). -->
                 <Border x:Name="BrandOverlay" Canvas.Left="-3" Canvas.Top="-3"
-                        Width="453" Height="626"
+                        Width="503" Height="706"
                         CornerRadius="20"
                         Background="{StaticResource AuthGradient}">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="48">

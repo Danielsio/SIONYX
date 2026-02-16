@@ -23,7 +23,7 @@
 
             <!-- Unread messages card (visible only when there are unread messages) -->
             <Border x:Name="MessageCard" Background="#EFF6FF" CornerRadius="{StaticResource RadiusLg}"
-                    Padding="20,16" Margin="0,0,0,16" Cursor="Hand"
+                    Padding="24,20" Margin="0,0,0,20" Cursor="Hand"
                     MouseLeftButtonUp="MessageCard_Click"
                     Visibility="Collapsed">
                 <Grid>
@@ -32,47 +32,47 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="💬" FontSize="24" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <TextBlock Grid.Column="0" Text="💬" FontSize="28" VerticalAlignment="Center" Margin="0,0,16,0" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                        <TextBlock Text="הודעות חדשות" FontSize="15" FontWeight="SemiBold"
+                        <TextBlock Text="הודעות חדשות" FontSize="18" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimaryBrush}" />
-                        <TextBlock x:Name="MessageCountText" Text="" FontSize="13"
-                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                        <TextBlock x:Name="MessageCountText" Text="" FontSize="15"
+                                   Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
                     </StackPanel>
-                    <TextBlock Grid.Column="2" Text="צפה בהודעות ←" FontSize="13" FontWeight="SemiBold"
+                    <TextBlock Grid.Column="2" Text="צפה בהודעות ←" FontSize="15" FontWeight="SemiBold"
                                Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center" />
                 </Grid>
             </Border>
 
             <!-- Session controls -->
-            <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="32,24" Margin="0,0,0,24">
+            <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="40,32" Margin="0,0,0,28">
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Color="#0F172A" Opacity="0.06" />
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="4" Direction="270" Color="#0F172A" Opacity="0.07" />
                 </Border.Effect>
                 <StackPanel>
-                    <TextBlock Text="ניהול הפעלה" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
+                    <TextBlock Text="ניהול הפעלה" Style="{StaticResource TextH3}" Margin="0,0,0,20" />
 
                     <!-- Session inactive: show Start button -->
                     <StackPanel HorizontalAlignment="Center"
                                 Visibility="{Binding IsSessionInactive, Converter={StaticResource BoolToVis}}">
                         <Button Content="▶  התחל הפעלה" Style="{StaticResource BtnPrimary}"
                                 Command="{Binding StartSessionCommand}"
-                                Width="220" Height="52" FontSize="17"
+                                Width="260" Height="56" FontSize="19"
                                 IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
                     </StackPanel>
 
                     <!-- Session active: show Resume + End buttons -->
                     <StackPanel HorizontalAlignment="Center"
                                 Visibility="{Binding IsSessionActive, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="ההפעלה פעילה" FontSize="14" FontWeight="SemiBold"
+                        <TextBlock Text="ההפעלה פעילה" FontSize="17" FontWeight="SemiBold"
                                    Foreground="{StaticResource SuccessBrush}"
-                                   HorizontalAlignment="Center" Margin="0,0,0,12" />
+                                   HorizontalAlignment="Center" Margin="0,0,0,16" />
                         <Button Content="▶  חזור להפעלה" Style="{StaticResource BtnPrimary}"
                                 Click="ResumeSession_Click"
-                                Width="220" Height="48" FontSize="16" Margin="0,0,0,10" />
+                                Width="260" Height="52" FontSize="18" Margin="0,0,0,12" />
                         <Button Content="⏹  סיים הפעלה" Style="{StaticResource BtnDanger}"
                                 Command="{Binding EndSessionCommand}"
-                                Width="220" Height="48" FontSize="16" />
+                                Width="260" Height="52" FontSize="18" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -82,16 +82,16 @@
                                      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
 
             <!-- Error / warning banner -->
-            <Border Background="#FEF2F2" CornerRadius="12" Padding="20,16" Margin="0,8,0,0"
+            <Border Background="#FEF2F2" CornerRadius="14" Padding="24,20" Margin="0,8,0,0"
                     Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}">
                 <Border.BorderBrush>
                     <SolidColorBrush Color="#FECACA" />
                 </Border.BorderBrush>
                 <Border.BorderThickness>1</Border.BorderThickness>
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="⚠" FontSize="20" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <TextBlock Text="⚠" FontSize="24" VerticalAlignment="Center" Margin="0,0,14,0" />
                     <TextBlock Text="{Binding ErrorMessage}" Foreground="#991B1B"
-                               FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap"
+                               FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap"
                                VerticalAlignment="Center" />
                 </StackPanel>
             </Border>
