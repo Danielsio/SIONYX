@@ -18,40 +18,22 @@ alwaysApply: true
 - Git commit messages: use `$msg = @"..."@` then `git commit -m $msg`
 - For `firebase deploy --only`, quote the argument: `--only "hosting,database"`
 
-## Makefile Commands (use these instead of raw commands)
+## Makefile Commands
 
-### Kiosk Release (atomic: branch -> build -> merge -> tag -> push)
-- `make release-patch` -- Full patch release (e.g., 1.1.3 -> 1.1.4)
-- `make release-minor` -- Full minor release (e.g., 1.1.3 -> 1.2.0)
-- `make release-major` -- Full major release (e.g., 1.1.3 -> 2.0.0)
-- `make release-dry` -- Preview what would happen (no changes)
-- These call `scripts/release.py` which handles everything atomically
-
-### Kiosk Build (without full release)
-- `make build` or `make build-patch` -- Build installer with patch bump
-- `make build-local` -- Build without uploading to Firebase
-- `make build-dry` -- Preview version changes
-- `make version` -- Show current version
-- **NEVER bump version.json manually** -- `build.ps1` / `release.py` handle it
-
-### Kiosk Development & Testing
-- `make dev` -- Run desktop app (dotnet run)
+### Kiosk
+- `make run` -- Run desktop app (dotnet run)
 - `make test` -- Run all kiosk tests (dotnet test)
-- `make test-cov` -- Tests with coverage report
-- `make lint` / `make lint-fix` -- Code formatting (dotnet format)
 
 ### Web Admin
 - `make web-dev` -- Run dev server
-- `make web-test` -- Run tests (watch mode)
-- `make web-test-run` -- Run tests once
-- `make web-build` -- Build for production
-- `make web-deploy` -- Full deploy (runs tests, builds, deploys to Firebase)
-- `make web-deploy-hosting` -- Deploy hosting only
-- `make web-deploy-database` -- Deploy database rules only
+- `make web-test` -- Run tests
+- `make web-deploy` -- Build + deploy to Firebase (hosting, rules, functions)
 
-### Git Workflow
-- `make merge-feature` -- Merge feature branch to main (with test check)
-- `make merge-release` -- Merge release branch to main (create tag)
+### Release (atomic: branch -> build -> merge -> tag -> push)
+- `make release-patch` -- Bug fix release (3.0.0 -> 3.0.1)
+- `make release-minor` -- Feature release (3.0.0 -> 3.1.0)
+- `make release-major` -- Breaking release (3.0.0 -> 4.0.0)
+- **NEVER bump version.json manually** -- `release.py` / `build.ps1` handle it
 
 ## Versioning Rules
 - **Version tags are ONLY for the kiosk app** (e.g., `v2.1.3`)
