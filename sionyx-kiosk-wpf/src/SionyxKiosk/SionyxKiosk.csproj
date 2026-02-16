@@ -6,6 +6,11 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>..\..\app-logo.ico</ApplicationIcon>
+    <AssemblyName>SionyxKiosk</AssemblyName>
+    <Product>SIONYX</Product>
+    <Company>SIONYX Technologies</Company>
+    <Description>SIONYX Kiosk Management System</Description>
   </PropertyGroup>
 
   <ItemGroup>

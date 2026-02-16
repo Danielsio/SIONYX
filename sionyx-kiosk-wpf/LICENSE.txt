@@ -1,0 +1,28 @@
+SIONYX Software License Agreement
+===================================
+
+Version 3.0.0
+Copyright (c) 2025-2026 SIONYX Technologies
+
+This software is the proprietary product of SIONYX Technologies.
+Unauthorized reproduction, distribution, or modification is prohibited.
+
+By installing this software, you agree to the following terms:
+
+1. LICENSE GRANT
+   SIONYX Technologies grants you a non-exclusive, non-transferable license
+   to use this software on a single computer designated as a kiosk terminal.
+
+2. RESTRICTIONS
+   You may not:
+   - Reverse engineer, decompile, or disassemble this software
+   - Distribute or sublicense copies of this software
+   - Remove or alter any proprietary notices or labels
+
+3. SUPPORT
+   Technical support is provided through the SIONYX admin dashboard.
+
+4. DISCLAIMER
+   This software is provided "as is" without warranty of any kind.
+
+For questions, contact: support@sionyx.app

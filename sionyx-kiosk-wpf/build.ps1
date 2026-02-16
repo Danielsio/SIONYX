@@ -206,10 +206,11 @@ function New-Installer([string]$ver) {
         "SIONYX Software License`nVersion $ver`nCopyright (c) 2025 SIONYX Technologies" | Set-Content $licensePath
     }
 
-    # Ensure icon exists (copy from kiosk if needed)
+    # Ensure icon exists
     $iconDst = Join-Path $ScriptDir "app-logo.ico"
     if (-not (Test-Path $iconDst)) {
-        $iconSrc = Join-Path $ScriptDir "..\sionyx-kiosk\app-logo.ico"
+        # Try to find icon in source project
+        $iconSrc = Join-Path $SrcDir "app-logo.ico"
         if (Test-Path $iconSrc) {
             Copy-Item $iconSrc $iconDst
         }
@@ -246,10 +247,24 @@ function New-Installer([string]$ver) {
 
 function Invoke-Upload([string]$installerPath, $versionData) {
     Write-Header "Uploading to Firebase Storage"
-    Write-Warn "Firebase upload requires the Python firebase-admin SDK."
-    Write-Info "Run the legacy build.py --skip-version --no-upload from sionyx-kiosk for upload,"
-    Write-Info "or implement the upload in a separate script."
-    Write-Info "Installer saved locally: $installerPath"
+
+    $uploadScript = Join-Path (Split-Path $ScriptDir -Parent) "scripts\upload_release.py"
+    if (-not (Test-Path $uploadScript)) {
+        Write-Err "Upload script not found: $uploadScript"
+        return $false
+    }
+
+    $ver = $versionData.version
+    $buildNum = $versionData.buildNumber
+
+    python $uploadScript $installerPath $ver $buildNum
+    if ($LASTEXITCODE -ne 0) {
+        Write-Err "Upload failed"
+        return $false
+    }
+
+    Write-Ok "Upload complete"
+    return $true
 }
 
 # =============================================================================
