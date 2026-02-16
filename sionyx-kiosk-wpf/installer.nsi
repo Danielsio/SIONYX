@@ -66,6 +66,11 @@ Section "Main Application" SecMain
     ; Copy application icon
     File "${APP_ICON}"
     
+    ; Copy Assets (templates, etc.)
+    SetOutPath "$INSTDIR\Assets\templates"
+    File /nonfatal "Assets\templates\*.*"
+    SetOutPath "$INSTDIR"
+    
     ; =========================================================================
     ; Store ALL configuration in Windows Registry
     ; =========================================================================
@@ -242,6 +247,7 @@ Section "Uninstall"
     Delete "$INSTDIR\${APP_EXECUTABLE}"
     Delete "$INSTDIR\${APP_ICON}"
     Delete "$INSTDIR\Uninstall.exe"
+    RMDir /r "$INSTDIR\Assets"
     
     Delete "$DESKTOP\${APP_NAME}.lnk"
     Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"

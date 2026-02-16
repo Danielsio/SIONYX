@@ -164,13 +164,12 @@ function Invoke-Publish {
     # Clean dist
     if (Test-Path $DistDir) { Remove-Item $DistDir -Recurse -Force }
 
-    # Publish single-file, self-contained, trimmed
+    # Publish single-file, self-contained (WPF does NOT support trimming)
     dotnet publish $CsprojFile `
         -c Release `
         -r win-x64 `
         --self-contained true `
         /p:PublishSingleFile=true `
-        /p:PublishTrimmed=true `
         /p:IncludeNativeLibrariesForSelfExtract=true `
         /p:EnableCompressionInSingleFile=true `
         /p:DebugType=none `
@@ -196,9 +195,18 @@ function Invoke-Publish {
 function New-Installer([string]$ver) {
     Write-Header "Creating Installer v$ver"
 
-    # Copy exe to script dir for NSIS
+    # Copy exe and assets to script dir for NSIS
     $exe = Join-Path $DistDir "SionyxKiosk.exe"
     Copy-Item $exe -Destination $ScriptDir -Force
+
+    # Copy Assets folder if it exists
+    $assetsDir = Join-Path $DistDir "Assets"
+    if (Test-Path $assetsDir) {
+        $dstAssets = Join-Path $ScriptDir "Assets"
+        if (Test-Path $dstAssets) { Remove-Item $dstAssets -Recurse -Force }
+        Copy-Item $assetsDir -Destination $dstAssets -Recurse -Force
+        Write-Ok "Assets copied"
+    }
 
     # Ensure LICENSE.txt exists
     $licensePath = Join-Path $ScriptDir "LICENSE.txt"
@@ -219,10 +227,11 @@ function New-Installer([string]$ver) {
         }
     }
 
-    # Run NSIS
+    # Run NSIS (pipe to Write-Host so output doesn't pollute the function return)
     Push-Location $ScriptDir
-    makensis /DVERSION="$ver" installer.nsi
+    $nsisOutput = & makensis /DVERSION="$ver" installer.nsi 2>&1
     $nsisExit = $LASTEXITCODE
+    $nsisOutput | ForEach-Object { Write-Host $_ }
     Pop-Location
 
     if ($nsisExit -ne 0) {
@@ -238,9 +247,11 @@ function New-Installer([string]$ver) {
 
     Write-Ok "Installer created: sionyx-installer-v$ver.exe"
 
-    # Cleanup copied exe
+    # Cleanup copied files
     $copiedExe = Join-Path $ScriptDir "SionyxKiosk.exe"
     if (Test-Path $copiedExe) { Remove-Item $copiedExe }
+    $copiedAssets = Join-Path $ScriptDir "Assets"
+    if (Test-Path $copiedAssets) { Remove-Item $copiedAssets -Recurse -Force }
 
     return $newName
 }
