@@ -80,13 +80,15 @@ function Get-BumpedVersion($data, [string]$type) {
 
 Write-Header "ATOMIC $($Increment.ToUpper()) Release"
 
-$branch = (git rev-parse --abbrev-ref HEAD 2>$null).Trim()
+$branch = (git rev-parse --abbrev-ref HEAD 2>$null)
+if ($branch) { $branch = $branch.Trim() }
 if ($branch -ne "main") {
     Write-Host "[ERROR] Must be on main branch (current: $branch)" -ForegroundColor Red
     exit 1
 }
 
-$dirty = (git status --porcelain 2>$null).Trim()
+$dirty = git status --porcelain 2>$null
+if ($dirty) { $dirty = $dirty.Trim() }
 if ($dirty) {
     Write-Host "[ERROR] Uncommitted changes. Commit or stash first." -ForegroundColor Red
     exit 1
