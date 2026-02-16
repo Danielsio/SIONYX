@@ -259,7 +259,7 @@ function New-Installer([string]$ver) {
 function Invoke-Upload([string]$installerPath, $versionData) {
     Write-Header "Uploading to Firebase Storage"
 
-    $uploadScript = Join-Path (Split-Path $ScriptDir -Parent) "scripts\upload_release.py"
+    $uploadScript = Join-Path $ScriptDir "upload_release.py"
     if (-not (Test-Path $uploadScript)) {
         Write-Err "Upload script not found: $uploadScript"
         return $false

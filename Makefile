@@ -5,8 +5,6 @@
 #
 # Usage:  make <command>
 
-PYTHON := python
-
 .PHONY: help run test web-dev web-test web-deploy web-deploy-hosting \
         release release-patch release-minor release-major
 
@@ -58,10 +56,10 @@ web-deploy-hosting:
 release: release-patch
 
 release-patch:
-	@$(PYTHON) scripts/release.py --patch
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File release.ps1 -Increment patch
 
 release-minor:
-	@$(PYTHON) scripts/release.py --minor
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File release.ps1 -Increment minor
 
 release-major:
-	@$(PYTHON) scripts/release.py --major
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File release.ps1 -Increment major
