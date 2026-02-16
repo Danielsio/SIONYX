@@ -8,7 +8,7 @@ alwaysApply: true
 ## Repository Structure
 - `sionyx-web/` -- React web admin dashboard (Firebase Hosting)
 - `sionyx-kiosk-wpf/` -- C# WPF kiosk desktop app (.NET 8, NSIS installer)
-- `scripts/` -- CI/CD management scripts (Python)
+- `functions/` -- Firebase Cloud Functions (payment callback)
 - `Makefile` -- All build/test/deploy commands (run from repo root)
 
 ## Shell Environment
