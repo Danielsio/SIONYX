@@ -68,7 +68,7 @@ public class PrintMonitorService : BaseService, IDisposable
     private static extern uint WaitForSingleObject(IntPtr hHandle, uint dwMilliseconds);
 
     // State
-    private readonly string _userId;
+    private string _userId;
     private bool _isMonitoring;
     private readonly object _lock = new();
     private readonly Dictionary<string, HashSet<int>> _knownJobs = new();
@@ -103,6 +103,15 @@ public class PrintMonitorService : BaseService, IDisposable
     }
 
     public bool IsMonitoring => _isMonitoring;
+
+    /// <summary>Update userId for a new login session (singleton reuse).</summary>
+    public void Reinitialize(string userId)
+    {
+        StopMonitoring();
+        _userId = userId;
+        _cachedBudget = null;
+        _budgetCacheTime = null;
+    }
 
     // ==================== PUBLIC API ====================
 

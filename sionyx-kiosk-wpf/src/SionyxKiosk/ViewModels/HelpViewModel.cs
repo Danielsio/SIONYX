@@ -1,11 +1,12 @@
 using System.Collections.ObjectModel;
+using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SionyxKiosk.Services;
 
 namespace SionyxKiosk.ViewModels;
 
-/// <summary>Help page ViewModel: FAQ, admin contact.</summary>
+/// <summary>Help page ViewModel: FAQ, admin contact, click-to-copy.</summary>
 public partial class HelpViewModel : ObservableObject
 {
     private readonly OrganizationMetadataService _orgService;
@@ -14,6 +15,7 @@ public partial class HelpViewModel : ObservableObject
     [ObservableProperty] private string _adminEmail = "";
     [ObservableProperty] private string _orgName = "";
     [ObservableProperty] private bool _isLoading;
+    [ObservableProperty] private string _copyFeedback = "";
 
     public ObservableCollection<FaqItem> FaqItems { get; } = new()
     {
@@ -38,11 +40,29 @@ public partial class HelpViewModel : ObservableObject
 
         if (result.IsSuccess && result.Data is { } data)
         {
-            // Extract from anonymous type via reflection or dynamic
             var type = data.GetType();
             AdminPhone = type.GetProperty("phone")?.GetValue(data)?.ToString() ?? "";
             AdminEmail = type.GetProperty("email")?.GetValue(data)?.ToString() ?? "";
             OrgName = type.GetProperty("orgName")?.GetValue(data)?.ToString() ?? "";
+        }
+    }
+
+    [RelayCommand]
+    private async Task CopyToClipboardAsync(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        try
+        {
+            Clipboard.SetText(text);
+            CopyFeedback = "הועתק!";
+
+            await Task.Delay(2000);
+            CopyFeedback = "";
+        }
+        catch
+        {
+            CopyFeedback = "שגיאה בהעתקה";
         }
     }
 }

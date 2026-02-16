@@ -34,7 +34,7 @@ public class ComputerService : BaseService
             info["createdAt"] = now;
             info["updatedAt"] = now;
 
-            var result = await Firebase.DbSetAsync($"computers/{computerId}", info);
+            var result = await Firebase.DbUpdateAsync($"computers/{computerId}", info);
             if (!result.Success)
                 return Error("Failed to register computer");
 

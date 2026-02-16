@@ -51,12 +51,12 @@ public class MainViewModelTests
         changed.Should().Contain("CurrentPage");
     }
 
-    [Fact(Skip = "LogoutCommand calls AuthService.LogoutAsync which uses LocalDatabase/Firebase; null deps cause NRE before event. Requires integration test with real deps.")]
-    public async Task Logout_ShouldRaiseLogoutRequestedEvent()
+    [Fact]
+    public void Logout_ShouldRaiseLogoutRequestedEvent()
     {
         var raised = false;
         _vm.LogoutRequested += () => raised = true;
-        await _vm.LogoutCommand.ExecuteAsync(null);
+        _vm.LogoutCommand.Execute(null);
         raised.Should().BeTrue();
     }
 }
