@@ -63,21 +63,53 @@ public class GlobalHotkeyService : IDisposable
             return;
         }
 
+        if (windowHandle == IntPtr.Zero)
+        {
+            Logger.Error("Cannot start global hotkey service: window handle is zero");
+            return;
+        }
+
         _windowHandle = windowHandle;
 
         // Hook into window message processing
         _hwndSource = HwndSource.FromHwnd(windowHandle);
-        _hwndSource?.AddHook(WndProc);
+        if (_hwndSource == null)
+        {
+            Logger.Error("HwndSource.FromHwnd returned null for handle {Handle}", windowHandle);
+            return;
+        }
+        _hwndSource.AddHook(WndProc);
 
         // Register primary hotkey: Ctrl+Alt+Space (or configured)
         var (primaryMod, primaryVk) = ParseHotkey(AdminExitHotkey);
-        RegisterHotKey(_windowHandle, HOTKEY_ADMIN_EXIT_PRIMARY, primaryMod | MOD_NOREPEAT, primaryVk);
+        var primaryOk = RegisterHotKey(_windowHandle, HOTKEY_ADMIN_EXIT_PRIMARY, primaryMod | MOD_NOREPEAT, primaryVk);
+        if (!primaryOk)
+        {
+            var err = Marshal.GetLastWin32Error();
+            Logger.Error("Failed to register primary hotkey ({Hotkey}): Win32 error {Error}", AdminExitHotkey, err);
+        }
+        else
+        {
+            Logger.Information("Registered primary hotkey: {Hotkey}", AdminExitHotkey);
+        }
 
         // Register legacy hotkey: Ctrl+Alt+Q
-        RegisterHotKey(_windowHandle, HOTKEY_ADMIN_EXIT_LEGACY, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, VK_Q);
+        var legacyOk = RegisterHotKey(_windowHandle, HOTKEY_ADMIN_EXIT_LEGACY, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, VK_Q);
+        if (!legacyOk)
+        {
+            var err = Marshal.GetLastWin32Error();
+            Logger.Error("Failed to register legacy hotkey (Ctrl+Alt+Q): Win32 error {Error}", err);
+        }
+        else
+        {
+            Logger.Information("Registered legacy hotkey: Ctrl+Alt+Q");
+        }
 
-        _isRunning = true;
-        Logger.Information("Global hotkey service started ({Hotkey})", AdminExitHotkey);
+        _isRunning = primaryOk || legacyOk;
+        if (_isRunning)
+            Logger.Information("Global hotkey service started");
+        else
+            Logger.Error("Global hotkey service FAILED to register any hotkeys");
     }
 
     /// <summary>Stop and unregister hotkeys.</summary>
