@@ -30,7 +30,7 @@ param(
     [switch]$NoPush
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $VersionFile = Join-Path $ScriptDir "version.json"
 
@@ -95,7 +95,7 @@ if ($dirty) {
 }
 
 Write-Host "Pulling latest main..."
-git pull origin main 2>$null
+git pull origin main 2>&1 | Out-Host
 
 # ── Calculate new version ─────────────────────────────────────────
 
