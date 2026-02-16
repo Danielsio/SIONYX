@@ -31,21 +31,27 @@ public partial class FloatingTimer : Window
 
         if (remainingSeconds <= 60)
         {
-            // Critical: red
-            TimerBorder.Background = new SolidColorBrush(Color.FromArgb(0xF0, 0xFE, 0xE2, 0xE2));
-            TimeText.Foreground = new SolidColorBrush(Color.FromRgb(0xEF, 0x44, 0x44));
+            // Critical: red-tinted dark background
+            TimerBorder.Background = new LinearGradientBrush(
+                Color.FromRgb(0x4C, 0x10, 0x10), Color.FromRgb(0x7F, 0x1D, 0x1D),
+                new Point(0, 0), new Point(1, 1));
+            TimeText.Foreground = new SolidColorBrush(Color.FromRgb(0xFE, 0xCA, 0xCA));
         }
         else if (remainingSeconds <= 300)
         {
-            // Warning: orange
-            TimerBorder.Background = new SolidColorBrush(Color.FromArgb(0xF0, 0xFE, 0xF3, 0xC7));
-            TimeText.Foreground = new SolidColorBrush(Color.FromRgb(0xF5, 0x9E, 0x0B));
+            // Warning: amber-tinted dark background
+            TimerBorder.Background = new LinearGradientBrush(
+                Color.FromRgb(0x45, 0x32, 0x05), Color.FromRgb(0x71, 0x3F, 0x12),
+                new Point(0, 0), new Point(1, 1));
+            TimeText.Foreground = new SolidColorBrush(Color.FromRgb(0xFD, 0xE6, 0x8A));
         }
         else
         {
-            // Normal: white
-            TimerBorder.Background = new SolidColorBrush(Color.FromArgb(0xE6, 0xFF, 0xFF, 0xFF));
-            TimeText.Foreground = (Brush)FindResource("TextPrimaryBrush");
+            // Normal: indigo
+            TimerBorder.Background = new LinearGradientBrush(
+                Color.FromRgb(0x1E, 0x1B, 0x4B), Color.FromRgb(0x31, 0x2E, 0x81),
+                new Point(0, 0), new Point(1, 1));
+            TimeText.Foreground = new SolidColorBrush(Colors.White);
         }
     }
 

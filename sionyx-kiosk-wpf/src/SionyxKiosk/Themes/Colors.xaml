@@ -50,9 +50,9 @@
     <Color x:Key="Gray800Color">#1E293B</Color>
     <Color x:Key="Gray900Color">#0F172A</Color>
 
-    <!-- Auth Theme - Coral/Pink -->
-    <Color x:Key="AuthPrimaryColor">#FF4B2B</Color>
-    <Color x:Key="AuthSecondaryColor">#FF416C</Color>
+    <!-- Auth Theme - Indigo/Violet (matches primary palette) -->
+    <Color x:Key="AuthPrimaryColor">#4338CA</Color>
+    <Color x:Key="AuthSecondaryColor">#6366F1</Color>
 
     <!-- ================================================================ -->
     <!-- SOLID COLOR BRUSHES                                              -->
@@ -140,9 +140,18 @@
         <GradientStop Color="#0A0F1F" Offset="1" />
     </LinearGradientBrush>
 
-    <LinearGradientBrush x:Key="AuthGradient" StartPoint="0,0" EndPoint="1,0">
-        <GradientStop Color="#FF4B2B" Offset="0" />
-        <GradientStop Color="#FF416C" Offset="1" />
+    <!-- Auth brand panel — deep indigo to violet, ties into the product palette -->
+    <LinearGradientBrush x:Key="AuthGradient" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#312E81" Offset="0" />
+        <GradientStop Color="#4338CA" Offset="0.4" />
+        <GradientStop Color="#6366F1" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Auth page background — dark gradient so the white card pops -->
+    <LinearGradientBrush x:Key="AuthPageBg" StartPoint="0,0" EndPoint="1,1">
+        <GradientStop Color="#0F172A" Offset="0" />
+        <GradientStop Color="#1E1B4B" Offset="0.5" />
+        <GradientStop Color="#0F172A" Offset="1" />
     </LinearGradientBrush>
 
 </ResourceDictionary>

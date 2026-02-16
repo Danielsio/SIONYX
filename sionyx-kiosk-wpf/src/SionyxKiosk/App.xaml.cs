@@ -611,11 +611,40 @@ public partial class App : Application
 
     private void OnFloatingTimerReturn()
     {
-        // End session — this triggers SessionEnded which handles closing the timer
-        // and restoring the main window (see _sessionEndedHandler above).
-        var session = _host?.Services.GetService<SessionService>();
-        if (session?.IsActive == true)
-            _ = session.EndSessionAsync("user");
+        // Return to the app WITHOUT ending the session.
+        // The user can browse the app, then either:
+        //   - Click "חזור להפעלה" (Resume) to go back to minimized session
+        //   - Click "סיים הפעלה" (End) to explicitly end the session
+        Current.Dispatcher.Invoke(() =>
+        {
+            // Hide the floating timer (it'll be re-shown on Resume)
+            _floatingTimer?.Hide();
+
+            // Restore main window
+            if (MainWindow is Views.Windows.MainWindow mw)
+            {
+                mw.WindowState = WindowState.Maximized;
+                mw.Topmost = true;
+                mw.Activate();
+            }
+        });
+    }
+
+    /// <summary>Called from the HomePage when the user wants to return to the active session.</summary>
+    public void ResumeSession()
+    {
+        Current.Dispatcher.Invoke(() =>
+        {
+            // Show floating timer again
+            _floatingTimer?.Show();
+
+            // Minimize main window
+            if (MainWindow is Views.Windows.MainWindow mw)
+            {
+                mw.Topmost = false;
+                mw.WindowState = WindowState.Minimized;
+            }
+        });
     }
 
     // ── Service teardown ────────────────────────────────────────

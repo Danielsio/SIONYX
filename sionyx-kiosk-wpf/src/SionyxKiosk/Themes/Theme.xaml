@@ -142,7 +142,13 @@
                                 <GradientStop Color="#4F46E5" Offset="1" />
                             </LinearGradientBrush>
                         </Border.Background>
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock x:Name="label"
+                                   Text="{TemplateBinding Content}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="White"
+                                   FontFamily="{TemplateBinding FontFamily}"
+                                   FontSize="{TemplateBinding FontSize}"
+                                   FontWeight="{TemplateBinding FontWeight}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -160,7 +166,7 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="border" Property="Background" Value="#D1D5DB" />
-                            <Setter Property="Foreground" Value="#9CA3AF" />
+                            <Setter TargetName="label" Property="Foreground" Value="#9CA3AF" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -188,7 +194,13 @@
                             CornerRadius="{StaticResource RadiusMd}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock x:Name="label"
+                                   Text="{TemplateBinding Content}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   FontFamily="{TemplateBinding FontFamily}"
+                                   FontSize="{TemplateBinding FontSize}"
+                                   FontWeight="{TemplateBinding FontWeight}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -199,7 +211,7 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="border" Property="Background" Value="#E5E7EB" />
-                            <Setter Property="Foreground" Value="#9CA3AF" />
+                            <Setter TargetName="label" Property="Foreground" Value="#9CA3AF" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -224,7 +236,13 @@
                             CornerRadius="12"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock x:Name="label"
+                                   Text="{TemplateBinding Content}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="White"
+                                   FontFamily="{TemplateBinding FontFamily}"
+                                   FontSize="{TemplateBinding FontSize}"
+                                   FontWeight="{TemplateBinding FontWeight}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -232,7 +250,7 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="border" Property="Background" Value="#D1D5DB" />
-                            <Setter Property="Foreground" Value="#9CA3AF" />
+                            <Setter TargetName="label" Property="Foreground" Value="#9CA3AF" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -258,7 +276,13 @@
                             CornerRadius="{StaticResource RadiusMd}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <TextBlock x:Name="label"
+                                   Text="{TemplateBinding Content}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{StaticResource PrimaryBrush}"
+                                   FontFamily="{TemplateBinding FontFamily}"
+                                   FontSize="{TemplateBinding FontSize}"
+                                   FontWeight="{TemplateBinding FontWeight}" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -401,6 +425,9 @@
         style wins over inherited Foreground.  TextElement.Foreground on the
         Border forces the inner TextBlock to use the correct color.
     -->
+    <!-- SidebarNavButton: Uses an explicit TextBlock instead of ContentPresenter
+         to defeat the global implicit TextBlock style, which would otherwise
+         override inherited TextElement.Foreground with TextPrimaryBrush (dark). -->
     <Style x:Key="SidebarNavButton" TargetType="RadioButton">
         <Setter Property="FontFamily" Value="{StaticResource FontPrimary}" />
         <Setter Property="FontSize" Value="15" />
@@ -413,9 +440,7 @@
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="border" Background="Transparent"
                             CornerRadius="{StaticResource RadiusMd}"
-                            Padding="16,13" SnapsToDevicePixels="True"
-                            TextElement.Foreground="#C8CCD8"
-                            TextElement.FontFamily="{StaticResource FontPrimary}">
+                            Padding="16,13" SnapsToDevicePixels="True">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="4" />
@@ -423,21 +448,25 @@
                             </Grid.ColumnDefinitions>
                             <Border x:Name="indicator" Grid.Column="0" Width="4" CornerRadius="2"
                                     Background="Transparent" VerticalAlignment="Stretch" Margin="0,0,10,0" />
-                            <ContentPresenter Grid.Column="1" HorizontalAlignment="Right"
-                                              VerticalAlignment="Center"
-                                              TextElement.Foreground="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(TextElement.Foreground)}" />
+                            <TextBlock x:Name="label" Grid.Column="1"
+                                       Text="{TemplateBinding Content}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       Foreground="#C8CCD8"
+                                       FontFamily="{TemplateBinding FontFamily}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       FontWeight="{TemplateBinding FontWeight}" />
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#1E293B" />
-                            <Setter TargetName="border" Property="TextElement.Foreground" Value="White" />
+                            <Setter TargetName="label" Property="Foreground" Value="White" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#1E2744" />
                             <Setter TargetName="indicator" Property="Background" Value="{StaticResource PrimaryBrush}" />
-                            <Setter TargetName="border" Property="TextElement.Foreground" Value="White" />
-                            <Setter Property="FontWeight" Value="SemiBold" />
+                            <Setter TargetName="label" Property="Foreground" Value="White" />
+                            <Setter TargetName="label" Property="FontWeight" Value="SemiBold" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

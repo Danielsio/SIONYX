@@ -178,7 +178,11 @@ public class PrintMonitorService : BaseService, IDisposable
     {
         try
         {
-            var result = Firebase.DbGetAsync("metadata").GetAwaiter().GetResult();
+            // Run on a thread-pool thread to avoid deadlocking the UI thread.
+            // Firebase methods use async/await without ConfigureAwait(false),
+            // so calling .GetAwaiter().GetResult() from the Dispatcher thread
+            // would deadlock (the continuation needs the Dispatcher, which is blocked).
+            var result = Task.Run(() => Firebase.DbGetAsync("metadata")).GetAwaiter().GetResult();
             if (result.Success && result.Data is JsonElement data && data.ValueKind == JsonValueKind.Object)
             {
                 _bwPrice = data.TryGetProperty("blackAndWhitePrice", out var bw) && bw.TryGetDouble(out var bwVal) ? bwVal : 1.0;
@@ -210,7 +214,7 @@ public class PrintMonitorService : BaseService, IDisposable
 
         try
         {
-            var result = Firebase.DbGetAsync($"users/{_userId}").GetAwaiter().GetResult();
+            var result = Task.Run(() => Firebase.DbGetAsync($"users/{_userId}")).GetAwaiter().GetResult();
             if (result.Success && result.Data is JsonElement data && data.ValueKind == JsonValueKind.Object)
             {
                 var budget = data.TryGetProperty("printBalance", out var pb) && pb.TryGetDouble(out var pbVal) ? pbVal : 0.0;
@@ -233,11 +237,11 @@ public class PrintMonitorService : BaseService, IDisposable
             var currentBudget = GetUserBudget(forceRefresh: true);
             var newBudget = allowNegative ? currentBudget - amount : Math.Max(0.0, currentBudget - amount);
 
-            var result = Firebase.DbUpdateAsync($"users/{_userId}", new
+            var result = Task.Run(() => Firebase.DbUpdateAsync($"users/{_userId}", new
             {
                 printBalance = newBudget,
                 updatedAt = DateTime.Now.ToString("o"),
-            }).GetAwaiter().GetResult();
+            })).GetAwaiter().GetResult();
 
             if (result.Success)
             {

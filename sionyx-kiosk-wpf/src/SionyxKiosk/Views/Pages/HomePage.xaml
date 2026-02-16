@@ -61,12 +61,15 @@
                                 IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
                     </StackPanel>
 
-                    <!-- Session active: show End button -->
+                    <!-- Session active: show Resume + End buttons -->
                     <StackPanel HorizontalAlignment="Center"
                                 Visibility="{Binding IsSessionActive, Converter={StaticResource BoolToVis}}">
                         <TextBlock Text="ההפעלה פעילה" FontSize="14" FontWeight="SemiBold"
                                    Foreground="{StaticResource SuccessBrush}"
                                    HorizontalAlignment="Center" Margin="0,0,0,12" />
+                        <Button Content="▶  חזור להפעלה" Style="{StaticResource BtnPrimary}"
+                                Click="ResumeSession_Click"
+                                Width="220" Height="48" FontSize="16" Margin="0,0,0,10" />
                         <Button Content="⏹  סיים הפעלה" Style="{StaticResource BtnDanger}"
                                 Command="{Binding EndSessionCommand}"
                                 Width="220" Height="48" FontSize="16" />
@@ -78,10 +81,20 @@
             <controls:LoadingSpinner HorizontalAlignment="Center"
                                      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
 
-            <!-- Error display -->
-            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource ErrorBrush}"
-                       FontSize="{StaticResource FontSizeSm}" TextWrapping="Wrap" Margin="0,8,0,0"
-                       Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}" />
+            <!-- Error / warning banner -->
+            <Border Background="#FEF2F2" CornerRadius="12" Padding="20,16" Margin="0,8,0,0"
+                    Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}">
+                <Border.BorderBrush>
+                    <SolidColorBrush Color="#FECACA" />
+                </Border.BorderBrush>
+                <Border.BorderThickness>1</Border.BorderThickness>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="⚠" FontSize="20" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <TextBlock Text="{Binding ErrorMessage}" Foreground="#991B1B"
+                               FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap"
+                               VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
 </Page>
