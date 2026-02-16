@@ -1,11 +1,10 @@
-using System.Reflection;
 using FluentAssertions;
 using SionyxKiosk.Services;
 
 namespace SionyxKiosk.Tests.Services;
 
 /// <summary>
-/// Deep tests for GlobalHotkeyService covering ParseHotkey and ResolveAdminExitHotkey.
+/// Tests for GlobalHotkeyService (low-level keyboard hook approach).
 /// </summary>
 public class GlobalHotkeyServiceDeepTests : IDisposable
 {
@@ -45,47 +44,21 @@ public class GlobalHotkeyServiceDeepTests : IDisposable
         act.Should().NotThrow();
     }
 
-    [Theory]
-    [InlineData("ctrl+alt+space", 0x0003u, 0x20u)]     // Ctrl(2) + Alt(1) = 3, Space = 0x20
-    [InlineData("ctrl+alt+q", 0x0003u, 0x51u)]          // Ctrl + Alt = 3, Q = 0x51
-    [InlineData("ctrl+shift+space", 0x0006u, 0x20u)]    // Ctrl(2) + Shift(4) = 6
-    [InlineData("alt+shift+q", 0x0005u, 0x51u)]         // Alt(1) + Shift(4) = 5
-    [InlineData("ctrl+alt+shift+q", 0x0007u, 0x51u)]    // Ctrl + Alt + Shift = 7
-    [InlineData("ctrl+a", 0x0002u, 65u)]                // Ctrl(2), A = 65
-    public void ParseHotkey_ShouldParseCorrectly(string hotkey, uint expectedMod, uint expectedVk)
-    {
-        var method = typeof(GlobalHotkeyService).GetMethod("ParseHotkey",
-            BindingFlags.NonPublic | BindingFlags.Static)!;
-
-        var result = ((uint modifiers, uint vk))method.Invoke(null, new object[] { hotkey })!;
-        result.modifiers.Should().Be(expectedMod);
-        result.vk.Should().Be(expectedVk);
-    }
-
-    [Fact]
-    public void ParseHotkey_WithSpaces_ShouldStillParse()
-    {
-        var method = typeof(GlobalHotkeyService).GetMethod("ParseHotkey",
-            BindingFlags.NonPublic | BindingFlags.Static)!;
-
-        var result = ((uint, uint))method.Invoke(null, new object[] { " ctrl + alt + space " })!;
-        result.Item1.Should().BeGreaterThan(0u);
-    }
-
-    [Fact]
-    public void ParseHotkey_DefaultOnlySpace_ShouldReturnSpaceVk()
-    {
-        var method = typeof(GlobalHotkeyService).GetMethod("ParseHotkey",
-            BindingFlags.NonPublic | BindingFlags.Static)!;
-
-        var result = ((uint, uint))method.Invoke(null, new object[] { "space" })!;
-        result.Item2.Should().Be(0x20u); // VK_SPACE
-    }
-
     [Fact]
     public void AdminExitRequested_ShouldBeSubscribable()
     {
         _service.AdminExitRequested += () => { };
         _service.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Start_WithOverload_ShouldAcceptIntPtr()
+    {
+        // The Start(IntPtr) overload is kept for backward compatibility.
+        // It should delegate to Start() without errors.
+        // (We can't fully test the hook without a message loop, but we
+        //  verify it doesn't throw.)
+        var act = () => _service.Start(IntPtr.Zero);
+        act.Should().NotThrow();
     }
 }
