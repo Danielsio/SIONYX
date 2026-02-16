@@ -121,7 +121,10 @@ public class AuthServiceDeepTests : IDisposable
 
         _handler.When("securetoken.googleapis.com", new
         {
-            id_token = "tok", refresh_token = "rtok", user_id = "stored-uid", expires_in = "3600",
+            id_token = "tok",
+            refresh_token = "rtok",
+            user_id = "stored-uid",
+            expires_in = "3600",
         });
 
         // User data with orphaned session (old updatedAt)
@@ -183,7 +186,10 @@ public class AuthServiceDeepTests : IDisposable
     {
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-1", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-1",
+            expiresIn = "3600",
         });
         _handler.WhenRaw("users/uid-1.json", "null");
 
@@ -196,7 +202,10 @@ public class AuthServiceDeepTests : IDisposable
     {
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-1", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-1",
+            expiresIn = "3600",
         });
         _handler.When("users/uid-1.json", new
         {
@@ -236,7 +245,10 @@ public class AuthServiceDeepTests : IDisposable
     {
         _handler.When("signUp", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-1", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-1",
+            expiresIn = "3600",
         });
 
         // Make the DB set for user profile fail
@@ -251,7 +263,10 @@ public class AuthServiceDeepTests : IDisposable
     {
         _handler.When("signUp", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-1", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-1",
+            expiresIn = "3600",
         });
         _handler.SetDefaultSuccess();
 
@@ -285,11 +300,16 @@ public class AuthServiceDeepTests : IDisposable
         // First login
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-1", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-1",
+            expiresIn = "3600",
         });
         _handler.When("users/uid-1.json", new
         {
-            firstName = "Test", lastName = "User", isLoggedIn = false,
+            firstName = "Test",
+            lastName = "User",
+            isLoggedIn = false,
         });
         _handler.SetDefaultSuccess();
         await _service.LoginAsync("0501234567", "password123");
@@ -316,11 +336,16 @@ public class AuthServiceDeepTests : IDisposable
         // Login first
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-1", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-1",
+            expiresIn = "3600",
         });
         _handler.When("users/uid-1.json", new
         {
-            firstName = "Test", lastName = "User", isLoggedIn = false,
+            firstName = "Test",
+            lastName = "User",
+            isLoggedIn = false,
         });
         _handler.SetDefaultSuccess();
         await _service.LoginAsync("0501234567", "password123");
@@ -335,11 +360,16 @@ public class AuthServiceDeepTests : IDisposable
         // Login first
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-1", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-1",
+            expiresIn = "3600",
         });
         _handler.When("users/uid-1.json", new
         {
-            firstName = "Test", lastName = "User", isLoggedIn = false,
+            firstName = "Test",
+            lastName = "User",
+            isLoggedIn = false,
         });
         _handler.SetDefaultSuccess();
         await _service.LoginAsync("0501234567", "password123");

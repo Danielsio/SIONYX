@@ -145,7 +145,12 @@ public class PurchaseServiceExceptionPathTests : IDisposable
 
         var package = new SionyxKiosk.Models.Package
         {
-            Id = "pkg-1", Name = "Basic", Minutes = 60, Prints = 10, Price = 29.99, ValidityDays = 30,
+            Id = "pkg-1",
+            Name = "Basic",
+            Minutes = 60,
+            Prints = 10,
+            Price = 29.99,
+            ValidityDays = 30,
         };
 
         var result = await _service.CreatePendingPurchaseAsync("user-1", package);
@@ -182,11 +187,16 @@ public class AuthServiceExceptionPathTests : IDisposable
         // Login with network failure on computers path
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-net-fail", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-net-fail",
+            expiresIn = "3600",
         });
         _handler.When("users/uid-net-fail.json", new
         {
-            firstName = "Test", lastName = "User", isLoggedIn = false,
+            firstName = "Test",
+            lastName = "User",
+            isLoggedIn = false,
         });
         // Computer registration throws network error
         _handler.WhenThrows("computers/", "Network unreachable");
@@ -204,15 +214,22 @@ public class AuthServiceExceptionPathTests : IDisposable
 
         _handler.When("securetoken.googleapis.com", new
         {
-            id_token = "tok", refresh_token = "rtok", user_id = "stored-uid-exc", expires_in = "3600",
+            id_token = "tok",
+            refresh_token = "rtok",
+            user_id = "stored-uid-exc",
+            expires_in = "3600",
         });
 
         // Orphaned session (old)
         var oldTime = DateTime.Now.AddMinutes(-10).ToString("o");
         _handler.When("users/stored-uid-exc.json", new
         {
-            firstName = "Jane", lastName = "Smith", isSessionActive = true,
-            updatedAt = oldTime, currentComputerId = "old-comp", isLoggedIn = false,
+            firstName = "Jane",
+            lastName = "Smith",
+            isSessionActive = true,
+            updatedAt = oldTime,
+            currentComputerId = "old-comp",
+            isLoggedIn = false,
         });
 
         // Network failure during cleanup - the recover method catches this

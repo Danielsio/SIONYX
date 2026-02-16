@@ -135,8 +135,13 @@ public class AuthService : BaseService
 
         CurrentUser = new UserData
         {
-            Uid = uid, FirstName = firstName, LastName = lastName,
-            PhoneNumber = phone, Email = email ?? "", CreatedAt = now, UpdatedAt = now,
+            Uid = uid,
+            FirstName = firstName,
+            LastName = lastName,
+            PhoneNumber = phone,
+            Email = email ?? "",
+            CreatedAt = now,
+            UpdatedAt = now,
         };
 
         _localDb.Set("refresh_token", Firebase.RefreshToken ?? "");
