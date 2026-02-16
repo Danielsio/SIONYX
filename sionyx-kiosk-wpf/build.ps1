@@ -40,7 +40,7 @@ param(
     [switch]$SkipTests
 )
 
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"
 
 # =============================================================================
 # PATHS
@@ -144,10 +144,8 @@ function Invoke-Tests {
     Write-Header "Running Tests"
 
     $testDir = Join-Path $ScriptDir "tests\SionyxKiosk.Tests"
-    $result = dotnet test $testDir --verbosity normal 2>&1
+    dotnet test $testDir --verbosity normal 2>&1 | Out-Host
     $exitCode = $LASTEXITCODE
-
-    $result | Write-Host
 
     if ($exitCode -ne 0) {
         Write-Err "Tests FAILED"
