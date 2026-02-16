@@ -32,7 +32,7 @@ from pathlib import Path
 # Force UTF-8 encoding for Windows console
 sys.stdout.reconfigure(encoding='utf-8')
 
-VERSION_FILE = Path("sionyx-kiosk/version.json")
+VERSION_FILE = Path("sionyx-kiosk-wpf/version.json")
 
 
 def run_cmd(cmd: list[str], check: bool = True, capture: bool = True) -> subprocess.CompletedProcess:
@@ -224,16 +224,15 @@ def main():
     
     print_step(2, total_steps, f"Building installer v{new_version}")
     
-    # Run build from sionyx-kiosk directory
-    # Use --version to set specific version without auto-bump
+    # Run build from sionyx-kiosk-wpf directory using PowerShell build script
     import os
     original_dir = os.getcwd()
-    os.chdir("sionyx-kiosk")
+    os.chdir("sionyx-kiosk-wpf")
     
-    # Build with specific version - this will update version.json if successful
-    build_cmd = ["python", "build.py", "--version", new_version]
-    if args.skip_coverage_check:
-        build_cmd.append("--skip-coverage-check")
+    build_cmd = [
+        "powershell", "-ExecutionPolicy", "Bypass", "-File", "build.ps1",
+        "-Version", new_version,
+    ]
     exit_code = run_cmd_live(build_cmd)
     
     os.chdir(original_dir)

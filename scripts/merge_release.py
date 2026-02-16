@@ -13,7 +13,7 @@ import json
 # Force UTF-8 encoding for Windows console
 sys.stdout.reconfigure(encoding='utf-8')
 
-VERSION_FILE = Path("sionyx-kiosk/version.json")
+VERSION_FILE = Path("sionyx-kiosk-wpf/version.json")
 
 
 def run_cmd(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
