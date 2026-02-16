@@ -23,7 +23,31 @@ public partial class MainWindow : Window
         InitializeComponent();
         _initialized = true;
 
-        Loaded += (_, _) => NavigateToPage("Home");
+        Loaded += (_, _) =>
+        {
+            NavigateToPage("Home");
+            UpdateAvatarInitials();
+        };
+
+        viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainViewModel.CurrentUser))
+                UpdateAvatarInitials();
+        };
+    }
+
+    private void UpdateAvatarInitials()
+    {
+        var name = _vm.CurrentUser?.FullName;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            AvatarInitials.Text = "?";
+            return;
+        }
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        AvatarInitials.Text = parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}"
+            : $"{parts[0][0]}";
     }
 
     /// <summary>Allow the window to close (called from admin exit or proper logout).</summary>

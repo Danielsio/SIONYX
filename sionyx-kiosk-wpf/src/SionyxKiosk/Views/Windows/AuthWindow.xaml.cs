@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using SionyxKiosk.ViewModels;
 
 namespace SionyxKiosk.Views.Windows;
@@ -9,35 +10,94 @@ namespace SionyxKiosk.Views.Windows;
 public partial class AuthWindow : Window
 {
     private bool _allowClose;
+    private bool _isLoginMode = true;
+    private readonly AuthViewModel _vm;
 
     public AuthWindow(AuthViewModel viewModel)
     {
+        _vm = viewModel;
         DataContext = viewModel;
         Resources["StringToVis"] = new Views.Controls.StringToVisibilityConverter();
         Resources["InverseBool"] = new InverseBoolConverter();
         InitializeComponent();
 
-        // WPF PasswordBox doesn't support binding for security.
-        // Wire it manually via PasswordChanged event.
-        PasswordInput.PasswordChanged += (_, _) => viewModel.Password = PasswordInput.Password;
+        // WPF PasswordBox doesn't support binding — wire manually.
+        LoginPasswordInput.PasswordChanged += (_, _) => viewModel.Password = LoginPasswordInput.Password;
+        RegPasswordInput.PasswordChanged += (_, _) => viewModel.Password = RegPasswordInput.Password;
 
-        viewModel.PropertyChanged += (_, e) =>
-        {
-            if (e.PropertyName == nameof(AuthViewModel.IsLoginMode))
-            {
-                var isLogin = viewModel.IsLoginMode;
-                RegisterFields.Visibility = isLogin ? Visibility.Collapsed : Visibility.Visible;
-                ForgotPasswordButton.Visibility = isLogin ? Visibility.Visible : Visibility.Collapsed;
-                SubtitleText.Text = isLogin ? "התחבר לחשבון שלך" : "צור חשבון חדש";
-                ActionButton.Content = isLogin ? "התחבר" : "הירשם";
-                ActionButton.Command = isLogin ? viewModel.LoginCommand : viewModel.RegisterCommand;
-                ToggleButton.Content = isLogin ? "אין לך חשבון? הירשם" : "יש לך חשבון? התחבר";
-            }
-        };
+        // Enter key submits the form
+        LoginPasswordInput.KeyDown += OnLoginKeyDown;
+        LoginPhoneInput.KeyDown += OnLoginKeyDown;
+        RegPasswordInput.KeyDown += OnRegisterKeyDown;
+
+        Loaded += (_, _) => LoginPhoneInput.Focus();
     }
 
-    /// <summary>Allow the window to close (called when transitioning to MainWindow).</summary>
     public void AllowClose() => _allowClose = true;
+
+    // ── Toggle animations ──
+
+    private void ToggleToRegister_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_isLoginMode) return;
+        _isLoginMode = false;
+        _vm.IsLoginMode = false;
+        _vm.ErrorMessage = "";
+
+        // Sync password to register box
+        RegPasswordInput.Password = LoginPasswordInput.Password;
+
+        RegisterPanel.IsHitTestVisible = true;
+        LoginPanel.IsHitTestVisible = false;
+
+        var sb = (Storyboard)FindResource("SlideToRegister");
+        sb.Begin(this);
+
+        BrandSubtitle.Text = "הצטרף אלינו היום";
+        RegPhoneInput.Focus();
+    }
+
+    private void ToggleToLogin_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isLoginMode) return;
+        _isLoginMode = true;
+        _vm.IsLoginMode = true;
+        _vm.ErrorMessage = "";
+
+        // Sync password to login box
+        LoginPasswordInput.Password = RegPasswordInput.Password;
+
+        LoginPanel.IsHitTestVisible = true;
+        RegisterPanel.IsHitTestVisible = false;
+
+        var sb = (Storyboard)FindResource("SlideToLogin");
+        sb.Begin(this);
+
+        BrandSubtitle.Text = "ניהול מחשבים חכם";
+        LoginPhoneInput.Focus();
+    }
+
+    // ── Enter key to submit ──
+
+    private void OnLoginKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && _vm.LoginCommand.CanExecute(null))
+        {
+            _vm.LoginCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    private void OnRegisterKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && _vm.RegisterCommand.CanExecute(null))
+        {
+            _vm.RegisterCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
+
+    // ── Window chrome ──
 
     protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
     {
