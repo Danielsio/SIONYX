@@ -39,7 +39,7 @@
                                 </TextBlock>
                                 <TextBlock Text="{Binding Minutes, StringFormat='{}{0} דקות שימוש'}"
                                            FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" />
-                                <TextBlock Text="{Binding Prints, StringFormat='{}{0} דפי הדפסה'}"
+                                <TextBlock Text="{Binding Prints, StringFormat='{}{0} ש&quot;ח תקציב הדפסות'}"
                                            FontSize="13" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,0,16" />
                                 <Button Content="רכוש עכשיו" Style="{StaticResource BtnPrimary}"
                                         Command="{Binding DataContext.SelectPackageCommand, RelativeSource={RelativeSource AncestorType=Page}}"

@@ -65,4 +65,10 @@ public partial class HomePage : Page
         // After closing the dialog, the messages may have been read — refresh count
         _vm.UnreadMessages = 0;
     }
+
+    private void ResumeSession_Click(object sender, RoutedEventArgs e)
+    {
+        if (Application.Current is App app)
+            app.ResumeSession();
+    }
 }

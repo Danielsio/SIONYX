@@ -13,7 +13,7 @@
         <Storyboard x:Key="SlideToLogin">
             <DoubleAnimation Storyboard.TargetName="BrandOverlay"
                              Storyboard.TargetProperty="(Canvas.Left)"
-                             To="0" Duration="0:0:0.5">
+                             To="-3" Duration="0:0:0.5">
                 <DoubleAnimation.EasingFunction>
                     <CubicEase EasingMode="EaseInOut" />
                 </DoubleAnimation.EasingFunction>
@@ -42,13 +42,13 @@
         </Storyboard>
     </Window.Resources>
 
-    <Grid Background="{StaticResource BgPrimaryBrush}">
-        <!-- Centered card -->
+    <Grid Background="{StaticResource AuthPageBg}">
+        <!-- Centered card — white card on dark bg = strong elevation -->
         <Border CornerRadius="20" Background="White" ClipToBounds="True"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
                 Width="900" Height="620">
             <Border.Effect>
-                <DropShadowEffect BlurRadius="80" ShadowDepth="10" Opacity="0.18" Color="#0F172A" />
+                <DropShadowEffect BlurRadius="120" ShadowDepth="0" Opacity="0.35" Color="#6366F1" />
             </Border.Effect>
 
             <!-- Canvas uses LTR so pixel coordinates work predictably.
@@ -143,17 +143,20 @@
                     </ScrollViewer>
                 </StackPanel>
 
-                <!-- BRAND OVERLAY — starts at left (covers register), slides right for register mode -->
-                <Border x:Name="BrandOverlay" Canvas.Left="0" Canvas.Top="0"
-                        Width="450" Height="620"
-                        Background="{StaticResource AuthGradient}"
-                        CornerRadius="20">
+                <!-- BRAND OVERLAY — oversized by 3px on each edge so outer corners bleed
+                     past the parent ClipToBounds. Only the interior rounded corners remain visible.
+                     Login: Left=-3 (outer left/top/bottom clipped, right interior corners show).
+                     Register: Left=450 (outer right/top/bottom clipped, left interior corners show). -->
+                <Border x:Name="BrandOverlay" Canvas.Left="-3" Canvas.Top="-3"
+                        Width="453" Height="626"
+                        CornerRadius="20"
+                        Background="{StaticResource AuthGradient}">
                     <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="48">
                         <TextBlock Text="SIONYX" FontSize="46" FontWeight="ExtraBold"
                                    Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,16" />
                         <TextBlock x:Name="BrandSubtitle" Text="ניהול מחשבים חכם" FontSize="18"
-                                   Foreground="#FFFFFFCC" HorizontalAlignment="Center"
-                                   TextAlignment="Center" />
+                                   Foreground="#FFFFFFDD" HorizontalAlignment="Center"
+                                   TextAlignment="Center" FontWeight="Light" />
                     </StackPanel>
                 </Border>
             </Canvas>

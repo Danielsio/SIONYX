@@ -65,29 +65,38 @@ public partial class HomeViewModel : ObservableObject, IDisposable
         IsLoading = true;
         ErrorMessage = "";
 
-        // Check operating hours before starting
-        var (isAllowed, reason) = _operatingHours.IsWithinOperatingHours();
-        if (!isAllowed)
+        try
+        {
+            // Check operating hours before starting
+            var (isAllowed, reason) = _operatingHours.IsWithinOperatingHours();
+            if (!isAllowed)
+            {
+                ErrorMessage = reason ?? "לא ניתן להתחיל הפעלה מחוץ לשעות הפעילות";
+                return;
+            }
+
+            if (_user.RemainingTime <= 0)
+            {
+                ErrorMessage = "אין לך זמן שימוש זמין. אנא רכוש חבילה.";
+                return;
+            }
+
+            var result = await _session.StartSessionAsync(_user.RemainingTime);
+
+            if (result.IsSuccess)
+                IsSessionActive = true;
+            else
+                ErrorMessage = result.Error ?? "שגיאה";
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "StartSession failed");
+            ErrorMessage = "שגיאה בהתחלת הפעלה. נסה שוב.";
+        }
+        finally
         {
             IsLoading = false;
-            ErrorMessage = reason ?? "לא ניתן להתחיל הפעלה מחוץ לשעות הפעילות";
-            return;
         }
-
-        if (_user.RemainingTime <= 0)
-        {
-            IsLoading = false;
-            ErrorMessage = "אין לך זמן שימוש זמין. אנא רכוש חבילה.";
-            return;
-        }
-
-        var result = await _session.StartSessionAsync(_user.RemainingTime);
-        IsLoading = false;
-
-        if (result.IsSuccess)
-            IsSessionActive = true;
-        else
-            ErrorMessage = result.Error ?? "שגיאה";
     }
 
     [RelayCommand]
