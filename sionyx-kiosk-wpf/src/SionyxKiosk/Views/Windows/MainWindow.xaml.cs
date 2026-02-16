@@ -43,26 +43,33 @@ public partial class MainWindow : Window
     {
         if (ContentFrame == null) return;
 
-        // Dispose previous page's ViewModel if it implements IDisposable.
-        // This prevents event subscription leaks on singleton services.
-        if (_currentPage?.DataContext is IDisposable disposableVm)
-            disposableVm.Dispose();
-
-        var pageInstance = page switch
+        try
         {
-            "Home" => _services.GetService(typeof(HomePage)),
-            "Packages" => _services.GetService(typeof(PackagesPage)),
-            "History" => _services.GetService(typeof(HistoryPage)),
-            "Help" => _services.GetService(typeof(HelpPage)),
-            _ => _services.GetService(typeof(HomePage))
-        };
+            // Dispose previous page's ViewModel if it implements IDisposable.
+            // This prevents event subscription leaks on singleton services.
+            if (_currentPage?.DataContext is IDisposable disposableVm)
+                disposableVm.Dispose();
 
-        if (pageInstance is Page p)
+            var pageInstance = page switch
+            {
+                "Home" => _services.GetService(typeof(HomePage)),
+                "Packages" => _services.GetService(typeof(PackagesPage)),
+                "History" => _services.GetService(typeof(HistoryPage)),
+                "Help" => _services.GetService(typeof(HelpPage)),
+                _ => _services.GetService(typeof(HomePage))
+            };
+
+            if (pageInstance is Page p)
+            {
+                _currentPage = p;
+                // Set Content directly instead of Navigate() to avoid
+                // WPF Frame journal accumulation (keeps all old pages in memory).
+                ContentFrame.Content = p;
+            }
+        }
+        catch (Exception ex)
         {
-            _currentPage = p;
-            // Set Content directly instead of Navigate() to avoid
-            // WPF Frame journal accumulation (keeps all old pages in memory).
-            ContentFrame.Content = p;
+            Serilog.Log.Error(ex, "Failed to navigate to page {Page}", page);
         }
     }
 

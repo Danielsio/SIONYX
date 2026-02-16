@@ -11,7 +11,9 @@ public partial class HistoryPage : Page
     public HistoryPage(HistoryViewModel viewModel)
     {
         DataContext = viewModel;
-        Resources["BoolToVis"] = new BooleanToVisibilityConverter();
+        // SortLabelConverter must be added before InitializeComponent because it's
+        // referenced in XAML bindings.  BoolToVis is defined in XAML — do NOT add it
+        // here or InitializeComponent will throw a duplicate-key exception.
         Resources["SortLabelConverter"] = new SortLabelConverter();
         InitializeComponent();
 

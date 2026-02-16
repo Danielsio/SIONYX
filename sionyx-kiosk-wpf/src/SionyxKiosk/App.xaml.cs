@@ -228,6 +228,10 @@ public partial class App : Application
         authWindow.Show();
         MainWindow = authWindow;
 
+        // Start the global hotkey service early so admin exit works from the
+        // auth window too (important for kiosk recovery scenarios).
+        StartGlobalHotkey();
+
         _ = TryAutoLoginAsync(authVm);
     }
 
@@ -265,13 +269,40 @@ public partial class App : Application
         mainWindow.WindowState = WindowState.Maximized;
         mainWindow.Topmost = true;
 
-        // Show window and set as MainWindow BEFORE starting services
-        // (services need the window handle for global hotkeys)
         mainWindow.Show();
         MainWindow = mainWindow;
 
         // Start system services
         StartSystemServices();
+    }
+
+    /// <summary>
+    /// Start the global hotkey listener. Called once from ShowAuthWindow so
+    /// the admin exit combo works from any app state (auth or main).
+    /// Uses a low-level keyboard hook — no window handle dependency.
+    /// </summary>
+    private void StartGlobalHotkey()
+    {
+        var hotkey = _host!.Services.GetRequiredService<GlobalHotkeyService>();
+        if (hotkey.IsRunning) return;
+
+        // Wire a default handler that shows the admin exit dialog.
+        // StartSystemServices will re-wire with a handler that has the
+        // current AuthService reference.
+        _adminExitHandler = () =>
+        {
+            Log.Information("Admin exit hotkey detected (from auth or pre-login state)");
+            Current.Dispatcher.Invoke(() =>
+            {
+                var auth = _host?.Services.GetService<AuthService>();
+                if (auth != null)
+                    ShowAdminExitDialog(auth);
+                else
+                    Log.Warning("Admin exit requested but AuthService not available");
+            });
+        };
+        hotkey.AdminExitRequested += _adminExitHandler;
+        hotkey.Start();
     }
 
     private void OnLogoutRequested()
@@ -388,33 +419,19 @@ public partial class App : Application
                 keyboard.Start();
             }
 
-            // ── Global hotkey (admin exit) ──
-            if (MainWindow != null)
+            // Global hotkey is started in ShowAuthWindow() so it works from any
+            // app state.  Re-wire the handler here so it has access to the
+            // current AuthService instance (may have changed after re-login).
+            var hotkey = _host.Services.GetRequiredService<GlobalHotkeyService>();
+            if (_adminExitHandler != null)
+                hotkey.AdminExitRequested -= _adminExitHandler;
+
+            _adminExitHandler = () =>
             {
-                // EnsureHandle guarantees we have a valid Win32 handle even if
-                // WPF hasn't finished rendering the window yet.
-                var helper = new System.Windows.Interop.WindowInteropHelper(MainWindow);
-                var hwnd = helper.EnsureHandle();
-
-                if (hwnd != IntPtr.Zero)
-                {
-                    var hotkey = _host.Services.GetRequiredService<GlobalHotkeyService>();
-                    if (_adminExitHandler != null)
-                        hotkey.AdminExitRequested -= _adminExitHandler;
-
-                    _adminExitHandler = () =>
-                    {
-                        Log.Information("Admin exit hotkey detected — showing dialog");
-                        Current.Dispatcher.Invoke(() => ShowAdminExitDialog(auth));
-                    };
-                    hotkey.AdminExitRequested += _adminExitHandler;
-                    hotkey.Start(hwnd);
-                }
-                else
-                {
-                    Log.Error("Failed to get window handle for global hotkey registration");
-                }
-            }
+                Log.Information("Admin exit hotkey detected — showing dialog");
+                Current.Dispatcher.Invoke(() => ShowAdminExitDialog(auth));
+            };
+            hotkey.AdminExitRequested += _adminExitHandler;
 
             Log.Information("System services started successfully (kiosk={IsKiosk})", _isKiosk);
         }
@@ -615,11 +632,22 @@ public partial class App : Application
                 _forceLogoutHandler = null;
             }
 
+            // Unsubscribe the post-login admin-exit handler but keep the
+            // hook running so it works from the auth window after logout.
             var hotkey = _host?.Services.GetService<GlobalHotkeyService>();
             if (hotkey != null && _adminExitHandler != null)
             {
                 hotkey.AdminExitRequested -= _adminExitHandler;
-                _adminExitHandler = null;
+                // Re-wire a simple handler that resolves AuthService at call time
+                _adminExitHandler = () =>
+                {
+                    Current.Dispatcher.Invoke(() =>
+                    {
+                        var auth = _host?.Services.GetService<AuthService>();
+                        if (auth != null) ShowAdminExitDialog(auth);
+                    });
+                };
+                hotkey.AdminExitRequested += _adminExitHandler;
             }
 
             var session = _host?.Services.GetService<SessionService>();
@@ -636,7 +664,8 @@ public partial class App : Application
             _host?.Services.GetService<OperatingHoursService>()?.StopMonitoring();
             _host?.Services.GetService<ProcessRestrictionService>()?.Stop();
             _host?.Services.GetService<KeyboardRestrictionService>()?.Stop();
-            hotkey?.Stop();
+            // NOTE: hotkey.Stop() is NOT called here — kept alive across login cycles.
+            // It is stopped only in OnExit().
             printMonitor?.StopMonitoring();
 
             if (session?.IsActive == true)
