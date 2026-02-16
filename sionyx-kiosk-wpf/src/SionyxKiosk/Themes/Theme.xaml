@@ -123,31 +123,44 @@
     <Style x:Key="BtnPrimary" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource FontPrimary}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeMd}" />
-        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="White" />
-        <Setter Property="Height" Value="{StaticResource ButtonHeightMd}" />
-        <Setter Property="Padding" Value="24,0" />
+        <Setter Property="Height" Value="48" />
+        <Setter Property="Padding" Value="28,0" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border"
-                            Background="{StaticResource PrimaryGradient}"
-                            CornerRadius="{StaticResource RadiusLg}"
+                            CornerRadius="12"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#6366F1" Offset="0" />
+                                <GradientStop Color="#5B54E8" Offset="0.5" />
+                                <GradientStop Color="#4F46E5" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryHoverBrush}" />
+                            <Setter TargetName="border" Property="Background">
+                                <Setter.Value>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                        <GradientStop Color="#5B5CE8" Offset="0" />
+                                        <GradientStop Color="#4F46E5" Offset="1" />
+                                    </LinearGradientBrush>
+                                </Setter.Value>
+                            </Setter>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryDarkBrush}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="border" Property="Background" Value="#D1D5DB" />
-                            <Setter Property="Foreground" Value="#6B7280" />
+                            <Setter Property="Foreground" Value="#9CA3AF" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -198,9 +211,9 @@
     <Style x:Key="BtnDanger" TargetType="Button">
         <Setter Property="FontFamily" Value="{StaticResource FontPrimary}" />
         <Setter Property="FontSize" Value="{StaticResource FontSizeMd}" />
-        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="White" />
-        <Setter Property="Height" Value="{StaticResource ButtonHeightMd}" />
+        <Setter Property="Height" Value="48" />
         <Setter Property="Padding" Value="24,0" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -208,7 +221,7 @@
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="border"
                             Background="{StaticResource DangerGradient}"
-                            CornerRadius="{StaticResource RadiusLg}"
+                            CornerRadius="12"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -219,7 +232,7 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="border" Property="Background" Value="#D1D5DB" />
-                            <Setter Property="Foreground" Value="#6B7280" />
+                            <Setter Property="Foreground" Value="#9CA3AF" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -381,19 +394,28 @@
     </Style>
 
     <!-- ======================== SIDEBAR NAV BUTTON ======================== -->
+    <!--
+        IMPORTANT: TextElement.Foreground is used instead of Foreground because
+        the global implicit TextBlock style (Theme.xaml) sets Foreground to dark.
+        When ContentPresenter renders string Content as a TextBlock, the implicit
+        style wins over inherited Foreground.  TextElement.Foreground on the
+        Border forces the inner TextBlock to use the correct color.
+    -->
     <Style x:Key="SidebarNavButton" TargetType="RadioButton">
         <Setter Property="FontFamily" Value="{StaticResource FontPrimary}" />
         <Setter Property="FontSize" Value="15" />
         <Setter Property="FontWeight" Value="Medium" />
-        <Setter Property="Foreground" Value="#FFFFFFDD" />
+        <Setter Property="Foreground" Value="#C8CCD8" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Margin" Value="0,3" />
+        <Setter Property="Margin" Value="0,2" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="border" Background="Transparent"
                             CornerRadius="{StaticResource RadiusMd}"
-                            Padding="16,13" SnapsToDevicePixels="True">
+                            Padding="16,13" SnapsToDevicePixels="True"
+                            TextElement.Foreground="#C8CCD8"
+                            TextElement.FontFamily="{StaticResource FontPrimary}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="4" />
@@ -402,18 +424,19 @@
                             <Border x:Name="indicator" Grid.Column="0" Width="4" CornerRadius="2"
                                     Background="Transparent" VerticalAlignment="Stretch" Margin="0,0,10,0" />
                             <ContentPresenter Grid.Column="1" HorizontalAlignment="Right"
-                                              VerticalAlignment="Center" />
+                                              VerticalAlignment="Center"
+                                              TextElement.Foreground="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=(TextElement.Foreground)}" />
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#FFFFFF18" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="Background" Value="#1E293B" />
+                            <Setter TargetName="border" Property="TextElement.Foreground" Value="White" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#6366F125" />
+                            <Setter TargetName="border" Property="Background" Value="#1E2744" />
                             <Setter TargetName="indicator" Property="Background" Value="{StaticResource PrimaryBrush}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="TextElement.Foreground" Value="White" />
                             <Setter Property="FontWeight" Value="SemiBold" />
                         </Trigger>
                     </ControlTemplate.Triggers>

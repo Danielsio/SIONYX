@@ -5,86 +5,153 @@
         WindowState="Maximized" ResizeMode="NoResize"
         WindowStyle="None" Topmost="True"
         FlowDirection="RightToLeft">
-    <!-- Full-screen dark backdrop with centered auth card -->
+
+    <Window.Resources>
+        <!-- Slide-in animation for the brand overlay panel -->
+        <Storyboard x:Key="SlideToLogin">
+            <DoubleAnimation Storyboard.TargetName="BrandOverlay"
+                             Storyboard.TargetProperty="(Canvas.Left)"
+                             To="450" Duration="0:0:0.5">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseInOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="LoginPanel"
+                             Storyboard.TargetProperty="Opacity"
+                             To="1" Duration="0:0:0.35" BeginTime="0:0:0.15" />
+            <DoubleAnimation Storyboard.TargetName="RegisterPanel"
+                             Storyboard.TargetProperty="Opacity"
+                             To="0" Duration="0:0:0.2" />
+        </Storyboard>
+        <Storyboard x:Key="SlideToRegister">
+            <DoubleAnimation Storyboard.TargetName="BrandOverlay"
+                             Storyboard.TargetProperty="(Canvas.Left)"
+                             To="0" Duration="0:0:0.5">
+                <DoubleAnimation.EasingFunction>
+                    <CubicEase EasingMode="EaseInOut" />
+                </DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="RegisterPanel"
+                             Storyboard.TargetProperty="Opacity"
+                             To="1" Duration="0:0:0.35" BeginTime="0:0:0.15" />
+            <DoubleAnimation Storyboard.TargetName="LoginPanel"
+                             Storyboard.TargetProperty="Opacity"
+                             To="0" Duration="0:0:0.2" />
+        </Storyboard>
+    </Window.Resources>
+
     <Grid Background="{StaticResource BgPrimaryBrush}">
         <!-- Centered card -->
-        <Border CornerRadius="16" Background="White" ClipToBounds="True"
+        <Border CornerRadius="20" Background="White" ClipToBounds="True"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                Width="900" MinHeight="580" MaxHeight="740">
+                Width="900" Height="620">
             <Border.Effect>
-                <DropShadowEffect BlurRadius="60" ShadowDepth="8" Opacity="0.3" Color="#000000" />
+                <DropShadowEffect BlurRadius="80" ShadowDepth="10" Opacity="0.18" Color="#0F172A" />
             </Border.Effect>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
 
-            <!-- LEFT: Form Panel (ScrollViewer prevents clipping when register fields show) -->
-            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto"
-                          HorizontalScrollBarVisibility="Disabled">
-            <StackPanel VerticalAlignment="Center" Margin="48">
-                <TextBlock Text="ברוכים הבאים" Style="{StaticResource TextH1}" Margin="0,0,0,8" />
-                <TextBlock x:Name="SubtitleText" Text="התחבר לחשבון שלך"
-                           Style="{StaticResource TextSubtitle}" Margin="0,0,0,32" />
+            <!-- Canvas for sliding brand overlay -->
+            <Canvas>
+                <!-- LOGIN form (right side, position 450..900) -->
+                <StackPanel x:Name="LoginPanel" Canvas.Left="450" Canvas.Top="0"
+                            Width="450" Height="620" Opacity="1">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Height="620">
+                        <StackPanel VerticalAlignment="Center" Margin="52,60">
+                            <TextBlock Text="ברוכים הבאים" Style="{StaticResource TextH1}" Margin="0,0,0,6" />
+                            <TextBlock Text="התחבר לחשבון שלך"
+                                       Style="{StaticResource TextSubtitle}" Margin="0,0,0,36" />
 
-                <!-- Phone -->
-                <TextBlock Text="מספר טלפון" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
-                <TextBox x:Name="PhoneInput" Style="{StaticResource FrostInput}"
-                         Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16" />
+                            <TextBlock Text="מספר טלפון" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
+                            <TextBox x:Name="LoginPhoneInput" Style="{StaticResource FrostInput}"
+                                     Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,18" />
 
-                <!-- Password -->
-                <TextBlock Text="סיסמה" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
-                <PasswordBox x:Name="PasswordInput" Style="{StaticResource FrostPasswordBox}" Margin="0,0,0,8" />
+                            <TextBlock Text="סיסמה" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
+                            <PasswordBox x:Name="LoginPasswordInput" Style="{StaticResource FrostPasswordBox}"
+                                         Margin="0,0,0,8" />
 
-                <!-- Registration fields (hidden by default) -->
-                <StackPanel x:Name="RegisterFields" Visibility="Collapsed">
-                    <TextBlock Text="שם פרטי" Style="{StaticResource TextCaption}" Margin="0,8,0,6" />
-                    <TextBox Style="{StaticResource FrostInput}"
-                             Text="{Binding FirstName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                            <TextBlock x:Name="LoginError" Text="{Binding ErrorMessage}"
+                                       Foreground="{StaticResource ErrorBrush}" FontSize="{StaticResource FontSizeSm}"
+                                       Margin="0,8,0,0" TextWrapping="Wrap"
+                                       Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}" />
 
-                    <TextBlock Text="שם משפחה" Style="{StaticResource TextCaption}" Margin="0,8,0,6" />
-                    <TextBox Style="{StaticResource FrostInput}"
-                             Text="{Binding LastName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+                            <Button x:Name="LoginButton" Content="התחבר" Style="{StaticResource BtnPrimary}"
+                                    Command="{Binding LoginCommand}" Margin="0,24,0,0"
+                                    IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
+
+                            <Button Content="שכחת סיסמה?"
+                                    Style="{StaticResource BtnGhost}" Margin="0,8,0,0"
+                                    Command="{Binding ForgotPasswordCommand}" />
+                            <TextBlock Text="{Binding ForgotPasswordInfo}"
+                                       Foreground="{StaticResource TextSecondaryBrush}"
+                                       FontSize="{StaticResource FontSizeSm}"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"
+                                       Visibility="{Binding ForgotPasswordInfo, Converter={StaticResource StringToVis}}" />
+
+                            <Button Content="אין לך חשבון? הירשם"
+                                    Style="{StaticResource BtnGhost}" Margin="0,12,0,0"
+                                    Click="ToggleToRegister_Click" />
+                        </StackPanel>
+                    </ScrollViewer>
                 </StackPanel>
 
-                <!-- Error message -->
-                <TextBlock x:Name="ErrorText" Text="{Binding ErrorMessage}"
-                           Foreground="{StaticResource ErrorBrush}" FontSize="{StaticResource FontSizeSm}"
-                           Margin="0,8,0,0" TextWrapping="Wrap"
-                           Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}" />
+                <!-- REGISTER form (left side, position 0..450) -->
+                <StackPanel x:Name="RegisterPanel" Canvas.Left="0" Canvas.Top="0"
+                            Width="450" Height="620" Opacity="0" IsHitTestVisible="False">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  Height="620">
+                        <StackPanel VerticalAlignment="Center" Margin="52,50">
+                            <TextBlock Text="ברוכים הבאים" Style="{StaticResource TextH1}" Margin="0,0,0,6" />
+                            <TextBlock Text="צור חשבון חדש"
+                                       Style="{StaticResource TextSubtitle}" Margin="0,0,0,30" />
 
-                <!-- Action button -->
-                <Button x:Name="ActionButton" Content="התחבר" Style="{StaticResource BtnPrimary}"
-                        Command="{Binding LoginCommand}" Margin="0,24,0,0"
-                        IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
+                            <TextBlock Text="מספר טלפון" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
+                            <TextBox x:Name="RegPhoneInput" Style="{StaticResource FrostInput}"
+                                     Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14" />
 
-                <!-- Forgot password link (login mode only) -->
-                <Button x:Name="ForgotPasswordButton" Content="שכחת סיסמה?"
-                        Style="{StaticResource BtnGhost}" Margin="0,8,0,0"
-                        Command="{Binding ForgotPasswordCommand}" />
-                <TextBlock x:Name="ForgotPasswordText" Text="{Binding ForgotPasswordInfo}"
-                           Foreground="{StaticResource TextSecondaryBrush}" FontSize="{StaticResource FontSizeSm}"
-                           TextWrapping="Wrap" Margin="0,4,0,0"
-                           Visibility="{Binding ForgotPasswordInfo, Converter={StaticResource StringToVis}}" />
+                            <TextBlock Text="סיסמה" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
+                            <PasswordBox x:Name="RegPasswordInput" Style="{StaticResource FrostPasswordBox}"
+                                         Margin="0,0,0,14" />
 
-                <!-- Toggle link -->
-                <Button x:Name="ToggleButton" Content="אין לך חשבון? הירשם"
-                        Style="{StaticResource BtnGhost}" Margin="0,12,0,0"
-                        Command="{Binding ToggleModeCommand}" />
-            </StackPanel>
-            </ScrollViewer>
+                            <TextBlock Text="שם פרטי" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
+                            <TextBox Style="{StaticResource FrostInput}"
+                                     Text="{Binding FirstName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14" />
 
-            <!-- RIGHT: Overlay panel with gradient -->
-            <Border Grid.Column="1" Background="{StaticResource AuthGradient}" CornerRadius="0,16,16,0">
-                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="48">
-                    <TextBlock Text="SIONYX" FontSize="42" FontWeight="ExtraBold"
-                               Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,16" />
-                    <TextBlock Text="ניהול מחשבים חכם" FontSize="18"
-                               Foreground="#FFFFFFCC" HorizontalAlignment="Center" />
+                            <TextBlock Text="שם משפחה" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
+                            <TextBox Style="{StaticResource FrostInput}"
+                                     Text="{Binding LastName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
+
+                            <TextBlock Text="{Binding ErrorMessage}"
+                                       Foreground="{StaticResource ErrorBrush}" FontSize="{StaticResource FontSizeSm}"
+                                       Margin="0,8,0,0" TextWrapping="Wrap"
+                                       Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}" />
+
+                            <Button x:Name="RegisterButton" Content="הירשם" Style="{StaticResource BtnPrimary}"
+                                    Command="{Binding RegisterCommand}" Margin="0,20,0,0"
+                                    IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
+
+                            <Button Content="יש לך חשבון? התחבר"
+                                    Style="{StaticResource BtnGhost}" Margin="0,10,0,0"
+                                    Click="ToggleToLogin_Click" />
+                        </StackPanel>
+                    </ScrollViewer>
                 </StackPanel>
-            </Border>
-        </Grid>
+
+                <!-- BRAND OVERLAY (slides between sides) -->
+                <Border x:Name="BrandOverlay" Canvas.Left="450" Canvas.Top="0"
+                        Width="450" Height="620"
+                        Background="{StaticResource AuthGradient}"
+                        CornerRadius="20">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="48">
+                        <TextBlock Text="SIONYX" FontSize="46" FontWeight="ExtraBold"
+                                   Foreground="White" HorizontalAlignment="Center" Margin="0,0,0,16" />
+                        <TextBlock x:Name="BrandSubtitle" Text="ניהול מחשבים חכם" FontSize="18"
+                                   Foreground="#FFFFFFCC" HorizontalAlignment="Center"
+                                   TextAlignment="Center" />
+                    </StackPanel>
+                </Border>
+            </Canvas>
         </Border>
     </Grid>
 </Window>

@@ -136,8 +136,8 @@
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="SidebarGradient" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#111827" Offset="0" />
-        <GradientStop Color="#0B1220" Offset="1" />
+        <GradientStop Color="#0F1629" Offset="0" />
+        <GradientStop Color="#0A0F1F" Offset="1" />
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="AuthGradient" StartPoint="0,0" EndPoint="1,0">

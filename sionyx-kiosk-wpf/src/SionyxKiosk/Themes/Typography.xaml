@@ -7,9 +7,10 @@
     <!-- Segoe UI, modular scale, clear hierarchy                         -->
     <!-- ================================================================ -->
 
-    <!-- Font Families -->
-    <FontFamily x:Key="FontPrimary">Segoe UI</FontFamily>
-    <FontFamily x:Key="FontMono">Consolas</FontFamily>
+    <!-- Font Families (Segoe UI Variable is the Windows 11 system font;
+         falls back to Segoe UI on older systems) -->
+    <FontFamily x:Key="FontPrimary">Segoe UI Variable, Segoe UI</FontFamily>
+    <FontFamily x:Key="FontMono">Cascadia Code, Consolas</FontFamily>
 
     <!-- Font Sizes (modular scale) -->
     <sys:Double x:Key="FontSizeXs">11</sys:Double>
