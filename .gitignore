@@ -411,6 +411,14 @@ lerna-debug.log*
 package-lock.json
 
 # ========================================
+# WPF Kiosk Build Artifacts
+# ========================================
+sionyx-kiosk-wpf/sionyx-installer-*.exe
+sionyx-kiosk-wpf/SIONYX-Installer.exe
+sionyx-kiosk-wpf/dist/
+sionyx-kiosk-wpf/TestResults/
+
+# ========================================
 # Miscellaneous
 # ========================================
 # Note: .env.example should be committed (not ignored)
