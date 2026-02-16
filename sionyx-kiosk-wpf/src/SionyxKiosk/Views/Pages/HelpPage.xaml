@@ -10,20 +10,21 @@
             <!-- FAQ Accordion -->
             <TextBlock Text="שאלות נפוצות" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
 
-            <ItemsControl ItemsSource="{Binding FaqItems}" Margin="0,0,0,32">
+            <ItemsControl ItemsSource="{Binding FaqItems}" Margin="0,0,0,36">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Background="White" CornerRadius="{StaticResource RadiusMd}"
-                                Padding="20,16" Margin="0,0,0,8"
+                        <Border Background="White" CornerRadius="{StaticResource RadiusLg}"
+                                Padding="28,22" Margin="0,0,0,10"
                                 BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
                             <StackPanel>
                                 <TextBlock Text="{Binding Question}" FontWeight="SemiBold"
-                                           FontSize="{StaticResource FontSizeBase}"
+                                           FontSize="{StaticResource FontSizeLg}"
                                            Foreground="{StaticResource TextPrimaryBrush}" />
                                 <TextBlock Text="{Binding Answer}"
-                                           FontSize="{StaticResource FontSizeSm}"
+                                           FontSize="{StaticResource FontSizeBase}"
                                            Foreground="{StaticResource TextSecondaryBrush}"
-                                           TextWrapping="Wrap" Margin="0,8,0,0" />
+                                           TextWrapping="Wrap" Margin="0,10,0,0"
+                                           LineHeight="24" />
                             </StackPanel>
                         </Border>
                     </DataTemplate>
@@ -32,17 +33,17 @@
 
             <!-- Contact card -->
             <TextBlock Text="יצירת קשר" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
-            <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="24" Margin="0,0,0,32">
+            <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="32,28" Margin="0,0,0,36">
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Color="#0F172A" Opacity="0.06" />
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="4" Direction="270" Color="#0F172A" Opacity="0.07" />
                 </Border.Effect>
                 <StackPanel>
-                    <TextBlock Text="{Binding OrgName}" FontSize="18" FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16" />
+                    <TextBlock Text="{Binding OrgName}" FontSize="22" FontWeight="Bold"
+                               Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,20" />
 
                     <!-- Phone row with copy button -->
-                    <Border Background="#F8FAFC" CornerRadius="{StaticResource RadiusMd}"
-                            Padding="16,12" Margin="0,0,0,8" Cursor="Hand"
+                    <Border Background="#F8FAFC" CornerRadius="{StaticResource RadiusLg}"
+                            Padding="22,16" Margin="0,0,0,10" Cursor="Hand"
                             MouseLeftButtonUp="PhoneRow_Click">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -50,20 +51,20 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="📞" FontSize="18" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Grid.Column="0" Text="📞" FontSize="22" VerticalAlignment="Center" Margin="0,0,14,0" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="טלפון" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                                <TextBlock Text="{Binding AdminPhone}" FontSize="15" FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryBrush}" />
+                                <TextBlock Text="טלפון" FontSize="14" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock Text="{Binding AdminPhone}" FontSize="18" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryBrush}" Margin="0,2,0,0" />
                             </StackPanel>
-                            <TextBlock Grid.Column="2" Text="📋 העתק" FontSize="12"
+                            <TextBlock Grid.Column="2" Text="📋 העתק" FontSize="14"
                                        Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
                         </Grid>
                     </Border>
 
                     <!-- Email row with copy button -->
-                    <Border Background="#F8FAFC" CornerRadius="{StaticResource RadiusMd}"
-                            Padding="16,12" Cursor="Hand"
+                    <Border Background="#F8FAFC" CornerRadius="{StaticResource RadiusLg}"
+                            Padding="22,16" Cursor="Hand"
                             MouseLeftButtonUp="EmailRow_Click">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -71,20 +72,20 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0" Text="📧" FontSize="18" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Grid.Column="0" Text="📧" FontSize="22" VerticalAlignment="Center" Margin="0,0,14,0" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="אימייל" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
-                                <TextBlock Text="{Binding AdminEmail}" FontSize="15" FontWeight="SemiBold"
-                                           Foreground="{StaticResource PrimaryBrush}" />
+                                <TextBlock Text="אימייל" FontSize="14" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock Text="{Binding AdminEmail}" FontSize="18" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryBrush}" Margin="0,2,0,0" />
                             </StackPanel>
-                            <TextBlock Grid.Column="2" Text="📋 העתק" FontSize="12"
+                            <TextBlock Grid.Column="2" Text="📋 העתק" FontSize="14"
                                        Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
                         </Grid>
                     </Border>
 
                     <!-- Copy feedback -->
-                    <TextBlock Text="{Binding CopyFeedback}" FontSize="13" FontWeight="SemiBold"
-                               Foreground="{StaticResource SuccessBrush}" Margin="0,8,0,0"
+                    <TextBlock Text="{Binding CopyFeedback}" FontSize="15" FontWeight="SemiBold"
+                               Foreground="{StaticResource SuccessBrush}" Margin="0,12,0,0"
                                HorizontalAlignment="Center" />
                 </StackPanel>
             </Border>

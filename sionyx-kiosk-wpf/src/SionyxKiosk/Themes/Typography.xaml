@@ -12,17 +12,17 @@
     <FontFamily x:Key="FontPrimary">Segoe UI Variable, Segoe UI</FontFamily>
     <FontFamily x:Key="FontMono">Cascadia Code, Consolas</FontFamily>
 
-    <!-- Font Sizes (modular scale) -->
-    <sys:Double x:Key="FontSizeXs">11</sys:Double>
-    <sys:Double x:Key="FontSizeSm">12</sys:Double>
-    <sys:Double x:Key="FontSizeBase">14</sys:Double>
-    <sys:Double x:Key="FontSizeMd">15</sys:Double>
-    <sys:Double x:Key="FontSizeLg">17</sys:Double>
-    <sys:Double x:Key="FontSizeXl">20</sys:Double>
-    <sys:Double x:Key="FontSize2Xl">24</sys:Double>
-    <sys:Double x:Key="FontSize3Xl">30</sys:Double>
-    <sys:Double x:Key="FontSize4Xl">36</sys:Double>
-    <sys:Double x:Key="FontSizeDisplay">48</sys:Double>
+    <!-- Font Sizes (kiosk-optimized modular scale — larger for arm's-length reading) -->
+    <sys:Double x:Key="FontSizeXs">12</sys:Double>
+    <sys:Double x:Key="FontSizeSm">14</sys:Double>
+    <sys:Double x:Key="FontSizeBase">16</sys:Double>
+    <sys:Double x:Key="FontSizeMd">17</sys:Double>
+    <sys:Double x:Key="FontSizeLg">20</sys:Double>
+    <sys:Double x:Key="FontSizeXl">24</sys:Double>
+    <sys:Double x:Key="FontSize2Xl">28</sys:Double>
+    <sys:Double x:Key="FontSize3Xl">34</sys:Double>
+    <sys:Double x:Key="FontSize4Xl">42</sys:Double>
+    <sys:Double x:Key="FontSizeDisplay">56</sys:Double>
 
     <!-- Font Weights -->
     <FontWeight x:Key="WeightNormal">Normal</FontWeight>

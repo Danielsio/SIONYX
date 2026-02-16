@@ -3,12 +3,12 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              HorizontalAlignment="Center" VerticalAlignment="Top"
              Margin="0,16,0,0">
-    <Border x:Name="ToastBorder" CornerRadius="12" Padding="16,12"
-            Background="#1E293B" MinWidth="280" MaxWidth="500"
+    <Border x:Name="ToastBorder" CornerRadius="14" Padding="20,16"
+            Background="#1E293B" MinWidth="320" MaxWidth="540"
             Visibility="Collapsed" RenderTransformOrigin="0.5,0">
         <Border.Effect>
-            <DropShadowEffect BlurRadius="16" ShadowDepth="4" Direction="270"
-                              Color="#0F172A" Opacity="0.2" />
+            <DropShadowEffect BlurRadius="20" ShadowDepth="5" Direction="270"
+                              Color="#0F172A" Opacity="0.25" />
         </Border.Effect>
         <Border.RenderTransform>
             <TranslateTransform x:Name="SlideTransform" Y="-20" />
@@ -18,13 +18,13 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
-            <TextBlock x:Name="IconText" Grid.Column="0" FontSize="18"
-                       VerticalAlignment="Center" Margin="0,0,12,0" />
+            <TextBlock x:Name="IconText" Grid.Column="0" FontSize="22"
+                       VerticalAlignment="Center" Margin="0,0,14,0" />
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                <TextBlock x:Name="TitleText" FontSize="13" FontWeight="SemiBold"
+                <TextBlock x:Name="TitleText" FontSize="16" FontWeight="SemiBold"
                            Foreground="White" TextWrapping="Wrap" />
-                <TextBlock x:Name="MessageText" FontSize="12"
-                           Foreground="#CBD5E1" TextWrapping="Wrap" Margin="0,2,0,0" />
+                <TextBlock x:Name="MessageText" FontSize="14"
+                           Foreground="#CBD5E1" TextWrapping="Wrap" Margin="0,3,0,0" />
             </StackPanel>
         </Grid>
     </Border>

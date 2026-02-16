@@ -19,7 +19,7 @@
             </UniformGrid>
 
             <!-- Filters row -->
-            <Border Background="White" CornerRadius="{StaticResource RadiusMd}" Padding="16,12" Margin="0,0,0,16">
+            <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="22,16" Margin="0,0,0,20">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -34,7 +34,7 @@
                              Margin="0,0,12,0" />
 
                     <!-- Status filter -->
-                    <ComboBox Grid.Column="1" Width="130"
+                    <ComboBox Grid.Column="1" Width="150"
                               ItemsSource="{Binding StatusOptions}"
                               SelectedItem="{Binding SelectedStatus}"
                               Style="{StaticResource FrostComboBox}"
@@ -45,7 +45,7 @@
                             Content="{Binding SortNewestFirst, Converter={StaticResource SortLabelConverter}}"
                             Command="{Binding ToggleSortCommand}"
                             Style="{StaticResource BtnGhost}"
-                            Width="100" />
+                            MinWidth="130" Padding="16,8" />
                 </Grid>
             </Border>
 

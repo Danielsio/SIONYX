@@ -35,13 +35,13 @@
                            VerticalAlignment="Center" />
             </StackPanel>
             <TextBlock Text="Enter the admin password to exit the kiosk."
-                       FontSize="13" FontFamily="Segoe UI Variable, Segoe UI"
+                       FontSize="14" FontFamily="Segoe UI Variable, Segoe UI"
                        Foreground="#A5B4FC" Margin="0,0,0,20" />
 
             <!-- Password input styled to match dark theme -->
-            <Border CornerRadius="10" Background="#0F172A" BorderBrush="#4338CA"
-                    BorderThickness="1.5" Padding="14,11" Margin="0,0,0,24">
-                <PasswordBox x:Name="PasswordInput" FontSize="14"
+            <Border CornerRadius="12" Background="#0F172A" BorderBrush="#4338CA"
+                    BorderThickness="1.5" Padding="16,13" Margin="0,0,0,24">
+                <PasswordBox x:Name="PasswordInput" FontSize="15"
                              FontFamily="Segoe UI Variable, Segoe UI"
                              Foreground="White" CaretBrush="White"
                              Background="Transparent" BorderThickness="0" />
@@ -51,21 +51,21 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <Button Content="Cancel" IsCancel="True"
                         Padding="28,11" Margin="0,0,12,0"
-                        FontSize="13" FontWeight="SemiBold"
+                        FontSize="14" FontWeight="SemiBold"
                         FontFamily="Segoe UI Variable, Segoe UI"
                         Click="Cancel_Click" Cursor="Hand">
                     <Button.Template>
                         <ControlTemplate TargetType="Button">
-                            <Border x:Name="bg" Background="#1E293B"
+                            <Border x:Name="bg" Background="#334155"
                                     CornerRadius="10" Padding="{TemplateBinding Padding}"
-                                    BorderBrush="#334155" BorderThickness="1">
+                                    BorderBrush="#64748B" BorderThickness="1">
                                 <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                  TextBlock.Foreground="#94A3B8" />
+                                                  TextBlock.Foreground="#E2E8F0" />
                             </Border>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bg" Property="Background" Value="#334155" />
-                                    <Setter TargetName="bg" Property="BorderBrush" Value="#475569" />
+                                    <Setter TargetName="bg" Property="Background" Value="#475569" />
+                                    <Setter TargetName="bg" Property="BorderBrush" Value="#94A3B8" />
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -73,7 +73,7 @@
                 </Button>
                 <Button Content="Confirm" IsDefault="True"
                         Padding="28,11"
-                        FontSize="13" FontWeight="SemiBold"
+                        FontSize="14" FontWeight="SemiBold"
                         FontFamily="Segoe UI Variable, Segoe UI"
                         Click="OK_Click" Cursor="Hand">
                     <Button.Template>

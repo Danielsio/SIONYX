@@ -15,10 +15,10 @@
     <!-- ======================== DIMENSIONS ======================== -->
     <sys:Double x:Key="SidebarWidth">260</sys:Double>
     <sys:Double x:Key="SidebarCollapsed">72</sys:Double>
-    <sys:Double x:Key="ButtonHeightSm">36</sys:Double>
-    <sys:Double x:Key="ButtonHeightMd">44</sys:Double>
-    <sys:Double x:Key="ButtonHeightLg">52</sys:Double>
-    <sys:Double x:Key="InputHeight">44</sys:Double>
+    <sys:Double x:Key="ButtonHeightSm">40</sys:Double>
+    <sys:Double x:Key="ButtonHeightMd">48</sys:Double>
+    <sys:Double x:Key="ButtonHeightLg">56</sys:Double>
+    <sys:Double x:Key="InputHeight">50</sys:Double>
     <sys:Double x:Key="ContentMaxWidth">960</sys:Double>
 
     <!-- ======================== SPACING ======================== -->
@@ -430,17 +430,17 @@
          override inherited TextElement.Foreground with TextPrimaryBrush (dark). -->
     <Style x:Key="SidebarNavButton" TargetType="RadioButton">
         <Setter Property="FontFamily" Value="{StaticResource FontPrimary}" />
-        <Setter Property="FontSize" Value="15" />
+        <Setter Property="FontSize" Value="17" />
         <Setter Property="FontWeight" Value="Medium" />
         <Setter Property="Foreground" Value="#C8CCD8" />
         <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Margin" Value="0,2" />
+        <Setter Property="Margin" Value="0,3" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="border" Background="Transparent"
                             CornerRadius="{StaticResource RadiusMd}"
-                            Padding="16,13" SnapsToDevicePixels="True">
+                            Padding="18,15" SnapsToDevicePixels="True">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="4" />
