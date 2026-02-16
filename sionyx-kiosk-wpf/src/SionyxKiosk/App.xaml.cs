@@ -7,6 +7,7 @@ using Serilog;
 using SionyxKiosk.Infrastructure;
 using SionyxKiosk.Services;
 using SionyxKiosk.ViewModels;
+using SionyxKiosk.Views.Dialogs;
 using SionyxKiosk.Views.Pages;
 using SionyxKiosk.Views.Windows;
 
@@ -21,6 +22,25 @@ public partial class App : Application
     private static Mutex? _singleInstanceMutex;
     private IHost? _host;
     private bool _isKiosk;
+
+    // Event handler references for proper unsubscription on singleton services.
+    // Every delegate subscribed to a singleton event MUST be stored here so we
+    // can reliably unsubscribe in StopSystemServicesAsync.
+    private Action<string>? _forceLogoutHandler;
+    private Action? _adminExitHandler;
+    private Action? _sessionStartedHandler;
+    private Action<int>? _sessionTimeUpdatedHandler;
+    private Action<string>? _sessionEndedHandler;
+    private Action? _warning5MinHandler;
+    private Action? _warning1MinHandler;
+    private Action<string>? _syncFailedHandler;
+    private Action? _syncRestoredHandler;
+    private Action<string, int, double, double>? _printJobAllowedHandler;
+    private Action<string, int, double, double>? _printJobBlockedHandler;
+    private Action<double>? _printBudgetUpdatedHandler;
+
+    // Floating timer reference (managed across login cycles)
+    private Views.Controls.FloatingTimer? _floatingTimer;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -81,7 +101,6 @@ public partial class App : Application
                 services.AddSingleton(_ => FirebaseConfig.Load());
                 services.AddSingleton(sp => new FirebaseClient(sp.GetRequiredService<FirebaseConfig>()));
                 services.AddSingleton(_ => new LocalDatabase());
-                // RegistryConfig is static, no DI needed
 
                 // Business Services (singleton - no user-specific params)
                 services.AddSingleton(sp => new AuthService(
@@ -94,28 +113,25 @@ public partial class App : Application
                 services.AddSingleton(sp => new OperatingHoursService(sp.GetRequiredService<FirebaseClient>()));
                 services.AddSingleton(sp => new ForceLogoutService(sp.GetRequiredService<FirebaseClient>()));
 
-                // User-scoped services (created after login via factory)
+                // User-scoped services (singleton, but Reinitialize is called after each login)
                 services.AddSingleton(sp =>
                 {
                     var fb = sp.GetRequiredService<FirebaseClient>();
-                    var auth = sp.GetRequiredService<AuthService>();
                     var cfg = sp.GetRequiredService<FirebaseConfig>();
-                    return new SessionService(fb, auth.CurrentUser?.Uid ?? "", cfg.OrgId);
+                    return new SessionService(fb, "", cfg.OrgId);
                 });
                 services.AddSingleton(sp =>
                 {
                     var fb = sp.GetRequiredService<FirebaseClient>();
-                    var auth = sp.GetRequiredService<AuthService>();
-                    return new ChatService(fb, auth.CurrentUser?.Uid ?? "");
+                    return new ChatService(fb, "");
+                });
+                services.AddSingleton(sp =>
+                {
+                    var fb = sp.GetRequiredService<FirebaseClient>();
+                    return new PrintMonitorService(fb, "");
                 });
 
                 // System Services
-                services.AddSingleton(sp =>
-                {
-                    var fb = sp.GetRequiredService<FirebaseClient>();
-                    var auth = sp.GetRequiredService<AuthService>();
-                    return new PrintMonitorService(fb, auth.CurrentUser?.Uid ?? "");
-                });
                 services.AddSingleton(_ => new KeyboardRestrictionService());
                 services.AddSingleton(_ => new GlobalHotkeyService());
                 services.AddSingleton(_ => new ProcessRestrictionService());
@@ -131,8 +147,9 @@ public partial class App : Application
                 {
                     var session = sp.GetRequiredService<SessionService>();
                     var chat = sp.GetRequiredService<ChatService>();
+                    var hours = sp.GetRequiredService<OperatingHoursService>();
                     var auth = sp.GetRequiredService<AuthService>();
-                    return new HomeViewModel(session, chat, auth.CurrentUser!);
+                    return new HomeViewModel(session, chat, hours, auth.CurrentUser!);
                 });
                 services.AddTransient<PackagesViewModel>(sp =>
                 {
@@ -163,7 +180,11 @@ public partial class App : Application
                     var vm = sp.GetRequiredService<MainViewModel>();
                     return new MainWindow(vm, sp);
                 });
-                services.AddTransient<HomePage>();
+                services.AddTransient<HomePage>(sp =>
+                {
+                    var vm = sp.GetRequiredService<HomeViewModel>();
+                    return new HomePage(vm, sp);
+                });
                 services.AddTransient<PackagesPage>(sp =>
                 {
                     var vm = sp.GetRequiredService<PackagesViewModel>();
@@ -190,34 +211,37 @@ public partial class App : Application
         ShowAuthWindow();
     }
 
+    // ================================================================
+    // Window Lifecycle
+    // ================================================================
+
     private void ShowAuthWindow()
     {
         var authVm = _host!.Services.GetRequiredService<AuthViewModel>();
 
-        authVm.LoginSucceeded += () =>
-        {
-            Current.Dispatcher.Invoke(() =>
-            {
-                MainWindow?.Close();
-                ShowMainWindow();
-            });
-        };
-
-        authVm.RegistrationSucceeded += () =>
-        {
-            Current.Dispatcher.Invoke(() =>
-            {
-                MainWindow?.Close();
-                ShowMainWindow();
-            });
-        };
+        // AuthViewModel is Transient (new instance each time) so event subscriptions
+        // are fresh and don't leak.
+        authVm.LoginSucceeded += OnLoginSucceeded;
+        authVm.RegistrationSucceeded += OnLoginSucceeded;
 
         var authWindow = new AuthWindow(authVm);
         authWindow.Show();
         MainWindow = authWindow;
 
-        // Try auto-login
         _ = TryAutoLoginAsync(authVm);
+    }
+
+    private void OnLoginSucceeded()
+    {
+        Current.Dispatcher.Invoke(() =>
+        {
+            if (MainWindow is AuthWindow aw)
+            {
+                aw.AllowClose();
+                aw.Close();
+            }
+            ShowMainWindow();
+        });
     }
 
     private async Task TryAutoLoginAsync(AuthViewModel authVm)
@@ -233,31 +257,51 @@ public partial class App : Application
     private void ShowMainWindow()
     {
         var mainWindow = _host!.Services.GetRequiredService<MainWindow>();
-
         var mainVm = (MainViewModel)mainWindow.DataContext;
-        mainVm.LogoutRequested += () =>
-        {
-            Current.Dispatcher.Invoke(async () =>
-            {
-                await StopSystemServicesAsync();
-                mainWindow.Close();
-                ShowAuthWindow();
-            });
-        };
 
-        // Kiosk mode: fullscreen, topmost, no taskbar
-        if (_isKiosk)
-        {
-            mainWindow.WindowState = WindowState.Maximized;
-            mainWindow.Topmost = true;
-        }
+        mainVm.LogoutRequested += OnLogoutRequested;
+
+        // Always fullscreen, topmost (kiosk behavior)
+        mainWindow.WindowState = WindowState.Maximized;
+        mainWindow.Topmost = true;
+
+        // Show window and set as MainWindow BEFORE starting services
+        // (services need the window handle for global hotkeys)
+        mainWindow.Show();
+        MainWindow = mainWindow;
 
         // Start system services
         StartSystemServices();
-
-        mainWindow.Show();
-        MainWindow = mainWindow;
     }
+
+    private void OnLogoutRequested()
+    {
+        _ = Current.Dispatcher.InvokeAsync(async () =>
+        {
+            try
+            {
+                await StopSystemServicesAsync();
+
+                var auth = _host!.Services.GetRequiredService<AuthService>();
+                await auth.LogoutAsync();
+
+                if (MainWindow is Views.Windows.MainWindow mw)
+                {
+                    mw.AllowClose();
+                    mw.Close();
+                }
+                ShowAuthWindow();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error during logout");
+            }
+        });
+    }
+
+    // ================================================================
+    // System Services Lifecycle
+    // ================================================================
 
     private void StartSystemServices()
     {
@@ -266,63 +310,75 @@ public partial class App : Application
             var auth = _host!.Services.GetRequiredService<AuthService>();
             var userId = auth.CurrentUser?.Uid ?? "";
 
-            // Force logout listener
+            if (string.IsNullOrEmpty(userId))
+            {
+                Log.Warning("StartSystemServices called without a logged-in user");
+                return;
+            }
+
+            // ── Reinitialize user-scoped singletons with current userId ──
+            var session = _host.Services.GetRequiredService<SessionService>();
+            var chat = _host.Services.GetRequiredService<ChatService>();
+            var printMonitor = _host.Services.GetRequiredService<PrintMonitorService>();
+
+            session.Reinitialize(userId);
+            chat.Reinitialize(userId);
+            printMonitor.Reinitialize(userId);
+
+            // ── Force logout listener ──
             var forceLogout = _host.Services.GetRequiredService<ForceLogoutService>();
-            forceLogout.StartListening(userId);
-            forceLogout.ForceLogout += reason =>
+            if (_forceLogoutHandler != null)
+                forceLogout.ForceLogout -= _forceLogoutHandler;
+
+            _forceLogoutHandler = reason =>
             {
                 Log.Warning("Force logout received: {Reason}", reason);
-                Current.Dispatcher.Invoke(async () =>
+                _ = Current.Dispatcher.InvokeAsync(async () =>
                 {
-                    await StopSystemServicesAsync();
-                    await auth.LogoutAsync();
-                    MainWindow?.Close();
-                    ShowAuthWindow();
+                    try
+                    {
+                        // Notify the user before logging them out
+                        AlertDialog.Show(
+                            "ניתוק על ידי מנהל",
+                            "הותנקת מהמערכת על ידי מנהל. אנא התחבר מחדש.",
+                            AlertDialog.AlertType.Warning,
+                            MainWindow);
+
+                        await StopSystemServicesAsync();
+                        await auth.LogoutAsync();
+                        if (MainWindow is Views.Windows.MainWindow mw)
+                        {
+                            mw.AllowClose();
+                            mw.Close();
+                        }
+                        ShowAuthWindow();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex, "Error during force logout");
+                    }
                 });
             };
+            forceLogout.ForceLogout += _forceLogoutHandler;
+            forceLogout.StartListening(userId);
 
-            // Chat service — start SSE listener for messages
-            var chat = _host.Services.GetRequiredService<ChatService>();
+            // ── Chat service SSE listener ──
             chat.StartListening();
 
-            // Print monitor + floating timer — start/stop with session
-            var session = _host.Services.GetRequiredService<SessionService>();
-            var printMonitor = _host.Services.GetRequiredService<PrintMonitorService>();
-            Views.Controls.FloatingTimer? floatingTimer = null;
+            // ── Session lifecycle events ──
+            UnsubscribeSessionEvents(session);
+            SubscribeSessionEvents(session, printMonitor);
 
-            session.SessionStarted += () =>
-            {
-                printMonitor.StartMonitoring();
-                Current.Dispatcher.Invoke(() =>
-                {
-                    floatingTimer = new Views.Controls.FloatingTimer();
-                    floatingTimer.Show();
-                });
-            };
+            // ── Print monitor events ──
+            UnsubscribePrintMonitorEvents(printMonitor);
+            SubscribePrintMonitorEvents(printMonitor);
 
-            session.TimeUpdated += remaining =>
-            {
-                Current.Dispatcher.Invoke(() =>
-                {
-                    floatingTimer?.UpdateTime(remaining);
-                });
-            };
-
-            session.SessionEnded += _ =>
-            {
-                printMonitor.StopMonitoring();
-                Current.Dispatcher.Invoke(() =>
-                {
-                    floatingTimer?.Close();
-                    floatingTimer = null;
-                });
-            };
-
-            // Operating hours monitoring
+            // ── Operating hours monitoring ──
             var hours = _host.Services.GetRequiredService<OperatingHoursService>();
-            hours.StartMonitoring();
+            _ = hours.LoadSettingsAsync();
+            // Note: per-session monitoring is started by SessionService.StartSessionAsync
 
-            // Process restriction (always in kiosk mode)
+            // ── Process restriction (always in kiosk mode) ──
             if (_isKiosk)
             {
                 var procRestrict = _host.Services.GetRequiredService<ProcessRestrictionService>();
@@ -332,23 +388,22 @@ public partial class App : Application
                 keyboard.Start();
             }
 
-            // Global hotkey (admin exit) — needs window handle from MainWindow
+            // ── Global hotkey (admin exit) ──
             if (MainWindow != null)
             {
                 var hwnd = new System.Windows.Interop.WindowInteropHelper(MainWindow).Handle;
                 if (hwnd != IntPtr.Zero)
                 {
                     var hotkey = _host.Services.GetRequiredService<GlobalHotkeyService>();
-                    hotkey.Start(hwnd);
-                    hotkey.AdminExitRequested += () =>
+                    if (_adminExitHandler != null)
+                        hotkey.AdminExitRequested -= _adminExitHandler;
+
+                    _adminExitHandler = () =>
                     {
-                        Current.Dispatcher.Invoke(async () =>
-                        {
-                            await StopSystemServicesAsync();
-                            await auth.LogoutAsync();
-                            Shutdown();
-                        });
+                        Current.Dispatcher.Invoke(() => ShowAdminExitDialog(auth));
                     };
+                    hotkey.AdminExitRequested += _adminExitHandler;
+                    hotkey.Start(hwnd);
                 }
             }
 
@@ -360,27 +415,280 @@ public partial class App : Application
         }
     }
 
+    // ── Session event wiring ─────────────────────────────────────
+
+    private void SubscribeSessionEvents(SessionService session, PrintMonitorService printMonitor)
+    {
+        _sessionStartedHandler = () =>
+        {
+            printMonitor.StartMonitoring();
+            Current.Dispatcher.Invoke(() =>
+            {
+                // Create and show floating timer
+                _floatingTimer = new Views.Controls.FloatingTimer();
+                _floatingTimer.UpdatePrintBalance(
+                    _host?.Services.GetService<AuthService>()?.CurrentUser?.PrintBalance ?? 0);
+                _floatingTimer.ReturnRequested += OnFloatingTimerReturn;
+                _floatingTimer.Show();
+
+                // Minimize main window — the user works at their desktop with the timer overlay
+                if (MainWindow is Views.Windows.MainWindow mw)
+                {
+                    mw.Topmost = false;
+                    mw.WindowState = WindowState.Minimized;
+                }
+            });
+        };
+
+        _sessionTimeUpdatedHandler = remaining =>
+        {
+            Current.Dispatcher.Invoke(() =>
+            {
+                _floatingTimer?.UpdateTime(remaining);
+                _floatingTimer?.UpdateUsageTime(session.TimeUsed);
+            });
+        };
+
+        _sessionEndedHandler = reason =>
+        {
+            printMonitor.StopMonitoring();
+            Current.Dispatcher.Invoke(() =>
+            {
+                // Close floating timer
+                if (_floatingTimer != null)
+                {
+                    _floatingTimer.ReturnRequested -= OnFloatingTimerReturn;
+                    _floatingTimer.Close();
+                    _floatingTimer = null;
+                }
+
+                // Restore main window
+                if (MainWindow is Views.Windows.MainWindow mw)
+                {
+                    mw.WindowState = WindowState.Maximized;
+                    mw.Topmost = true;
+                    mw.Activate();
+                    mw.NavigateHome();
+                }
+            });
+        };
+
+        _warning5MinHandler = () =>
+        {
+            Log.Information("Session warning: 5 minutes remaining");
+            Current.Dispatcher.Invoke(() =>
+            {
+                if (MainWindow is Views.Windows.MainWindow mw)
+                    mw.ShowToast("5 דקות נותרו", "ההפעלה תסתיים בעוד 5 דקות",
+                        Views.Controls.ToastNotification.ToastType.Warning, 5000);
+            });
+        };
+
+        _warning1MinHandler = () =>
+        {
+            Log.Information("Session warning: 1 minute remaining");
+            Current.Dispatcher.Invoke(() =>
+            {
+                if (MainWindow is Views.Windows.MainWindow mw)
+                    mw.ShowToast("דקה אחרונה!", "ההפעלה תסתיים בעוד דקה",
+                        Views.Controls.ToastNotification.ToastType.Error, 5000);
+            });
+        };
+
+        _syncFailedHandler = msg =>
+        {
+            Current.Dispatcher.Invoke(() => _floatingTimer?.SetOfflineMode(true));
+        };
+
+        _syncRestoredHandler = () =>
+        {
+            Current.Dispatcher.Invoke(() => _floatingTimer?.SetOfflineMode(false));
+        };
+
+        session.SessionStarted += _sessionStartedHandler;
+        session.TimeUpdated += _sessionTimeUpdatedHandler;
+        session.SessionEnded += _sessionEndedHandler;
+        session.Warning5Min += _warning5MinHandler;
+        session.Warning1Min += _warning1MinHandler;
+        session.SyncFailed += _syncFailedHandler;
+        session.SyncRestored += _syncRestoredHandler;
+    }
+
+    private void UnsubscribeSessionEvents(SessionService session)
+    {
+        if (_sessionStartedHandler != null) session.SessionStarted -= _sessionStartedHandler;
+        if (_sessionTimeUpdatedHandler != null) session.TimeUpdated -= _sessionTimeUpdatedHandler;
+        if (_sessionEndedHandler != null) session.SessionEnded -= _sessionEndedHandler;
+        if (_warning5MinHandler != null) session.Warning5Min -= _warning5MinHandler;
+        if (_warning1MinHandler != null) session.Warning1Min -= _warning1MinHandler;
+        if (_syncFailedHandler != null) session.SyncFailed -= _syncFailedHandler;
+        if (_syncRestoredHandler != null) session.SyncRestored -= _syncRestoredHandler;
+
+        _sessionStartedHandler = null;
+        _sessionTimeUpdatedHandler = null;
+        _sessionEndedHandler = null;
+        _warning5MinHandler = null;
+        _warning1MinHandler = null;
+        _syncFailedHandler = null;
+        _syncRestoredHandler = null;
+    }
+
+    // ── Print monitor event wiring ──────────────────────────────
+
+    private void SubscribePrintMonitorEvents(PrintMonitorService printMonitor)
+    {
+        _printJobAllowedHandler = (doc, pages, cost, remaining) =>
+        {
+            Log.Information("Print job allowed: '{Doc}' ({Pages}p, {Cost}₪)", doc, pages, cost);
+            Current.Dispatcher.Invoke(() =>
+            {
+                _floatingTimer?.UpdatePrintBalance(remaining);
+                if (MainWindow is Views.Windows.MainWindow mw)
+                    mw.ShowToast("הדפסה אושרה", $"{doc} — {cost:F2}₪",
+                        Views.Controls.ToastNotification.ToastType.Success);
+            });
+        };
+
+        _printJobBlockedHandler = (doc, pages, cost, budget) =>
+        {
+            Log.Warning("Print job blocked: '{Doc}' ({Pages}p, {Cost}₪, budget={Budget}₪)", doc, pages, cost, budget);
+            Current.Dispatcher.Invoke(() =>
+            {
+                if (MainWindow is Views.Windows.MainWindow mw)
+                    mw.ShowToast("הדפסה נדחתה", $"יתרה לא מספיקה ({budget:F2}₪ זמין, צריך {cost:F2}₪)",
+                        Views.Controls.ToastNotification.ToastType.Error, 5000);
+            });
+        };
+
+        _printBudgetUpdatedHandler = budget =>
+        {
+            Current.Dispatcher.Invoke(() => _floatingTimer?.UpdatePrintBalance(budget));
+        };
+
+        printMonitor.JobAllowed += _printJobAllowedHandler;
+        printMonitor.JobBlocked += _printJobBlockedHandler;
+        printMonitor.BudgetUpdated += _printBudgetUpdatedHandler;
+    }
+
+    private void UnsubscribePrintMonitorEvents(PrintMonitorService printMonitor)
+    {
+        if (_printJobAllowedHandler != null) printMonitor.JobAllowed -= _printJobAllowedHandler;
+        if (_printJobBlockedHandler != null) printMonitor.JobBlocked -= _printJobBlockedHandler;
+        if (_printBudgetUpdatedHandler != null) printMonitor.BudgetUpdated -= _printBudgetUpdatedHandler;
+
+        _printJobAllowedHandler = null;
+        _printJobBlockedHandler = null;
+        _printBudgetUpdatedHandler = null;
+    }
+
+    // ── FloatingTimer return button ─────────────────────────────
+
+    private void OnFloatingTimerReturn()
+    {
+        // End session — this triggers SessionEnded which handles closing the timer
+        // and restoring the main window (see _sessionEndedHandler above).
+        var session = _host?.Services.GetService<SessionService>();
+        if (session?.IsActive == true)
+            _ = session.EndSessionAsync("user");
+    }
+
+    // ── Service teardown ────────────────────────────────────────
+
     private async Task StopSystemServicesAsync()
     {
         try
         {
+            // ── Unsubscribe all singleton event handlers ──
+            var forceLogout = _host?.Services.GetService<ForceLogoutService>();
+            if (forceLogout != null && _forceLogoutHandler != null)
+            {
+                forceLogout.ForceLogout -= _forceLogoutHandler;
+                _forceLogoutHandler = null;
+            }
+
+            var hotkey = _host?.Services.GetService<GlobalHotkeyService>();
+            if (hotkey != null && _adminExitHandler != null)
+            {
+                hotkey.AdminExitRequested -= _adminExitHandler;
+                _adminExitHandler = null;
+            }
+
+            var session = _host?.Services.GetService<SessionService>();
+            if (session != null)
+                UnsubscribeSessionEvents(session);
+
+            var printMonitor = _host?.Services.GetService<PrintMonitorService>();
+            if (printMonitor != null)
+                UnsubscribePrintMonitorEvents(printMonitor);
+
+            // ── Stop services ──
             _host?.Services.GetService<ChatService>()?.StopListening();
-            _host?.Services.GetService<ForceLogoutService>()?.StopListening();
+            forceLogout?.StopListening();
             _host?.Services.GetService<OperatingHoursService>()?.StopMonitoring();
             _host?.Services.GetService<ProcessRestrictionService>()?.Stop();
             _host?.Services.GetService<KeyboardRestrictionService>()?.Stop();
-            _host?.Services.GetService<GlobalHotkeyService>()?.Stop();
-            _host?.Services.GetService<PrintMonitorService>()?.StopMonitoring();
+            hotkey?.Stop();
+            printMonitor?.StopMonitoring();
 
-            var session = _host?.Services.GetService<SessionService>();
             if (session?.IsActive == true)
                 await session.EndSessionAsync("logout");
+
+            // Close floating timer
+            Current.Dispatcher.Invoke(() =>
+            {
+                if (_floatingTimer != null)
+                {
+                    _floatingTimer.ReturnRequested -= OnFloatingTimerReturn;
+                    _floatingTimer.Close();
+                    _floatingTimer = null;
+                }
+            });
         }
         catch (Exception ex)
         {
             Log.Error(ex, "Error stopping system services");
         }
     }
+
+    // ================================================================
+    // Admin Exit
+    // ================================================================
+
+    private void ShowAdminExitDialog(AuthService auth)
+    {
+        var dialog = new Views.Dialogs.AdminExitDialog();
+        dialog.Owner = MainWindow;
+        if (dialog.ShowDialog() == true)
+        {
+            var password = dialog.EnteredPassword;
+            if (password == Infrastructure.AppConstants.GetAdminExitPassword())
+            {
+                Log.Information("Admin exit: correct password, shutting down");
+                _ = Task.Run(async () =>
+                {
+                    await StopSystemServicesAsync();
+                    await auth.LogoutAsync();
+                    Current.Dispatcher.Invoke(() =>
+                    {
+                        if (MainWindow is Views.Windows.MainWindow mw)
+                            mw.AllowClose();
+                        else if (MainWindow is AuthWindow aw)
+                            aw.AllowClose();
+                        Shutdown();
+                    });
+                });
+            }
+            else
+            {
+                Log.Warning("Admin exit: incorrect password");
+                MessageBox.Show("סיסמה שגויה", "SIONYX", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+    }
+
+    // ================================================================
+    // Application Exit
+    // ================================================================
 
     protected override async void OnExit(ExitEventArgs e)
     {
@@ -396,6 +704,10 @@ public partial class App : Application
             _host?.Services.GetService<ForceLogoutService>()?.StopListening();
             _host?.Services.GetService<ChatService>()?.StopListening();
             _host?.Services.GetService<PrintMonitorService>()?.StopMonitoring();
+
+            // Allow any open window to close during shutdown
+            if (MainWindow is Views.Windows.MainWindow mw) mw.AllowClose();
+            else if (MainWindow is AuthWindow aw) aw.AllowClose();
 
             if (_host != null) await _host.StopAsync();
             _host?.Dispose();
@@ -413,6 +725,10 @@ public partial class App : Application
 
         base.OnExit(e);
     }
+
+    // ================================================================
+    // Helpers
+    // ================================================================
 
     private static string GetVersion() => "1.0.0";
 

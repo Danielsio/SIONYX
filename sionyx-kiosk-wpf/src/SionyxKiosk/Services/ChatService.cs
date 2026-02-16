@@ -11,7 +11,7 @@ public class ChatService : BaseService, IDisposable
 {
     protected override string ServiceName => "ChatService";
 
-    private readonly string _userId;
+    private string _userId;
     private SseListener? _streamListener;
     private DateTime? _lastSeenUpdateTime;
     private readonly int _lastSeenDebounceSeconds = 60;
@@ -30,6 +30,15 @@ public class ChatService : BaseService, IDisposable
     {
         _userId = userId;
         Logger.Information("Chat service initialized for user {UserId} (SSE mode)", userId);
+    }
+
+    /// <summary>Update userId for a new login session (singleton reuse).</summary>
+    public void Reinitialize(string userId)
+    {
+        StopListening();
+        InvalidateCache();
+        _userId = userId;
+        Logger.Information("Chat service re-initialized for user {UserId}", userId);
     }
 
     /// <summary>Get all unread messages for the current user.</summary>

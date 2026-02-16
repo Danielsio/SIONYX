@@ -3,6 +3,11 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:controls="clr-namespace:SionyxKiosk.Views.Controls"
       Title="היסטוריה" FlowDirection="RightToLeft">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Page.Resources>
+
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
         <StackPanel>
             <controls:PageHeader Title="היסטוריית רכישות" Subtitle="צפה ברכישות שלך" Margin="0,0,0,24" />
@@ -13,16 +18,46 @@
                 <controls:StatCard Title="סה״כ הוצאות" Value="{Binding TotalSpent, StringFormat='{}{0:F2} ₪'}" Icon="💰" Margin="12,0,0,0" />
             </UniformGrid>
 
+            <!-- Filters row -->
+            <Border Background="White" CornerRadius="{StaticResource RadiusMd}" Padding="16,12" Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Search box -->
+                    <TextBox Grid.Column="0" Style="{StaticResource FrostInput}"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Tag="חיפוש לפי שם חבילה..."
+                             Margin="0,0,12,0" />
+
+                    <!-- Status filter -->
+                    <ComboBox Grid.Column="1" Width="130"
+                              ItemsSource="{Binding StatusOptions}"
+                              SelectedItem="{Binding SelectedStatus}"
+                              Style="{StaticResource FrostComboBox}"
+                              Margin="0,0,12,0" />
+
+                    <!-- Sort toggle -->
+                    <Button Grid.Column="2"
+                            Content="{Binding SortNewestFirst, Converter={StaticResource SortLabelConverter}}"
+                            Command="{Binding ToggleSortCommand}"
+                            Style="{StaticResource BtnGhost}"
+                            Width="100" />
+                </Grid>
+            </Border>
+
             <!-- Loading -->
             <controls:LoadingSpinner HorizontalAlignment="Center"
                                      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
 
             <!-- Empty state -->
-            <controls:EmptyState Message="אין היסטוריית רכישות"
-                                 Visibility="{Binding Purchases.Count, Converter={StaticResource ZeroToVis}}" />
+            <controls:EmptyState x:Name="EmptyPanel" Message="אין היסטוריית רכישות" Visibility="Collapsed" />
 
-            <!-- Purchase list -->
-            <ItemsControl ItemsSource="{Binding Purchases}" Margin="0,0,0,32">
+            <!-- Purchase list (bound to FilteredPurchases ICollectionView) -->
+            <ItemsControl ItemsSource="{Binding FilteredPurchases}" Margin="0,0,0,32">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <controls:PurchaseCard

@@ -21,6 +21,29 @@
                 <controls:StatCard Title="הודעות" Value="{Binding UnreadMessages}" Icon="💬" Margin="12,0,0,0" />
             </UniformGrid>
 
+            <!-- Unread messages card (visible only when there are unread messages) -->
+            <Border x:Name="MessageCard" Background="#EFF6FF" CornerRadius="{StaticResource RadiusLg}"
+                    Padding="20,16" Margin="0,0,0,16" Cursor="Hand"
+                    MouseLeftButtonUp="MessageCard_Click"
+                    Visibility="Collapsed">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="💬" FontSize="24" VerticalAlignment="Center" Margin="0,0,12,0" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="הודעות חדשות" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+                        <TextBlock x:Name="MessageCountText" Text="" FontSize="13"
+                                   Foreground="{StaticResource TextSecondaryBrush}" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Text="צפה בהודעות ←" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center" />
+                </Grid>
+            </Border>
+
             <!-- Session controls -->
             <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="32,24" Margin="0,0,0,24">
                 <Border.Effect>

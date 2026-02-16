@@ -14,6 +14,7 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private UserData? _currentUser;
     [ObservableProperty] private bool _isSidebarCollapsed;
 
+    /// <summary>Raised when the user requests logout. App.xaml.cs handles the actual logout.</summary>
     public event Action? LogoutRequested;
 
     public MainViewModel(AuthService auth)
@@ -29,9 +30,11 @@ public partial class MainViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task LogoutAsync()
+    private void Logout()
     {
-        await _auth.LogoutAsync();
+        // Don't call auth.LogoutAsync() here — the App.xaml.cs OnLogoutRequested
+        // handler owns the full logout sequence (stop services → logout → show auth window).
+        // Calling it here would double-logout and could race with service teardown.
         LogoutRequested?.Invoke();
     }
 

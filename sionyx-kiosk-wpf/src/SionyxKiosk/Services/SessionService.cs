@@ -14,7 +14,7 @@ public class SessionService : BaseService, IDisposable
     protected override string ServiceName => "SessionService";
 
     private readonly ComputerService _computerService;
-    private readonly string _userId;
+    private string _userId;
     private readonly string _orgId;
 
     // Sub-services
@@ -70,6 +70,13 @@ public class SessionService : BaseService, IDisposable
         _syncTimer.Tick += (_, _) => _ = SyncToFirebaseAsync();
 
         Logger.Information("Session service initialized for user: {UserId}", userId);
+    }
+
+    /// <summary>Update userId for a new login session (singleton reuse).</summary>
+    public void Reinitialize(string userId)
+    {
+        _userId = userId;
+        Logger.Information("Session service re-initialized for user: {UserId}", userId);
     }
 
     /// <summary>Start a new session with the user's remaining time.</summary>

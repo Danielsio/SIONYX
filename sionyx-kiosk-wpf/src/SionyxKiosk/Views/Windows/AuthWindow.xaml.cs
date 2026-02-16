@@ -1,12 +1,15 @@
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Input;
 using SionyxKiosk.ViewModels;
 
 namespace SionyxKiosk.Views.Windows;
 
 public partial class AuthWindow : Window
 {
+    private bool _allowClose;
+
     public AuthWindow(AuthViewModel viewModel)
     {
         DataContext = viewModel;
@@ -31,6 +34,29 @@ public partial class AuthWindow : Window
                 ToggleButton.Content = isLogin ? "אין לך חשבון? הירשם" : "יש לך חשבון? התחבר";
             }
         };
+    }
+
+    /// <summary>Allow the window to close (called when transitioning to MainWindow).</summary>
+    public void AllowClose() => _allowClose = true;
+
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        if (!_allowClose)
+        {
+            e.Cancel = true;
+            return;
+        }
+        base.OnClosing(e);
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape || e.Key == Key.System)
+        {
+            e.Handled = true;
+            return;
+        }
+        base.OnKeyDown(e);
     }
 }
 

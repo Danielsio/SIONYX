@@ -32,23 +32,60 @@
 
             <!-- Contact card -->
             <TextBlock Text="יצירת קשר" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
-            <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="24">
+            <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="24" Margin="0,0,0,32">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="12" ShadowDepth="3" Direction="270" Color="#0F172A" Opacity="0.06" />
                 </Border.Effect>
                 <StackPanel>
                     <TextBlock Text="{Binding OrgName}" FontSize="18" FontWeight="Bold"
-                               Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,12" />
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="📞 " FontSize="16" />
-                        <TextBlock Text="{Binding AdminPhone}" FontSize="15"
-                                   Foreground="{StaticResource PrimaryBrush}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="📧 " FontSize="16" />
-                        <TextBlock Text="{Binding AdminEmail}" FontSize="15"
-                                   Foreground="{StaticResource PrimaryBrush}" />
-                    </StackPanel>
+                               Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,16" />
+
+                    <!-- Phone row with copy button -->
+                    <Border Background="#F8FAFC" CornerRadius="{StaticResource RadiusMd}"
+                            Padding="16,12" Margin="0,0,0,8" Cursor="Hand"
+                            MouseLeftButtonUp="PhoneRow_Click">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="📞" FontSize="18" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="טלפון" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock Text="{Binding AdminPhone}" FontSize="15" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryBrush}" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" Text="📋 העתק" FontSize="12"
+                                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Email row with copy button -->
+                    <Border Background="#F8FAFC" CornerRadius="{StaticResource RadiusMd}"
+                            Padding="16,12" Cursor="Hand"
+                            MouseLeftButtonUp="EmailRow_Click">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="📧" FontSize="18" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="אימייל" FontSize="12" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock Text="{Binding AdminEmail}" FontSize="15" FontWeight="SemiBold"
+                                           Foreground="{StaticResource PrimaryBrush}" />
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" Text="📋 העתק" FontSize="12"
+                                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Copy feedback -->
+                    <TextBlock Text="{Binding CopyFeedback}" FontSize="13" FontWeight="SemiBold"
+                               Foreground="{StaticResource SuccessBrush}" Margin="0,8,0,0"
+                               HorizontalAlignment="Center" />
                 </StackPanel>
             </Border>
         </StackPanel>

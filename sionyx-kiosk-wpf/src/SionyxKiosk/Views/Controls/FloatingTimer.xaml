@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False"
-        Width="200" Height="72" ResizeMode="NoResize"
+        Width="320" Height="80" ResizeMode="NoResize"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
     <Border x:Name="TimerBorder" CornerRadius="20" Padding="16,10"
             Background="#E6FFFFFF">
@@ -15,22 +15,40 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Time display -->
+            <!-- Time remaining (primary) -->
             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                 <TextBlock x:Name="TimeText" Text="00:00:00"
                            FontSize="22" FontWeight="Bold" FontFamily="Consolas"
                            Foreground="{StaticResource TextPrimaryBrush}" />
-                <TextBlock Text="זמן נותר" FontSize="10"
+                <TextBlock x:Name="TimeLabel" Text="זמן נותר" FontSize="10"
                            Foreground="{StaticResource TextMutedBrush}" />
             </StackPanel>
 
+            <!-- Usage time + Print balance (secondary) -->
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0,0,0">
+                <TextBlock x:Name="UsageText" Text="00:00" FontSize="12" FontFamily="Consolas"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+                <TextBlock x:Name="PrintText" Text="0.00 ₪" FontSize="12" FontFamily="Consolas"
+                           Foreground="{StaticResource TextSecondaryBrush}" />
+            </StackPanel>
+
+            <!-- Offline indicator -->
+            <Border x:Name="OfflineBadge" Grid.Column="2" Visibility="Collapsed"
+                    Background="#FEF3C7" CornerRadius="8" Padding="6,2" Margin="8,0,0,0"
+                    VerticalAlignment="Center">
+                <TextBlock Text="⚠ Offline" FontSize="10" FontWeight="SemiBold"
+                           Foreground="#92400E" />
+            </Border>
+
             <!-- Return button -->
-            <Button Grid.Column="1" Content="↩"
+            <Button Grid.Column="3" Content="↩"
                     Style="{StaticResource BtnGhost}"
                     FontSize="18" Width="36" Height="36" Padding="0"
-                    ToolTip="חזרה לאפליקציה"
+                    ToolTip="חזרה לאפליקציה" Margin="8,0,0,0"
                     Click="ReturnButton_Click" />
         </Grid>
     </Border>
