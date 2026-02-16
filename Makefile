@@ -2,22 +2,21 @@
 # ║                          SIONYX MONOREPO                                  ║
 # ║                                                                           ║
 # ║  Two apps, one repo:                                                      ║
-# ║    • sionyx-kiosk  →  Windows kiosk client (Python/PyQt6)               ║
-# ║    • sionyx-web      →  Admin dashboard (React/Vite)                      ║
+# ║    • sionyx-kiosk-wpf  →  Windows kiosk client (C#/WPF/.NET 8)          ║
+# ║    • sionyx-web         →  Admin dashboard (React/Vite)                   ║
 # ║                                                                           ║
 # ║  Naming convention:                                                       ║
 # ║    • (no prefix)     →  Desktop client commands                           ║
 # ║    • web-*           →  Web admin commands                                ║
 # ╚══════════════════════════════════════════════════════════════════════════╝
 
-# Python 3.12 is required for desktop builds (enforced in build.py)
-# Use venv's python - ensure you've activated the venv first
+# Python 3.12 is required for release/merge scripts
 PYTHON := python
 
 .PHONY: help \
         release release-patch release-minor release-major release-dry merge-release sync-branches \
         build build-patch build-minor build-major build-local build-dry version \
-        dev dev-debug test test-cov test-fast test-int test-int-cov lint format \
+        dev test test-cov test-fast lint \
         web-dev web-build web-test web-lint web-deploy web-deploy-hosting \
         merge-feature clean
 
@@ -32,9 +31,9 @@ help:
 	@echo ""
 	@echo "  RELEASE (single command - does everything)"
 	@echo "  ------------------------------------------"
-	@echo "  make release-minor     Full release: branch → build → merge → tag → push"
-	@echo "  make release-patch     Same, for bug fixes (1.1.3 → 1.1.4)"
-	@echo "  make release-major     Same, for breaking changes (1.1.3 → 2.0.0)"
+	@echo "  make release-minor     Full release: branch -> build -> merge -> tag -> push"
+	@echo "  make release-patch     Same, for bug fixes (1.1.3 -> 1.1.4)"
+	@echo "  make release-major     Same, for breaking changes (1.1.3 -> 2.0.0)"
 	@echo ""
 	@echo "  BUILD (if you need to build without releasing)"
 	@echo "  ----------------------------------------------"
@@ -47,10 +46,7 @@ help:
 	@echo "  make dev               Run desktop app"
 	@echo "  make test              Run all tests"
 	@echo "  make test-cov          Run tests with coverage report"
-	@echo "  make test-int          Run integration tests only"
-	@echo "  make test-unit         Run unit tests only"
-	@echo "  make lint              Check code style"
-	@echo "  make format            Auto-fix formatting"
+	@echo "  make lint              Check code style (dotnet format)"
 	@echo ""
 	@echo "  WEB ADMIN (sionyx-web)"
 	@echo "  ----------------------"
@@ -60,25 +56,16 @@ help:
 	@echo ""
 	@echo "  GIT WORKFLOW"
 	@echo "  ------------"
-	@echo "  make merge-feature     Merge feature branch (with coverage check)"
-	@echo ""
-	@echo "  For full command list: make help-full"
+	@echo "  make merge-feature     Merge feature branch (with test check)"
 	@echo ""
 
 help-full:
 	@echo ""
-	@echo "╔════════════════════════════════════════════════════════════════╗"
-	@echo "║                    SIONYX - Full Command List                  ║"
-	@echo "╚════════════════════════════════════════════════════════════════╝"
-	@echo ""
-	@echo "  RELEASE (atomic: branch → build → version bump → merge → tag → push)"
-	@echo "  release-patch      Patch release (1.1.3 → 1.1.4) - bug fixes"
-	@echo "  release-minor      Minor release (1.1.3 → 1.2.0) - new features"
-	@echo "  release-major      Major release (1.1.3 → 2.0.0) - breaking changes"
+	@echo "RELEASE (atomic: branch -> build -> version bump -> merge -> tag -> push)"
+	@echo "  release-patch      Patch release (1.1.3 -> 1.1.4) - bug fixes"
+	@echo "  release-minor      Minor release (1.1.3 -> 1.2.0) - new features"
+	@echo "  release-major      Major release (1.1.3 -> 2.0.0) - breaking changes"
 	@echo "  release-dry        Preview what would happen (no changes)"
-	@echo ""
-	@echo "  Note: Version is only bumped AFTER successful build."
-	@echo "        If build fails, everything is rolled back."
 	@echo ""
 	@echo "BUILD COMMANDS"
 	@echo "  build              Build installer (default: patch bump)"
@@ -89,23 +76,12 @@ help-full:
 	@echo "  build-dry          Preview what version would be built"
 	@echo "  version            Show current version"
 	@echo ""
-	@echo "  NOTE: Build fails if test coverage drops."
-	@echo "        Override with: make build SKIP_COV=true"
-	@echo ""
-	@echo "DESKTOP APP (sionyx-kiosk)"
-	@echo "  dev                Run app"
-	@echo "  dev-debug          Run app with DEBUG logging"
+	@echo "DESKTOP APP (sionyx-kiosk-wpf / C# WPF)"
+	@echo "  dev                Run app (dotnet run)"
 	@echo "  test               Run all tests"
-	@echo "  test-cov           Run tests with coverage report"
-	@echo "  test-int           Run integration tests only (25 tests)"
-	@echo "  test-int-cov       Run integration tests with coverage"
-	@echo "  test-unit          Run unit tests only (no integration)"
-	@echo "  test-fast          Run fast tests only (utils + services)"
-	@echo "  test-fail          Run tests, stop on first failure"
-	@echo "  lint               Check code style"
-	@echo "  lint-fix           Fix code style issues"
-	@echo "  format             Full formatting (line endings + black + isort)"
-	@echo "  format-check       Check formatting without changes"
+	@echo "  test-cov           Run tests with coverage"
+	@echo "  test-fast          Run tests no-build (faster)"
+	@echo "  lint               Check code formatting"
 	@echo ""
 	@echo "WEB ADMIN (sionyx-web)"
 	@echo "  web-dev            Run dev server"
@@ -115,34 +91,20 @@ help-full:
 	@echo "  web-test-run       Run tests once"
 	@echo "  web-test-cov       Run tests with coverage"
 	@echo "  web-lint           Check code style"
-	@echo "  web-deploy         Deploy all (hosting + functions + database)"
+	@echo "  web-deploy         Deploy all (hosting + database)"
 	@echo "  web-deploy-hosting Deploy hosting only"
-	@echo "  web-deploy-functions Deploy functions only"
 	@echo "  web-deploy-database Deploy database rules only"
 	@echo ""
 	@echo "GIT WORKFLOW"
-	@echo "  merge-feature      Merge feature branch to main (coverage check)"
+	@echo "  merge-feature      Merge feature branch to main (test check)"
 	@echo "  merge-release      Merge release branch to main (create tag)"
-	@echo "  sync-branches      Create release branches for tags that don't have them"
 	@echo ""
 	@echo "OTHER"
-	@echo "  lint-all           Lint both apps"
 	@echo "  clean              Remove build artifacts"
 	@echo ""
 
 # ════════════════════════════════════════════════════════════════════════════
 #  RELEASE WORKFLOW
-#  
-#  Single command does everything:
-#    make release-minor
-#  
-#  This will:
-#    1. Create release/1.2.0 branch
-#    2. Bump version in version.json
-#    3. Build installer (runs tests with coverage check)
-#    4. Merge back to main
-#    5. Create git tag v1.2.0
-#    6. Push to remote
 # ════════════════════════════════════════════════════════════════════════════
 
 release: release-patch
@@ -159,7 +121,6 @@ release-major:
 release-dry:
 	@$(PYTHON) scripts/release.py --patch --dry-run
 
-# Sync release branches with tags (create missing branches)
 sync-branches:
 	@$(PYTHON) scripts/sync_release_branches.py
 
@@ -167,36 +128,33 @@ merge-release:
 	@$(PYTHON) scripts/merge_release.py
 
 # ════════════════════════════════════════════════════════════════════════════
-#  BUILD COMMANDS
+#  BUILD COMMANDS (WPF)
 # ════════════════════════════════════════════════════════════════════════════
 
-# Coverage check can be skipped with: make build SKIP_COV=true
-SKIP_COV_FLAG := $(if $(SKIP_COV),--skip-coverage-check,)
-
 version:
-	@$(PYTHON) -c "import json; v=json.load(open('sionyx-kiosk/version.json')); print(f\"SIONYX v{v['version']} (Build #{v.get('buildNumber', 1)})\")"
+	@$(PYTHON) -c "import json; v=json.load(open('sionyx-kiosk-wpf/version.json')); print(f\"SIONYX v{v['version']} (Build #{v.get('buildNumber', 0)})\")"
 
 build: build-patch
 
 build-patch:
 	@echo "Building installer (patch version)..."
-	cd sionyx-kiosk && $(PYTHON) build.py --patch $(SKIP_COV_FLAG)
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File build.ps1 -Increment patch
 
 build-minor:
 	@echo "Building installer (minor version)..."
-	cd sionyx-kiosk && $(PYTHON) build.py --minor $(SKIP_COV_FLAG)
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File build.ps1 -Increment minor
 
 build-major:
 	@echo "Building installer (major version)..."
-	cd sionyx-kiosk && $(PYTHON) build.py --major $(SKIP_COV_FLAG)
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File build.ps1 -Increment major
 
 build-local:
 	@echo "Building installer locally (no upload)..."
-	cd sionyx-kiosk && $(PYTHON) build.py --no-upload --keep-local $(SKIP_COV_FLAG)
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File build.ps1 -NoUpload
 
 build-dry:
 	@echo "Dry run - previewing version changes..."
-	cd sionyx-kiosk && $(PYTHON) build.py --dry-run
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File build.ps1 -DryRun
 
 # ════════════════════════════════════════════════════════════════════════════
 #  DESKTOP APP - Development
@@ -204,15 +162,9 @@ build-dry:
 
 dev:
 	@echo "Starting desktop app..."
-	cd sionyx-kiosk && $(PYTHON) src/main.py
+	cd sionyx-kiosk-wpf/src/SionyxKiosk && dotnet run
 
 run: dev
-
-dev-debug:
-	@echo "Starting desktop app (DEBUG mode)..."
-	cd sionyx-kiosk && $(PYTHON) src/main.py --verbose
-
-run-debug: dev-debug
 
 # ════════════════════════════════════════════════════════════════════════════
 #  DESKTOP APP - Testing
@@ -220,70 +172,29 @@ run-debug: dev-debug
 
 test:
 	@echo "Running tests..."
-	cd sionyx-kiosk && $(PYTHON) -m pytest src/ -v
+	cd sionyx-kiosk-wpf && dotnet test --verbosity normal
 
 test-cov:
 	@echo "Running tests with coverage..."
-	cd sionyx-kiosk && $(PYTHON) -m pytest src/ -v --cov=src --cov-report=term-missing
+	cd sionyx-kiosk-wpf && dotnet test --collect:"XPlat Code Coverage" --verbosity normal
 
 test-fast:
-	@echo "Running fast tests (utils + services)..."
-	cd sionyx-kiosk && $(PYTHON) -m pytest src/utils/ src/services/ -v
-
-test-fail:
-	@echo "Running tests (stop on first failure)..."
-	cd sionyx-kiosk && $(PYTHON) -m pytest src/ -v -x
-
-test-int:
-	@echo "Running integration tests..."
-	cd sionyx-kiosk && $(PYTHON) -m pytest src/tests/integration/ -v
-
-test-int-cov:
-	@echo "Running integration tests with coverage..."
-	cd sionyx-kiosk && $(PYTHON) -m pytest src/tests/integration/ -v --cov=src --cov-report=term-missing
-
-test-unit:
-	@echo "Running unit tests only (excluding integration)..."
-	cd sionyx-kiosk && $(PYTHON) -m pytest src/ -v --ignore=src/tests/integration/
-
-# Run specific test file: make test-file FILE=src/services/auth_service_test.py
-test-file:
-	cd sionyx-kiosk && $(PYTHON) -m pytest $(FILE) -v
-
-# Run tests matching pattern: make test-match PATTERN=test_login
-test-match:
-	cd sionyx-kiosk && $(PYTHON) -m pytest src/ -v -k "$(PATTERN)"
+	@echo "Running tests (no build)..."
+	cd sionyx-kiosk-wpf && dotnet test --no-build --verbosity normal
 
 # ════════════════════════════════════════════════════════════════════════════
 #  DESKTOP APP - Code Quality
 # ════════════════════════════════════════════════════════════════════════════
 
 lint:
-	@echo "Checking code style..."
-	@cd sionyx-kiosk && $(PYTHON) -m black --check src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
-	@cd sionyx-kiosk && $(PYTHON) -m isort --check-only src/ || (echo "Run 'make lint-fix' to fix." && exit 1)
-	@cd sionyx-kiosk && $(PYTHON) -m flake8 src/ --config=.flake8 || (echo "flake8 errors - fix manually." && exit 1)
+	@echo "Checking code formatting..."
+	cd sionyx-kiosk-wpf && dotnet format --verify-no-changes --verbosity normal
 	@echo "OK!"
 
 lint-fix:
-	@echo "Fixing code style..."
-	@cd sionyx-kiosk && $(PYTHON) -m black src/
-	@cd sionyx-kiosk && $(PYTHON) -m isort src/
+	@echo "Fixing code formatting..."
+	cd sionyx-kiosk-wpf && dotnet format
 	@echo "Done!"
-
-format:
-	@echo "Full formatting..."
-	@cd sionyx-kiosk && $(PYTHON) format.py src/
-	@cd sionyx-kiosk && $(PYTHON) -m black src/
-	@cd sionyx-kiosk && $(PYTHON) -m isort src/
-	@echo "Done!"
-
-format-check:
-	@echo "Checking formatting..."
-	@cd sionyx-kiosk && $(PYTHON) format.py --check src/
-	@cd sionyx-kiosk && $(PYTHON) -m black --check src/
-	@cd sionyx-kiosk && $(PYTHON) -m isort --check-only src/
-	@echo "OK!"
 
 # ════════════════════════════════════════════════════════════════════════════
 #  WEB ADMIN (sionyx-web)
@@ -341,10 +252,6 @@ web-deploy-database:
 #  GIT WORKFLOW
 # ════════════════════════════════════════════════════════════════════════════
 
-# Merge feature branch to main (with coverage check)
-# - Runs tests with coverage
-# - Compares with main branch baseline
-# - Only merges if coverage didn't drop
 merge-feature:
 	@$(PYTHON) scripts/merge_feature.py
 
@@ -356,6 +263,6 @@ lint-all: lint web-lint
 
 clean:
 	@echo "Cleaning build artifacts..."
-	rm -rf sionyx-kiosk/build sionyx-kiosk/dist
+	rm -rf sionyx-kiosk-wpf/dist sionyx-kiosk-wpf/src/SionyxKiosk/bin sionyx-kiosk-wpf/src/SionyxKiosk/obj
 	rm -rf sionyx-web/dist sionyx-web/node_modules/.vite
 	@echo "Done!"

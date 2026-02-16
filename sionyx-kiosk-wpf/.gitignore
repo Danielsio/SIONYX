@@ -18,5 +18,8 @@ dist/
 .idea/
 *.sln.iml
 
+## Test results
+TestResults/
+
 ## Logs
 logs/

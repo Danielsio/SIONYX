@@ -777,18 +777,11 @@ All base UI components have been migrated:
 
 ### Partially Migrated ⚠️ (remaining gaps)
 
-| Component | What's Missing |
-|-----------|----------------|
-| **HistoryPage** | No search/filter/sort controls (Python had search box, status filter, sort toggle). |
-| **HelpPage** | No click-to-copy for contact info. |
-| **Toast Notifications** | No equivalent of `ModernNotification` (auto-dismiss toasts for print events, session warnings, etc.). |
+None — all gaps have been fixed.
 
 ### Not Migrated ❌
 
-| Component | Description |
-|-----------|-------------|
-| **History filters** | Search, status filter, and sort toggle for purchase history. |
-| **Contact click-to-copy** | Copy admin phone/email to clipboard on click in Help page. |
+None — migration is complete.
 
 ---
 
@@ -810,8 +803,15 @@ The following gaps were identified and fixed in this review:
 | 10 | **Frame journal memory leak** — `Frame.Navigate()` kept all old pages in memory | Changed to `Frame.Content = page` (no journal). Added `IDisposable` to `HomeViewModel` with event unsubscription. `MainWindow.NavigateToPage` disposes previous page's ViewModel. | `MainWindow.xaml.cs`, `HomeViewModel.cs` |
 | 11 | **Event subscription leak** — `HomeViewModel` (transient) subscribed to singleton service events but never unsubscribed | `HomeViewModel` now implements `IDisposable` and unsubscribes from all singleton events | `HomeViewModel.cs` |
 
-### Remaining Nice-to-Haves
+### Additional Fixes (session 2)
 
-1. **History filters** — Search, status filter, sort toggle (cosmetic, not functional gap)
-2. **Contact click-to-copy** — Copy admin phone/email to clipboard (convenience)
-3. **Toast notifications** — Auto-dismiss toasts for print allowed/blocked, session warnings (informational)
+| # | Issue | Fix | Files Changed |
+|---|-------|-----|---------------|
+| 12 | **History page filters** — no search/filter/sort | Added ICollectionView with search TextBox, status ComboBox filter, sort toggle button. FrostComboBox style added to Theme.xaml. | `HistoryViewModel.cs`, `HistoryPage.xaml`, `HistoryPage.xaml.cs`, `Theme.xaml` |
+| 13 | **Help page click-to-copy** — contact info not copyable | Added clickable phone/email rows with copy feedback ("הועתק!"). CopyToClipboardCommand in HelpViewModel. | `HelpViewModel.cs`, `HelpPage.xaml`, `HelpPage.xaml.cs` |
+| 14 | **Toast notifications** — no auto-dismiss user feedback | Created ToastNotification control with queue, slide animation, 4 types (Info/Success/Warning/Error). Wired to print events and session warnings in App.xaml.cs. | `ToastNotification.xaml(.cs)`, `MainWindow.xaml`, `MainWindow.xaml.cs`, `App.xaml.cs` |
+
+### Migration Status: COMPLETE
+
+All Python PyQt6 kiosk features have been migrated to the C# WPF application.
+The original `sionyx-kiosk/` directory has been removed from the repository.

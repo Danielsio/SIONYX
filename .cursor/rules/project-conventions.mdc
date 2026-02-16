@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Repository Structure
 - `sionyx-web/` -- React web admin dashboard (Firebase Hosting)
-- `sionyx-kiosk/` -- PyQt6 kiosk desktop app (PyInstaller + NSIS installer)
+- `sionyx-kiosk-wpf/` -- C# WPF kiosk desktop app (.NET 8, NSIS installer)
 - `scripts/` -- CI/CD management scripts (Python)
 - `Makefile` -- All build/test/deploy commands (run from repo root)
 
@@ -32,17 +32,13 @@ alwaysApply: true
 - `make build-local` -- Build without uploading to Firebase
 - `make build-dry` -- Preview version changes
 - `make version` -- Show current version
-- Override coverage check: `make build SKIP_COV=true`
-- **NEVER bump version.json manually** -- `build.py` / `release.py` handle it
+- **NEVER bump version.json manually** -- `build.ps1` / `release.py` handle it
 
 ### Kiosk Development & Testing
-- `make dev` -- Run desktop app
-- `make test` -- Run all kiosk tests
+- `make dev` -- Run desktop app (dotnet run)
+- `make test` -- Run all kiosk tests (dotnet test)
 - `make test-cov` -- Tests with coverage report
-- `make test-fast` -- Fast tests only (utils + services)
-- `make test-unit` -- Unit tests only (no integration)
-- `make test-int` -- Integration tests only
-- `make lint` / `make format` -- Code quality
+- `make lint` / `make lint-fix` -- Code formatting (dotnet format)
 
 ### Web Admin
 - `make web-dev` -- Run dev server
@@ -54,7 +50,7 @@ alwaysApply: true
 - `make web-deploy-database` -- Deploy database rules only
 
 ### Git Workflow
-- `make merge-feature` -- Merge feature branch to main (with coverage check)
+- `make merge-feature` -- Merge feature branch to main (with test check)
 - `make merge-release` -- Merge release branch to main (create tag)
 
 ## Versioning Rules
@@ -65,10 +61,11 @@ alwaysApply: true
 ## Testing
 - **Bug fixes follow TDD:** write failing test first, then implement fix, then commit
 - Each bug fix gets its own commit with clear explanation
-- Kiosk tests colocated as `*_test.py` next to source files
+- Kiosk tests in `sionyx-kiosk-wpf/tests/SionyxKiosk.Tests/` using xUnit + FluentAssertions
 - Web tests use Vitest + @testing-library/react
 
 ## Code Patterns
 - Web state management: Zustand stores
 - Web org context: always use `useOrgId()` hook, include `orgId` in `useEffect` deps
-- Kiosk singletons: `LocalDatabase`, `FirebaseClient` use `__new__` + `_initialized` guard
+- Kiosk architecture: MVVM with CommunityToolkit.Mvvm, DI via Microsoft.Extensions.Hosting
+- Kiosk services: singleton lifetime, reinitialize per user via `.Reinitialize(userId)`
