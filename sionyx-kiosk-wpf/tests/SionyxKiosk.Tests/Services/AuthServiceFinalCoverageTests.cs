@@ -44,11 +44,16 @@ public class AuthServiceFinalCoverageTests : IDisposable
         // Setup login with a scenario where computer registration will fail
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-comp-fail", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-comp-fail",
+            expiresIn = "3600",
         });
         _handler.When("users/uid-comp-fail.json", new
         {
-            firstName = "Test", lastName = "User", isLoggedIn = false,
+            firstName = "Test",
+            lastName = "User",
+            isLoggedIn = false,
         });
 
         // Make computer registration fail (the computers/ path)
@@ -69,11 +74,16 @@ public class AuthServiceFinalCoverageTests : IDisposable
         _handler.ClearHandlers();
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-assoc-fail", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-assoc-fail",
+            expiresIn = "3600",
         });
         _handler.When("users/uid-assoc-fail.json", new
         {
-            firstName = "Test", lastName = "User", isLoggedIn = false,
+            firstName = "Test",
+            lastName = "User",
+            isLoggedIn = false,
         });
         // Computer set succeeds
         _handler.When("computers/", new { success = true });
@@ -98,7 +108,10 @@ public class AuthServiceFinalCoverageTests : IDisposable
 
         _handler.When("securetoken.googleapis.com", new
         {
-            id_token = "tok", refresh_token = "rtok", user_id = "stored-uid", expires_in = "3600",
+            id_token = "tok",
+            refresh_token = "rtok",
+            user_id = "stored-uid",
+            expires_in = "3600",
         });
 
         // User has an active session that was RECENTLY updated (within 120 seconds)
@@ -128,7 +141,10 @@ public class AuthServiceFinalCoverageTests : IDisposable
 
         _handler.When("securetoken.googleapis.com", new
         {
-            id_token = "tok", refresh_token = "rtok", user_id = "stored-uid2", expires_in = "3600",
+            id_token = "tok",
+            refresh_token = "rtok",
+            user_id = "stored-uid2",
+            expires_in = "3600",
         });
 
         // Active session but no updatedAt field
@@ -155,7 +171,10 @@ public class AuthServiceFinalCoverageTests : IDisposable
 
         _handler.When("securetoken.googleapis.com", new
         {
-            id_token = "tok", refresh_token = "rtok", user_id = "stored-uid3", expires_in = "3600",
+            id_token = "tok",
+            refresh_token = "rtok",
+            user_id = "stored-uid3",
+            expires_in = "3600",
         });
 
         // Active session but invalid date format
@@ -182,7 +201,10 @@ public class AuthServiceFinalCoverageTests : IDisposable
 
         _handler.When("securetoken.googleapis.com", new
         {
-            id_token = "tok", refresh_token = "rtok", user_id = "stored-uid4", expires_in = "3600",
+            id_token = "tok",
+            refresh_token = "rtok",
+            user_id = "stored-uid4",
+            expires_in = "3600",
         });
 
         // Old orphaned session WITHOUT a computer ID
@@ -211,11 +233,16 @@ public class AuthServiceFinalCoverageTests : IDisposable
         // Login first, but don't set CurrentComputerId
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-no-comp", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-no-comp",
+            expiresIn = "3600",
         });
         _handler.When("users/uid-no-comp.json", new
         {
-            firstName = "Test", lastName = "User", isLoggedIn = false,
+            firstName = "Test",
+            lastName = "User",
+            isLoggedIn = false,
             // No currentComputerId
         });
 
@@ -242,7 +269,10 @@ public class AuthServiceFinalCoverageTests : IDisposable
     {
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-same", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-same",
+            expiresIn = "3600",
         });
 
         // Get the actual device ID for this machine
@@ -266,7 +296,10 @@ public class AuthServiceFinalCoverageTests : IDisposable
     {
         _handler.When("signInWithPassword", new
         {
-            idToken = "tok", refreshToken = "rtok", localId = "uid-no-cid", expiresIn = "3600",
+            idToken = "tok",
+            refreshToken = "rtok",
+            localId = "uid-no-cid",
+            expiresIn = "3600",
         });
 
         _handler.When("users/uid-no-cid.json", new

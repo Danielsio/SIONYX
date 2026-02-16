@@ -93,7 +93,7 @@ public class BrowserCleanupServiceDeepTests
 
         foreach (var kvp in result)
         {
-            (kvp.Value is bool).Should().BeTrue($"{kvp.Key} should be a boolean");
+            kvp.Value.GetType().Should().Be(typeof(bool), $"{kvp.Key} should be a boolean");
         }
     }
 }

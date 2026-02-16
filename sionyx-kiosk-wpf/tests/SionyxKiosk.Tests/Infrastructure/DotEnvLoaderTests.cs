@@ -28,7 +28,7 @@ public class DotEnvLoaderTests : IDisposable
         File.WriteAllText(_envPath, content);
     }
 
-    private string UniqueKey() 
+    private string UniqueKey()
     {
         var key = $"SIONYX_TEST_{Guid.NewGuid():N}";
         _envVarsSet.Add(key);
