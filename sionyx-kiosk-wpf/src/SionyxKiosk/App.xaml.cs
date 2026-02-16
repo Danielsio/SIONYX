@@ -391,7 +391,11 @@ public partial class App : Application
             // ── Global hotkey (admin exit) ──
             if (MainWindow != null)
             {
-                var hwnd = new System.Windows.Interop.WindowInteropHelper(MainWindow).Handle;
+                // EnsureHandle guarantees we have a valid Win32 handle even if
+                // WPF hasn't finished rendering the window yet.
+                var helper = new System.Windows.Interop.WindowInteropHelper(MainWindow);
+                var hwnd = helper.EnsureHandle();
+
                 if (hwnd != IntPtr.Zero)
                 {
                     var hotkey = _host.Services.GetRequiredService<GlobalHotkeyService>();
@@ -400,10 +404,15 @@ public partial class App : Application
 
                     _adminExitHandler = () =>
                     {
+                        Log.Information("Admin exit hotkey detected — showing dialog");
                         Current.Dispatcher.Invoke(() => ShowAdminExitDialog(auth));
                     };
                     hotkey.AdminExitRequested += _adminExitHandler;
                     hotkey.Start(hwnd);
+                }
+                else
+                {
+                    Log.Error("Failed to get window handle for global hotkey registration");
                 }
             }
 
@@ -656,33 +665,59 @@ public partial class App : Application
 
     private void ShowAdminExitDialog(AuthService auth)
     {
-        var dialog = new Views.Dialogs.AdminExitDialog();
-        dialog.Owner = MainWindow;
-        if (dialog.ShowDialog() == true)
+        try
         {
-            var password = dialog.EnteredPassword;
-            if (password == Infrastructure.AppConstants.GetAdminExitPassword())
+            // If MainWindow is minimized (during a session), restore it first so
+            // the dialog is visible.  We also need to make the dialog Topmost to
+            // guarantee it appears above everything including the FloatingTimer.
+            var dialog = new Views.Dialogs.AdminExitDialog();
+
+            if (MainWindow is Views.Windows.MainWindow mw && mw.WindowState == WindowState.Minimized)
             {
-                Log.Information("Admin exit: correct password, shutting down");
-                _ = Task.Run(async () =>
-                {
-                    await StopSystemServicesAsync();
-                    await auth.LogoutAsync();
-                    Current.Dispatcher.Invoke(() =>
-                    {
-                        if (MainWindow is Views.Windows.MainWindow mw)
-                            mw.AllowClose();
-                        else if (MainWindow is AuthWindow aw)
-                            aw.AllowClose();
-                        Shutdown();
-                    });
-                });
+                // During an active session the main window is minimized.
+                // Don't set Owner (modal to a minimized window is invisible on
+                // some Windows versions). Instead just show Topmost.
+                dialog.Owner = null;
+                dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                dialog.Topmost = true;
             }
             else
             {
-                Log.Warning("Admin exit: incorrect password");
-                MessageBox.Show("סיסמה שגויה", "SIONYX", MessageBoxButton.OK, MessageBoxImage.Warning);
+                dialog.Owner = MainWindow;
             }
+
+            Log.Information("Showing admin exit dialog");
+
+            if (dialog.ShowDialog() == true)
+            {
+                var password = dialog.EnteredPassword;
+                if (password == Infrastructure.AppConstants.GetAdminExitPassword())
+                {
+                    Log.Information("Admin exit: correct password, shutting down");
+                    _ = Task.Run(async () =>
+                    {
+                        await StopSystemServicesAsync();
+                        await auth.LogoutAsync();
+                        Current.Dispatcher.Invoke(() =>
+                        {
+                            if (MainWindow is Views.Windows.MainWindow mainWin)
+                                mainWin.AllowClose();
+                            else if (MainWindow is AuthWindow aw)
+                                aw.AllowClose();
+                            Shutdown();
+                        });
+                    });
+                }
+                else
+                {
+                    Log.Warning("Admin exit: incorrect password");
+                    MessageBox.Show("סיסמה שגויה", "SIONYX", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error showing admin exit dialog");
         }
     }
 
