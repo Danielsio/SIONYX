@@ -8,10 +8,12 @@
 
     <Window.Resources>
         <!-- Slide-in animation for the brand overlay panel -->
+        <!-- Login state: overlay at LEFT (0), covering register form.
+             Register state: overlay slides to RIGHT (450), covering login form. -->
         <Storyboard x:Key="SlideToLogin">
             <DoubleAnimation Storyboard.TargetName="BrandOverlay"
                              Storyboard.TargetProperty="(Canvas.Left)"
-                             To="450" Duration="0:0:0.5">
+                             To="0" Duration="0:0:0.5">
                 <DoubleAnimation.EasingFunction>
                     <CubicEase EasingMode="EaseInOut" />
                 </DoubleAnimation.EasingFunction>
@@ -26,7 +28,7 @@
         <Storyboard x:Key="SlideToRegister">
             <DoubleAnimation Storyboard.TargetName="BrandOverlay"
                              Storyboard.TargetProperty="(Canvas.Left)"
-                             To="0" Duration="0:0:0.5">
+                             To="450" Duration="0:0:0.5">
                 <DoubleAnimation.EasingFunction>
                     <CubicEase EasingMode="EaseInOut" />
                 </DoubleAnimation.EasingFunction>
@@ -49,11 +51,13 @@
                 <DropShadowEffect BlurRadius="80" ShadowDepth="10" Opacity="0.18" Color="#0F172A" />
             </Border.Effect>
 
-            <!-- Canvas for sliding brand overlay -->
-            <Canvas>
+            <!-- Canvas uses LTR so pixel coordinates work predictably.
+                 Each form panel sets RTL for Hebrew content. -->
+            <Canvas FlowDirection="LeftToRight">
                 <!-- LOGIN form (right side, position 450..900) -->
                 <StackPanel x:Name="LoginPanel" Canvas.Left="450" Canvas.Top="0"
-                            Width="450" Height="620" Opacity="1">
+                            Width="450" Height="620" Opacity="1"
+                            FlowDirection="RightToLeft">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
                                   Height="620">
@@ -97,7 +101,8 @@
 
                 <!-- REGISTER form (left side, position 0..450) -->
                 <StackPanel x:Name="RegisterPanel" Canvas.Left="0" Canvas.Top="0"
-                            Width="450" Height="620" Opacity="0" IsHitTestVisible="False">
+                            Width="450" Height="620" Opacity="0" IsHitTestVisible="False"
+                            FlowDirection="RightToLeft">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled"
                                   Height="620">
@@ -138,8 +143,8 @@
                     </ScrollViewer>
                 </StackPanel>
 
-                <!-- BRAND OVERLAY (slides between sides) -->
-                <Border x:Name="BrandOverlay" Canvas.Left="450" Canvas.Top="0"
+                <!-- BRAND OVERLAY — starts at left (covers register), slides right for register mode -->
+                <Border x:Name="BrandOverlay" Canvas.Left="0" Canvas.Top="0"
                         Width="450" Height="620"
                         Background="{StaticResource AuthGradient}"
                         CornerRadius="20">
