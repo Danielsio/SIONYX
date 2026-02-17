@@ -20,6 +20,16 @@ public partial class AuthViewModel : ObservableObject
     [ObservableProperty] private bool _isLoginMode = true;
     [ObservableProperty] private string _forgotPasswordInfo = "";
 
+    /// <summary>Dynamic button text that changes during loading.</summary>
+    public string LoginButtonText => IsLoading ? "מתחבר..." : "התחבר";
+    public string RegisterButtonText => IsLoading ? "נרשם..." : "הירשם";
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(LoginButtonText));
+        OnPropertyChanged(nameof(RegisterButtonText));
+    }
+
     public event Action? LoginSucceeded;
     public event Action? RegistrationSucceeded;
 
@@ -89,6 +99,7 @@ public partial class AuthViewModel : ObservableObject
             return;
         }
 
+        IsLoading = true;
         try
         {
             var result = await _metadataService.GetAdminContactAsync();
@@ -111,6 +122,10 @@ public partial class AuthViewModel : ObservableObject
         catch
         {
             ForgotPasswordInfo = "פנה למנהל המערכת לאיפוס סיסמה.";
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 
