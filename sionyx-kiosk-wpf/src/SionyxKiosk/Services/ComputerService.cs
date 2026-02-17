@@ -31,6 +31,8 @@ public class ComputerService : BaseService
 
             var now = DateTime.Now.ToString("o");
             info["currentUserId"] = null!;
+            info["isActive"] = false;
+            info["lastSeen"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             info["createdAt"] = now;
             info["updatedAt"] = now;
 
@@ -52,6 +54,7 @@ public class ComputerService : BaseService
         try
         {
             var now = DateTime.Now.ToString("o");
+            var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var userUpdates = new Dictionary<string, object?> { ["currentComputerId"] = computerId, ["updatedAt"] = now };
             if (isLogin) userUpdates["isLoggedIn"] = true;
 
@@ -59,7 +62,14 @@ public class ComputerService : BaseService
             if (result.Success)
             {
                 await Firebase.DbUpdateAsync($"computers/{computerId}",
-                    new { currentUserId = userId, updatedAt = now });
+                    new Dictionary<string, object>
+                    {
+                        ["currentUserId"] = userId,
+                        ["isActive"] = true,
+                        ["lastSeen"] = ts,
+                        ["lastUserLogin"] = now,
+                        ["updatedAt"] = now,
+                    });
             }
             return result.Success ? Success() : Error(result.Error ?? "Failed");
         }
@@ -74,12 +84,19 @@ public class ComputerService : BaseService
         try
         {
             var now = DateTime.Now.ToString("o");
+            var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             var userUpdates = new Dictionary<string, object?> { ["currentComputerId"] = (object?)null, ["updatedAt"] = now };
             if (isLogout) userUpdates["isLoggedIn"] = false;
 
             await Firebase.DbUpdateAsync($"users/{userId}", userUpdates);
             await Firebase.DbUpdateAsync($"computers/{computerId}",
-                new Dictionary<string, object?> { ["currentUserId"] = null, ["updatedAt"] = now });
+                new Dictionary<string, object?>
+                {
+                    ["currentUserId"] = null,
+                    ["isActive"] = false,
+                    ["lastSeen"] = ts,
+                    ["updatedAt"] = now,
+                });
 
             return Success();
         }

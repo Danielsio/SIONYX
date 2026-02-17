@@ -128,12 +128,12 @@
         },
         
         "computers": {
-          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
           ".indexOn": ["isActive", "lastSeen", "computerName"],
           
           "$computerId": {
-            ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
-            ".write": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+            ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+            ".write": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
             
             "userId": {
               ".validate": "newData.isString()"

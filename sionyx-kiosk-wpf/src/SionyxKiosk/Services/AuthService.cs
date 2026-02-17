@@ -230,19 +230,41 @@ public class AuthService : BaseService
     {
         try
         {
-            var computerResult = await _computerService.RegisterComputerAsync();
-            if (!computerResult.IsSuccess) return;
-
-            // Extract computerId from the anonymous result
             var computerId = _computerService.GetComputerId();
+
+            // Best-effort computer registration (may fail if RTDB rules block it)
+            var computerResult = await _computerService.RegisterComputerAsync();
+            if (!computerResult.IsSuccess)
+                Logger.Warning("Computer registration failed (non-fatal): {Id}", computerId);
+
+            // Always attempt user association — sets isLoggedIn and computer link
             var assocResult = await _computerService.AssociateUserWithComputerAsync(userId, computerId, isLogin: true);
 
             if (assocResult.IsSuccess && CurrentUser != null)
+            {
                 CurrentUser.CurrentComputerId = computerId;
+            }
+            else
+            {
+                // Fallback: ensure isLoggedIn is written even if association fails
+                Logger.Warning("User association failed, writing isLoggedIn directly");
+                await Firebase.DbUpdateAsync($"users/{userId}",
+                    new { isLoggedIn = true, updatedAt = DateTime.Now.ToString("o") });
+
+                if (CurrentUser != null)
+                    CurrentUser.CurrentComputerId = computerId;
+            }
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Computer registration failed");
+            // Last resort: ensure user is at least marked as logged in
+            try
+            {
+                await Firebase.DbUpdateAsync($"users/{userId}",
+                    new { isLoggedIn = true, updatedAt = DateTime.Now.ToString("o") });
+            }
+            catch { /* swallow */ }
         }
     }
 
