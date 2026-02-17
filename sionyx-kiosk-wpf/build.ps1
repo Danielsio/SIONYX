@@ -332,8 +332,9 @@ Save-VersionData $newData
 Write-Ok "Version updated to v$newVersion"
 
 # Upload
+$uploaded = $false
 if (-not $NoUpload) {
-    Invoke-Upload $installerPath $newData
+    $uploaded = Invoke-Upload $installerPath $newData
 }
 
 # Summary
@@ -344,3 +345,9 @@ Write-Host "  Installer: $installerPath"
 
 $size = if (Test-Path $installerPath) { (Get-Item $installerPath).Length / 1MB } else { 0 }
 Write-Host "  Size:      $("{0:N1}" -f $size) MB"
+
+# Cleanup: remove local installer after successful upload
+if ($uploaded -and (Test-Path $installerPath)) {
+    Remove-Item $installerPath -Force
+    Write-Ok "Local installer deleted after upload"
+}
