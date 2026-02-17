@@ -3,9 +3,45 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False"
-        Width="520" Height="110" ResizeMode="NoResize"
+        Width="520" Height="80" ResizeMode="NoResize"
         MouseLeftButtonDown="Window_MouseLeftButtonDown">
-    <Border x:Name="TimerBorder" CornerRadius="20" Padding="28,0"
+
+    <Window.Resources>
+        <!-- Expand on hover -->
+        <Storyboard x:Key="ExpandTimer">
+            <DoubleAnimation Storyboard.TargetProperty="Width"
+                             To="520" Duration="0:0:0.25">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="DetailsPanel" Storyboard.TargetProperty="Opacity"
+                             To="1" Duration="0:0:0.2" BeginTime="0:0:0.1" />
+            <DoubleAnimation Storyboard.TargetName="ReturnBtn" Storyboard.TargetProperty="Opacity"
+                             To="1" Duration="0:0:0.2" BeginTime="0:0:0.1" />
+        </Storyboard>
+
+        <!-- Collapse on mouse leave -->
+        <Storyboard x:Key="CollapseTimer">
+            <DoubleAnimation Storyboard.TargetName="DetailsPanel" Storyboard.TargetProperty="Opacity"
+                             To="0" Duration="0:0:0.15" />
+            <DoubleAnimation Storyboard.TargetName="ReturnBtn" Storyboard.TargetProperty="Opacity"
+                             To="0" Duration="0:0:0.15" />
+            <DoubleAnimation Storyboard.TargetProperty="Width"
+                             To="230" Duration="0:0:0.25" BeginTime="0:0:0.05">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+    </Window.Resources>
+
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="MouseEnter">
+            <BeginStoryboard Storyboard="{StaticResource ExpandTimer}" />
+        </EventTrigger>
+        <EventTrigger RoutedEvent="MouseLeave">
+            <BeginStoryboard Storyboard="{StaticResource CollapseTimer}" />
+        </EventTrigger>
+    </Window.Triggers>
+
+    <Border x:Name="TimerBorder" CornerRadius="16" Padding="20,0"
             ClipToBounds="True">
         <Border.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0.6">
@@ -15,8 +51,8 @@
             </LinearGradientBrush>
         </Border.Background>
         <Border.Effect>
-            <DropShadowEffect BlurRadius="36" ShadowDepth="6" Direction="270"
-                              Color="#000000" Opacity="0.4" />
+            <DropShadowEffect BlurRadius="28" ShadowDepth="4" Direction="270"
+                              Color="#000000" Opacity="0.35" />
         </Border.Effect>
         <Grid VerticalAlignment="Center">
             <Grid.ColumnDefinitions>
@@ -27,52 +63,56 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Time remaining (primary hero) -->
+            <!-- Time remaining (always visible) -->
             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                 <TextBlock x:Name="TimeText" Text="00:00:00"
-                           FontSize="36" FontWeight="Bold" FontFamily="Cascadia Code, Consolas"
+                           FontSize="28" FontWeight="Bold" FontFamily="Cascadia Code, Consolas"
                            Foreground="White" />
-                <TextBlock x:Name="TimeLabel" Text="זמן נותר" FontSize="14"
-                           Foreground="#A5B4FC" FontWeight="Medium" Margin="2,2,0,0" />
+                <TextBlock x:Name="TimeLabel" Text="זמן נותר" FontSize="11"
+                           Foreground="#A5B4FC" FontWeight="Medium" Margin="2,1,0,0" />
             </StackPanel>
 
-            <!-- Vertical separator -->
-            <Border Grid.Column="1" Width="1" Background="#FFFFFF18"
-                    Margin="24,8" VerticalAlignment="Stretch" />
-
-            <!-- Usage time + Print balance -->
-            <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                    <TextBlock Text="⏱" FontSize="14" Foreground="#A5B4FC"
-                               VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <TextBlock x:Name="UsageText" Text="00:00" FontSize="18"
-                               FontFamily="Cascadia Code, Consolas"
-                               FontWeight="SemiBold" Foreground="#E0E7FF" />
-                </StackPanel>
+            <!-- Separator (reveals on hover) -->
+            <Border x:Name="DetailsPanel" Grid.Column="1" Opacity="0" IsHitTestVisible="False">
                 <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="🖨" FontSize="14" Foreground="#A5B4FC"
-                               VerticalAlignment="Center" Margin="0,0,8,0" />
-                    <TextBlock x:Name="PrintText" Text="0.00 ₪" FontSize="18"
-                               FontFamily="Cascadia Code, Consolas"
-                               FontWeight="SemiBold" Foreground="#E0E7FF" />
+                    <Border Width="1" Background="#FFFFFF18"
+                            Margin="18,8" VerticalAlignment="Stretch" />
+
+                    <!-- Usage time + Print balance -->
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                            <TextBlock Text="⏱" FontSize="12" Foreground="#A5B4FC"
+                                       VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBlock x:Name="UsageText" Text="00:00" FontSize="16"
+                                       FontFamily="Cascadia Code, Consolas"
+                                       FontWeight="SemiBold" Foreground="#E0E7FF" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🖨" FontSize="12" Foreground="#A5B4FC"
+                                       VerticalAlignment="Center" Margin="0,0,6,0" />
+                            <TextBlock x:Name="PrintText" Text="0.00 ₪" FontSize="16"
+                                       FontFamily="Cascadia Code, Consolas"
+                                       FontWeight="SemiBold" Foreground="#E0E7FF" />
+                        </StackPanel>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+            </Border>
 
             <!-- Offline indicator -->
             <Border x:Name="OfflineBadge" Grid.Column="3" Visibility="Collapsed"
-                    Background="#FEF3C7" CornerRadius="10" Padding="12,6" Margin="16,0,0,0"
+                    Background="#FEF3C7" CornerRadius="8" Padding="10,4" Margin="12,0,0,0"
                     VerticalAlignment="Center" HorizontalAlignment="Left">
-                <TextBlock Text="⚠ Offline" FontSize="14" FontWeight="SemiBold"
+                <TextBlock Text="⚠ Offline" FontSize="12" FontWeight="SemiBold"
                            Foreground="#92400E" />
             </Border>
 
-            <!-- Return to app button — polished pill shape -->
-            <Button Grid.Column="4"
-                    ToolTip="חזרה לאפליקציה" Margin="16,0,0,0"
+            <!-- Return button (reveals on hover) -->
+            <Button x:Name="ReturnBtn" Grid.Column="4" Opacity="0"
+                    ToolTip="חזרה לאפליקציה" Margin="12,0,0,0"
                     Cursor="Hand" Click="ReturnButton_Click">
                 <Button.Template>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="bg" CornerRadius="14" Padding="16,10"
+                        <Border x:Name="bg" CornerRadius="12" Padding="14,8"
                                 SnapsToDevicePixels="True">
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -81,9 +121,9 @@
                                 </LinearGradientBrush>
                             </Border.Background>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="↩" FontSize="18" Foreground="White"
-                                           VerticalAlignment="Center" Margin="0,0,8,0" />
-                                <TextBlock Text="חזרה" FontSize="15" FontWeight="SemiBold"
+                                <TextBlock Text="↩" FontSize="16" Foreground="White"
+                                           VerticalAlignment="Center" Margin="0,0,6,0" />
+                                <TextBlock Text="חזרה" FontSize="13" FontWeight="SemiBold"
                                            Foreground="White" VerticalAlignment="Center" />
                             </StackPanel>
                         </Border>

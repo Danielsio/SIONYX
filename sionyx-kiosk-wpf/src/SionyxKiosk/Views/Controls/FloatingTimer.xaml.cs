@@ -13,13 +13,18 @@ public partial class FloatingTimer : Window
 {
     public event Action? ReturnRequested;
 
+    private const double CompactWidth = 230;
+
     public FloatingTimer()
     {
         InitializeComponent();
 
+        // Start compact — only the timer visible
+        Width = CompactWidth;
+
         // Position bottom-right of the work area
         var screen = SystemParameters.WorkArea;
-        Left = screen.Right - Width - 20;
+        Left = screen.Right - CompactWidth - 20;
         Top = screen.Bottom - Height - 20;
     }
 
