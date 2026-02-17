@@ -65,8 +65,12 @@ public class SessionService : BaseService, IDisposable
         OperatingHours.HoursEndingSoon += OnHoursEndingSoon;
         OperatingHours.HoursEnded += OnHoursEnded;
 
-        // Timers
-        _countdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        // Tick at 250ms so the display never visually skips seconds,
+        // even when the UI thread is briefly busy with animations/rendering.
+        _countdownTimer = new DispatcherTimer(DispatcherPriority.Render)
+        {
+            Interval = TimeSpan.FromMilliseconds(250)
+        };
         _countdownTimer.Tick += (_, _) => OnCountdownTick();
 
         _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
@@ -180,8 +184,13 @@ public class SessionService : BaseService, IDisposable
 
         // Derive from wall-clock — immune to DispatcherTimer drift
         var elapsed = (int)(DateTime.UtcNow - StartTime.Value).TotalSeconds;
+        var newRemaining = Math.Max(0, _initialRemainingTime - elapsed);
+
+        // Only push UI updates when the displayed second actually changes
+        if (newRemaining == RemainingTime && elapsed == TimeUsed) return;
+
         TimeUsed = elapsed;
-        RemainingTime = Math.Max(0, _initialRemainingTime - elapsed);
+        RemainingTime = newRemaining;
         TimeUpdated?.Invoke(RemainingTime);
 
         if (RemainingTime <= 300 && !_warned5Min)
