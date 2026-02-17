@@ -212,27 +212,45 @@ Section "Kiosk Security Setup" SecKiosk
     ; Without this, manually creating C:\Users\KioskUser causes a "temporary
     ; profile" error because the registry ProfileList entry is missing.
     ;
-    ; We use runas /profile to spawn a dummy process as KioskUser, which
-    ; forces Windows to create the profile with proper registry entries.
-    ; Since password is blank, we pipe an empty password via echo.
+    ; We use the Win32 CreateProfile API (userenv.dll) to create the profile
+    ; programmatically. This is the official Windows API for this purpose --
+    ; no credentials or interactive logon required, just needs admin rights.
     IfFileExists "C:\Users\${KIOSK_USERNAME}\ntuser.dat" profile_ready 0
     
     DetailPrint "[INFO] Initializing Windows profile for ${KIOSK_USERNAME}..."
     
     FileOpen $1 "$TEMP\init_profile.ps1" w
-    FileWrite $1 '# Force profile creation by spawning a process as KioskUser$\r$\n'
-    FileWrite $1 '# This creates the proper ProfileList registry entry + ntuser.dat$\r$\n'
-    FileWrite $1 '$$password = ConvertTo-SecureString "" -AsPlainText -Force$\r$\n'
-    FileWrite $1 '$$cred = New-Object System.Management.Automation.PSCredential("${KIOSK_USERNAME}", $$password)$\r$\n'
+    FileWrite $1 '# Create user profile via Win32 CreateProfile API (userenv.dll)$\r$\n'
+    FileWrite $1 '# This creates ProfileList registry entry + ntuser.dat without login$\r$\n'
     FileWrite $1 'try {$\r$\n'
-    FileWrite $1 '    Start-Process -FilePath "cmd.exe" -ArgumentList "/c exit 0" -Credential $$cred -LoadUserProfile -Wait -NoNewWindow -ErrorAction Stop$\r$\n'
-    FileWrite $1 '    Write-Host "[OK] Profile created successfully"$\r$\n'
+    FileWrite $1 '    Add-Type -TypeDefinition @"$\r$\n'
+    FileWrite $1 'using System;$\r$\n'
+    FileWrite $1 'using System.Text;$\r$\n'
+    FileWrite $1 'using System.Runtime.InteropServices;$\r$\n'
+    FileWrite $1 'public class WinProfile {$\r$\n'
+    FileWrite $1 '    [DllImport("userenv.dll", CharSet = CharSet.Unicode, SetLastError = true)]$\r$\n'
+    FileWrite $1 '    public static extern int CreateProfile($\r$\n'
+    FileWrite $1 '        [MarshalAs(UnmanagedType.LPWStr)] string pszUserSid,$\r$\n'
+    FileWrite $1 '        [MarshalAs(UnmanagedType.LPWStr)] string pszUserName,$\r$\n'
+    FileWrite $1 '        [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pszProfilePath,$\r$\n'
+    FileWrite $1 '        uint cchProfilePath);$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 '"@$\r$\n'
+    FileWrite $1 '    $$acct = New-Object System.Security.Principal.NTAccount("${KIOSK_USERNAME}")$\r$\n'
+    FileWrite $1 '    $$sid = $$acct.Translate([System.Security.Principal.SecurityIdentifier]).Value$\r$\n'
+    FileWrite $1 '    Write-Host "[INFO] SID for ${KIOSK_USERNAME}: $$sid"$\r$\n'
+    FileWrite $1 '    $$pathBuf = New-Object System.Text.StringBuilder(260)$\r$\n'
+    FileWrite $1 '    $$hr = [WinProfile]::CreateProfile($$sid, "${KIOSK_USERNAME}", $$pathBuf, 260)$\r$\n'
+    FileWrite $1 '    if ($$hr -eq 0) {$\r$\n'
+    FileWrite $1 '        Write-Host "[OK] Profile created at: $$($$pathBuf.ToString())"$\r$\n'
+    FileWrite $1 '    } else {$\r$\n'
+    FileWrite $1 '        Write-Host "[WARN] CreateProfile HRESULT: 0x$$($$hr.ToString(''X8''))"$\r$\n'
+    FileWrite $1 '        Write-Host "[INFO] Profile may already exist or will be created on first logon"$\r$\n'
+    FileWrite $1 '    }$\r$\n'
     FileWrite $1 '} catch {$\r$\n'
-    FileWrite $1 '    Write-Host "[WARN] Profile init via Start-Process failed: $$_"$\r$\n'
+    FileWrite $1 '    Write-Host "[WARN] Profile init failed: $$_"$\r$\n'
     FileWrite $1 '    Write-Host "[INFO] Profile will be created on first logon"$\r$\n'
     FileWrite $1 '}$\r$\n'
-    FileWrite $1 '# Wait a moment for profile to finalize$\r$\n'
-    FileWrite $1 'Start-Sleep -Seconds 2$\r$\n'
     FileClose $1
     
     nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\init_profile.ps1"'
