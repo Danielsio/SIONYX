@@ -8,7 +8,12 @@
           <Exclude>
             [SionyxKiosk]SionyxKiosk.App,
             [SionyxKiosk]SionyxKiosk.Views.*,
-            [SionyxKiosk]XamlGeneratedNamespace.*
+            [SionyxKiosk]XamlGeneratedNamespace.*,
+            [SionyxKiosk]SionyxKiosk.Services.PrintMonitorService,
+            [SionyxKiosk]SionyxKiosk.Services.KeyboardRestrictionService,
+            [SionyxKiosk]SionyxKiosk.Services.GlobalHotkeyService,
+            [SionyxKiosk]SionyxKiosk.Services.ProcessRestrictionService,
+            [SionyxKiosk]SionyxKiosk.Services.ProcessCleanupService
           </Exclude>
           <ExcludeByFile>
             **/Views/**/*.xaml.cs,
