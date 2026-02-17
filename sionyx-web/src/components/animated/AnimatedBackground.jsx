@@ -312,18 +312,21 @@ const AnimatedBackground = memo(() => {
       <style>
         {`
           @keyframes float-0 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(30px, -40px) scale(1.05); }
-            66% { transform: translate(-20px, 20px) scale(0.95); }
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+            25% { transform: translate3d(15px, -20px, 0) scale(1.02); }
+            50% { transform: translate3d(30px, -40px, 0) scale(1.04); }
+            75% { transform: translate3d(-10px, 10px, 0) scale(0.98); }
           }
           @keyframes float-1 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(-40px, 30px) scale(0.95); }
-            66% { transform: translate(25px, -25px) scale(1.05); }
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+            25% { transform: translate3d(-20px, 15px, 0) scale(0.98); }
+            50% { transform: translate3d(-40px, 30px, 0) scale(0.96); }
+            75% { transform: translate3d(12px, -12px, 0) scale(1.02); }
           }
           @keyframes float-2 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50% { transform: translate(35px, 35px) scale(1.03); }
+            0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+            33% { transform: translate3d(18px, 18px, 0) scale(1.02); }
+            66% { transform: translate3d(35px, 35px, 0) scale(1.03); }
           }
         `}
       </style>
