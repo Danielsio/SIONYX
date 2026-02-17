@@ -39,7 +39,7 @@ test:
 	cd sionyx-kiosk-wpf && dotnet test --verbosity normal
 
 test-cov:
-	cd sionyx-kiosk-wpf && dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults --verbosity normal
+	cd sionyx-kiosk-wpf && dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults --settings coverage.runsettings --verbosity normal
 	cd sionyx-kiosk-wpf && dotnet tool run reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"coverage-report" -reporttypes:Html
 	@echo ""
 	@echo "Coverage report: sionyx-kiosk-wpf/coverage-report/index.html"
