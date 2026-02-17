@@ -42,7 +42,8 @@
                 <!-- Logout button at bottom -->
                 <Border DockPanel.Dock="Bottom" Padding="16,16">
                     <Button Style="{StaticResource BtnDanger}"
-                            Command="{Binding LogoutCommand}">
+                            Command="{Binding LogoutCommand}"
+                            IsEnabled="{Binding IsLoggingOut, Converter={StaticResource InverseBool}}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <!-- Segoe MDL2 Assets: SignOut glyph (E77B) -->
                             <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets"

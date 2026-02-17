@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Data;
 using System.Windows.Input;
 using SionyxKiosk.ViewModels;
 using SionyxKiosk.Views.Pages;
@@ -21,6 +23,7 @@ public partial class MainWindow : Window
         _services = services;
         DataContext = viewModel;
         InitializeComponent();
+        Resources["InverseBool"] = new InverseBoolConverter();
         _initialized = true;
 
         Loaded += (_, _) =>
