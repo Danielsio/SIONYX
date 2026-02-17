@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { App as AntApp } from 'antd';
 import MessagesPage from './MessagesPage';
 import { getAllUsers } from '../services/userService';
-import { getAllMessages, getMessagesForUser, sendMessage } from '../services/chatService';
+import { getAllMessages, getMessagesForUser, sendMessage, cleanupOldMessages } from '../services/chatService';
 import { useAuthStore } from '../store/authStore';
 
 // Mock dependencies
@@ -83,6 +83,7 @@ const renderMessagesPage = () => {
   });
 
   sendMessage.mockResolvedValue({ success: true, messageId: 'new-msg' });
+  cleanupOldMessages.mockResolvedValue({ success: true, deleted: 0 });
 
   return render(
     <AntApp>
