@@ -79,13 +79,15 @@
                                        Margin="0,8,0,0" TextWrapping="Wrap"
                                        Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}" />
 
-                            <Button x:Name="LoginButton" Content="התחבר" Style="{StaticResource BtnPrimary}"
+                            <Button x:Name="LoginButton" Content="{Binding LoginButtonText}"
+                                    Style="{StaticResource BtnPrimary}"
                                     Command="{Binding LoginCommand}" Margin="0,24,0,0"
                                     IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
 
                             <Button Content="שכחת סיסמה?"
                                     Style="{StaticResource BtnGhost}" Margin="0,8,0,0"
-                                    Command="{Binding ForgotPasswordCommand}" />
+                                    Command="{Binding ForgotPasswordCommand}"
+                                    IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
                             <TextBlock Text="{Binding ForgotPasswordInfo}"
                                        Foreground="{StaticResource TextSecondaryBrush}"
                                        FontSize="{StaticResource FontSizeSm}"
@@ -132,7 +134,8 @@
                                        Margin="0,8,0,0" TextWrapping="Wrap"
                                        Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}" />
 
-                            <Button x:Name="RegisterButton" Content="הירשם" Style="{StaticResource BtnPrimary}"
+                            <Button x:Name="RegisterButton" Content="{Binding RegisterButtonText}"
+                                    Style="{StaticResource BtnPrimary}"
                                     Command="{Binding RegisterCommand}" Margin="0,20,0,0"
                                     IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
 
