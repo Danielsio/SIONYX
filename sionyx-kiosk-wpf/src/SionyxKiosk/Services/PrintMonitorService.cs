@@ -49,7 +49,9 @@ public class PrintMonitorService : BaseService, IDisposable
     private const int JOB_CONTROL_RESUME = 2;
     private const int JOB_CONTROL_CANCEL = 3;
 
+    private const short DMCOLOR_MONOCHROME = 1;
     private const short DMCOLOR_COLOR = 2;
+    private const uint DM_COLOR = 0x00000800; // dmFields flag for dmColor validity
 
     private const uint PRINTER_ENUM_LOCAL = 0x00000002;
     private const uint PRINTER_ENUM_CONNECTIONS = 0x00000004;
@@ -434,12 +436,36 @@ public class PrintMonitorService : BaseService, IDisposable
                         var devMode = Marshal.PtrToStructure<DEVMODEW>(info.pDevMode);
                         if (devMode.dmCopies > 0)
                             copies = devMode.dmCopies;
-                        isColor = devMode.dmColor == DMCOLOR_COLOR;
+
+                        // Color detection: only trust dmColor when dmFields
+                        // explicitly includes DM_COLOR. Many drivers leave
+                        // dmColor=2 (COLOR) as a default even for grayscale
+                        // jobs, so we default to B&W when uncertain.
+                        if ((devMode.dmFields & DM_COLOR) != 0)
+                        {
+                            isColor = devMode.dmColor == DMCOLOR_COLOR;
+                            Log.Debug(
+                                "DEVMODE dmColor={Color} (DM_COLOR flag SET), isColor={IsColor}",
+                                devMode.dmColor, isColor);
+                        }
+                        else
+                        {
+                            // DM_COLOR flag not set — driver didn't populate
+                            // the field. Default to B&W (cheaper, safer).
+                            isColor = false;
+                            Log.Debug(
+                                "DEVMODE dmColor={Color} but DM_COLOR flag NOT SET in dmFields=0x{Fields:X} — defaulting to B&W",
+                                devMode.dmColor, devMode.dmFields);
+                        }
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // DEVMODE read failed — use defaults
+                        Log.Debug("DEVMODE read failed: {Error} — defaulting to B&W", ex.Message);
                     }
+                }
+                else
+                {
+                    Log.Debug("pDevMode is NULL for job {JobId} — defaulting to B&W", jobId);
                 }
 
                 return new JobDetails(docName, pages, copies, isColor);
@@ -532,12 +558,17 @@ public class PrintMonitorService : BaseService, IDisposable
             {
                 _bwPrice = data.TryGetProperty("blackAndWhitePrice", out var bw) && bw.TryGetDouble(out var bwVal) ? bwVal : 1.0;
                 _colorPrice = data.TryGetProperty("colorPrice", out var c) && c.TryGetDouble(out var cVal) ? cVal : 3.0;
-                Logger.Information("Pricing loaded: B&W={Bw}₪, Color={Color}₪", _bwPrice, _colorPrice);
+                Logger.Information("Pricing loaded from DB: B&W={Bw}₪/page, Color={Color}₪/page", _bwPrice, _colorPrice);
+            }
+            else
+            {
+                Logger.Warning("Failed to load pricing from DB (success={Success}) — using defaults: B&W={Bw}₪, Color={Color}₪",
+                    result.Success, _bwPrice, _colorPrice);
             }
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Error loading pricing, using defaults");
+            Logger.Error(ex, "Error loading pricing, using defaults: B&W={Bw}₪, Color={Color}₪", _bwPrice, _colorPrice);
         }
     }
 
@@ -793,9 +824,10 @@ public class PrintMonitorService : BaseService, IDisposable
         var cost = CalculateCost(details.Pages, details.Copies, details.IsColor);
 
         Logger.Information(
-            "Job {JobId}: '{Doc}' — {Pages}p × {Copies}c, {Color}, cost={Cost}₪",
+            "Job {JobId}: '{Doc}' — {Pages}p × {Copies}c, {Color}, price/page={PricePerPage}₪, total={Cost}₪",
             jobId, details.DocName, details.Pages, details.Copies,
-            details.IsColor ? "COLOR" : "B&W", cost);
+            details.IsColor ? "COLOR" : "B&W",
+            details.IsColor ? _colorPrice : _bwPrice, cost);
 
         if (paused)
             HandlePausedJob(printerName, jobId, details.DocName, billablePages, cost);
