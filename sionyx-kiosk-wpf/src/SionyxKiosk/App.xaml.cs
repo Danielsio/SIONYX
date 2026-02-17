@@ -502,23 +502,17 @@ public partial class App : Application
         _warning5MinHandler = () =>
         {
             Log.Information("Session warning: 5 minutes remaining");
-            Current.Dispatcher.Invoke(() =>
-            {
-                if (MainWindow is Views.Windows.MainWindow mw)
-                    mw.ShowToast("5 דקות נותרו", "ההפעלה תסתיים בעוד 5 דקות",
-                        Views.Controls.ToastNotification.ToastType.Warning, 5000);
-            });
+            Views.Controls.FloatingNotification.Show(
+                "5 דקות נותרו", "ההפעלה תסתיים בעוד 5 דקות",
+                Views.Controls.FloatingNotification.NotificationType.Warning, 5000);
         };
 
         _warning1MinHandler = () =>
         {
             Log.Information("Session warning: 1 minute remaining");
-            Current.Dispatcher.Invoke(() =>
-            {
-                if (MainWindow is Views.Windows.MainWindow mw)
-                    mw.ShowToast("דקה אחרונה!", "ההפעלה תסתיים בעוד דקה",
-                        Views.Controls.ToastNotification.ToastType.Error, 5000);
-            });
+            Views.Controls.FloatingNotification.Show(
+                "דקה אחרונה!", "ההפעלה תסתיים בעוד דקה",
+                Views.Controls.FloatingNotification.NotificationType.Error, 6000);
         };
 
         _syncFailedHandler = msg =>
@@ -566,24 +560,20 @@ public partial class App : Application
         _printJobAllowedHandler = (doc, pages, cost, remaining) =>
         {
             Log.Information("Print job allowed: '{Doc}' ({Pages}p, {Cost}₪)", doc, pages, cost);
-            Current.Dispatcher.Invoke(() =>
-            {
-                _floatingTimer?.UpdatePrintBalance(remaining);
-                if (MainWindow is Views.Windows.MainWindow mw)
-                    mw.ShowToast("הדפסה אושרה", $"{doc} — {cost:F2}₪",
-                        Views.Controls.ToastNotification.ToastType.Success);
-            });
+            Current.Dispatcher.Invoke(() => _floatingTimer?.UpdatePrintBalance(remaining));
+            // Global topmost notification — visible even when the app is minimized
+            Views.Controls.FloatingNotification.Show(
+                "הדפסה אושרה", $"{doc} — {cost:F2}₪",
+                Views.Controls.FloatingNotification.NotificationType.Success);
         };
 
         _printJobBlockedHandler = (doc, pages, cost, budget) =>
         {
             Log.Warning("Print job blocked: '{Doc}' ({Pages}p, {Cost}₪, budget={Budget}₪)", doc, pages, cost, budget);
-            Current.Dispatcher.Invoke(() =>
-            {
-                if (MainWindow is Views.Windows.MainWindow mw)
-                    mw.ShowToast("הדפסה נדחתה", $"יתרה לא מספיקה ({budget:F2}₪ זמין, צריך {cost:F2}₪)",
-                        Views.Controls.ToastNotification.ToastType.Error, 5000);
-            });
+            // Global topmost notification — visible even when the app is minimized
+            Views.Controls.FloatingNotification.Show(
+                "הדפסה נדחתה", $"יתרה לא מספיקה ({budget:F2}₪ זמין, צריך {cost:F2}₪)",
+                Views.Controls.FloatingNotification.NotificationType.Error, 5000);
         };
 
         _printBudgetUpdatedHandler = budget =>
