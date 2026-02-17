@@ -207,29 +207,55 @@ Section "Kiosk Security Setup" SecKiosk
     Pop $0
     Delete "$TEMP\create_sionyx_task.ps1"
     
-    ; Startup folder shortcut
-    IfFileExists "C:\Users\${KIOSK_USERNAME}\*.*" 0 create_profile_first
-    CreateDirectory "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
-    CreateShortCut "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk" \
-        "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
-    Goto autostart_done
+    ; Force Windows profile initialization for KioskUser.
+    ; Windows only creates a proper user profile on first interactive logon.
+    ; Without this, manually creating C:\Users\KioskUser causes a "temporary
+    ; profile" error because the registry ProfileList entry is missing.
+    ;
+    ; We use runas /profile to spawn a dummy process as KioskUser, which
+    ; forces Windows to create the profile with proper registry entries.
+    ; Since password is blank, we pipe an empty password via echo.
+    IfFileExists "C:\Users\${KIOSK_USERNAME}\ntuser.dat" profile_ready 0
     
-    create_profile_first:
-    FileOpen $1 "$TEMP\create_profile.ps1" w
+    DetailPrint "[INFO] Initializing Windows profile for ${KIOSK_USERNAME}..."
+    
+    FileOpen $1 "$TEMP\init_profile.ps1" w
+    FileWrite $1 '# Force profile creation by spawning a process as KioskUser$\r$\n'
+    FileWrite $1 '# This creates the proper ProfileList registry entry + ntuser.dat$\r$\n'
+    FileWrite $1 '$$password = ConvertTo-SecureString "" -AsPlainText -Force$\r$\n'
+    FileWrite $1 '$$cred = New-Object System.Management.Automation.PSCredential("${KIOSK_USERNAME}", $$password)$\r$\n'
+    FileWrite $1 'try {$\r$\n'
+    FileWrite $1 '    Start-Process -FilePath "cmd.exe" -ArgumentList "/c exit 0" -Credential $$cred -LoadUserProfile -Wait -NoNewWindow -ErrorAction Stop$\r$\n'
+    FileWrite $1 '    Write-Host "[OK] Profile created successfully"$\r$\n'
+    FileWrite $1 '} catch {$\r$\n'
+    FileWrite $1 '    Write-Host "[WARN] Profile init via Start-Process failed: $$_"$\r$\n'
+    FileWrite $1 '    Write-Host "[INFO] Profile will be created on first logon"$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 '# Wait a moment for profile to finalize$\r$\n'
+    FileWrite $1 'Start-Sleep -Seconds 2$\r$\n'
+    FileClose $1
+    
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\init_profile.ps1"'
+    Pop $0
+    Delete "$TEMP\init_profile.ps1"
+    
+    profile_ready:
+    
+    ; Now create app-specific directories inside the (properly initialized) profile
+    FileOpen $1 "$TEMP\create_profile_dirs.ps1" w
     FileWrite $1 '$$profilePath = "C:\Users\${KIOSK_USERNAME}"$\r$\n'
     FileWrite $1 '$$startupPath = "$$profilePath\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"$\r$\n'
     FileWrite $1 'New-Item -Path $$startupPath -ItemType Directory -Force | Out-Null$\r$\n'
     FileWrite $1 'New-Item -Path "$$profilePath\.sionyx" -ItemType Directory -Force | Out-Null$\r$\n'
     FileWrite $1 'New-Item -Path "$$profilePath\AppData\Local\SIONYX\logs" -ItemType Directory -Force | Out-Null$\r$\n'
     FileClose $1
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\create_profile.ps1"'
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\create_profile_dirs.ps1"'
     Pop $0
-    Delete "$TEMP\create_profile.ps1"
+    Delete "$TEMP\create_profile_dirs.ps1"
     
+    ; Create startup shortcut
     CreateShortCut "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk" \
         "$INSTDIR\${APP_EXECUTABLE}" "--kiosk" "$INSTDIR\${APP_ICON}" 0
-    
-    autostart_done:
     
     WriteRegStr HKLM "SOFTWARE\${APP_NAME}" "KioskUsername" "${KIOSK_USERNAME}"
     
