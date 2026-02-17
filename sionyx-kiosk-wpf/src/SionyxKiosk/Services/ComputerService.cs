@@ -21,22 +21,26 @@ public class ComputerService : BaseService
             var info = DeviceInfo.GetComputerInfo();
             var computerId = info["deviceId"].ToString()!;
 
+            var name = info["computerName"].ToString()!;
             if (!string.IsNullOrEmpty(computerName))
-                info["computerName"] = computerName;
-            else if (info["computerName"].ToString() == "Unknown-PC")
-                info["computerName"] = $"PC-{computerId[..8].ToUpper()}";
-
-            if (!string.IsNullOrEmpty(location))
-                info["location"] = location;
+                name = computerName;
+            else if (name == "Unknown-PC")
+                name = $"PC-{computerId[..8].ToUpper()}";
 
             var now = DateTime.Now.ToString("o");
-            info["currentUserId"] = null!;
-            info["isActive"] = false;
-            info["lastSeen"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            info["createdAt"] = now;
-            info["updatedAt"] = now;
+            var data = new Dictionary<string, object?>
+            {
+                ["computerName"] = name,
+                ["currentUserId"] = null,
+                ["isActive"] = false,
+                ["lastSeen"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                ["createdAt"] = now,
+                ["updatedAt"] = now,
+            };
+            if (!string.IsNullOrEmpty(location))
+                data["location"] = location;
 
-            var result = await Firebase.DbUpdateAsync($"computers/{computerId}", info);
+            var result = await Firebase.DbUpdateAsync($"computers/{computerId}", data);
             if (!result.Success)
                 return Error("Failed to register computer");
 
