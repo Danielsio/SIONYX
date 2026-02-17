@@ -60,6 +60,26 @@ def init_firebase():
     print(f"[OK] Firebase initialized (bucket: {STORAGE_BUCKET})")
 
 
+def cleanup_old_installers(current_filename: str):
+    """Remove old installer files from Storage, keeping only the current one."""
+    bucket = storage.bucket()
+    blobs = list(bucket.list_blobs())
+    removed = 0
+    for blob in blobs:
+        name = blob.name
+        # Delete old installers and legacy files, keep latest.json and current
+        is_old_installer = name.endswith(".exe") and name != current_filename
+        is_old_releases = name.startswith("releases/")
+        if is_old_installer or is_old_releases:
+            blob.delete()
+            print(f"  [DEL] {name}")
+            removed += 1
+    if removed:
+        print(f"[OK] Cleaned {removed} old file(s) from Storage")
+    else:
+        print("[OK] Storage already clean")
+
+
 def upload_installer(installer_path: Path, version: str) -> tuple[str, int]:
     """Upload installer to Firebase Storage. Returns (download_url, file_size)."""
     if not installer_path.exists():
@@ -80,6 +100,11 @@ def upload_installer(installer_path: Path, version: str) -> tuple[str, int]:
     download_url = blob.public_url
 
     print(f"[OK] Uploaded: {download_url}")
+
+    # Clean old installers
+    print("[INFO] Cleaning old installers from Storage...")
+    cleanup_old_installers(blob_name)
+
     return download_url, file_size
 
 
