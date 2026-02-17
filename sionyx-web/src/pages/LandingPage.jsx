@@ -1,5 +1,5 @@
 /**
- * SIONYX Landing Page v2.0
+ * SIONYX Landing Page v3.0
  * Premium animated landing experience with immersive motion design
  * Enhanced with refined visuals, better typography, and polished animations
  */
@@ -69,11 +69,15 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
   const heroRef = useRef(null);
   const subtitleRef = useRef(null);
 
-  // Parallax effect on scroll
+  // Parallax effect on scroll — spring-smoothed for buttery feel
   const { scrollY } = useScroll();
-  const y = useTransform(scrollY, [0, 500], [0, 100]);
-  const opacity = useTransform(scrollY, [0, 400], [1, 0]);
-  const scale = useTransform(scrollY, [0, 400], [1, 0.95]);
+  const rawY = useTransform(scrollY, [0, 500], [0, 100]);
+  const rawOpacity = useTransform(scrollY, [0, 400], [1, 0]);
+  const rawScale = useTransform(scrollY, [0, 400], [1, 0.95]);
+  const springConfig = { stiffness: 100, damping: 30, mass: 0.5 };
+  const y = useSpring(rawY, springConfig);
+  const opacity = useSpring(rawOpacity, springConfig);
+  const scale = useSpring(rawScale, springConfig);
 
   // Subtitle GSAP animation
   useEffect(() => {
@@ -82,7 +86,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
         gsap.fromTo(
           subtitleRef.current,
           { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 0.8, delay: 0.6, ease: 'power3.out' }
+          { opacity: 1, y: 0, duration: 1, delay: 0.6, ease: 'power2.out' }
         );
       }
     }, heroRef);
@@ -164,7 +168,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.5 }}
+        transition={{ delay: 0.4, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
         style={{ marginBottom: 24 }}
       >
         <Tag
@@ -180,7 +184,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
           }}
         >
           <RocketOutlined style={{ marginLeft: 6 }} />
-          גרסה 2.0 - חדש!
+          גרסה 3.0 - חדש!
         </Tag>
       </motion.div>
 
@@ -400,8 +404,8 @@ const FeatureCard = memo(({ icon, title, description, color, delay = 0 }) => {
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.5, delay }}
-      whileHover={{ y: -8, transition: { duration: 0.2 } }}
+      transition={{ duration: 0.6, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
+      whileHover={{ y: -8, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
       style={{ height: '100%' }}
     >
       <div
@@ -414,7 +418,7 @@ const FeatureCard = memo(({ icon, title, description, color, delay = 0 }) => {
           border: '1px solid rgba(255,255,255,0.08)',
           display: 'flex',
           flexDirection: 'column',
-          transition: 'all 0.3s ease',
+          transition: 'background 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease',
           cursor: 'default',
         }}
         onMouseEnter={e => {
@@ -606,7 +610,7 @@ const StatsSection = memo(() => {
     { value: '50+', label: 'ארגונים פעילים', color: colors.primary },
     { value: '1,000+', label: 'משתמשים רשומים', color: colors.success },
     { value: '99.9%', label: 'זמינות שרת', color: colors.cyan },
-    { value: '24/7', label: 'תמיכה טכנית', color: colors.warning },
+    { value: '24/6', label: 'תמיכה טכנית', color: colors.warning },
   ];
 
   return (
@@ -628,8 +632,8 @@ const StatsSection = memo(() => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
+                viewport={{ once: true, margin: '-50px' }}
+                transition={{ delay: index * 0.12, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
                 style={{ textAlign: 'center' }}
               >
                 <div
@@ -664,19 +668,28 @@ const StatsSection = memo(() => {
 StatsSection.displayName = 'StatsSection';
 
 // ============================================
-// Action Cards Section Component - Premium v2.0
+// Action Cards Section Component - Premium v3.0
 // ============================================
 const ActionCardsSection = memo(
   ({ onRegisterClick, onAdminLogin, onDownload, downloadLoading, releaseInfo }) => {
     return (
-      <section style={{ padding: '80px 20px 100px', position: 'relative', zIndex: 1 }}>
+      <section
+        style={{
+          padding: '80px 20px 100px',
+          position: 'relative',
+          zIndex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          style={{ textAlign: 'center', marginBottom: 50 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+          style={{ textAlign: 'center', marginBottom: 50, width: '100%' }}
         >
           <Title
             level={2}
@@ -685,6 +698,7 @@ const ActionCardsSection = memo(
               fontSize: 'clamp(1.8rem, 4vw, 2.5rem)',
               fontWeight: 700,
               marginBottom: 16,
+              textAlign: 'center',
             }}
           >
             מוכן להתחיל?
@@ -693,7 +707,8 @@ const ActionCardsSection = memo(
             style={{
               color: 'rgba(255,255,255,0.6)',
               fontSize: 'clamp(1rem, 2vw, 1.1rem)',
-              margin: 0,
+              margin: '0 auto',
+              textAlign: 'center',
             }}
           >
             בחר את הפעולה המתאימה לך
@@ -706,9 +721,9 @@ const ActionCardsSection = memo(
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+              whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
             >
               <div
                 onClick={onRegisterClick}
@@ -814,9 +829,9 @@ const ActionCardsSection = memo(
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1, duration: 0.5 }}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ delay: 0.15, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+              whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
               style={{ height: '100%' }}
             >
               <div
@@ -904,9 +919,9 @@ const ActionCardsSection = memo(
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ delay: 0.25, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+              whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
               style={{ height: '100%' }}
             >
               <div
