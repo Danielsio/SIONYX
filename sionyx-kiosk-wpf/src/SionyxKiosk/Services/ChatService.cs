@@ -72,16 +72,34 @@ public class ChatService : BaseService, IDisposable
         return Success();
     }
 
-    /// <summary>Mark all unread messages as read.</summary>
+    /// <summary>
+    /// Mark all unread messages as read in a single batch update.
+    /// Uses one Firebase call instead of 2N calls (N messages × 2 fields).
+    /// </summary>
     public async Task MarkAllMessagesAsReadAsync()
     {
         var result = await GetUnreadMessagesAsync();
         if (!result.IsSuccess) return;
         var messages = (List<Dictionary<string, object?>>)result.Data!;
+        if (messages.Count == 0) return;
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var updates = new Dictionary<string, object>();
+
         foreach (var msg in messages)
         {
             if (msg.TryGetValue("id", out var id) && id is string messageId)
-                await MarkMessageAsReadAsync(messageId);
+            {
+                updates[$"messages/{messageId}/read"] = true;
+                updates[$"messages/{messageId}/readAt"] = now;
+            }
+        }
+
+        if (updates.Count > 0)
+        {
+            // Single batch update for all messages
+            await Firebase.DbUpdateAsync("", updates);
+            Logger.Information("Marked {Count} messages as read (batch)", messages.Count);
         }
     }
 
