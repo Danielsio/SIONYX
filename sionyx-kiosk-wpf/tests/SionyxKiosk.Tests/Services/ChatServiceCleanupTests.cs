@@ -230,7 +230,7 @@ public class ChatServiceCleanupTests : IDisposable
     }
 
     [Fact]
-    public async Task MarkAllMessagesAsReadAsync_WithMessages_ShouldMarkEach()
+    public async Task MarkAllMessagesAsReadAsync_WithMessages_ShouldSendBatchUpdate()
     {
         _handler.WhenRaw("messages.json", @"{
             ""msg1"": { ""toUserId"": ""user-123"", ""message"": ""One"", ""read"": false, ""timestamp"": 1700000000000 },
@@ -239,10 +239,10 @@ public class ChatServiceCleanupTests : IDisposable
 
         await _service.MarkAllMessagesAsReadAsync();
 
-        // Verify that mark-as-read requests were sent
-        var markRequests = _handler.SentRequests
-            .Where(r => r.RequestUri?.ToString().Contains("messages/msg") ?? false)
+        // Verify that a batch update request was sent (single PATCH, not 2N individual calls)
+        var patchRequests = _handler.SentRequests
+            .Where(r => r.Method == System.Net.Http.HttpMethod.Patch)
             .ToList();
-        markRequests.Should().NotBeEmpty();
+        patchRequests.Should().NotBeEmpty();
     }
 }
