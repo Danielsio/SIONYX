@@ -244,7 +244,7 @@ Section "Kiosk Security Setup" SecKiosk
     FileWrite $1 '    if ($$hr -eq 0) {$\r$\n'
     FileWrite $1 '        Write-Host "[OK] Profile created at: $$($$pathBuf.ToString())"$\r$\n'
     FileWrite $1 '    } else {$\r$\n'
-    FileWrite $1 '        Write-Host "[WARN] CreateProfile HRESULT: 0x$$($$hr.ToString(''X8''))"$\r$\n'
+    FileWrite $1 '        Write-Host "[WARN] CreateProfile HRESULT: $$hr"$\r$\n'
     FileWrite $1 '        Write-Host "[INFO] Profile may already exist or will be created on first logon"$\r$\n'
     FileWrite $1 '    }$\r$\n'
     FileWrite $1 '} catch {$\r$\n'
