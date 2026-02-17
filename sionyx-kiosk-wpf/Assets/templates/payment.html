@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Assistant', 'Segoe UI', Arial, sans-serif;
+            background: #F8FAFC;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .payment-container {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 100%;
+            padding: 32px;
+            margin: 0 auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .header { text-align: center; margin-bottom: 24px; }
+        .header h1 { color: #1F2937; font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+        .header p { color: #6B7280; font-size: 14px; }
+        .package-info {
+            background: #F3F4F6; border-radius: 12px;
+            padding: 16px; margin-bottom: 24px;
+        }
+        .package-info h3 { color: #374151; font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+        .package-details {
+            display: flex; justify-content: space-between;
+            margin-bottom: 6px; color: #6B7280; font-size: 14px;
+        }
+        .package-details strong { color: #1F2937; }
+        .price-row {
+            border-top: 2px solid #E5E7EB; padding-top: 10px;
+            margin-top: 10px; font-size: 18px; font-weight: 700; color: #059669;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; color: #374151; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .form-group input {
+            width: 100%; padding: 10px 14px;
+            border: 2px solid #E5E7EB; border-radius: 8px;
+            font-size: 15px; font-family: inherit; transition: border-color 0.2s;
+        }
+        .form-group input:focus { outline: none; border-color: #6366F1; }
+        .nedarim-iframe-container {
+            margin: 20px 0; border: 2px solid #E5E7EB;
+            border-radius: 12px; overflow: hidden; background: #FAFAFA;
+        }
+        #NedarimFrame { width: 100%; border: none; min-height: 300px; }
+        .loading-iframe { text-align: center; padding: 30px; color: #6B7280; }
+        .btn-pay {
+            width: 100%; background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            color: white; border: none; border-radius: 10px;
+            padding: 14px; font-size: 17px; font-weight: 700;
+            cursor: pointer; transition: transform 0.2s;
+        }
+        .btn-pay:hover { transform: translateY(-1px); }
+        .btn-pay:disabled { background: #D1D5DB; cursor: not-allowed; transform: none; }
+        .btn-cancel {
+            width: 100%; background: #F3F4F6; color: #6B7280;
+            border: none; border-radius: 8px; padding: 10px;
+            font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 10px;
+        }
+        .btn-cancel:hover { background: #E5E7EB; }
+        .loading-payment { display: none; text-align: center; padding: 20px; }
+        .loading-payment.active { display: block; }
+        .error-message {
+            background: #FEE2E2; color: #DC2626; padding: 10px;
+            border-radius: 8px; margin-top: 12px; font-weight: 600; display: none;
+        }
+        .error-message.show { display: block; }
+        .success-message {
+            background: #D1FAE5; color: #059669; padding: 16px;
+            border-radius: 12px; text-align: center;
+            font-weight: 600; font-size: 16px; display: none;
+        }
+        .success-message.show { display: block; }
+        .spinner {
+            width: 40px; height: 40px; margin: 0 auto 12px;
+            border: 4px solid #E5E7EB; border-top-color: #6366F1;
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="header">
+            <h1>תשלום מאובטח</h1>
+            <p>מערכת תשלומים מאובטחת - Nedarim Plus</p>
+        </div>
+
+        <div class="package-info">
+            <h3 id="packageName">חבילת זמן</h3>
+            <div class="package-details">
+                <span>זמן שימוש:</span>
+                <strong id="packageTime">60 דקות</strong>
+            </div>
+            <div class="package-details">
+                <span>תקציב הדפסות:</span>
+                <strong id="packagePrints">₪10</strong>
+            </div>
+            <div class="package-details price-row">
+                <span>סכום לתשלום:</span>
+                <strong id="packagePrice">₪40</strong>
+            </div>
+        </div>
+
+        <div id="formSection">
+            <div class="form-group">
+                <label for="clientName">שם מלא *</label>
+                <input type="text" id="clientName" placeholder="הזן שם מלא" required>
+            </div>
+
+            <div class="nedarim-iframe-container">
+                <div class="loading-iframe" id="loadingIframe">
+                    <div class="spinner"></div>
+                    <div>מתחבר לשרת תשלומים מאובטח...</div>
+                </div>
+                <iframe id="NedarimFrame" scrolling="no"></iframe>
+            </div>
+
+            <button id="payButton" class="btn-pay" onclick="handlePayment()">בצע תשלום</button>
+            <div id="errorMessage" class="error-message"></div>
+            <button class="btn-cancel" onclick="cancelPayment()">ביטול</button>
+        </div>
+
+        <div id="loadingPayment" class="loading-payment">
+            <div class="spinner" style="border-top-color: #10B981;"></div>
+            <h3 style="color: #374151; margin-bottom: 6px;">מעבד תשלום...</h3>
+            <p style="color: #6B7280;">אנא המתן</p>
+        </div>
+
+        <div id="processingMessage" style="display: none; text-align: center; padding: 20px;">
+            <div class="spinner" style="border-top-color: #10B981;"></div>
+            <h3 style="color: #374151; margin-bottom: 6px;">מאמת תשלום...</h3>
+            <p style="color: #6B7280;">ממתין לאישור מהשרת</p>
+        </div>
+
+        <div id="successMessage" class="success-message">
+            ✓ התשלום בוצע בהצלחה!<br>
+            <span style="font-size: 14px; font-weight: normal;">הזמן נוסף לחשבונך</span>
+        </div>
+    </div>
+
+    <script>
+        // Configuration injected from C# via WebView2
+        let CONFIG = {};
+
+        // Listen for messages from C# (WebView2 bridge)
+        window.chrome.webview.addEventListener('message', function(event) {
+            const msg = event.data;
+            if (msg.action === 'setConfig') {
+                CONFIG = msg.config;
+                document.getElementById('packageName').textContent = CONFIG.packageName;
+                document.getElementById('packageTime').textContent = CONFIG.packageMinutes + ' דקות';
+                document.getElementById('packagePrints').textContent = '₪' + CONFIG.packagePrints;
+                document.getElementById('packagePrice').textContent = '₪' + CONFIG.amount;
+                document.getElementById('clientName').value = CONFIG.userName || '';
+            }
+            else if (msg.action === 'purchaseCreated') {
+                onPurchaseCreated(msg.purchaseId);
+            }
+            else if (msg.action === 'purchaseError') {
+                document.getElementById('formSection').style.display = 'block';
+                document.getElementById('loadingPayment').classList.remove('active');
+                showError(msg.error || 'שגיאה ביצירת רכישה');
+            }
+            else if (msg.action === 'showSuccess') {
+                showSuccess();
+            }
+        });
+
+        // Initialize
+        window.onload = function() {
+            window.addEventListener("message", handlePostMessage, false);
+            document.getElementById('NedarimFrame').onload = function() {
+                postToNedarim({'Name': 'GetHeight'});
+            };
+            document.getElementById('NedarimFrame').src =
+                "https://matara.pro/nedarimplus/iframe?language=he";
+        };
+
+        function postToNedarim(data) {
+            var iframe = document.getElementById('NedarimFrame');
+            if (iframe && iframe.contentWindow) iframe.contentWindow.postMessage(data, "*");
+        }
+
+        function handlePostMessage(event) {
+            if (!event.data || !event.data.Name) return;
+            switch (event.data.Name) {
+                case 'Height':
+                    document.getElementById('NedarimFrame').style.height =
+                        (parseInt(event.data.Value) + 15) + "px";
+                    document.getElementById('loadingIframe').style.display = 'none';
+                    break;
+                case 'TransactionResponse':
+                    handleTransactionResponse(event.data.Value);
+                    break;
+            }
+        }
+
+        function handlePayment() {
+            var name = document.getElementById('clientName').value.trim();
+            if (!name) { showError('נא להזין שם מלא'); return; }
+
+            document.getElementById('formSection').style.display = 'none';
+            document.getElementById('loadingPayment').classList.add('active');
+            document.getElementById('errorMessage').classList.remove('show');
+
+            // Ask C# to create pending purchase
+            window.chrome.webview.postMessage({ action: 'createPendingPurchase' });
+        }
+
+        function onPurchaseCreated(purchaseId) {
+            var name = document.getElementById('clientName').value.trim();
+            postToNedarim({
+                'Name': 'FinishTransaction2',
+                'Value': {
+                    'Mosad': CONFIG.mosadId,
+                    'ApiValid': CONFIG.apiValid,
+                    'PaymentType': 'Ragil',
+                    'Currency': '1',
+                    'Zeout': '',
+                    'FirstName': name,
+                    'LastName': '',
+                    'Street': '',
+                    'City': '',
+                    'Phone': '',
+                    'Mail': '',
+                    'Amount': CONFIG.amount,
+                    'Tashlumim': '1',
+                    'Groupe': '',
+                    'Comment': 'רכישת חבילה: ' + CONFIG.packageName,
+                    'Param1': purchaseId,
+                    'Param2': CONFIG.orgId || '',
+                    'ForceUpdateMatching': '0',
+                    'CallBack': CONFIG.callbackUrl || '',
+                    'CallBackMailError': ''
+                }
+            });
+        }
+
+        function handleTransactionResponse(response) {
+            document.getElementById('loadingPayment').classList.remove('active');
+            if (response.Status === 'Error') {
+                document.getElementById('formSection').style.display = 'block';
+                showError(response.Message || 'התשלום נכשל. נסה שוב.');
+            } else {
+                document.getElementById('processingMessage').style.display = 'block';
+                window.chrome.webview.postMessage({
+                    action: 'paymentSuccess',
+                    response: response
+                });
+            }
+        }
+
+        function showError(message) {
+            var el = document.getElementById('errorMessage');
+            el.textContent = message;
+            el.classList.add('show');
+        }
+
+        function showSuccess() {
+            document.getElementById('loadingPayment').classList.remove('active');
+            var pm = document.getElementById('processingMessage');
+            if (pm) pm.style.display = 'none';
+            document.getElementById('successMessage').classList.add('show');
+            setTimeout(function() {
+                window.chrome.webview.postMessage({ action: 'close', success: true });
+            }, 2500);
+        }
+
+        function cancelPayment() {
+            window.chrome.webview.postMessage({ action: 'close', success: false });
+        }
+    </script>
+</body>
+</html>
