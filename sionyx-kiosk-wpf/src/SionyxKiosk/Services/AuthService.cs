@@ -50,19 +50,14 @@ public class AuthService : BaseService
             return false;
 
         // Single-session enforcement: reject auto-login if user is active on another PC
-        if (data.TryGetProperty("isLoggedIn", out var loggedIn) && loggedIn.GetBoolean())
+        if (IsLoggedInOnAnotherComputer(data))
         {
-            var currentComputerId = _computerService.GetComputerId();
-            var loggedInComputer = SafeGet(data, "currentComputerId");
-            if (!string.IsNullOrEmpty(loggedInComputer) && loggedInComputer != currentComputerId)
-            {
-                Logger.Warning("Auto-login rejected: user active on another PC ({OtherPc})", loggedInComputer);
-                _localDb.Delete("refresh_token");
-                _localDb.Delete("user_id");
-                _localDb.Delete("phone");
-                Firebase.ClearAuth();
-                return false;
-            }
+            Logger.Warning("Auto-login rejected: user active on another PC");
+            _localDb.Delete("refresh_token");
+            _localDb.Delete("user_id");
+            _localDb.Delete("phone");
+            Firebase.ClearAuth();
+            return false;
         }
 
         CurrentUser = ParseUserData(data, Firebase.UserId!);
@@ -94,13 +89,8 @@ public class AuthService : BaseService
             return Error(ErrorTranslations.Translate("user data not found"));
 
         // Single-session enforcement
-        if (userData.TryGetProperty("isLoggedIn", out var loggedIn) && loggedIn.GetBoolean())
-        {
-            var currentComputerId = _computerService.GetComputerId();
-            var loggedInComputer = SafeGet(userData, "currentComputerId");
-            if (!string.IsNullOrEmpty(loggedInComputer) && loggedInComputer != currentComputerId)
-                return Error("המשתמש כבר מחובר במחשב אחר. יש להתנתק שם קודם.");
-        }
+        if (IsLoggedInOnAnotherComputer(userData))
+            return Error("המשתמש כבר מחובר במחשב אחר. יש להתנתק שם קודם.");
 
         CurrentUser = ParseUserData(userData, uid);
         await RecoverOrphanedSessionAsync(uid, userData);
@@ -282,6 +272,20 @@ public class AuthService : BaseService
             }
             catch { /* swallow */ }
         }
+    }
+
+    /// <summary>
+    /// Guard Clause: check if user is logged in on a different computer.
+    /// Returns true if the user is logged in on another PC (session should be rejected).
+    /// </summary>
+    private bool IsLoggedInOnAnotherComputer(JsonElement userData)
+    {
+        if (!userData.TryGetProperty("isLoggedIn", out var loggedIn) || !loggedIn.GetBoolean())
+            return false;
+
+        var currentComputerId = _computerService.GetComputerId();
+        var loggedInComputer = SafeGet(userData, "currentComputerId");
+        return !string.IsNullOrEmpty(loggedInComputer) && loggedInComputer != currentComputerId;
     }
 
     private static UserData ParseUserData(JsonElement data, string uid)

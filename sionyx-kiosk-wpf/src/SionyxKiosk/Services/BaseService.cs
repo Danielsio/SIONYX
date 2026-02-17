@@ -79,6 +79,24 @@ public abstract class BaseService
         return defaultValue;
     }
 
+    // ==================== FIREBASE FETCH PATTERN (Template Method) ====================
+
+    /// <summary>
+    /// Fetch JSON from Firebase and validate the response in one step.
+    /// Eliminates the repeated pattern of DbGetAsync → check success → check data type.
+    /// Returns (JsonElement data, ServiceResult? error) — if error is non-null, return it.
+    /// </summary>
+    protected async Task<(JsonElement Data, ServiceResult? Error)> FetchJsonAsync(
+        string path, string errorContext = "fetch")
+    {
+        var result = await Firebase.DbGetAsync(path);
+        if (!result.Success)
+            return (default, Error($"Failed to {errorContext}: {result.Error}"));
+        if (result.Data is not JsonElement data || data.ValueKind == JsonValueKind.Null)
+            return (default, Error($"No data found for {errorContext}"));
+        return (data, null);
+    }
+
     // ==================== FIREBASE ERROR HANDLING ====================
 
     protected string HandleFirebaseError(Exception ex, string operation)
