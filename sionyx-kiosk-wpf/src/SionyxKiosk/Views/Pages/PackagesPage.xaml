@@ -11,9 +11,9 @@
             <controls:LoadingSpinner HorizontalAlignment="Center"
                                      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
 
-            <!-- Empty state -->
+            <!-- Empty state (only after loading completes) -->
             <controls:EmptyState Message="אין חבילות זמינות"
-                                 Visibility="{Binding Packages.Count, Converter={StaticResource ZeroToVis}}" />
+                                 Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVis}}" />
 
             <!-- Package grid -->
             <ItemsControl ItemsSource="{Binding Packages}" Margin="0,0,0,24">

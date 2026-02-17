@@ -18,6 +18,19 @@ public partial class PackagesViewModel : ObservableObject
     [ObservableProperty] private string _errorMessage = "";
     [ObservableProperty] private Package? _selectedPackage;
 
+    /// <summary>Show empty state only when NOT loading and packages list is empty.</summary>
+    public bool ShowEmptyState => !IsLoading && Packages.Count == 0;
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ShowEmptyState));
+    }
+
+    partial void OnPackagesChanged(ObservableCollection<Package> value)
+    {
+        OnPropertyChanged(nameof(ShowEmptyState));
+    }
+
     public event Action<Package>? PurchaseRequested;
 
     public PackagesViewModel(PackageService packageService, PurchaseService purchaseService, string userId)
