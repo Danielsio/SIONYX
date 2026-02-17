@@ -3,7 +3,6 @@ import {
   Card,
   Button,
   Input,
-  Space,
   Typography,
   App,
   Tag,
@@ -15,6 +14,7 @@ import {
   Empty,
   Spin,
   Divider,
+  Tooltip,
 } from 'antd';
 import {
   MessageOutlined,
@@ -45,6 +45,22 @@ dayjs.locale('he');
 const { Title, Text, Paragraph } = Typography;
 const { TextArea } = Input;
 
+// ── Design tokens ──────────────────────────────────────────
+const tokens = {
+  primary: '#667eea',
+  primaryDark: '#5a6fd6',
+  gradientPrimary: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  gradientGreen: 'linear-gradient(135deg, #52c41a, #73d13d)',
+  bubbleBg: '#f0f2ff',
+  chatBg: '#fafbfc',
+  surfaceBorder: '#eef0f4',
+  textPrimary: '#1a1a2e',
+  textSecondary: '#8492a6',
+  radius: 14,
+  radiusSm: 10,
+};
+
+// ── MessagesPage ───────────────────────────────────────────
 const MessagesPage = () => {
   const [messages, setMessages] = useState([]);
   const [users, setUsers] = useState([]);
@@ -63,7 +79,6 @@ const MessagesPage = () => {
 
   useEffect(() => {
     loadData();
-    // Cleanup old read messages on mount (non-blocking)
     if (user?.orgId) {
       cleanupOldMessages(user.orgId).catch(() => {});
     }
@@ -84,12 +99,8 @@ const MessagesPage = () => {
         getAllMessages(user.orgId),
       ]);
 
-      if (usersResult.success) {
-        setUsers(usersResult.users);
-      }
-      if (messagesResult.success) {
-        setMessages(messagesResult.messages);
-      }
+      if (usersResult.success) setUsers(usersResult.users);
+      if (messagesResult.success) setMessages(messagesResult.messages);
     } catch (error) {
       logger.error('Error loading data:', error);
       message.error('שגיאה בטעינת הנתונים');
@@ -106,7 +117,6 @@ const MessagesPage = () => {
     try {
       const result = await getMessagesForUser(user.orgId, userItem.uid);
       if (result.success) {
-        // Sort messages by timestamp (oldest first for chat display)
         const sorted = [...result.messages].sort(
           (a, b) => dayjs(a.timestamp).unix() - dayjs(b.timestamp).unix()
         );
@@ -128,7 +138,6 @@ const MessagesPage = () => {
       const result = await sendMessage(user.orgId, selectedUser.uid, newMessage.trim(), user.uid);
       if (result.success) {
         setNewMessage('');
-        // Reload messages for this user
         const msgResult = await getMessagesForUser(user.orgId, selectedUser.uid);
         if (msgResult.success) {
           const sorted = [...msgResult.messages].sort(
@@ -136,7 +145,6 @@ const MessagesPage = () => {
           );
           setUserMessages(sorted);
         }
-        // Also reload all messages for the list
         loadData();
         message.success('הודעה נשלחה');
       } else {
@@ -150,11 +158,9 @@ const MessagesPage = () => {
     }
   };
 
-  // Get user conversation summaries
+  // ── Conversation summaries ─────────────────────────────
   const getUserConversations = () => {
     const userMap = new Map();
-
-    // Group messages by user
     messages.forEach(msg => {
       const userId = msg.toUserId;
       if (!userMap.has(userId)) {
@@ -177,7 +183,6 @@ const MessagesPage = () => {
       }
     });
 
-    // Convert to array and add user details
     return Array.from(userMap.values())
       .map(conv => {
         const userInfo = users.find(u => u.uid === conv.userId);
@@ -195,146 +200,271 @@ const MessagesPage = () => {
   const conversations = getUserConversations();
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
 
-  // Filter conversations by search
   const filteredConversations = conversations.filter(
     conv =>
       conv.userName.toLowerCase().includes(searchText.toLowerCase()) ||
       conv.userPhone.includes(searchText)
   );
 
-  // Users without messages (for quick access)
   const usersWithoutMessages = users.filter(u => !conversations.find(c => c.userId === u.uid));
 
+  // ── Helper: get user initials ──────────────────────────
+  const getInitials = name => {
+    if (!name) return '?';
+    const parts = name.trim().split(' ');
+    return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}` : parts[0][0];
+  };
+
+  // ── Conversation list item ─────────────────────────────
   const ConversationCard = ({ conv }) => (
-    <Card
-      hoverable
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => conv.userInfo && openChat(conv.userInfo)}
+      onKeyDown={e => e.key === 'Enter' && conv.userInfo && openChat(conv.userInfo)}
       style={{
-        borderRadius: 12,
-        marginBottom: 12,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+        padding: '14px 18px',
+        borderRadius: tokens.radiusSm,
         cursor: 'pointer',
-        borderRight: conv.unreadCount > 0 ? '4px solid #1890ff' : 'none',
+        transition: 'background 0.2s',
+        borderBottom: `1px solid ${tokens.surfaceBorder}`,
+        background: conv.unreadCount > 0 ? 'rgba(102, 126, 234, 0.04)' : 'transparent',
       }}
-      styles={{ body: { padding: 16 } }}
+      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(102, 126, 234, 0.06)')}
+      onMouseLeave={e =>
+        (e.currentTarget.style.background =
+          conv.unreadCount > 0 ? 'rgba(102, 126, 234, 0.04)' : 'transparent')
+      }
     >
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-        <Badge count={conv.unreadCount} offset={[-4, 4]}>
-          <Avatar
-            size={48}
+      {/* Avatar */}
+      <Badge count={conv.unreadCount} size="small" offset={[-2, 2]}>
+        <Avatar
+          size={46}
+          style={{
+            background: conv.isActive ? tokens.gradientGreen : tokens.gradientPrimary,
+            fontSize: 16,
+            fontWeight: 600,
+          }}
+        >
+          {getInitials(conv.userName)}
+        </Avatar>
+      </Badge>
+
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            marginBottom: 2,
+          }}
+        >
+          <Text
+            strong={conv.unreadCount > 0}
             style={{
-              background: conv.isActive
-                ? 'linear-gradient(135deg, #52c41a, #73d13d)'
-                : 'linear-gradient(135deg, #667eea, #764ba2)',
+              fontSize: 14,
+              color: tokens.textPrimary,
+              fontWeight: conv.unreadCount > 0 ? 600 : 500,
             }}
-            icon={<UserOutlined />}
-          />
-        </Badge>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text strong style={{ fontSize: 15 }}>
-              {conv.userName}
-            </Text>
-            <Text type='secondary' style={{ fontSize: 11 }}>
-              {conv.latestTimestamp?.fromNow()}
-            </Text>
-          </div>
-          <Text type='secondary' style={{ fontSize: 12 }}>
-            {conv.userPhone}
-          </Text>
-          <Paragraph
-            ellipsis={{ rows: 1 }}
-            style={{ margin: '4px 0 0', fontSize: 13, color: '#666' }}
           >
-            {conv.latestMessage || 'אין הודעות'}
-          </Paragraph>
+            {conv.userName}
+          </Text>
+          <Text style={{ fontSize: 11, color: tokens.textSecondary, flexShrink: 0, marginRight: 8 }}>
+            {conv.latestTimestamp?.fromNow()}
+          </Text>
         </div>
+        <Paragraph
+          ellipsis={{ rows: 1 }}
+          style={{
+            margin: 0,
+            fontSize: 13,
+            color: conv.unreadCount > 0 ? tokens.textPrimary : tokens.textSecondary,
+            fontWeight: conv.unreadCount > 0 ? 500 : 400,
+            lineHeight: 1.4,
+          }}
+        >
+          {conv.latestMessage || 'אין הודעות'}
+        </Paragraph>
       </div>
-    </Card>
+    </div>
   );
 
-  const UserQuickCard = ({ userItem }) => (
-    <Card
-      hoverable
-      size='small'
-      onClick={() => openChat(userItem)}
-      style={{ borderRadius: 8, textAlign: 'center' }}
-      styles={{ body: { padding: 12 } }}
-    >
-      <Avatar
-        size={40}
-        style={{
-          background: isUserActive(userItem.lastSeen)
-            ? 'linear-gradient(135deg, #52c41a, #73d13d)'
-            : '#d9d9d9',
-        }}
-        icon={<UserOutlined />}
-      />
-      <div style={{ marginTop: 8 }}>
-        <Text strong style={{ fontSize: 12, display: 'block' }} ellipsis>
-          {userItem.firstName}
-        </Text>
+  // ── Quick user avatar card ─────────────────────────────
+  const UserQuickCard = ({ userItem }) => {
+    const active = isUserActive(userItem.lastSeen);
+    const name = `${userItem.firstName} ${userItem.lastName || ''}`.trim();
+
+    return (
+      <Tooltip title={name} placement="top">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => openChat(userItem)}
+          onKeyDown={e => e.key === 'Enter' && openChat(userItem)}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 8,
+            padding: '14px 8px',
+            borderRadius: tokens.radiusSm,
+            cursor: 'pointer',
+            transition: 'background 0.2s, transform 0.15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(102, 126, 234, 0.06)';
+            e.currentTarget.style.transform = 'translateY(-1px)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.transform = 'none';
+          }}
+        >
+          <Badge dot={active} offset={[-4, 4]} color="#52c41a">
+            <Avatar
+              size={42}
+              style={{
+                background: active ? tokens.gradientGreen : tokens.gradientPrimary,
+                fontSize: 15,
+                fontWeight: 600,
+              }}
+            >
+              {getInitials(name)}
+            </Avatar>
+          </Badge>
+          <Text
+            style={{
+              fontSize: 12,
+              color: tokens.textPrimary,
+              fontWeight: 500,
+              maxWidth: 72,
+              textAlign: 'center',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {userItem.firstName}
+          </Text>
+        </div>
+      </Tooltip>
+    );
+  };
+
+  // ── Stat pill ──────────────────────────────────────────
+  const StatPill = ({ value, label, color }) => (
+    <div style={{ textAlign: 'center', flex: 1 }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color, lineHeight: 1.2 }}>{value}</div>
+      <div style={{ fontSize: 12, color: tokens.textSecondary, fontWeight: 500, marginTop: 2 }}>
+        {label}
       </div>
-    </Card>
+    </div>
   );
 
+  // ═════════════════════════ RENDER ═════════════════════════
   return (
     <div style={{ direction: 'rtl' }}>
-      {/* Header */}
+      {/* ── Page Header ──────────────────────────────────── */}
       <div
-        className='page-header'
         style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 12,
-          marginBottom: 20,
+          marginBottom: 24,
         }}
       >
         <div>
-          <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
-            <MessageOutlined />
+          <Title
+            level={2}
+            style={{
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              fontSize: 22,
+              fontWeight: 700,
+              color: tokens.textPrimary,
+            }}
+          >
+            <MessageOutlined style={{ color: tokens.primary }} />
             הודעות
-            {totalUnread > 0 && <Badge count={totalUnread} style={{ marginRight: 8 }} />}
+            {totalUnread > 0 && (
+              <Badge
+                count={totalUnread}
+                style={{
+                  background: tokens.primary,
+                  boxShadow: 'none',
+                  fontWeight: 600,
+                  fontSize: 12,
+                }}
+              />
+            )}
           </Title>
-          <Text type='secondary'>שלח הודעות למשתמשים וצפה בשיחות</Text>
+          <Text style={{ color: tokens.textSecondary, fontSize: 14 }}>
+            שלח הודעות למשתמשים וצפה בשיחות
+          </Text>
         </div>
-        <Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>
+        <Button
+          icon={<ReloadOutlined />}
+          onClick={loadData}
+          loading={loading}
+          style={{ borderRadius: tokens.radiusSm }}
+        >
           רענן
         </Button>
       </div>
 
+      {/* ── Content ──────────────────────────────────────── */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 60 }}>
-          <Spin size='large' />
+        <div style={{ textAlign: 'center', padding: 80 }}>
+          <Spin size="large" />
         </div>
       ) : (
-        <Row gutter={[16, 16]}>
-          {/* Main Conversations List */}
+        <Row gutter={[20, 20]}>
+          {/* ── Conversations List ────────────────────────── */}
           <Col xs={24} lg={16}>
             <Card
               title={
-                <Space>
-                  <MessageOutlined />
-                  <span>שיחות ({conversations.length})</span>
-                </Space>
+                <span style={{ fontSize: 15, fontWeight: 600, color: tokens.textPrimary }}>
+                  <MessageOutlined style={{ color: tokens.primary, marginLeft: 8 }} />
+                  שיחות ({conversations.length})
+                </span>
               }
               extra={
                 <Input
-                  placeholder='חפש משתמש...'
-                  prefix={<SearchOutlined />}
+                  placeholder="חפש משתמש..."
+                  prefix={<SearchOutlined style={{ color: tokens.textSecondary }} />}
                   value={searchText}
                   onChange={e => setSearchText(e.target.value)}
-                  style={{ width: 180 }}
+                  style={{ width: 200, borderRadius: tokens.radiusSm }}
                   allowClear
                 />
               }
               styles={{
-                body: { padding: 16, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' },
+                header: {
+                  borderBottom: `1px solid ${tokens.surfaceBorder}`,
+                  padding: '14px 20px',
+                },
+                body: {
+                  padding: 0,
+                  maxHeight: 'calc(100vh - 280px)',
+                  overflowY: 'auto',
+                },
               }}
+              style={{ borderRadius: tokens.radius, border: `1px solid ${tokens.surfaceBorder}` }}
             >
               {filteredConversations.length === 0 ? (
-                <Empty description='אין שיחות' image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                <Empty
+                  description="אין שיחות"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  style={{ padding: '48px 0' }}
+                />
               ) : (
                 filteredConversations.map(conv => (
                   <ConversationCard key={conv.userId} conv={conv} />
@@ -343,21 +473,29 @@ const MessagesPage = () => {
             </Card>
           </Col>
 
-          {/* Quick Access to Users */}
+          {/* ── Sidebar ──────────────────────────────────── */}
           <Col xs={24} lg={8}>
+            {/* Quick access */}
             <Card
               title={
-                <Space>
-                  <UserOutlined />
-                  <span>שלח הודעה חדשה</span>
-                </Space>
+                <span style={{ fontSize: 15, fontWeight: 600, color: tokens.textPrimary }}>
+                  <UserOutlined style={{ color: tokens.primary, marginLeft: 8 }} />
+                  שלח הודעה חדשה
+                </span>
               }
-              styles={{ body: { padding: 12 } }}
+              styles={{
+                header: {
+                  borderBottom: `1px solid ${tokens.surfaceBorder}`,
+                  padding: '14px 20px',
+                },
+                body: { padding: 12 },
+              }}
+              style={{ borderRadius: tokens.radius, border: `1px solid ${tokens.surfaceBorder}` }}
             >
               {usersWithoutMessages.length === 0 && conversations.length === 0 ? (
-                <Empty description='אין משתמשים' image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                <Empty description="אין משתמשים" image={Empty.PRESENTED_IMAGE_SIMPLE} />
               ) : (
-                <Row gutter={[8, 8]}>
+                <Row gutter={[4, 4]}>
                   {users.slice(0, 12).map(userItem => (
                     <Col key={userItem.uid} span={8}>
                       <UserQuickCard userItem={userItem} />
@@ -367,70 +505,90 @@ const MessagesPage = () => {
               )}
             </Card>
 
-            {/* Stats Card */}
-            <Card style={{ marginTop: 16 }}>
-              <Row gutter={16}>
-                <Col span={8} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#1890ff' }}>
-                    {messages.length}
-                  </div>
-                  <Text type='secondary' style={{ fontSize: 12 }}>
-                    סך הכל
-                  </Text>
-                </Col>
-                <Col span={8} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#faad14' }}>
-                    {totalUnread}
-                  </div>
-                  <Text type='secondary' style={{ fontSize: 12 }}>
-                    לא נקראו
-                  </Text>
-                </Col>
-                <Col span={8} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 24, fontWeight: 'bold', color: '#52c41a' }}>
-                    {conversations.length}
-                  </div>
-                  <Text type='secondary' style={{ fontSize: 12 }}>
-                    שיחות
-                  </Text>
-                </Col>
-              </Row>
+            {/* Stats */}
+            <Card
+              style={{
+                marginTop: 16,
+                borderRadius: tokens.radius,
+                border: `1px solid ${tokens.surfaceBorder}`,
+              }}
+              styles={{ body: { padding: '20px 16px' } }}
+            >
+              <div style={{ display: 'flex', gap: 8 }}>
+                <StatPill value={messages.length} label="סך הכל" color={tokens.primary} />
+                <div
+                  style={{ width: 1, background: tokens.surfaceBorder, alignSelf: 'stretch' }}
+                />
+                <StatPill value={totalUnread} label="לא נקראו" color="#faad14" />
+                <div
+                  style={{ width: 1, background: tokens.surfaceBorder, alignSelf: 'stretch' }}
+                />
+                <StatPill value={conversations.length} label="שיחות" color="#52c41a" />
+              </div>
             </Card>
           </Col>
         </Row>
       )}
 
-      {/* Chat Drawer */}
+      {/* ═══════════════ Chat Drawer ═══════════════════════ */}
       <Drawer
         title={
           selectedUser && (
-            <Space>
-              <Avatar
-                style={{
-                  background: isUserActive(selectedUser.lastSeen)
-                    ? 'linear-gradient(135deg, #52c41a, #73d13d)'
-                    : 'linear-gradient(135deg, #667eea, #764ba2)',
-                }}
-                icon={<UserOutlined />}
-              />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Badge
+                dot={isUserActive(selectedUser.lastSeen)}
+                offset={[-4, 4]}
+                color="#52c41a"
+              >
+                <Avatar
+                  size={40}
+                  style={{
+                    background: isUserActive(selectedUser.lastSeen)
+                      ? tokens.gradientGreen
+                      : tokens.gradientPrimary,
+                    fontSize: 15,
+                    fontWeight: 600,
+                  }}
+                >
+                  {getInitials(`${selectedUser.firstName} ${selectedUser.lastName}`)}
+                </Avatar>
+              </Badge>
               <div>
-                <div style={{ fontWeight: 'bold' }}>
+                <div
+                  style={{
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: tokens.textPrimary,
+                    lineHeight: 1.3,
+                  }}
+                >
                   {selectedUser.firstName} {selectedUser.lastName}
                 </div>
-                <Text type='secondary' style={{ fontSize: 12 }}>
-                  {selectedUser.phoneNumber}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 12, color: tokens.textSecondary }}>
+                    {selectedUser.phoneNumber}
+                  </Text>
                   {isUserActive(selectedUser.lastSeen) && (
-                    <Tag color='green' style={{ marginRight: 8 }}>
+                    <Tag
+                      color="green"
+                      style={{
+                        borderRadius: 10,
+                        fontSize: 11,
+                        lineHeight: '18px',
+                        padding: '0 8px',
+                        margin: 0,
+                      }}
+                    >
                       פעיל
                     </Tag>
                   )}
-                </Text>
+                </div>
               </div>
-            </Space>
+            </div>
           )
         }
-        placement='left'
-        width={Math.min(450, window.innerWidth - 20)}
+        placement="left"
+        width={Math.min(460, window.innerWidth - 20)}
         onClose={() => {
           setChatVisible(false);
           setSelectedUser(null);
@@ -438,6 +596,10 @@ const MessagesPage = () => {
         }}
         open={chatVisible}
         styles={{
+          header: {
+            borderBottom: `1px solid ${tokens.surfaceBorder}`,
+            padding: '16px 20px',
+          },
           body: {
             padding: 0,
             display: 'flex',
@@ -446,24 +608,24 @@ const MessagesPage = () => {
           },
         }}
       >
-        {/* Messages Area */}
+        {/* ── Messages Area ──────────────────────────────── */}
         <div
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: 16,
-            background: '#f5f5f5',
+            padding: '20px 18px',
+            background: tokens.chatBg,
           }}
         >
           {loadingChat ? (
-            <div style={{ textAlign: 'center', padding: 40 }}>
+            <div style={{ textAlign: 'center', padding: 48 }}>
               <Spin />
             </div>
           ) : userMessages.length === 0 ? (
             <Empty
-              description='אין הודעות עדיין'
+              description="אין הודעות עדיין"
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              style={{ marginTop: 40 }}
+              style={{ marginTop: 48 }}
             />
           ) : (
             <>
@@ -475,44 +637,72 @@ const MessagesPage = () => {
                 return (
                   <div key={msg.id}>
                     {showDate && (
-                      <Divider style={{ fontSize: 11, color: '#999' }}>
-                        {dayjs(msg.timestamp).format('DD MMMM YYYY')}
-                      </Divider>
+                      <div
+                        style={{
+                          textAlign: 'center',
+                          margin: '20px 0 16px',
+                        }}
+                      >
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: 11,
+                            fontWeight: 500,
+                            color: tokens.textSecondary,
+                            background: 'rgba(0,0,0,0.04)',
+                            padding: '4px 14px',
+                            borderRadius: 12,
+                          }}
+                        >
+                          {dayjs(msg.timestamp).format('DD MMMM YYYY')}
+                        </span>
+                      </div>
                     )}
+
+                    {/* Message bubble */}
                     <div
                       style={{
                         display: 'flex',
                         justifyContent: 'flex-start',
-                        marginBottom: 12,
+                        marginBottom: 10,
                       }}
                     >
                       <div
                         style={{
-                          maxWidth: '80%',
-                          background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                          maxWidth: '78%',
+                          background: tokens.gradientPrimary,
                           color: '#fff',
-                          padding: '10px 14px',
-                          borderRadius: '16px 16px 4px 16px',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                          padding: '11px 16px',
+                          borderRadius: '18px 18px 6px 18px',
+                          boxShadow: '0 2px 12px rgba(102, 126, 234, 0.2)',
                         }}
                       >
-                        <div style={{ fontSize: 14, lineHeight: 1.5 }}>{msg.message}</div>
+                        <div
+                          style={{
+                            fontSize: 14,
+                            lineHeight: 1.6,
+                            fontWeight: 400,
+                            letterSpacing: '0.01em',
+                          }}
+                        >
+                          {msg.message}
+                        </div>
                         <div
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'flex-end',
-                            gap: 4,
-                            marginTop: 4,
+                            gap: 5,
+                            marginTop: 5,
                             fontSize: 10,
-                            opacity: 0.8,
+                            opacity: 0.75,
                           }}
                         >
                           <span>{dayjs(msg.timestamp).format('HH:mm')}</span>
                           {msg.read ? (
-                            <CheckCircleOutlined style={{ color: '#73d13d' }} />
+                            <CheckCircleOutlined style={{ fontSize: 11, color: '#a3f0b5' }} />
                           ) : (
-                            <ClockCircleOutlined />
+                            <ClockCircleOutlined style={{ fontSize: 11 }} />
                           )}
                         </div>
                       </div>
@@ -525,19 +715,30 @@ const MessagesPage = () => {
           )}
         </div>
 
-        {/* Message Input */}
+        {/* ── Message Input ──────────────────────────────── */}
         <div
           style={{
-            padding: 12,
-            borderTop: '1px solid #f0f0f0',
+            padding: '12px 16px',
+            borderTop: `1px solid ${tokens.surfaceBorder}`,
             background: '#fff',
           }}
         >
-          <Space.Compact style={{ width: '100%' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-end',
+              gap: 10,
+              background: '#f7f8fa',
+              borderRadius: 22,
+              padding: '6px 6px 6px 16px',
+              border: '1px solid #e8eaed',
+              transition: 'border-color 0.2s',
+            }}
+          >
             <TextArea
               value={newMessage}
               onChange={e => setNewMessage(e.target.value)}
-              placeholder='הקלד הודעה...'
+              placeholder="הקלד הודעה..."
               autoSize={{ minRows: 1, maxRows: 4 }}
               onPressEnter={e => {
                 if (!e.shiftKey) {
@@ -545,24 +746,40 @@ const MessagesPage = () => {
                   handleSendMessage();
                 }
               }}
+              variant="borderless"
               style={{
-                borderRadius: '20px 0 0 20px',
+                flex: 1,
                 resize: 'none',
+                fontSize: 14,
+                background: 'transparent',
+                padding: '4px 0',
               }}
             />
             <Button
-              type='primary'
-              icon={<SendOutlined />}
+              type="primary"
+              shape="circle"
+              icon={<SendOutlined style={{ fontSize: 16 }} />}
               onClick={handleSendMessage}
               loading={sending}
               disabled={!newMessage.trim()}
+              size="middle"
               style={{
-                borderRadius: '0 20px 20px 0',
-                height: 'auto',
-                minHeight: 40,
+                width: 36,
+                height: 36,
+                minWidth: 36,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: newMessage.trim() ? tokens.primary : '#d9d9d9',
+                border: 'none',
+                boxShadow: newMessage.trim()
+                  ? '0 2px 8px rgba(102, 126, 234, 0.3)'
+                  : 'none',
+                transition: 'all 0.2s',
+                flexShrink: 0,
               }}
             />
-          </Space.Compact>
+          </div>
         </div>
       </Drawer>
     </div>
