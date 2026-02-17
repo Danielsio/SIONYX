@@ -144,27 +144,37 @@ public class SessionService : BaseService, IDisposable
 
         Logger.Information("Ending session: {Reason}", reason);
 
-        // Stop timers
+        // Stop timers first (prevents re-entry from countdown tick)
         _countdownTimer.Stop();
         _syncTimer.Stop();
 
-        // Stop monitoring
+        // Stop operating hours monitoring
         OperatingHours.StopMonitoring();
 
-        // Final sync
+        // Final sync to Firebase (blocking — must complete before we report done)
         await FinalSyncAsync(reason);
 
-        // Browser cleanup (async in background)
-        await Task.Run(() =>
-        {
-            var browserCleanup = new BrowserCleanupService();
-            browserCleanup.CleanupWithBrowserClose();
-        });
-
+        // Mark inactive BEFORE browser cleanup so the UI unblocks immediately
         IsActive = false;
         SessionEnded?.Invoke(reason);
 
         Logger.Information("Session ended (used: {TimeUsed}s)", TimeUsed);
+
+        // Browser cleanup runs in background (non-blocking, fire-and-forget)
+        // This can take several seconds; no reason to block the user
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                var browserCleanup = new BrowserCleanupService();
+                browserCleanup.CleanupWithBrowserClose();
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Browser cleanup failed (non-fatal)");
+            }
+        });
+
         return Success(new { TimeUsed, RemainingTime });
     }
 
@@ -205,7 +215,7 @@ public class SessionService : BaseService, IDisposable
         }
         if (RemainingTime <= 0)
         {
-            _ = EndSessionAsync("expired");
+            _ = SafeEndSessionAsync("expired");
         }
     }
 
@@ -293,6 +303,19 @@ public class SessionService : BaseService, IDisposable
         OperatingHoursEnded?.Invoke(graceBehavior);
 
         var reason = graceBehavior == "force" ? "hours_force" : "hours";
-        _ = EndSessionAsync(reason);
+        _ = SafeEndSessionAsync(reason);
+    }
+
+    /// <summary>Fire-and-forget wrapper for EndSessionAsync with error logging.</summary>
+    private async Task SafeEndSessionAsync(string reason)
+    {
+        try
+        {
+            await EndSessionAsync(reason);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "EndSessionAsync failed (fire-and-forget, reason={Reason})", reason);
+        }
     }
 }
