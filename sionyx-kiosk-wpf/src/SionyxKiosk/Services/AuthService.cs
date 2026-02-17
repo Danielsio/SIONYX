@@ -49,6 +49,22 @@ public class AuthService : BaseService
         if (!userResult.Success || userResult.Data is not JsonElement data || data.ValueKind == JsonValueKind.Null)
             return false;
 
+        // Single-session enforcement: reject auto-login if user is active on another PC
+        if (data.TryGetProperty("isLoggedIn", out var loggedIn) && loggedIn.GetBoolean())
+        {
+            var currentComputerId = _computerService.GetComputerId();
+            var loggedInComputer = SafeGet(data, "currentComputerId");
+            if (!string.IsNullOrEmpty(loggedInComputer) && loggedInComputer != currentComputerId)
+            {
+                Logger.Warning("Auto-login rejected: user active on another PC ({OtherPc})", loggedInComputer);
+                _localDb.Delete("refresh_token");
+                _localDb.Delete("user_id");
+                _localDb.Delete("phone");
+                Firebase.ClearAuth();
+                return false;
+            }
+        }
+
         CurrentUser = ParseUserData(data, Firebase.UserId!);
 
         // Update stored refresh token in case it was rotated during refresh
