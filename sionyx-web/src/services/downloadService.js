@@ -48,7 +48,7 @@ const getRtdbUrl = path => {
 const fetchLatestMetadata = async () => {
   // PRIMARY: Fetch from RTDB (reliable, no auth needed)
   try {
-    const rtdbUrl = `${getRtdbUrl('public/latestRelease')}&t=${Date.now()}`;
+    const rtdbUrl = `${getRtdbUrl('public/latestRelease')}?t=${Date.now()}`;
     const response = await fetch(rtdbUrl, { cache: 'no-store' });
 
     if (response.ok) {
