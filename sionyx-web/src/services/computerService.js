@@ -80,8 +80,8 @@ export const getComputerUsageStats = async () => {
     };
 
     computers.forEach(computer => {
-      const isActive = computer.isActive || false;
       const currentUserId = computer.currentUserId;
+      const isActive = computer.isActive || !!currentUserId;
 
       if (isActive) {
         stats.activeComputers++;

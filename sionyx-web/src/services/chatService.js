@@ -32,7 +32,7 @@ export const sendMessage = async (orgId, toUserId, message, fromAdminId) => {
       fromAdminId,
       toUserId,
       message: message.trim(),
-      timestamp: new Date().toISOString(),
+      timestamp: Date.now(),
       read: false,
       orgId,
     };
@@ -192,7 +192,7 @@ export const markMessageAsRead = async (orgId, messageId) => {
 
     await update(messageRef, {
       read: true,
-      readAt: new Date().toISOString(),
+      readAt: Date.now(),
     });
 
     return {
@@ -259,7 +259,7 @@ export const updateUserLastSeen = async (orgId, userId) => {
     const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
 
     await update(userRef, {
-      lastSeen: new Date().toISOString(),
+      lastSeen: Date.now(),
     });
 
     return {

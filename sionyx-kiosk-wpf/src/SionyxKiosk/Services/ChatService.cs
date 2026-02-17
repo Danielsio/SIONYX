@@ -68,7 +68,7 @@ public class ChatService : BaseService, IDisposable
     public async Task<ServiceResult> MarkMessageAsReadAsync(string messageId)
     {
         await Firebase.DbSetAsync($"messages/{messageId}/read", true);
-        await Firebase.DbSetAsync($"messages/{messageId}/readAt", DateTime.Now.ToString("o"));
+        await Firebase.DbSetAsync($"messages/{messageId}/readAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         return Success();
     }
 
@@ -93,7 +93,7 @@ public class ChatService : BaseService, IDisposable
             (now - _lastSeenUpdateTime.Value).TotalSeconds < _lastSeenDebounceSeconds)
             return;
 
-        await Firebase.DbSetAsync($"users/{_userId}/lastSeen", now.ToString("o"));
+        await Firebase.DbSetAsync($"users/{_userId}/lastSeen", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         _lastSeenUpdateTime = now;
     }
 

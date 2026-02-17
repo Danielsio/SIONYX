@@ -39,7 +39,7 @@ public class AuthServiceFinalCoverageTests : IDisposable
     // ==================== HandleComputerRegistrationAsync ====================
 
     [Fact]
-    public async Task HandleComputerRegistration_WhenRegisterFails_ShouldNotThrow()
+    public async Task HandleComputerRegistration_WhenRegisterFails_ShouldStillSetComputerId()
     {
         // Setup login with a scenario where computer registration will fail
         _handler.When("signInWithPassword", new
@@ -63,8 +63,8 @@ public class AuthServiceFinalCoverageTests : IDisposable
         // Login should still succeed even if computer registration fails
         result.IsSuccess.Should().BeTrue();
         _service.CurrentUser.Should().NotBeNull();
-        // CurrentComputerId should be null since registration failed
-        _service.CurrentUser!.CurrentComputerId.Should().BeNull();
+        // Resilient flow: CurrentComputerId is still set via fallback
+        _service.CurrentUser!.CurrentComputerId.Should().NotBeNullOrEmpty();
     }
 
     [Fact]
@@ -230,7 +230,7 @@ public class AuthServiceFinalCoverageTests : IDisposable
     [Fact]
     public async Task LogoutAsync_WithUser_ButNoComputerId_ShouldUpdateFirebaseDirectly()
     {
-        // Login first, but don't set CurrentComputerId
+        // Login first
         _handler.When("signInWithPassword", new
         {
             idToken = "tok",
@@ -243,15 +243,13 @@ public class AuthServiceFinalCoverageTests : IDisposable
             firstName = "Test",
             lastName = "User",
             isLoggedIn = false,
-            // No currentComputerId
         });
-
-        // Make computer registration fail so CurrentComputerId stays null
-        _handler.WhenError("computers/");
 
         await _service.LoginAsync("0501234567", "password123");
         _service.CurrentUser.Should().NotBeNull();
-        _service.CurrentUser!.CurrentComputerId.Should().BeNull();
+
+        // Manually clear CurrentComputerId to test the else branch in LogoutAsync
+        _service.CurrentUser!.CurrentComputerId = null;
 
         // Now logout - should take the else branch (update firebase directly)
         _handler.ClearHandlers();
