@@ -41,8 +41,17 @@
 
                 <!-- Logout button at bottom -->
                 <Border DockPanel.Dock="Bottom" Padding="16,16">
-                    <Button Content="🚪  התנתק" Style="{StaticResource BtnDanger}"
-                            Command="{Binding LogoutCommand}" />
+                    <Button Style="{StaticResource BtnDanger}"
+                            Command="{Binding LogoutCommand}">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <!-- Segoe MDL2 Assets: SignOut glyph (E77B) -->
+                            <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="18" Foreground="White"
+                                       VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Text="התנתק" VerticalAlignment="Center"
+                                       FontSize="15" FontWeight="SemiBold" />
+                        </StackPanel>
+                    </Button>
                 </Border>
 
                 <!-- Nav items -->
