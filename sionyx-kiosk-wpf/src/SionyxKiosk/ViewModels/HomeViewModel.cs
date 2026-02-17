@@ -19,6 +19,7 @@ public partial class HomeViewModel : ObservableObject, IDisposable
     [ObservableProperty] private int _unreadMessages;
     [ObservableProperty] private bool _isSessionActive;
     [ObservableProperty] private bool _isLoading;
+    [ObservableProperty] private bool _isEndingSession;
     [ObservableProperty] private string _errorMessage = "";
     [ObservableProperty] private string _welcomeMessage = "";
 
@@ -102,10 +103,25 @@ public partial class HomeViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private async Task EndSessionAsync()
     {
-        if (!_session.IsActive) return;
-        await _session.EndSessionAsync("user");
-        IsSessionActive = false;
-        UpdateStats();
+        if (!_session.IsActive || IsEndingSession) return;
+        IsEndingSession = true;
+        ErrorMessage = "";
+
+        try
+        {
+            await _session.EndSessionAsync("user");
+            IsSessionActive = false;
+            UpdateStats();
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "EndSession failed");
+            ErrorMessage = "שגיאה בסיום הפעלה. נסה שוב.";
+        }
+        finally
+        {
+            IsEndingSession = false;
+        }
     }
 
     [RelayCommand]

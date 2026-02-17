@@ -72,7 +72,10 @@
                                 Width="260" Height="52" FontSize="18" Margin="0,0,0,12" />
                         <Button Content="⏹  סיים הפעלה" Style="{StaticResource BtnDanger}"
                                 Command="{Binding EndSessionCommand}"
+                                IsEnabled="{Binding IsEndingSession, Converter={StaticResource InverseBool}}"
                                 Width="260" Height="52" FontSize="18" />
+                        <controls:LoadingSpinner HorizontalAlignment="Center" Margin="0,12,0,0"
+                                                 Visibility="{Binding IsEndingSession, Converter={StaticResource BoolToVis}}" />
                     </StackPanel>
                 </StackPanel>
             </Border>
