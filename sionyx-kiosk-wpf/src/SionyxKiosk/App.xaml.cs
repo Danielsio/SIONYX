@@ -239,27 +239,48 @@ public partial class App : Application
     {
         Current.Dispatcher.Invoke(() =>
         {
-            if (MainWindow is AuthWindow aw)
+            try
             {
-                aw.AllowClose();
-                aw.Close();
+                Log.Information("Login succeeded — closing auth window, opening main window");
+
+                if (MainWindow is AuthWindow aw)
+                {
+                    aw.AllowClose();
+                    aw.Close();
+                }
+                ShowMainWindow();
             }
-            ShowMainWindow();
+            catch (Exception ex)
+            {
+                Log.Fatal(ex, "Failed to transition from auth to main window");
+                // Re-show the auth window so the user isn't stuck with an invisible app
+                try { ShowAuthWindow(); }
+                catch (Exception ex2) { Log.Fatal(ex2, "Recovery failed — app is in a broken state"); }
+            }
         });
     }
 
     private async Task TryAutoLoginAsync(AuthViewModel authVm)
     {
-        var auth = _host!.Services.GetRequiredService<AuthService>();
-        var isLoggedIn = await auth.IsLoggedInAsync();
-        if (isLoggedIn)
+        try
         {
-            authVm.TriggerAutoLogin();
+            var auth = _host!.Services.GetRequiredService<AuthService>();
+            var isLoggedIn = await auth.IsLoggedInAsync();
+            if (isLoggedIn)
+            {
+                Log.Information("Auto-login succeeded, transitioning to main window");
+                authVm.TriggerAutoLogin();
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Auto-login failed — staying on auth window");
         }
     }
 
     private void ShowMainWindow()
     {
+        Log.Debug("Creating MainWindow from DI");
         var mainWindow = _host!.Services.GetRequiredService<MainWindow>();
         var mainVm = (MainViewModel)mainWindow.DataContext;
 
@@ -271,6 +292,7 @@ public partial class App : Application
 
         mainWindow.Show();
         MainWindow = mainWindow;
+        Log.Information("MainWindow shown and set as Application.MainWindow");
 
         // Start system services
         StartSystemServices();

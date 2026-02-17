@@ -22,8 +22,8 @@ public partial class MainWindow : Window
         _vm = viewModel;
         _services = services;
         DataContext = viewModel;
-        InitializeComponent();
         Resources["InverseBool"] = new InverseBoolConverter();
+        InitializeComponent();
         _initialized = true;
 
         Loaded += (_, _) =>
