@@ -28,13 +28,11 @@ export const sendMessage = async (orgId, toUserId, message, fromAdminId) => {
     const newMessageRef = push(messagesRef);
 
     const messageData = {
-      id: newMessageRef.key,
       fromAdminId,
       toUserId,
       message: message.trim(),
       timestamp: Date.now(),
       read: false,
-      orgId,
     };
 
     await set(newMessageRef, messageData);
