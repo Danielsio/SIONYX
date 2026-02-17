@@ -27,6 +27,9 @@ public class SessionService : BaseService, IDisposable
     public int TimeUsed { get; private set; }
     public DateTime? StartTime { get; private set; }
 
+    // Wall-clock anchor for drift-free countdown
+    private int _initialRemainingTime;
+
     // Sync state
     private int _consecutiveSyncFailures;
     public bool IsOnline { get; private set; } = true;
@@ -110,9 +113,10 @@ public class SessionService : BaseService, IDisposable
 
         // Initialize local state
         SessionId = Guid.NewGuid().ToString("N");
+        _initialRemainingTime = initialRemainingTime;
         RemainingTime = initialRemainingTime;
         TimeUsed = 0;
-        StartTime = DateTime.Now;
+        StartTime = DateTime.UtcNow;
         IsActive = true;
         _warned5Min = false;
         _warned1Min = false;
@@ -172,18 +176,20 @@ public class SessionService : BaseService, IDisposable
 
     private void OnCountdownTick()
     {
-        if (!IsActive) return;
+        if (!IsActive || StartTime == null) return;
 
-        RemainingTime--;
-        TimeUsed++;
+        // Derive from wall-clock — immune to DispatcherTimer drift
+        var elapsed = (int)(DateTime.UtcNow - StartTime.Value).TotalSeconds;
+        TimeUsed = elapsed;
+        RemainingTime = Math.Max(0, _initialRemainingTime - elapsed);
         TimeUpdated?.Invoke(RemainingTime);
 
-        if (RemainingTime == 300 && !_warned5Min)
+        if (RemainingTime <= 300 && !_warned5Min)
         {
             _warned5Min = true;
             Warning5Min?.Invoke();
         }
-        if (RemainingTime == 60 && !_warned1Min)
+        if (RemainingTime <= 60 && !_warned1Min)
         {
             _warned1Min = true;
             Warning1Min?.Invoke();

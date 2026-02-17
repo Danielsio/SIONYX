@@ -450,7 +450,7 @@
                                     Background="Transparent" VerticalAlignment="Stretch" Margin="0,0,10,0" />
                             <TextBlock x:Name="label" Grid.Column="1"
                                        Text="{TemplateBinding Content}"
-                                       HorizontalAlignment="Right" VerticalAlignment="Center"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center"
                                        Foreground="#C8CCD8"
                                        FontFamily="{TemplateBinding FontFamily}"
                                        FontSize="{TemplateBinding FontSize}"
