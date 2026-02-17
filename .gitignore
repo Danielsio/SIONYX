@@ -417,6 +417,7 @@ sionyx-kiosk-wpf/sionyx-installer-*.exe
 sionyx-kiosk-wpf/SIONYX-Installer.exe
 sionyx-kiosk-wpf/dist/
 sionyx-kiosk-wpf/TestResults/
+sionyx-kiosk-wpf/coverage-report/
 
 # ========================================
 # Miscellaneous

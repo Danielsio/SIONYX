@@ -85,6 +85,49 @@ public class ChatService : BaseService, IDisposable
         }
     }
 
+    /// <summary>Delete read messages older than 30 days for the current user.</summary>
+    public async Task<int> CleanupOldMessagesAsync(int retentionDays = 30)
+    {
+        var result = await Firebase.DbGetAsync("messages");
+        if (!result.Success || result.Data is not JsonElement data || data.ValueKind != JsonValueKind.Object)
+            return 0;
+
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-retentionDays).ToUnixTimeMilliseconds();
+        int deleted = 0;
+
+        foreach (var prop in data.EnumerateObject())
+        {
+            if (prop.Value.ValueKind != JsonValueKind.Object) continue;
+
+            var toUser = prop.Value.TryGetProperty("toUserId", out var tu) ? tu.GetString() : null;
+            if (toUser != _userId) continue; // only clean own messages
+
+            var isRead = prop.Value.TryGetProperty("read", out var r) && r.GetBoolean();
+            if (!isRead) continue; // keep unread messages
+
+            // Check timestamp (numeric Unix ms)
+            long timestamp = 0;
+            if (prop.Value.TryGetProperty("timestamp", out var ts))
+            {
+                if (ts.ValueKind == JsonValueKind.Number)
+                    timestamp = ts.GetInt64();
+                else if (ts.ValueKind == JsonValueKind.String && long.TryParse(ts.GetString(), out var parsed))
+                    timestamp = parsed;
+            }
+
+            if (timestamp > 0 && timestamp < cutoff)
+            {
+                await Firebase.DbDeleteAsync($"messages/{prop.Name}");
+                deleted++;
+            }
+        }
+
+        if (deleted > 0)
+            Logger.Information("Cleaned up {Count} old read messages (>{Days}d)", deleted, retentionDays);
+
+        return deleted;
+    }
+
     /// <summary>Update user's last seen timestamp (debounced).</summary>
     public async Task UpdateLastSeenAsync(bool force = false)
     {

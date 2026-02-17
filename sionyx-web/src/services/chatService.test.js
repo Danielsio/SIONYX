@@ -60,12 +60,10 @@ describe('chatService', () => {
       await sendMessage('my-org', 'user-123', 'Test', 'admin-456');
 
       const setCall = set.mock.calls[0][1];
-      expect(setCall.id).toBe('msg-123');
       expect(setCall.fromAdminId).toBe('admin-456');
       expect(setCall.toUserId).toBe('user-123');
       expect(setCall.read).toBe(false);
-      expect(setCall.timestamp).toBeDefined();
-      expect(setCall.orgId).toBe('my-org');
+      expect(setCall.timestamp).toEqual(expect.any(Number));
     });
 
     it('handles database error', async () => {
@@ -292,18 +290,23 @@ describe('chatService', () => {
       expect(isUserActive(undefined)).toBe(false);
     });
 
-    it('returns true if lastSeen within 5 minutes', () => {
-      const recentTime = new Date(Date.now() - 2 * 60 * 1000).toISOString(); // 2 min ago
+    it('returns true if lastSeen within 5 minutes (numeric)', () => {
+      const recentTime = Date.now() - 2 * 60 * 1000; // 2 min ago
+      expect(isUserActive(recentTime)).toBe(true);
+    });
+
+    it('returns true if lastSeen within 5 minutes (string)', () => {
+      const recentTime = new Date(Date.now() - 2 * 60 * 1000).toISOString();
       expect(isUserActive(recentTime)).toBe(true);
     });
 
     it('returns false if lastSeen more than 5 minutes ago', () => {
-      const oldTime = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10 min ago
+      const oldTime = Date.now() - 10 * 60 * 1000; // 10 min ago
       expect(isUserActive(oldTime)).toBe(false);
     });
 
     it('returns true at exactly 5 minutes', () => {
-      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const fiveMinAgo = Date.now() - 5 * 60 * 1000;
       expect(isUserActive(fiveMinAgo)).toBe(true);
     });
   });

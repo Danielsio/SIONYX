@@ -396,6 +396,13 @@ public partial class App : Application
             // ── Chat service SSE listener ──
             chat.StartListening();
 
+            // ── Cleanup old read messages (fire-and-forget, non-blocking) ──
+            _ = Task.Run(async () =>
+            {
+                try { await chat.CleanupOldMessagesAsync(); }
+                catch (Exception ex) { Log.Warning(ex, "Message cleanup failed (non-fatal)"); }
+            });
+
             // ── Session lifecycle events ──
             UnsubscribeSessionEvents(session);
             SubscribeSessionEvents(session, printMonitor);

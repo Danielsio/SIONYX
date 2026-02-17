@@ -5,7 +5,7 @@
 #
 # Usage:  make <command>
 
-.PHONY: help run test web-dev web-test web-deploy web-deploy-hosting \
+.PHONY: help run test test-cov web-dev web-test web-deploy web-deploy-hosting \
         release release-patch release-minor release-major
 
 # ── Help (default) ────────────────────────────────────────────────
@@ -17,6 +17,7 @@ help:
 	@echo "  Kiosk (desktop)"
 	@echo "    make run              Run the kiosk app"
 	@echo "    make test             Run kiosk tests"
+	@echo "    make test-cov         Run tests with coverage report"
 	@echo ""
 	@echo "  Web (admin dashboard)"
 	@echo "    make web-dev          Run web dev server"
@@ -36,6 +37,12 @@ run:
 
 test:
 	cd sionyx-kiosk-wpf && dotnet test --verbosity normal
+
+test-cov:
+	cd sionyx-kiosk-wpf && dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults --verbosity normal
+	cd sionyx-kiosk-wpf && dotnet tool run reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"coverage-report" -reporttypes:Html
+	@echo ""
+	@echo "Coverage report: sionyx-kiosk-wpf/coverage-report/index.html"
 
 # ── Web ───────────────────────────────────────────────────────────
 web-dev:

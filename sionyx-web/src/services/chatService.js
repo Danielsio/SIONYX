@@ -4,6 +4,7 @@ import {
   set,
   push,
   update,
+  remove,
   query,
   orderByChild,
   equalTo,
@@ -278,9 +279,46 @@ export const updateUserLastSeen = async (orgId, userId) => {
 export const isUserActive = lastSeen => {
   if (!lastSeen) return false;
 
-  const lastSeenTime = new Date(lastSeen);
-  const now = new Date();
-  const diffMinutes = (now - lastSeenTime) / (1000 * 60);
+  // Support both numeric (Unix ms) and string timestamps
+  const lastSeenMs = typeof lastSeen === 'number' ? lastSeen : new Date(lastSeen).getTime();
+  if (isNaN(lastSeenMs)) return false;
 
-  return diffMinutes <= 5; // Active if last seen within 5 minutes
+  const diffMinutes = (Date.now() - lastSeenMs) / (1000 * 60);
+  return diffMinutes <= 5;
+};
+
+/**
+ * Delete read messages older than retentionDays for the organization.
+ * Intended to be called by admin on dashboard load.
+ */
+export const cleanupOldMessages = async (orgId, retentionDays = 30) => {
+  try {
+    const messagesRef = ref(database, `organizations/${orgId}/messages`);
+    const snapshot = await get(messagesRef);
+
+    if (!snapshot.exists()) return { success: true, deleted: 0 };
+
+    const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+    const messagesData = snapshot.val();
+    let deleted = 0;
+
+    for (const [id, msg] of Object.entries(messagesData)) {
+      if (!msg.read) continue;
+
+      const ts = typeof msg.timestamp === 'number' ? msg.timestamp : new Date(msg.timestamp).getTime();
+      if (ts > 0 && ts < cutoff) {
+        await remove(ref(database, `organizations/${orgId}/messages/${id}`));
+        deleted++;
+      }
+    }
+
+    if (deleted > 0) {
+      logger.info(`Cleaned up ${deleted} old read messages (>${retentionDays}d)`);
+    }
+
+    return { success: true, deleted };
+  } catch (error) {
+    logger.error('Error cleaning up old messages:', error);
+    return { success: false, error: error.message, deleted: 0 };
+  }
 };

@@ -35,6 +35,7 @@ import {
   getMessagesForUser,
   sendMessage,
   isUserActive,
+  cleanupOldMessages,
 } from '../services/chatService';
 import { logger } from '../utils/logger';
 
@@ -62,6 +63,10 @@ const MessagesPage = () => {
 
   useEffect(() => {
     loadData();
+    // Cleanup old read messages on mount (non-blocking)
+    if (user?.orgId) {
+      cleanupOldMessages(user.orgId).catch(() => {});
+    }
   }, []);
 
   useEffect(() => {
