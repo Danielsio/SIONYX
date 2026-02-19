@@ -46,6 +46,22 @@ public partial class PaymentDialog : Window
         PopulatePackageSummary();
         Loaded += OnLoaded;
         Closed += OnClosed;
+        ContentRendered += OnContentRendered;
+    }
+
+    private void OnContentRendered(object? sender, EventArgs e)
+    {
+        var screenH = SystemParameters.PrimaryScreenHeight;
+        var screenW = SystemParameters.PrimaryScreenWidth;
+
+        var dialogH = Math.Clamp(screenH * 0.85, 620, 1100);
+        var dialogW = Math.Clamp(screenW * 0.56, 860, 1100);
+
+        DialogCard.Width = dialogW;
+        DialogCard.Height = dialogH;
+
+        Logger.Debug("Payment dialog sized to {W}x{H} (screen {SW}x{SH})",
+            dialogW, dialogH, screenW, screenH);
     }
 
     private void PopulatePackageSummary()

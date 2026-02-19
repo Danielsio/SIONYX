@@ -75,7 +75,7 @@
             <!-- Separator (reveals on hover) -->
             <Border x:Name="DetailsPanel" Grid.Column="1" Opacity="0" IsHitTestVisible="False">
                 <StackPanel Orientation="Horizontal">
-                    <Border Width="1" Background="#FFFFFF18"
+                    <Border Width="1" Background="#18FFFFFF"
                             Margin="18,8" VerticalAlignment="Stretch" />
 
                     <!-- Usage time + Print balance -->

@@ -25,9 +25,9 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border x:Name="CardRoot" Background="White"
-                                CornerRadius="16" Margin="10" Padding="0" Cursor="Hand"
+                                CornerRadius="18" Margin="12" Padding="0" Cursor="Hand"
                                 BorderBrush="#E8ECF4" BorderThickness="1.5"
-                                MinHeight="320">
+                                MinHeight="380">
                             <Border.Effect>
                                 <DropShadowEffect BlurRadius="16" ShadowDepth="3" Direction="270"
                                                   Color="#0F172A" Opacity="0.06" />
@@ -40,8 +40,8 @@
                                 </Grid.RowDefinitions>
 
                                 <!-- Card header with price -->
-                                <Border Grid.Row="0" Padding="28,24,28,20"
-                                        CornerRadius="16,16,0,0">
+                                <Border Grid.Row="0" Padding="32,28,32,24"
+                                        CornerRadius="18,18,0,0">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                             <GradientStop Color="#F5F3FF" Offset="0" />
@@ -55,11 +55,10 @@
                                         </Grid.RowDefinitions>
 
                                         <!-- Name + discount badge -->
-                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
-                                            <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="Bold"
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,14">
+                                            <TextBlock Text="{Binding Name}" FontSize="26" FontWeight="Bold"
                                                        Foreground="#1E293B" VerticalAlignment="Center" />
-                                            <!-- Discount badge -->
-                                            <Border CornerRadius="6" Padding="8,3" Margin="10,0,0,0"
+                                            <Border CornerRadius="8" Padding="10,4" Margin="12,0,0,0"
                                                     VerticalAlignment="Center"
                                                     Visibility="{Binding HasDiscount, Converter={StaticResource BoolToVis}}">
                                                 <Border.Background>
@@ -68,112 +67,110 @@
                                                         <GradientStop Color="#059669" Offset="1" />
                                                     </LinearGradientBrush>
                                                 </Border.Background>
-                                                <TextBlock Text="{Binding DiscountPercent, StringFormat='{}{0:F0}% הנחה'}"
-                                                           FontSize="12" FontWeight="Bold" Foreground="White" />
+                                                <TextBlock Text="{Binding DiscountPercent, StringFormat='{}{0:F0}% הנחה!'}"
+                                                           FontSize="14" FontWeight="Bold" Foreground="White" />
                                             </Border>
                                         </StackPanel>
 
                                         <!-- Price row -->
                                         <StackPanel Grid.Row="1" Orientation="Horizontal"
                                                     VerticalAlignment="Bottom">
-                                            <!-- Main price (uses FinalPrice if discount, else Price) -->
-                                            <TextBlock FontSize="42" FontWeight="ExtraBold" Margin="0,0,0,-4">
+                                            <TextBlock FontSize="50" FontWeight="ExtraBold" Margin="0,0,0,-4">
                                                 <TextBlock.Foreground>
                                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                                                         <GradientStop Color="#6366F1" Offset="0" />
                                                         <GradientStop Color="#8B5CF6" Offset="1" />
                                                     </LinearGradientBrush>
                                                 </TextBlock.Foreground>
-                                                <Run Text="₪" FontSize="24" /><Run Text="{Binding DisplayPrice, StringFormat='{}{0:F0}', Mode=OneWay}" />
+                                                <Run Text="₪" FontSize="28" /><Run Text="{Binding DisplayPrice, StringFormat='{}{0:F0}', Mode=OneWay}" />
                                             </TextBlock>
-                                            <!-- Original price strikethrough -->
                                             <TextBlock Text="{Binding Price, StringFormat='₪{0:F0}'}"
-                                                       FontSize="18" Foreground="#94A3B8"
+                                                       FontSize="20" Foreground="#94A3B8"
                                                        TextDecorations="Strikethrough"
-                                                       VerticalAlignment="Center" Margin="12,0,0,4"
+                                                       VerticalAlignment="Center" Margin="14,0,0,4"
                                                        Visibility="{Binding HasDiscount, Converter={StaticResource BoolToVis}}" />
                                         </StackPanel>
                                     </Grid>
                                 </Border>
 
                                 <!-- Feature list -->
-                                <StackPanel Grid.Row="1" Margin="28,20,28,8">
+                                <StackPanel Grid.Row="1" Margin="32,24,32,10">
                                     <!-- Time -->
-                                    <Border Padding="0,10" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
+                                    <Border Padding="0,13" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
-                                                    Background="#EEF2FF" Margin="0,0,14,0">
-                                                <TextBlock Text="⏱" FontSize="15"
+                                            <Border Grid.Column="0" Width="38" Height="38" CornerRadius="10"
+                                                    Background="#EEF2FF" Margin="0,0,16,0">
+                                                <TextBlock Text="⏱" FontSize="18"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <TextBlock Grid.Column="1" Text="זמן שימוש"
-                                                       FontSize="15" Foreground="#64748B"
+                                                       FontSize="17" Foreground="#64748B"
                                                        VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="2"
                                                        Text="{Binding Minutes, StringFormat='{}{0} דקות'}"
-                                                       FontSize="15" FontWeight="Bold" Foreground="#1E293B"
+                                                       FontSize="17" FontWeight="Bold" Foreground="#1E293B"
                                                        VerticalAlignment="Center" />
                                         </Grid>
                                     </Border>
 
                                     <!-- Prints -->
-                                    <Border Padding="0,10" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
+                                    <Border Padding="0,13" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
-                                                    Background="#F0FDF4" Margin="0,0,14,0">
-                                                <TextBlock Text="🖨" FontSize="15"
+                                            <Border Grid.Column="0" Width="38" Height="38" CornerRadius="10"
+                                                    Background="#F0FDF4" Margin="0,0,16,0">
+                                                <TextBlock Text="🖨" FontSize="18"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <TextBlock Grid.Column="1" Text="תקציב הדפסות"
-                                                       FontSize="15" Foreground="#64748B"
+                                                       FontSize="17" Foreground="#64748B"
                                                        VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="2"
                                                        Text="{Binding Prints, StringFormat='{}{0}₪'}"
-                                                       FontSize="15" FontWeight="Bold" Foreground="#1E293B"
+                                                       FontSize="17" FontWeight="Bold" Foreground="#1E293B"
                                                        VerticalAlignment="Center" />
                                         </Grid>
                                     </Border>
 
                                     <!-- Validity -->
-                                    <Border Padding="0,10">
+                                    <Border Padding="0,13">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <Border Grid.Column="0" Width="32" Height="32" CornerRadius="8"
-                                                    Background="#FFF7ED" Margin="0,0,14,0">
-                                                <TextBlock Text="📅" FontSize="15"
+                                            <Border Grid.Column="0" Width="38" Height="38" CornerRadius="10"
+                                                    Background="#FFF7ED" Margin="0,0,16,0">
+                                                <TextBlock Text="📅" FontSize="18"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                                             </Border>
                                             <TextBlock Grid.Column="1" Text="תוקף"
-                                                       FontSize="15" Foreground="#64748B"
+                                                       FontSize="17" Foreground="#64748B"
                                                        VerticalAlignment="Center" />
                                             <TextBlock Grid.Column="2"
                                                        Text="{Binding ValidityDisplay}"
-                                                       FontSize="15" FontWeight="Bold" Foreground="#1E293B"
+                                                       FontSize="17" FontWeight="Bold" Foreground="#1E293B"
                                                        VerticalAlignment="Center" />
                                         </Grid>
                                     </Border>
                                 </StackPanel>
 
                                 <!-- Buy button -->
-                                <Border Grid.Row="2" Padding="24,8,24,24">
+                                <Border Grid.Row="2" Padding="28,10,28,28">
                                     <Button Content="רכוש עכשיו" Style="{StaticResource BtnPrimary}"
                                             Command="{Binding DataContext.SelectPackageCommand, RelativeSource={RelativeSource AncestorType=Page}}"
                                             CommandParameter="{Binding}" HorizontalAlignment="Stretch"
-                                            Height="50" FontSize="17" />
+                                            Height="54" FontSize="18" />
                                 </Border>
                             </Grid>
 

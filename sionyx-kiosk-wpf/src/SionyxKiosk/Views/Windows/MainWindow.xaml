@@ -17,7 +17,7 @@
             <DockPanel>
                 <!-- Logo + user info area -->
                 <Border DockPanel.Dock="Top" Padding="24,28,24,24"
-                        BorderBrush="#FFFFFF12" BorderThickness="0,0,0,1">
+                        BorderBrush="#12FFFFFF" BorderThickness="0,0,0,1">
                     <StackPanel>
                         <TextBlock Text="SIONYX" FontSize="28" FontWeight="ExtraBold"
                                    Foreground="White" Margin="0,0,0,14" />
@@ -33,7 +33,7 @@
                                 <TextBlock Text="{Binding CurrentUser.FullName}" FontSize="16"
                                            FontWeight="SemiBold" Foreground="White" />
                                 <TextBlock Text="{Binding CurrentUser.PhoneNumber}" FontSize="13"
-                                           Foreground="#FFFFFF88" />
+                                           Foreground="#88FFFFFF" />
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
