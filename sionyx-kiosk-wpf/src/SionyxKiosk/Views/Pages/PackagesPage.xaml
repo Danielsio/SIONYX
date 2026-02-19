@@ -84,7 +84,7 @@
                                                         <GradientStop Color="#8B5CF6" Offset="1" />
                                                     </LinearGradientBrush>
                                                 </TextBlock.Foreground>
-                                                <Run Text="₪" FontSize="24" /><Run Text="{Binding DisplayPrice, StringFormat='{}{0:F0}'}" />
+                                                <Run Text="₪" FontSize="24" /><Run Text="{Binding DisplayPrice, StringFormat='{}{0:F0}', Mode=OneWay}" />
                                             </TextBlock>
                                             <!-- Original price strikethrough -->
                                             <TextBlock Text="{Binding Price, StringFormat='₪{0:F0}'}"
