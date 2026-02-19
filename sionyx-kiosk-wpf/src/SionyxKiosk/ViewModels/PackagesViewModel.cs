@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Serilog;
 using SionyxKiosk.Models;
 using SionyxKiosk.Services;
 
@@ -9,6 +10,8 @@ namespace SionyxKiosk.ViewModels;
 /// <summary>Packages page ViewModel: list packages, purchase flow.</summary>
 public partial class PackagesViewModel : ObservableObject
 {
+    private static readonly ILogger Logger = Log.ForContext<PackagesViewModel>();
+
     private readonly PackageService _packageService;
     private readonly PurchaseService _purchaseService;
     private readonly string _userId;
@@ -43,19 +46,34 @@ public partial class PackagesViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadPackagesAsync()
     {
+        Logger.Information("LoadPackagesAsync started");
         IsLoading = true;
         ErrorMessage = "";
 
-        var result = await _packageService.GetAllPackagesAsync();
-        IsLoading = false;
+        try
+        {
+            var result = await _packageService.GetAllPackagesAsync();
+            IsLoading = false;
 
-        if (result.IsSuccess && result.Data is List<Package> packages)
-        {
-            Packages = new ObservableCollection<Package>(packages);
+            Logger.Information("PackageService returned: IsSuccess={Success}, DataType={Type}, Error={Error}",
+                result.IsSuccess, result.Data?.GetType().Name ?? "null", result.Error ?? "none");
+
+            if (result.IsSuccess && result.Data is List<Package> packages)
+            {
+                Packages = new ObservableCollection<Package>(packages);
+                Logger.Information("Loaded {Count} packages", packages.Count);
+            }
+            else
+            {
+                ErrorMessage = result.Error ?? "שגיאה בטעינת חבילות";
+                Logger.Warning("Failed to load packages: {Error}", ErrorMessage);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            ErrorMessage = result.Error ?? "שגיאה בטעינת חבילות";
+            IsLoading = false;
+            ErrorMessage = "שגיאה בטעינת חבילות";
+            Logger.Error(ex, "Exception loading packages");
         }
     }
 
