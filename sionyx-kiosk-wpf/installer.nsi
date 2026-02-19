@@ -21,6 +21,14 @@
 !include "LogicLib.nsh"
 !include "WinMessages.nsh"
 
+; ListView messages for DumpLog
+!ifndef LVM_GETITEMCOUNT
+    !define LVM_GETITEMCOUNT 0x1004
+!endif
+!ifndef LVM_GETITEMTEXT
+    !define LVM_GETITEMTEXT 0x102D
+!endif
+
 ; Variables
 Var OrgNameInput
 Var OrgNameText
@@ -38,6 +46,10 @@ RequestExecutionLevel admin
 !define MUI_ABORTWARNING
 !define MUI_ICON "${APP_ICON}"
 !define MUI_UNICON "${APP_ICON}"
+
+; Always show the install/uninstall log so the admin can see what's happening
+ShowInstDetails show
+ShowUnInstDetails show
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
@@ -280,6 +292,12 @@ Section "Kiosk Security Setup" SecKiosk
     DetailPrint ""
     DetailPrint "  SETUP COMPLETE!"
     DetailPrint ""
+    
+    ; Save install log to disk for post-install review
+    StrCpy $0 "$INSTDIR\install.log"
+    Push $0
+    Call DumpLog
+    DetailPrint "[OK] Install log saved to $0"
 SectionEnd
 
 ; ============================================================================
@@ -356,6 +374,48 @@ Function OrgPageLeave
         MessageBox MB_OK|MB_ICONEXCLAMATION "Please enter a valid organization name (at least 3 characters)."
         Abort
     ${EndIf}
+FunctionEnd
+
+; ============================================================================
+; HELPER: Dump install log to file
+; Reads the Details listview and writes all lines to the file path on the stack.
+; ============================================================================
+Function DumpLog
+    Exch $5
+    Push $0
+    Push $1
+    Push $2
+    Push $3
+    Push $4
+    Push $6
+    FindWindow $0 "#32770" "" $HWNDPARENT
+    GetDlgItem $0 $0 1016
+    StrCmp $0 0 exit
+    FileOpen $5 $5 w
+    StrCmp $5 "" exit
+        SendMessage $0 ${LVM_GETITEMCOUNT} 0 0 $6
+        System::Alloc ${NSIS_MAX_STRLEN}
+        Pop $3
+        StrCpy $2 0
+        System::Call "*(i, i, i, i, i, p, i, i, i) p (0, 0, 0, 0, 0, r3, ${NSIS_MAX_STRLEN}) .r1"
+        loop: StrCmp $2 $6 done
+            System::Call "User32::SendMessage(p, i, i, p) p ($0, ${LVM_GETITEMTEXT}, $2, r1)"
+            System::Call "*$3(&t${NSIS_MAX_STRLEN} .r4)"
+            FileWrite $5 "$4$\r$\n"
+            IntOp $2 $2 + 1
+            Goto loop
+        done:
+            FileClose $5
+            System::Free $1
+            System::Free $3
+    exit:
+    Pop $6
+    Pop $4
+    Pop $3
+    Pop $2
+    Pop $1
+    Pop $0
+    Exch $5
 FunctionEnd
 
 ; ============================================================================
