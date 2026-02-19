@@ -35,7 +35,7 @@
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <!-- Envelope icon -->
                         <Border Width="38" Height="38" CornerRadius="10"
-                                Background="#FFFFFF20" Margin="0,0,14,0">
+                                Background="#20FFFFFF" Margin="0,0,14,0">
                             <TextBlock Text="&#xE715;" FontFamily="Segoe MDL2 Assets"
                                        FontSize="17" Foreground="White"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -44,7 +44,7 @@
                             <TextBlock Text="הודעות" FontSize="19" FontWeight="Bold"
                                        Foreground="White" />
                             <TextBlock x:Name="SubtitleText" Text="טוען..."
-                                       FontSize="12" Foreground="#FFFFFFAA" Margin="0,2,0,0" />
+                                       FontSize="12" Foreground="#AAFFFFFF" Margin="0,2,0,0" />
                         </StackPanel>
                     </StackPanel>
 
@@ -58,13 +58,13 @@
                                         CornerRadius="15" Background="Transparent">
                                     <TextBlock x:Name="CloseX" Text="✕"
                                                FontSize="14" FontWeight="Bold"
-                                               Foreground="#FFFFFFBB"
+                                               Foreground="#BBFFFFFF"
                                                HorizontalAlignment="Center"
                                                VerticalAlignment="Center" />
                                 </Border>
                                 <ControlTemplate.Triggers>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter TargetName="CloseBg" Property="Background" Value="#FFFFFF22" />
+                                        <Setter TargetName="CloseBg" Property="Background" Value="#22FFFFFF" />
                                         <Setter TargetName="CloseX" Property="Foreground" Value="White" />
                                     </Trigger>
                                 </ControlTemplate.Triggers>

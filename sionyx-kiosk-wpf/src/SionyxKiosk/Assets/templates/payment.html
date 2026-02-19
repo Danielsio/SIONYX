@@ -21,45 +21,57 @@
             --border: #E2E8F0;
             --border-light: #F1F5F9;
             --bg: #FFFFFF;
-            --radius: 12px;
+            --radius: 14px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body { height: 100%; }
 
         body {
             font-family: 'Assistant', 'Segoe UI', sans-serif;
             background: var(--bg);
             color: var(--text-primary);
             -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
         }
 
         .container {
-            padding: 24px 28px 30px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 32px 36px;
         }
 
         /* ── FORM ───────────────────────────── */
-        .form-section { margin-bottom: 24px; }
+        .form-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
 
         .input-label {
             display: block;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 700;
             color: var(--text-primary);
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
         .input-field {
             width: 100%;
-            padding: 14px 18px;
+            padding: 16px 20px;
             border: 2px solid var(--border);
             border-radius: var(--radius);
-            font-size: 16px;
+            font-size: 17px;
             font-family: inherit;
             font-weight: 500;
             color: var(--text-primary);
             background: #FAFBFC;
             transition: all 0.2s ease;
             outline: none;
+            margin-bottom: 24px;
         }
 
         .input-field::placeholder {
@@ -78,8 +90,11 @@
             border: 2px solid var(--border);
             border-radius: var(--radius);
             overflow: hidden;
-            margin-bottom: 28px;
             background: white;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
 
         .iframe-card:focus-within {
@@ -91,15 +106,16 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 14px 20px;
+            padding: 14px 22px;
             background: var(--primary-light);
             border-bottom: 1px solid #E0E7FF;
+            flex-shrink: 0;
         }
 
         .iframe-header .lock { font-size: 16px; }
 
         .iframe-header span {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 700;
             color: var(--primary-dark);
         }
@@ -107,7 +123,8 @@
         #NedarimFrame {
             width: 100%;
             border: none;
-            min-height: 300px;
+            flex: 1;
+            min-height: 220px;
             display: block;
         }
 
@@ -115,7 +132,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 48px 20px;
+            padding: 40px 20px;
             gap: 14px;
         }
 
@@ -146,19 +163,25 @@
             font-weight: 600;
         }
 
+        /* ── BOTTOM AREA ──────────────────────── */
+        .bottom-area {
+            flex-shrink: 0;
+            padding-top: 20px;
+        }
+
         /* ── PAY BUTTON ─────────────────────── */
         .btn-pay {
             width: 100%;
-            padding: 16px 28px;
+            padding: 18px 28px;
             border: none;
             border-radius: var(--radius);
-            font-size: 18px;
+            font-size: 19px;
             font-weight: 800;
             font-family: inherit;
             cursor: pointer;
             color: white;
             background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
             transition: all 0.2s ease;
             display: flex;
             align-items: center;
@@ -169,12 +192,10 @@
 
         .btn-pay:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
         }
 
-        .btn-pay:active:not(:disabled) {
-            transform: translateY(0);
-        }
+        .btn-pay:active:not(:disabled) { transform: translateY(0); }
 
         .btn-pay:disabled {
             background: #CBD5E1;
@@ -187,8 +208,8 @@
         /* ── CANCEL ─────────────────────────── */
         .btn-cancel {
             width: 100%;
-            padding: 13px;
-            margin-top: 12px;
+            padding: 12px;
+            margin-top: 10px;
             border: none;
             border-radius: var(--radius);
             font-size: 15px;
@@ -209,9 +230,9 @@
         .trust-bar {
             display: flex;
             justify-content: center;
-            gap: 28px;
-            margin-top: 24px;
-            padding-top: 20px;
+            gap: 24px;
+            margin-top: 16px;
+            padding-top: 16px;
             border-top: 1px solid var(--border-light);
         }
 
@@ -219,13 +240,13 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-muted);
             font-weight: 600;
         }
 
         .trust-item .t-ico {
-            font-size: 15px;
+            font-size: 14px;
             color: var(--success);
         }
 
@@ -235,11 +256,11 @@
             align-items: center;
             gap: 10px;
             padding: 14px 18px;
-            margin-top: 14px;
+            margin-bottom: 14px;
             border-radius: var(--radius);
             background: var(--error-light);
             border: 1.5px solid #FECACA;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 700;
             color: var(--error);
         }
@@ -250,6 +271,7 @@
         /* ── STATES ─────────────────────────── */
         .state-overlay {
             display: none;
+            flex: 1;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -260,26 +282,26 @@
         .state-overlay.active { display: flex; }
 
         .spinner {
-            width: 48px;
-            height: 48px;
+            width: 52px;
+            height: 52px;
             border: 4px solid var(--border);
             border-top-color: var(--success);
             border-radius: 50%;
             animation: spin 0.75s linear infinite;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
         .state-title {
-            font-size: 19px;
+            font-size: 21px;
             font-weight: 800;
             color: var(--text-primary);
             margin-bottom: 8px;
         }
 
         .state-subtitle {
-            font-size: 15px;
+            font-size: 16px;
             color: var(--text-muted);
             font-weight: 500;
         }
@@ -287,8 +309,10 @@
         /* ── SUCCESS ────────────────────────── */
         .success-card {
             display: none;
+            flex: 1;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
             text-align: center;
             padding: 56px 24px;
         }
@@ -296,14 +320,14 @@
         .success-card.show { display: flex; }
 
         .success-ring {
-            width: 80px;
-            height: 80px;
+            width: 88px;
+            height: 88px;
             border-radius: 50%;
             background: var(--success-light);
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 24px;
+            margin-bottom: 28px;
             animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
@@ -313,20 +337,20 @@
         }
 
         .success-ring .check {
-            font-size: 36px;
+            font-size: 40px;
             color: var(--success);
             font-weight: 800;
         }
 
         .success-card .s-title {
-            font-size: 22px;
+            font-size: 24px;
             font-weight: 800;
             color: var(--text-primary);
             margin-bottom: 8px;
         }
 
         .success-card .s-sub {
-            font-size: 15px;
+            font-size: 16px;
             color: var(--text-muted);
             font-weight: 500;
         }
@@ -336,8 +360,8 @@
     <div class="container">
 
         <!-- ── FORM ──────────────────────── -->
-        <div id="formSection">
-            <div class="form-section">
+        <div id="formSection" class="form-section">
+            <div>
                 <label class="input-label" for="clientName">שם מלא</label>
                 <input type="text" id="clientName" class="input-field"
                        placeholder="שם מלא כפי שמופיע בכרטיס האשראי"
@@ -358,30 +382,32 @@
                 <iframe id="NedarimFrame" scrolling="no"></iframe>
             </div>
 
-            <button id="payButton" class="btn-pay" onclick="handlePayment()">
-                <span class="ico">🔒</span>
-                <span>בצע תשלום מאובטח</span>
-            </button>
-
-            <div id="errorMessage" class="error-toast">
-                <span class="err-ico">⚠</span>
-                <span id="errorText"></span>
-            </div>
-
-            <button class="btn-cancel" onclick="cancelPayment()">ביטול</button>
-
-            <div class="trust-bar">
-                <div class="trust-item">
-                    <span class="t-ico">🔒</span>
-                    <span>SSL 256-bit</span>
+            <div class="bottom-area">
+                <div id="errorMessage" class="error-toast">
+                    <span class="err-ico">⚠</span>
+                    <span id="errorText"></span>
                 </div>
-                <div class="trust-item">
-                    <span class="t-ico">✓</span>
-                    <span>PCI DSS Certified</span>
-                </div>
-                <div class="trust-item">
-                    <span class="t-ico">🛡</span>
-                    <span>Nedarim Plus</span>
+
+                <button id="payButton" class="btn-pay" onclick="handlePayment()">
+                    <span class="ico">🔒</span>
+                    <span>בצע תשלום מאובטח</span>
+                </button>
+
+                <button class="btn-cancel" onclick="cancelPayment()">ביטול</button>
+
+                <div class="trust-bar">
+                    <div class="trust-item">
+                        <span class="t-ico">🔒</span>
+                        <span>SSL 256-bit</span>
+                    </div>
+                    <div class="trust-item">
+                        <span class="t-ico">✓</span>
+                        <span>PCI DSS</span>
+                    </div>
+                    <div class="trust-item">
+                        <span class="t-ico">🛡</span>
+                        <span>Nedarim Plus</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -425,7 +451,7 @@
                 onPurchaseCreated(msg.purchaseId);
             }
             else if (msg.action === 'purchaseError') {
-                document.getElementById('formSection').style.display = 'block';
+                document.getElementById('formSection').style.display = 'flex';
                 document.getElementById('loadingPayment').classList.remove('active');
                 showError(msg.error || 'שגיאה ביצירת רכישה');
             }
@@ -508,7 +534,7 @@
         function handleTransactionResponse(response) {
             document.getElementById('loadingPayment').classList.remove('active');
             if (response.Status === 'Error') {
-                document.getElementById('formSection').style.display = 'block';
+                document.getElementById('formSection').style.display = 'flex';
                 showError(response.Message || 'התשלום נכשל. נסה שוב.');
             } else {
                 document.getElementById('processingMessage').classList.add('active');
@@ -542,7 +568,7 @@
             document.getElementById('loadingPayment').classList.remove('active');
             var pm = document.getElementById('processingMessage');
             if (pm) pm.classList.remove('active');
-            document.getElementById('formSection').style.display = 'block';
+            document.getElementById('formSection').style.display = 'flex';
             showError('לא התקבל אישור מהשרת. אם חויבת, נא לפנות לתמיכה.');
         }
 

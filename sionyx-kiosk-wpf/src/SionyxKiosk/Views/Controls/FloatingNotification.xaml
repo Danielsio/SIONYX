@@ -51,7 +51,7 @@
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                 <TextBlock x:Name="TitleText" FontSize="15" FontWeight="SemiBold"
                            Foreground="White" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
-                <TextBlock x:Name="MessageText" FontSize="13" Foreground="#FFFFFFBB"
+                <TextBlock x:Name="MessageText" FontSize="13" Foreground="#BBFFFFFF"
                            TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
                            Margin="0,2,0,0" />
             </StackPanel>
