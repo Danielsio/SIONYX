@@ -43,8 +43,30 @@ public partial class PaymentDialog : Window
         _package = package;
 
         InitializeComponent();
+        PopulatePackageSummary();
         Loaded += OnLoaded;
         Closed += OnClosed;
+    }
+
+    private void PopulatePackageSummary()
+    {
+        PackageNameText.Text = _package.Name;
+        PackageMinutesText.Text = $"{_package.Minutes} דקות";
+        PackagePrintsText.Text = $"{_package.Prints}₪";
+        PackageValidityText.Text = _package.ValidityDisplay;
+
+        if (_package.HasDiscount)
+        {
+            OriginalPriceText.Text = $"₪{_package.Price:F0}";
+            OriginalPriceText.Visibility = Visibility.Visible;
+            PackagePriceText.Text = $"₪{_package.FinalPrice:F0}";
+            DiscountBadge.Visibility = Visibility.Visible;
+            DiscountBadgeText.Text = $"חסכת ₪{_package.Savings:F0}";
+        }
+        else
+        {
+            PackagePriceText.Text = $"₪{_package.Price:F0}";
+        }
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -84,27 +106,31 @@ public partial class PaymentDialog : Window
     {
         try
         {
-            // Get Nedarim credentials from org metadata
             var metaResult = await _metadataService.GetOrganizationMetadataAsync(_firebase.OrgId);
             var mosadId = "";
             var apiValid = "";
-            var callbackUrl = "";
 
-            if (metaResult.IsSuccess && metaResult.Data is JsonElement meta)
+            if (metaResult.IsSuccess && metaResult.Data != null)
             {
-                if (meta.TryGetProperty("nedarimPlus", out var nedarim))
-                {
-                    mosadId = nedarim.TryGetProperty("mosadId", out var m) ? m.GetString() ?? "" : "";
-                    apiValid = nedarim.TryGetProperty("apiValid", out var a) ? a.GetString() ?? "" : "";
-                    callbackUrl = nedarim.TryGetProperty("callbackUrl", out var c) ? c.GetString() ?? "" : "";
-                }
+                var dataType = metaResult.Data.GetType();
+
+                if (dataType.GetProperty("nedarim_mosad_id")?.GetValue(metaResult.Data) is JsonElement mosadEl)
+                    mosadId = mosadEl.ValueKind == JsonValueKind.String ? mosadEl.GetString() ?? "" : mosadEl.ToString();
+
+                if (dataType.GetProperty("nedarim_api_valid")?.GetValue(metaResult.Data) is JsonElement apiEl)
+                    apiValid = apiEl.ValueKind == JsonValueKind.String ? apiEl.GetString() ?? "" : apiEl.ToString();
             }
+
+            if (string.IsNullOrEmpty(mosadId) || string.IsNullOrEmpty(apiValid))
+                Logger.Warning("Nedarim credentials missing — payment will fail");
+
+            var callbackUrl = $"https://us-central1-{_firebase.ProjectId}.cloudfunctions.net/nedarimCallback";
 
             var config = new
             {
                 mosadId,
                 apiValid,
-                amount = _package.Price.ToString("F0"),
+                amount = _package.DisplayPrice.ToString("F0"),
                 packageName = _package.Name ?? "",
                 packageMinutes = _package.Minutes.ToString(),
                 packagePrints = _package.Prints.ToString(),
@@ -113,11 +139,11 @@ public partial class PaymentDialog : Window
                 callbackUrl
             };
 
-            var configJson = JsonSerializer.Serialize(config);
             var message = JsonSerializer.Serialize(new { action = "setConfig", config });
             PaymentWebView.CoreWebView2.PostWebMessageAsJson(message);
 
-            Logger.Information("Payment config injected for package: {Package}", _package.Name);
+            Logger.Information("Payment config injected for package: {Package} amount: {Amount}",
+                _package.Name, _package.DisplayPrice);
         }
         catch (Exception ex)
         {
@@ -194,12 +220,13 @@ public partial class PaymentDialog : Window
     {
         Logger.Information("Payment success received from JS");
 
-        // The payment gateway has processed the payment.
-        // We wait for the Firebase callback to update the purchase status.
-        // If status changes to "completed", show success to user.
-        // If it doesn't arrive within 15s, poll manually.
+        // Give the Cloud Function callback a head start before polling.
+        // SSE listener is already running and will trigger showSuccess if the
+        // callback arrives quickly.
         await Task.Delay(TimeSpan.FromSeconds(2));
-        await PollPurchaseStatusAsync();
+
+        if (!PaymentSucceeded)
+            await PollPurchaseStatusAsync();
     }
 
     private void StartPurchaseStatusListener(string purchaseId)
@@ -229,6 +256,8 @@ public partial class PaymentDialog : Window
 
         for (int i = 0; i < 10; i++)
         {
+            if (PaymentSucceeded) return;
+
             await Task.Delay(TimeSpan.FromSeconds(2));
             var result = await _firebase.DbGetAsync($"purchases/{_purchaseId}");
             if (result.Success && result.Data is JsonElement data && data.ValueKind == JsonValueKind.Object)
@@ -249,6 +278,14 @@ public partial class PaymentDialog : Window
         }
 
         Logger.Warning("Purchase status polling timed out for {Id}", _purchaseId);
+        if (!PaymentSucceeded)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                var msg = JsonSerializer.Serialize(new { action = "showTimeout" });
+                PaymentWebView.CoreWebView2.PostWebMessageAsJson(msg);
+            });
+        }
     }
 
     private void OnClosed(object? sender, EventArgs e)

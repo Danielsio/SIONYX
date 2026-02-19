@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using FluentAssertions;
 using SionyxKiosk.Services;
 using SionyxKiosk.ViewModels;
@@ -25,54 +24,65 @@ public class MessageViewModelExtendedTests : IDisposable
     {
         _handler.When("messages.json", new
         {
-            msg1 = new { toUserId = "user-123", body = "Hello!", fromName = "Admin", read = false, timestamp = "2026-01-01T10:00:00" },
-            msg2 = new { toUserId = "user-123", body = "Second message", fromName = "Manager", read = false, timestamp = "2026-01-02T10:00:00" },
+            msg1 = new { toUserId = "user-123", body = "Hello!", fromName = "Admin", read = false, timestamp = 1700000000000 },
+            msg2 = new { toUserId = "user-123", body = "Second message", fromName = "Manager", read = false, timestamp = 1700000001000 },
         });
 
         await _vm.LoadMessagesCommand.ExecuteAsync(null);
 
         _vm.Messages.Count.Should().Be(2);
-        _vm.CurrentSender.Should().Be("Admin");
-        _vm.CurrentBody.Should().Be("Hello!");
-        _vm.HasNext.Should().BeTrue();
-        _vm.HasPrevious.Should().BeFalse();
+        _vm.IsEmpty.Should().BeFalse();
+        _vm.Messages[0].DisplaySender.Should().Be("Admin");
+        _vm.Messages[0].DisplayBody.Should().Be("Hello!");
+        _vm.Messages[1].DisplaySender.Should().Be("Manager");
+        _vm.Messages[1].DisplayBody.Should().Be("Second message");
     }
 
     [Fact]
-    public async Task LoadMessagesCommand_WhenEmpty_ShouldNotSet()
+    public async Task LoadMessagesCommand_WhenEmpty_ShouldSetEmptyState()
     {
         _handler.WhenRaw("messages.json", "null");
 
         await _vm.LoadMessagesCommand.ExecuteAsync(null);
 
         _vm.Messages.Count.Should().Be(0);
+        _vm.IsEmpty.Should().BeTrue();
     }
 
     [Fact]
-    public async Task NextMessageCommand_ShouldAdvance()
+    public async Task LoadMessagesCommand_ShouldOrderByTimestamp()
     {
         _handler.When("messages.json", new
         {
-            msg1 = new { toUserId = "user-123", body = "First", fromName = "Admin", read = false, timestamp = "2026-01-01" },
-            msg2 = new { toUserId = "user-123", body = "Second", fromName = "Manager", read = false, timestamp = "2026-01-02" },
+            msg1 = new { toUserId = "user-123", body = "Later", fromName = "Admin", read = false, timestamp = 1700000002000 },
+            msg2 = new { toUserId = "user-123", body = "Earlier", fromName = "Admin", read = false, timestamp = 1700000000000 },
         });
-        _handler.SetDefaultSuccess(); // For mark as read
 
         await _vm.LoadMessagesCommand.ExecuteAsync(null);
-        await _vm.NextMessageCommand.ExecuteAsync(null);
 
-        _vm.CurrentIndex.Should().Be(1);
-        _vm.CurrentBody.Should().Be("Second");
-        _vm.HasPrevious.Should().BeTrue();
-        _vm.HasNext.Should().BeFalse();
+        _vm.Messages[0].DisplayBody.Should().Be("Earlier");
+        _vm.Messages[1].DisplayBody.Should().Be("Later");
     }
 
     [Fact]
-    public async Task NextMessageCommand_AtEnd_ShouldFireAllMessagesRead()
+    public async Task LoadMessagesCommand_WithMissingFromName_ShouldDefaultToAdmin()
     {
         _handler.When("messages.json", new
         {
-            msg1 = new { toUserId = "user-123", body = "Only", fromName = "Admin", read = false, timestamp = "2026-01-01" },
+            msg1 = new { toUserId = "user-123", body = "Hello", read = false, timestamp = 1700000000000 },
+        });
+
+        await _vm.LoadMessagesCommand.ExecuteAsync(null);
+
+        _vm.Messages[0].DisplaySender.Should().Be("מנהל");
+    }
+
+    [Fact]
+    public async Task MarkAllReadAndClose_ShouldFireAllMessagesRead()
+    {
+        _handler.When("messages.json", new
+        {
+            msg1 = new { toUserId = "user-123", body = "Test", fromName = "Admin", read = false, timestamp = 1700000000000 },
         });
         _handler.SetDefaultSuccess();
 
@@ -81,57 +91,8 @@ public class MessageViewModelExtendedTests : IDisposable
         var allRead = false;
         _vm.AllMessagesRead += () => allRead = true;
 
-        await _vm.NextMessageCommand.ExecuteAsync(null);
+        await _vm.MarkAllReadAndCloseAsync();
         allRead.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task PreviousMessageCommand_ShouldGoBack()
-    {
-        _handler.When("messages.json", new
-        {
-            msg1 = new { toUserId = "user-123", body = "First", fromName = "Admin", read = false, timestamp = "2026-01-01" },
-            msg2 = new { toUserId = "user-123", body = "Second", fromName = "Admin", read = false, timestamp = "2026-01-02" },
-        });
-        _handler.SetDefaultSuccess();
-
-        await _vm.LoadMessagesCommand.ExecuteAsync(null);
-        await _vm.NextMessageCommand.ExecuteAsync(null);
-
-        _vm.PreviousMessageCommand.Execute(null);
-        _vm.CurrentIndex.Should().Be(0);
-        _vm.CurrentBody.Should().Be("First");
-    }
-
-    [Fact]
-    public void PreviousMessageCommand_AtStart_ShouldStay()
-    {
-        _vm.PreviousMessageCommand.Execute(null);
-        _vm.CurrentIndex.Should().Be(0);
-    }
-
-    [Fact]
-    public async Task ShowMessage_ShouldDisplayTimestamp()
-    {
-        _handler.When("messages.json", new
-        {
-            msg1 = new { toUserId = "user-123", body = "Hello", fromName = "Admin", read = false, timestamp = "2026-01-15T14:30:00" },
-        });
-
-        await _vm.LoadMessagesCommand.ExecuteAsync(null);
-        _vm.CurrentTimestamp.Should().NotBeNullOrEmpty();
-    }
-
-    [Fact]
-    public async Task ShowMessage_WithMissingFromName_ShouldDefaultToAdmin()
-    {
-        _handler.When("messages.json", new
-        {
-            msg1 = new { toUserId = "user-123", body = "Hello", read = false, timestamp = "2026-01-01" },
-        });
-
-        await _vm.LoadMessagesCommand.ExecuteAsync(null);
-        _vm.CurrentSender.Should().Be("מנהל");
     }
 
     [Fact]
@@ -141,19 +102,9 @@ public class MessageViewModelExtendedTests : IDisposable
         _vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName!);
 
         _vm.IsLoading = true;
-        _vm.CurrentSender = "test";
-        _vm.CurrentBody = "body";
-        _vm.CurrentTimestamp = "ts";
-        _vm.HasNext = true;
-        _vm.HasPrevious = true;
-        _vm.CurrentIndex = 5;
+        _vm.IsEmpty = true;
 
         changed.Should().Contain("IsLoading");
-        changed.Should().Contain("CurrentSender");
-        changed.Should().Contain("CurrentBody");
-        changed.Should().Contain("CurrentTimestamp");
-        changed.Should().Contain("HasNext");
-        changed.Should().Contain("HasPrevious");
-        changed.Should().Contain("CurrentIndex");
+        changed.Should().Contain("IsEmpty");
     }
 }
