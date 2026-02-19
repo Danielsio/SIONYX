@@ -306,43 +306,265 @@ SectionEnd
 Section "Uninstall"
     SetRegView 64
     
-    Delete "$INSTDIR\${APP_EXECUTABLE}"
-    Delete "$INSTDIR\${APP_ICON}"
-    Delete "$INSTDIR\Uninstall.exe"
-    RMDir /r "$INSTDIR\Assets"
+    DetailPrint ""
+    DetailPrint "============================================================"
+    DetailPrint "  SIONYX Uninstaller"
+    DetailPrint "============================================================"
+    DetailPrint ""
     
+    ; ── STEP 1: Kill running processes ────────────────────────────
+    DetailPrint "------------------------------------------------------------"
+    DetailPrint "  STEP 1: Stopping running processes"
+    DetailPrint "------------------------------------------------------------"
+    
+    nsExec::ExecToLog 'taskkill /F /IM SionyxKiosk.exe'
+    Pop $0
+    ${If} $0 == 0
+        DetailPrint "[OK] SionyxKiosk process terminated"
+    ${Else}
+        DetailPrint "[INFO] SionyxKiosk was not running"
+    ${EndIf}
+    
+    ; ── STEP 2: Remove scheduled task ─────────────────────────────
+    DetailPrint ""
+    DetailPrint "------------------------------------------------------------"
+    DetailPrint "  STEP 2: Removing scheduled task"
+    DetailPrint "------------------------------------------------------------"
+    
+    nsExec::ExecToLog 'schtasks /delete /tn "SIONYX Kiosk" /f'
+    Pop $0
+    ${If} $0 == 0
+        DetailPrint "[OK] Scheduled task removed"
+    ${Else}
+        DetailPrint "[INFO] Scheduled task not found (already removed)"
+    ${EndIf}
+    
+    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}"
+    DetailPrint "[OK] Auto-run registry entry cleared"
+    
+    ; ── STEP 3: Remove application files ──────────────────────────
+    DetailPrint ""
+    DetailPrint "------------------------------------------------------------"
+    DetailPrint "  STEP 3: Removing application files"
+    DetailPrint "------------------------------------------------------------"
+    
+    Delete "$INSTDIR\${APP_EXECUTABLE}"
+    DetailPrint "  Deleted: $INSTDIR\${APP_EXECUTABLE}"
+    Delete "$INSTDIR\${APP_ICON}"
+    DetailPrint "  Deleted: $INSTDIR\${APP_ICON}"
+    Delete "$INSTDIR\install.log"
+    DetailPrint "  Deleted: $INSTDIR\install.log"
+    RMDir /r "$INSTDIR\Assets"
+    DetailPrint "  Deleted: $INSTDIR\Assets\"
+    
+    ; Shortcuts
     Delete "$DESKTOP\${APP_NAME}.lnk"
+    DetailPrint "  Deleted: Desktop shortcut"
     Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
     Delete "$SMPROGRAMS\${APP_NAME}\Uninstall.lnk"
     RMDir "$SMPROGRAMS\${APP_NAME}"
-    
-    nsExec::ExecToLog 'schtasks /delete /tn "SIONYX Kiosk" /f'
-    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "${APP_NAME}"
+    DetailPrint "  Deleted: Start Menu shortcuts"
     Delete "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk"
+    DetailPrint "  Deleted: KioskUser startup shortcut"
     
-    ; Cleanup app data
+    DetailPrint "[OK] Application files removed"
+    
+    ; ── STEP 4: Remove app data ───────────────────────────────────
+    DetailPrint ""
+    DetailPrint "------------------------------------------------------------"
+    DetailPrint "  STEP 4: Removing application data"
+    DetailPrint "------------------------------------------------------------"
+    
+    ; Current user's app data
     RMDir /r "$PROFILE\.sionyx"
+    DetailPrint "  Cleaned: $PROFILE\.sionyx"
     RMDir /r "$LOCALAPPDATA\${APP_NAME}"
+    DetailPrint "  Cleaned: $LOCALAPPDATA\${APP_NAME}"
+    
+    ; KioskUser app data
     RMDir /r "C:\Users\${KIOSK_USERNAME}\.sionyx"
+    DetailPrint "  Cleaned: C:\Users\${KIOSK_USERNAME}\.sionyx"
     RMDir /r "C:\Users\${KIOSK_USERNAME}\AppData\Local\${APP_NAME}"
+    DetailPrint "  Cleaned: C:\Users\${KIOSK_USERNAME}\AppData\Local\${APP_NAME}"
     
-    ; Ask about KioskUser removal
-    MessageBox MB_YESNO|MB_ICONQUESTION \
-        "Remove '${KIOSK_USERNAME}' Windows account?" \
-        IDYES removeUser IDNO skipRemoveUser
+    DetailPrint "[OK] Application data removed"
     
-    removeUser:
-        nsExec::ExecToLog 'powershell -Command "Remove-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer\" -Name \"NoRun\" -ErrorAction SilentlyContinue"'
-        nsExec::ExecToLog 'powershell -Command "Remove-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\" -Name \"DisableRegistryTools\" -ErrorAction SilentlyContinue"'
-        nsExec::ExecToLog 'powershell -Command "Remove-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\" -Name \"DisableCMD\" -ErrorAction SilentlyContinue"'
-        nsExec::ExecToLog 'powershell -Command "Remove-ItemProperty -Path \"HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\" -Name \"DisableTaskMgr\" -ErrorAction SilentlyContinue"'
-        nsExec::ExecToLog 'powershell -Command "Remove-LocalUser -Name \"${KIOSK_USERNAME}\" -ErrorAction SilentlyContinue"'
+    ; ── STEP 5: Revert security restrictions ──────────────────────
+    DetailPrint ""
+    DetailPrint "------------------------------------------------------------"
+    DetailPrint "  STEP 5: Reverting security restrictions"
+    DetailPrint "------------------------------------------------------------"
     
-    skipRemoveUser:
+    FileOpen $0 "$TEMP\sionyx_revert_security.ps1" w
+    FileWrite $0 '$$removedCount = 0$\r$\n'
+    FileWrite $0 '$$policies = @($\r$\n'
+    FileWrite $0 '    @{ Path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"; Name = "NoRun" },$\r$\n'
+    FileWrite $0 '    @{ Path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"; Name = "DisableRegistryTools" },$\r$\n'
+    FileWrite $0 '    @{ Path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"; Name = "DisableCMD" },$\r$\n'
+    FileWrite $0 '    @{ Path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"; Name = "DisableTaskMgr" }$\r$\n'
+    FileWrite $0 ')$\r$\n'
+    FileWrite $0 'foreach ($$p in $$policies) {$\r$\n'
+    FileWrite $0 '    try {$\r$\n'
+    FileWrite $0 '        $$val = Get-ItemProperty -Path $$p.Path -Name $$p.Name -ErrorAction Stop$\r$\n'
+    FileWrite $0 '        Remove-ItemProperty -Path $$p.Path -Name $$p.Name -Force$\r$\n'
+    FileWrite $0 '        Write-Host "[OK] Removed policy: $$($$p.Name)"$\r$\n'
+    FileWrite $0 '        $$removedCount++$\r$\n'
+    FileWrite $0 '    } catch {$\r$\n'
+    FileWrite $0 '        Write-Host "[INFO] Policy not set: $$($$p.Name)"$\r$\n'
+    FileWrite $0 '    }$\r$\n'
+    FileWrite $0 '}$\r$\n'
+    FileWrite $0 'Write-Host "[OK] Reverted $$removedCount security policies"$\r$\n'
+    FileClose $0
+    
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_revert_security.ps1"'
+    Pop $0
+    Delete "$TEMP\sionyx_revert_security.ps1"
+    
+    ; ── STEP 6: Remove KioskUser completely ───────────────────────
+    DetailPrint ""
+    DetailPrint "------------------------------------------------------------"
+    DetailPrint "  STEP 6: Removing KioskUser account & profile"
+    DetailPrint "------------------------------------------------------------"
+    
+    FileOpen $0 "$TEMP\sionyx_remove_user.ps1" w
+    FileWrite $0 '$$username = "${KIOSK_USERNAME}"$\r$\n'
+    FileWrite $0 '$$profilePath = "C:\Users\$$username"$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# Check if user exists$\r$\n'
+    FileWrite $0 '$$userExists = $$null -ne (Get-LocalUser -Name $$username -ErrorAction SilentlyContinue)$\r$\n'
+    FileWrite $0 'if (-not $$userExists) {$\r$\n'
+    FileWrite $0 '    Write-Host "[INFO] User $$username does not exist - nothing to remove"$\r$\n'
+    FileWrite $0 '} else {$\r$\n'
+    FileWrite $0 '    Write-Host "[INFO] Found user: $$username"$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '    # 1. Get user SID before deletion (needed for registry cleanup)$\r$\n'
+    FileWrite $0 '    $$sid = $$null$\r$\n'
+    FileWrite $0 '    try {$\r$\n'
+    FileWrite $0 '        $$acct = New-Object System.Security.Principal.NTAccount($$username)$\r$\n'
+    FileWrite $0 '        $$sid = $$acct.Translate([System.Security.Principal.SecurityIdentifier]).Value$\r$\n'
+    FileWrite $0 '        Write-Host "[INFO] User SID: $$sid"$\r$\n'
+    FileWrite $0 '    } catch {$\r$\n'
+    FileWrite $0 '        Write-Host "[WARN] Could not resolve SID: $$_"$\r$\n'
+    FileWrite $0 '    }$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '    # 2. Remove the Windows user account$\r$\n'
+    FileWrite $0 '    try {$\r$\n'
+    FileWrite $0 '        Remove-LocalUser -Name $$username -ErrorAction Stop$\r$\n'
+    FileWrite $0 '        Write-Host "[OK] User account removed"$\r$\n'
+    FileWrite $0 '    } catch {$\r$\n'
+    FileWrite $0 '        Write-Host "[ERROR] Failed to remove user account: $$_"$\r$\n'
+    FileWrite $0 '    }$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '    # 3. Remove the user profile via WMI (handles registry + profile path)$\r$\n'
+    FileWrite $0 '    if ($$sid) {$\r$\n'
+    FileWrite $0 '        try {$\r$\n'
+    FileWrite $0 '            $$profile = Get-CimInstance Win32_UserProfile | Where-Object { $$_.SID -eq $$sid }$\r$\n'
+    FileWrite $0 '            if ($$profile) {$\r$\n'
+    FileWrite $0 '                Remove-CimInstance -InputObject $$profile -ErrorAction Stop$\r$\n'
+    FileWrite $0 '                Write-Host "[OK] User profile removed via WMI (SID: $$sid)"$\r$\n'
+    FileWrite $0 '            } else {$\r$\n'
+    FileWrite $0 '                Write-Host "[INFO] No WMI profile entry found for SID $$sid"$\r$\n'
+    FileWrite $0 '            }$\r$\n'
+    FileWrite $0 '        } catch {$\r$\n'
+    FileWrite $0 '            Write-Host "[WARN] WMI profile removal failed: $$_"$\r$\n'
+    FileWrite $0 '        }$\r$\n'
+    FileWrite $0 '    }$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '    # 4. Clean up ProfileList registry entry (in case WMI missed it)$\r$\n'
+    FileWrite $0 '    if ($$sid) {$\r$\n'
+    FileWrite $0 '        $$regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$$sid"$\r$\n'
+    FileWrite $0 '        if (Test-Path $$regPath) {$\r$\n'
+    FileWrite $0 '            Remove-Item -Path $$regPath -Recurse -Force$\r$\n'
+    FileWrite $0 '            Write-Host "[OK] ProfileList registry entry removed"$\r$\n'
+    FileWrite $0 '        } else {$\r$\n'
+    FileWrite $0 '            Write-Host "[OK] ProfileList registry entry already clean"$\r$\n'
+    FileWrite $0 '        }$\r$\n'
+    FileWrite $0 '    }$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '    # 5. Force-delete the profile folder if it still exists$\r$\n'
+    FileWrite $0 '    if (Test-Path $$profilePath) {$\r$\n'
+    FileWrite $0 '        try {$\r$\n'
+    FileWrite $0 '            # Take ownership and grant full control first$\r$\n'
+    FileWrite $0 '            $$acl = Get-Acl $$profilePath$\r$\n'
+    FileWrite $0 '            $$adminRule = New-Object System.Security.AccessControl.FileSystemAccessRule("Administrators", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")$\r$\n'
+    FileWrite $0 '            $$acl.SetAccessRule($$adminRule)$\r$\n'
+    FileWrite $0 '            Set-Acl -Path $$profilePath -AclObject $$acl -ErrorAction SilentlyContinue$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '            Remove-Item -Path $$profilePath -Recurse -Force -ErrorAction Stop$\r$\n'
+    FileWrite $0 '            Write-Host "[OK] Profile folder deleted: $$profilePath"$\r$\n'
+    FileWrite $0 '        } catch {$\r$\n'
+    FileWrite $0 '            Write-Host "[WARN] Could not fully delete $$profilePath : $$_"$\r$\n'
+    FileWrite $0 '            Write-Host "[INFO] Some files may be locked. They will be removed on next reboot."$\r$\n'
+    FileWrite $0 '            # Schedule deletion on reboot for locked files$\r$\n'
+    FileWrite $0 '            cmd /c "rmdir /s /q $$profilePath" 2>$$null$\r$\n'
+    FileWrite $0 '        }$\r$\n'
+    FileWrite $0 '    } else {$\r$\n'
+    FileWrite $0 '        Write-Host "[OK] Profile folder already removed"$\r$\n'
+    FileWrite $0 '    }$\r$\n'
+    FileWrite $0 '}$\r$\n'
+    FileWrite $0 '$\r$\n'
+    FileWrite $0 '# 6. Final verification$\r$\n'
+    FileWrite $0 'Write-Host ""$\r$\n'
+    FileWrite $0 'Write-Host "--- Verification ---"$\r$\n'
+    FileWrite $0 '$$userCheck = Get-LocalUser -Name $$username -ErrorAction SilentlyContinue$\r$\n'
+    FileWrite $0 'if ($$userCheck) {$\r$\n'
+    FileWrite $0 '    Write-Host "[ERROR] User account still exists!"$\r$\n'
+    FileWrite $0 '} else {$\r$\n'
+    FileWrite $0 '    Write-Host "[OK] User account: REMOVED"$\r$\n'
+    FileWrite $0 '}$\r$\n'
+    FileWrite $0 'if (Test-Path "C:\Users\$$username") {$\r$\n'
+    FileWrite $0 '    $$size = (Get-ChildItem "C:\Users\$$username" -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object -Property Length -Sum).Sum$\r$\n'
+    FileWrite $0 '    $$sizeMB = [math]::Round($$size / 1MB, 1)$\r$\n'
+    FileWrite $0 '    Write-Host "[WARN] Profile folder still exists ($${sizeMB} MB) - may need reboot to fully remove"$\r$\n'
+    FileWrite $0 '} else {$\r$\n'
+    FileWrite $0 '    Write-Host "[OK] Profile folder: REMOVED"$\r$\n'
+    FileWrite $0 '}$\r$\n'
+    FileWrite $0 '$$regCheck = Test-Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\*" | Out-Null$\r$\n'
+    FileWrite $0 '$$orphaned = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" | Where-Object { (Get-ItemProperty $$_.PSPath).ProfileImagePath -like "*$$username*" }$\r$\n'
+    FileWrite $0 'if ($$orphaned) {$\r$\n'
+    FileWrite $0 '    Write-Host "[WARN] Orphaned ProfileList entries found"$\r$\n'
+    FileWrite $0 '} else {$\r$\n'
+    FileWrite $0 '    Write-Host "[OK] ProfileList registry: CLEAN"$\r$\n'
+    FileWrite $0 '}$\r$\n'
+    FileClose $0
+    
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_remove_user.ps1"'
+    Pop $0
+    Delete "$TEMP\sionyx_remove_user.ps1"
+    
+    ; ── STEP 7: Remove registry entries ───────────────────────────
+    DetailPrint ""
+    DetailPrint "------------------------------------------------------------"
+    DetailPrint "  STEP 7: Removing registry entries"
+    DetailPrint "------------------------------------------------------------"
     
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"
+    DetailPrint "[OK] Add/Remove Programs entry removed"
     DeleteRegKey HKLM "SOFTWARE\${APP_NAME}"
+    DetailPrint "[OK] SIONYX registry configuration removed"
+    
+    ; ── STEP 8: Remove install directory ──────────────────────────
+    DetailPrint ""
+    DetailPrint "------------------------------------------------------------"
+    DetailPrint "  STEP 8: Final cleanup"
+    DetailPrint "------------------------------------------------------------"
+    
+    Delete "$INSTDIR\Uninstall.exe"
     RMDir "$INSTDIR"
+    
+    IfFileExists "$INSTDIR\*.*" 0 instdir_clean
+        DetailPrint "[WARN] Install directory not fully empty: $INSTDIR"
+        DetailPrint "[INFO] You may need to manually delete it after reboot"
+        Goto instdir_done
+    instdir_clean:
+        DetailPrint "[OK] Install directory removed: $INSTDIR"
+    instdir_done:
+    
+    DetailPrint ""
+    DetailPrint "============================================================"
+    DetailPrint "  UNINSTALL COMPLETE"
+    DetailPrint "============================================================"
+    DetailPrint ""
 SectionEnd
 
 ; ============================================================================
