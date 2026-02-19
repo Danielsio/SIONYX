@@ -2,39 +2,205 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
-        WindowStartupLocation="CenterOwner" Width="640" Height="720"
+        WindowState="Maximized"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        FlowDirection="RightToLeft">
-    <Border CornerRadius="16" Background="White" ClipToBounds="True">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="24" ShadowDepth="6" Direction="270" Color="#0F172A" Opacity="0.12" />
-        </Border.Effect>
-        <DockPanel>
-            <!-- Header -->
-            <Border DockPanel.Dock="Top" Padding="24,16" Background="{StaticResource HeroGradient}">
-                <Grid>
-                    <TextBlock Text="💳 תשלום" FontSize="18" FontWeight="Bold" Foreground="White" />
-                    <Button Content="✕" Style="{StaticResource BtnGhost}" Foreground="White"
-                            HorizontalAlignment="Left" VerticalAlignment="Center"
-                            Click="CloseButton_Click" Width="36" Height="36" />
-                </Grid>
-            </Border>
+        FlowDirection="RightToLeft" Topmost="True">
 
-            <!-- Package summary -->
-            <Border DockPanel.Dock="Top" Padding="24,12" Background="#F8FAFC"
-                    BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
-                <Grid>
-                    <TextBlock Text="{Binding Package.Name}" FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource TextPrimaryBrush}" />
-                    <TextBlock HorizontalAlignment="Left" FontSize="20" FontWeight="Bold"
-                               Foreground="{StaticResource PrimaryBrush}">
-                        <Run Text="₪" /><Run Text="{Binding Package.Price, StringFormat='{}{0:F0}'}" />
-                    </TextBlock>
-                </Grid>
-            </Border>
+    <!-- Full-screen dark overlay -->
+    <Grid>
+        <!-- Backdrop -->
+        <Border Background="#000000" Opacity="0.45" />
 
-            <!-- WebView2 for payment form -->
-            <wv2:WebView2 x:Name="PaymentWebView" />
-        </DockPanel>
-    </Border>
+        <!-- Centered dialog card -->
+        <Border Width="680" MaxHeight="920" VerticalAlignment="Center" HorizontalAlignment="Center"
+                CornerRadius="20" ClipToBounds="True">
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#F8FAFC" Offset="0" />
+                    <GradientStop Color="#F1F5F9" Offset="1" />
+                </LinearGradientBrush>
+            </Border.Background>
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="60" ShadowDepth="0" Direction="270"
+                                  Color="#000000" Opacity="0.5" />
+            </Border.Effect>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- ═══════════ HEADER ═══════════ -->
+                <Border Grid.Row="0" Padding="32,20,32,18">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0.3">
+                            <GradientStop Color="#5B6CFF" Offset="0" />
+                            <GradientStop Color="#6F63F2" Offset="0.5" />
+                            <GradientStop Color="#8B5CF6" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Grid>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Border Width="40" Height="40" CornerRadius="11"
+                                    Background="#FFFFFF20" Margin="0,0,14,0">
+                                <TextBlock Text="🔒" FontSize="18"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="תשלום מאובטח" FontSize="20" FontWeight="Bold"
+                                           Foreground="White" />
+                                <TextBlock Text="פרטי התשלום שלך מוגנים בהצפנה מלאה"
+                                           FontSize="12.5" Foreground="#FFFFFFAA" Margin="0,2,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Button Click="CloseButton_Click" HorizontalAlignment="Left"
+                                VerticalAlignment="Center" Cursor="Hand">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="CloseBg" Width="32" Height="32"
+                                            CornerRadius="16" Background="Transparent">
+                                        <TextBlock x:Name="CloseX" Text="✕"
+                                                   FontSize="14" FontWeight="Bold" Foreground="#FFFFFFBB"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="CloseBg" Property="Background" Value="#FFFFFF22" />
+                                            <Setter TargetName="CloseX" Property="Foreground" Value="White" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- ═══════════ ORDER SUMMARY ═══════════ -->
+                <Border Grid.Row="1" Margin="20,16,20,6">
+                    <Border Background="White" CornerRadius="14"
+                            BorderBrush="#E8ECF4" BorderThickness="1">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270"
+                                              Color="#0F172A" Opacity="0.04" />
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Details -->
+                            <StackPanel Grid.Column="0" Margin="22,18,0,18">
+                                <TextBlock x:Name="PackageNameText" FontSize="18" FontWeight="Bold"
+                                           Foreground="#1E293B" Margin="0,0,0,12" />
+
+                                <Grid Margin="0,0,0,7">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="⏱" FontSize="13" Margin="0,0,5,0"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="זמן:" FontSize="14"
+                                               Foreground="#64748B" VerticalAlignment="Center"
+                                               Margin="0,0,6,0" />
+                                    <TextBlock Grid.Column="2" x:Name="PackageMinutesText"
+                                               FontSize="14" FontWeight="Bold" Foreground="#1E293B"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+
+                                <Grid Margin="0,0,0,7">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="🖨" FontSize="13" Margin="0,0,5,0"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="הדפסות:" FontSize="14"
+                                               Foreground="#64748B" VerticalAlignment="Center"
+                                               Margin="0,0,6,0" />
+                                    <TextBlock Grid.Column="2" x:Name="PackagePrintsText"
+                                               FontSize="14" FontWeight="Bold" Foreground="#1E293B"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="📅" FontSize="13" Margin="0,0,5,0"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="1" Text="תוקף:" FontSize="14"
+                                               Foreground="#64748B" VerticalAlignment="Center"
+                                               Margin="0,0,6,0" />
+                                    <TextBlock Grid.Column="2" x:Name="PackageValidityText"
+                                               FontSize="14" FontWeight="Bold" Foreground="#1E293B"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </StackPanel>
+
+                            <!-- Price panel -->
+                            <Border Grid.Column="1" Padding="24,14" CornerRadius="0,14,14,0"
+                                    MinWidth="140">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                        <GradientStop Color="#F5F3FF" Offset="0" />
+                                        <GradientStop Color="#EDE9FE" Offset="1" />
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                    <TextBlock Text="סכום לתשלום" FontSize="12" FontWeight="SemiBold"
+                                               Foreground="#7C3AED" HorizontalAlignment="Center"
+                                               Margin="0,0,0,2" />
+                                    <!-- Original price (strikethrough, shown only for discounts) -->
+                                    <TextBlock x:Name="OriginalPriceText" FontSize="15"
+                                               Foreground="#94A3B8" HorizontalAlignment="Center"
+                                               TextDecorations="Strikethrough" Visibility="Collapsed" />
+                                    <!-- Final price -->
+                                    <TextBlock x:Name="PackagePriceText" FontSize="34" FontWeight="ExtraBold"
+                                               HorizontalAlignment="Center">
+                                        <TextBlock.Foreground>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="#6366F1" Offset="0" />
+                                                <GradientStop Color="#7C3AED" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </TextBlock.Foreground>
+                                    </TextBlock>
+                                    <!-- Discount badge -->
+                                    <Border x:Name="DiscountBadge" CornerRadius="6" Padding="8,3"
+                                            HorizontalAlignment="Center" Margin="0,4,0,0"
+                                            Visibility="Collapsed">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="#10B981" Offset="0" />
+                                                <GradientStop Color="#059669" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
+                                        <TextBlock x:Name="DiscountBadgeText" FontSize="12" FontWeight="Bold"
+                                                   Foreground="White" HorizontalAlignment="Center" />
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Border>
+
+                <!-- ═══════════ WEBVIEW2 ═══════════ -->
+                <Border Grid.Row="2" Margin="20,6,20,20" CornerRadius="14" ClipToBounds="True"
+                        Background="White" BorderBrush="#E8ECF4" BorderThickness="1">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270"
+                                          Color="#0F172A" Opacity="0.04" />
+                    </Border.Effect>
+                    <wv2:WebView2 x:Name="PaymentWebView" />
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>

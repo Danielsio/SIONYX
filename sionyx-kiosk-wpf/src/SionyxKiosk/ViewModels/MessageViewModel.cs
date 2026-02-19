@@ -5,19 +5,63 @@ using SionyxKiosk.Services;
 
 namespace SionyxKiosk.ViewModels;
 
-/// <summary>Message dialog ViewModel: read, next, finish flow.</summary>
+/// <summary>Display-friendly wrapper for a chat message.</summary>
+public class MessageItem
+{
+    public string Id { get; init; } = "";
+    public string DisplaySender { get; init; } = "מנהל";
+    public string DisplayBody { get; init; } = "";
+    public string DisplayTime { get; init; } = "";
+    public long RawTimestamp { get; init; }
+
+    public static MessageItem FromDictionary(Dictionary<string, object?> msg)
+    {
+        var sender = msg.TryGetValue("fromName", out var name) ? name?.ToString() ?? "" : "";
+        if (string.IsNullOrWhiteSpace(sender)) sender = "מנהל";
+
+        var body = msg.TryGetValue("body", out var b) ? b?.ToString() ?? "" : "";
+        if (string.IsNullOrEmpty(body) && msg.TryGetValue("message", out var m))
+            body = m?.ToString() ?? "";
+        var id = msg.TryGetValue("id", out var mid) ? mid?.ToString() ?? "" : "";
+
+        long rawTs = 0;
+        var timeDisplay = "";
+        if (msg.TryGetValue("timestamp", out var ts))
+        {
+            if (ts is double d) rawTs = (long)d;
+            else if (ts is string s && long.TryParse(s, out var parsed)) rawTs = parsed;
+
+            if (rawTs > 0)
+            {
+                var dt = DateTimeOffset.FromUnixTimeMilliseconds(rawTs).LocalDateTime;
+                var now = DateTime.Now;
+                timeDisplay = dt.Date == now.Date
+                    ? dt.ToString("HH:mm")
+                    : dt.Date == now.Date.AddDays(-1)
+                        ? $"אתמול {dt:HH:mm}"
+                        : dt.ToString("dd/MM HH:mm");
+            }
+        }
+
+        return new MessageItem
+        {
+            Id = id,
+            DisplaySender = sender,
+            DisplayBody = body,
+            DisplayTime = timeDisplay,
+            RawTimestamp = rawTs,
+        };
+    }
+}
+
+/// <summary>Message dialog ViewModel: loads unread messages, mark all read.</summary>
 public partial class MessageViewModel : ObservableObject
 {
     private readonly ChatService _chat;
 
-    [ObservableProperty] private ObservableCollection<Dictionary<string, object?>> _messages = new();
-    [ObservableProperty] private int _currentIndex;
+    [ObservableProperty] private ObservableCollection<MessageItem> _messages = new();
     [ObservableProperty] private bool _isLoading;
-    [ObservableProperty] private string _currentSender = "";
-    [ObservableProperty] private string _currentBody = "";
-    [ObservableProperty] private string _currentTimestamp = "";
-    [ObservableProperty] private bool _hasNext;
-    [ObservableProperty] private bool _hasPrevious;
+    [ObservableProperty] private bool _isEmpty;
 
     public event Action? AllMessagesRead;
 
@@ -30,58 +74,50 @@ public partial class MessageViewModel : ObservableObject
     private async Task LoadMessagesAsync()
     {
         IsLoading = true;
-        var result = await _chat.GetUnreadMessagesAsync(useCache: false);
-        IsLoading = false;
+        IsEmpty = false;
 
-        if (result.IsSuccess && result.Data is List<Dictionary<string, object?>> messages && messages.Count > 0)
+        try
         {
-            Messages = new ObservableCollection<Dictionary<string, object?>>(messages);
-            CurrentIndex = 0;
-            ShowMessage(0);
+            var result = await _chat.GetUnreadMessagesAsync(useCache: false);
+
+            if (result.IsSuccess && result.Data is List<Dictionary<string, object?>> rawMessages && rawMessages.Count > 0)
+            {
+                var items = rawMessages
+                    .Select(MessageItem.FromDictionary)
+                    .OrderBy(m => m.RawTimestamp)
+                    .ToList();
+
+                Messages = new ObservableCollection<MessageItem>(items);
+            }
+            else
+            {
+                Messages = new ObservableCollection<MessageItem>();
+                IsEmpty = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Failed to load messages");
+            Messages = new ObservableCollection<MessageItem>();
+            IsEmpty = true;
+        }
+        finally
+        {
+            IsLoading = false;
         }
     }
 
-    [RelayCommand]
-    private async Task NextMessageAsync()
+    public async Task MarkAllReadAndCloseAsync()
     {
-        // Mark current as read
-        if (CurrentIndex < Messages.Count)
+        try
         {
-            var msg = Messages[CurrentIndex];
-            if (msg.TryGetValue("id", out var id) && id is string messageId)
-                await _chat.MarkMessageAsReadAsync(messageId);
+            await _chat.MarkAllMessagesAsReadAsync();
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Failed to mark messages as read");
         }
 
-        if (CurrentIndex < Messages.Count - 1)
-        {
-            CurrentIndex++;
-            ShowMessage(CurrentIndex);
-        }
-        else
-        {
-            AllMessagesRead?.Invoke();
-        }
-    }
-
-    [RelayCommand]
-    private void PreviousMessage()
-    {
-        if (CurrentIndex > 0)
-        {
-            CurrentIndex--;
-            ShowMessage(CurrentIndex);
-        }
-    }
-
-    private void ShowMessage(int index)
-    {
-        if (index < 0 || index >= Messages.Count) return;
-        var msg = Messages[index];
-
-        CurrentSender = msg.TryGetValue("fromName", out var name) ? name?.ToString() ?? "מנהל" : "מנהל";
-        CurrentBody = msg.TryGetValue("body", out var body) ? body?.ToString() ?? "" : "";
-        CurrentTimestamp = msg.TryGetValue("timestamp", out var ts) ? ts?.ToString() ?? "" : "";
-        HasNext = index < Messages.Count - 1;
-        HasPrevious = index > 0;
+        AllMessagesRead?.Invoke();
     }
 }

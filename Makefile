@@ -5,7 +5,8 @@
 #
 # Usage:  make <command>
 
-.PHONY: help run test test-cov web-dev web-test web-deploy web-deploy-hosting \
+.PHONY: help run test test-cov build build-local build-dry \
+        web-dev web-test web-deploy web-deploy-hosting \
         release release-patch release-minor release-major
 
 # ── Help (default) ────────────────────────────────────────────────
@@ -18,6 +19,9 @@ help:
 	@echo "    make run              Run the kiosk app"
 	@echo "    make test             Run kiosk tests"
 	@echo "    make test-cov         Run tests with coverage report"
+	@echo "    make build            Build installer + upload"
+	@echo "    make build-local      Build installer (no upload)"
+	@echo "    make build-dry        Preview build (no changes)"
 	@echo ""
 	@echo "  Web (admin dashboard)"
 	@echo "    make web-dev          Run web dev server"
@@ -43,6 +47,15 @@ test-cov:
 	cd sionyx-kiosk-wpf && dotnet tool run reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"coverage-report" -reporttypes:Html
 	@echo ""
 	@echo "Coverage report: sionyx-kiosk-wpf/coverage-report/index.html"
+
+build:
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File build.ps1
+
+build-local:
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File build.ps1 -NoUpload
+
+build-dry:
+	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File build.ps1 -DryRun
 
 # ── Web ───────────────────────────────────────────────────────────
 web-dev:

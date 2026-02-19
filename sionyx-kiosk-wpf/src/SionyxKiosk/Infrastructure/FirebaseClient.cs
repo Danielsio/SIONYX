@@ -25,6 +25,7 @@ public sealed class FirebaseClient : IDisposable
     private readonly string _databaseUrl;
     private readonly string _authUrl;
     private readonly string _orgId;
+    private readonly string _projectId;
 
     // Auth state
     private string? _idToken;
@@ -36,6 +37,7 @@ public sealed class FirebaseClient : IDisposable
     public string? UserId => _userId;
     public string? RefreshToken => _refreshToken;
     public string OrgId => _orgId;
+    public string ProjectId => _projectId;
     public bool IsAuthenticated => _idToken != null && _userId != null;
 
     public FirebaseClient(FirebaseConfig config, HttpClient? httpClient = null)
@@ -44,6 +46,7 @@ public sealed class FirebaseClient : IDisposable
         _databaseUrl = config.DatabaseUrl.TrimEnd('/');
         _authUrl = config.AuthUrl;
         _orgId = config.OrgId;
+        _projectId = config.ProjectId;
         _http = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
         Logger.Information("Firebase client initialized (org: {OrgId})", _orgId);

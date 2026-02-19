@@ -4,164 +4,422 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment</title>
-    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary: #6366F1;
+            --primary-dark: #4F46E5;
+            --primary-light: #EEF2FF;
+            --success: #10B981;
+            --success-dark: #059669;
+            --success-light: #ECFDF5;
+            --error: #EF4444;
+            --error-light: #FEF2F2;
+            --text-primary: #0F172A;
+            --text-secondary: #475569;
+            --text-muted: #94A3B8;
+            --border: #E2E8F0;
+            --border-light: #F1F5F9;
+            --bg: #FFFFFF;
+            --radius: 12px;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Assistant', 'Segoe UI', Arial, sans-serif;
-            background: #F8FAFC;
-            min-height: 100vh;
-            padding: 20px;
+            font-family: 'Assistant', 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
         }
-        .payment-container {
-            background: white;
-            border-radius: 16px;
-            max-width: 600px;
+
+        .container {
+            padding: 24px 28px 30px;
+        }
+
+        /* ── FORM ───────────────────────────── */
+        .form-section { margin-bottom: 24px; }
+
+        .input-label {
+            display: block;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .input-field {
             width: 100%;
-            padding: 32px;
-            margin: 0 auto;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 14px 18px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-family: inherit;
+            font-weight: 500;
+            color: var(--text-primary);
+            background: #FAFBFC;
+            transition: all 0.2s ease;
+            outline: none;
         }
-        .header { text-align: center; margin-bottom: 24px; }
-        .header h1 { color: #1F2937; font-size: 24px; font-weight: 700; margin-bottom: 6px; }
-        .header p { color: #6B7280; font-size: 14px; }
-        .package-info {
-            background: #F3F4F6; border-radius: 12px;
-            padding: 16px; margin-bottom: 24px;
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+            font-weight: 400;
         }
-        .package-info h3 { color: #374151; font-size: 18px; font-weight: 600; margin-bottom: 10px; }
-        .package-details {
-            display: flex; justify-content: space-between;
-            margin-bottom: 6px; color: #6B7280; font-size: 14px;
+
+        .input-field:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }
-        .package-details strong { color: #1F2937; }
-        .price-row {
-            border-top: 2px solid #E5E7EB; padding-top: 10px;
-            margin-top: 10px; font-size: 18px; font-weight: 700; color: #059669;
+
+        /* ── IFRAME CARD ────────────────────── */
+        .iframe-card {
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 28px;
+            background: white;
         }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; color: #374151; font-size: 14px; font-weight: 600; margin-bottom: 4px; }
-        .form-group input {
-            width: 100%; padding: 10px 14px;
-            border: 2px solid #E5E7EB; border-radius: 8px;
-            font-size: 15px; font-family: inherit; transition: border-color 0.2s;
+
+        .iframe-card:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
         }
-        .form-group input:focus { outline: none; border-color: #6366F1; }
-        .nedarim-iframe-container {
-            margin: 20px 0; border: 2px solid #E5E7EB;
-            border-radius: 12px; overflow: hidden; background: #FAFAFA;
+
+        .iframe-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            background: var(--primary-light);
+            border-bottom: 1px solid #E0E7FF;
         }
-        #NedarimFrame { width: 100%; border: none; min-height: 300px; }
-        .loading-iframe { text-align: center; padding: 30px; color: #6B7280; }
+
+        .iframe-header .lock { font-size: 16px; }
+
+        .iframe-header span {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--primary-dark);
+        }
+
+        #NedarimFrame {
+            width: 100%;
+            border: none;
+            min-height: 300px;
+            display: block;
+        }
+
+        .loading-iframe {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 48px 20px;
+            gap: 14px;
+        }
+
+        .dot-loader {
+            display: flex;
+            gap: 7px;
+        }
+
+        .dot-loader span {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: dot-pulse 1.2s ease-in-out infinite;
+        }
+
+        .dot-loader span:nth-child(2) { animation-delay: 0.2s; }
+        .dot-loader span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes dot-pulse {
+            0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+            40% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .loading-iframe p {
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        /* ── PAY BUTTON ─────────────────────── */
         .btn-pay {
-            width: 100%; background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-            color: white; border: none; border-radius: 10px;
-            padding: 14px; font-size: 17px; font-weight: 700;
-            cursor: pointer; transition: transform 0.2s;
+            width: 100%;
+            padding: 16px 28px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 18px;
+            font-weight: 800;
+            font-family: inherit;
+            cursor: pointer;
+            color: white;
+            background: linear-gradient(135deg, var(--success) 0%, var(--success-dark) 100%);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            letter-spacing: 0.02em;
         }
-        .btn-pay:hover { transform: translateY(-1px); }
-        .btn-pay:disabled { background: #D1D5DB; cursor: not-allowed; transform: none; }
+
+        .btn-pay:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-pay:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-pay:disabled {
+            background: #CBD5E1;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .btn-pay .ico { font-size: 20px; }
+
+        /* ── CANCEL ─────────────────────────── */
         .btn-cancel {
-            width: 100%; background: #F3F4F6; color: #6B7280;
-            border: none; border-radius: 8px; padding: 10px;
-            font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 10px;
+            width: 100%;
+            padding: 13px;
+            margin-top: 12px;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-muted);
+            transition: all 0.15s ease;
         }
-        .btn-cancel:hover { background: #E5E7EB; }
-        .loading-payment { display: none; text-align: center; padding: 20px; }
-        .loading-payment.active { display: block; }
-        .error-message {
-            background: #FEE2E2; color: #DC2626; padding: 10px;
-            border-radius: 8px; margin-top: 12px; font-weight: 600; display: none;
+
+        .btn-cancel:hover {
+            background: var(--border-light);
+            color: var(--text-secondary);
         }
-        .error-message.show { display: block; }
-        .success-message {
-            background: #D1FAE5; color: #059669; padding: 16px;
-            border-radius: 12px; text-align: center;
-            font-weight: 600; font-size: 16px; display: none;
+
+        /* ── TRUST BAR ──────────────────────── */
+        .trust-bar {
+            display: flex;
+            justify-content: center;
+            gap: 28px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
         }
-        .success-message.show { display: block; }
+
+        .trust-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .trust-item .t-ico {
+            font-size: 15px;
+            color: var(--success);
+        }
+
+        /* ── ERROR ──────────────────────────── */
+        .error-toast {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            margin-top: 14px;
+            border-radius: var(--radius);
+            background: var(--error-light);
+            border: 1.5px solid #FECACA;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--error);
+        }
+
+        .error-toast.show { display: flex; }
+        .error-toast .err-ico { font-size: 18px; flex-shrink: 0; }
+
+        /* ── STATES ─────────────────────────── */
+        .state-overlay {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 60px 24px;
+        }
+
+        .state-overlay.active { display: flex; }
+
         .spinner {
-            width: 40px; height: 40px; margin: 0 auto 12px;
-            border: 4px solid #E5E7EB; border-top-color: #6366F1;
-            border-radius: 50%; animation: spin 1s linear infinite;
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--border);
+            border-top-color: var(--success);
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+            margin-bottom: 20px;
         }
+
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        .state-title {
+            font-size: 19px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .state-subtitle {
+            font-size: 15px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* ── SUCCESS ────────────────────────── */
+        .success-card {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: 56px 24px;
+        }
+
+        .success-card.show { display: flex; }
+
+        .success-ring {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--success-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes pop-in {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .success-ring .check {
+            font-size: 36px;
+            color: var(--success);
+            font-weight: 800;
+        }
+
+        .success-card .s-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .success-card .s-sub {
+            font-size: 15px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
-    <div class="payment-container">
-        <div class="header">
-            <h1>תשלום מאובטח</h1>
-            <p>מערכת תשלומים מאובטחת - Nedarim Plus</p>
-        </div>
+    <div class="container">
 
-        <div class="package-info">
-            <h3 id="packageName">חבילת זמן</h3>
-            <div class="package-details">
-                <span>זמן שימוש:</span>
-                <strong id="packageTime">60 דקות</strong>
-            </div>
-            <div class="package-details">
-                <span>תקציב הדפסות:</span>
-                <strong id="packagePrints">₪10</strong>
-            </div>
-            <div class="package-details price-row">
-                <span>סכום לתשלום:</span>
-                <strong id="packagePrice">₪40</strong>
-            </div>
-        </div>
-
+        <!-- ── FORM ──────────────────────── -->
         <div id="formSection">
-            <div class="form-group">
-                <label for="clientName">שם מלא *</label>
-                <input type="text" id="clientName" placeholder="הזן שם מלא" required>
+            <div class="form-section">
+                <label class="input-label" for="clientName">שם מלא</label>
+                <input type="text" id="clientName" class="input-field"
+                       placeholder="שם מלא כפי שמופיע בכרטיס האשראי"
+                       required autocomplete="off">
             </div>
 
-            <div class="nedarim-iframe-container">
+            <div class="iframe-card">
+                <div class="iframe-header">
+                    <span class="lock">🔒</span>
+                    <span>פרטי כרטיס אשראי — חיבור מוצפן</span>
+                </div>
                 <div class="loading-iframe" id="loadingIframe">
-                    <div class="spinner"></div>
-                    <div>מתחבר לשרת תשלומים מאובטח...</div>
+                    <div class="dot-loader">
+                        <span></span><span></span><span></span>
+                    </div>
+                    <p>מתחבר לשרת תשלומים מאובטח...</p>
                 </div>
                 <iframe id="NedarimFrame" scrolling="no"></iframe>
             </div>
 
-            <button id="payButton" class="btn-pay" onclick="handlePayment()">בצע תשלום</button>
-            <div id="errorMessage" class="error-message"></div>
+            <button id="payButton" class="btn-pay" onclick="handlePayment()">
+                <span class="ico">🔒</span>
+                <span>בצע תשלום מאובטח</span>
+            </button>
+
+            <div id="errorMessage" class="error-toast">
+                <span class="err-ico">⚠</span>
+                <span id="errorText"></span>
+            </div>
+
             <button class="btn-cancel" onclick="cancelPayment()">ביטול</button>
+
+            <div class="trust-bar">
+                <div class="trust-item">
+                    <span class="t-ico">🔒</span>
+                    <span>SSL 256-bit</span>
+                </div>
+                <div class="trust-item">
+                    <span class="t-ico">✓</span>
+                    <span>PCI DSS Certified</span>
+                </div>
+                <div class="trust-item">
+                    <span class="t-ico">🛡</span>
+                    <span>Nedarim Plus</span>
+                </div>
+            </div>
         </div>
 
-        <div id="loadingPayment" class="loading-payment">
-            <div class="spinner" style="border-top-color: #10B981;"></div>
-            <h3 style="color: #374151; margin-bottom: 6px;">מעבד תשלום...</h3>
-            <p style="color: #6B7280;">אנא המתן</p>
+        <!-- ── PROCESSING ────────────────── -->
+        <div id="loadingPayment" class="state-overlay">
+            <div class="spinner"></div>
+            <div class="state-title">מעבד תשלום...</div>
+            <div class="state-subtitle">אנא המתן, אל תסגור את החלון</div>
         </div>
 
-        <div id="processingMessage" style="display: none; text-align: center; padding: 20px;">
-            <div class="spinner" style="border-top-color: #10B981;"></div>
-            <h3 style="color: #374151; margin-bottom: 6px;">מאמת תשלום...</h3>
-            <p style="color: #6B7280;">ממתין לאישור מהשרת</p>
+        <!-- ── VERIFYING ─────────────────── -->
+        <div id="processingMessage" class="state-overlay">
+            <div class="spinner"></div>
+            <div class="state-title">מאמת תשלום...</div>
+            <div class="state-subtitle">ממתין לאישור מהשרת</div>
         </div>
 
-        <div id="successMessage" class="success-message">
-            ✓ התשלום בוצע בהצלחה!<br>
-            <span style="font-size: 14px; font-weight: normal;">הזמן נוסף לחשבונך</span>
+        <!-- ── SUCCESS ───────────────────── -->
+        <div id="successMessage" class="success-card">
+            <div class="success-ring">
+                <span class="check">✓</span>
+            </div>
+            <div class="s-title">התשלום בוצע בהצלחה!</div>
+            <div class="s-sub">הזמן נוסף לחשבונך</div>
         </div>
     </div>
 
     <script>
-        // Configuration injected from C# via WebView2
         let CONFIG = {};
 
-        // Listen for messages from C# (WebView2 bridge)
         window.chrome.webview.addEventListener('message', function(event) {
             const msg = event.data;
             if (msg.action === 'setConfig') {
                 CONFIG = msg.config;
-                document.getElementById('packageName').textContent = CONFIG.packageName;
-                document.getElementById('packageTime').textContent = CONFIG.packageMinutes + ' דקות';
-                document.getElementById('packagePrints').textContent = '₪' + CONFIG.packagePrints;
-                document.getElementById('packagePrice').textContent = '₪' + CONFIG.amount;
-                document.getElementById('clientName').value = CONFIG.userName || '';
+                if (CONFIG.userName) {
+                    document.getElementById('clientName').value = CONFIG.userName;
+                }
             }
             else if (msg.action === 'purchaseCreated') {
                 onPurchaseCreated(msg.purchaseId);
@@ -174,9 +432,11 @@
             else if (msg.action === 'showSuccess') {
                 showSuccess();
             }
+            else if (msg.action === 'showTimeout') {
+                showTimeout();
+            }
         });
 
-        // Initialize
         window.onload = function() {
             window.addEventListener("message", handlePostMessage, false);
             document.getElementById('NedarimFrame').onload = function() {
@@ -209,11 +469,10 @@
             var name = document.getElementById('clientName').value.trim();
             if (!name) { showError('נא להזין שם מלא'); return; }
 
+            hideError();
             document.getElementById('formSection').style.display = 'none';
             document.getElementById('loadingPayment').classList.add('active');
-            document.getElementById('errorMessage').classList.remove('show');
 
-            // Ask C# to create pending purchase
             window.chrome.webview.postMessage({ action: 'createPendingPurchase' });
         }
 
@@ -252,7 +511,7 @@
                 document.getElementById('formSection').style.display = 'block';
                 showError(response.Message || 'התשלום נכשל. נסה שוב.');
             } else {
-                document.getElementById('processingMessage').style.display = 'block';
+                document.getElementById('processingMessage').classList.add('active');
                 window.chrome.webview.postMessage({
                     action: 'paymentSuccess',
                     response: response
@@ -261,19 +520,30 @@
         }
 
         function showError(message) {
-            var el = document.getElementById('errorMessage');
-            el.textContent = message;
-            el.classList.add('show');
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMessage').classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('errorMessage').classList.remove('show');
         }
 
         function showSuccess() {
             document.getElementById('loadingPayment').classList.remove('active');
             var pm = document.getElementById('processingMessage');
-            if (pm) pm.style.display = 'none';
+            if (pm) pm.classList.remove('active');
             document.getElementById('successMessage').classList.add('show');
             setTimeout(function() {
                 window.chrome.webview.postMessage({ action: 'close', success: true });
             }, 2500);
+        }
+
+        function showTimeout() {
+            document.getElementById('loadingPayment').classList.remove('active');
+            var pm = document.getElementById('processingMessage');
+            if (pm) pm.classList.remove('active');
+            document.getElementById('formSection').style.display = 'block';
+            showError('לא התקבל אישור מהשרת. אם חויבת, נא לפנות לתמיכה.');
         }
 
         function cancelPayment() {

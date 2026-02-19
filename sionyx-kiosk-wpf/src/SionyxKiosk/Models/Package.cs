@@ -14,8 +14,23 @@ public class Package
     public int ValidityDays { get; set; }
     public bool IsFeatured { get; set; }
 
+    public bool HasDiscount => DiscountPercent > 0;
     public double FinalPrice => Math.Round(Price * (1 - DiscountPercent / 100), 2);
     public double Savings => Math.Round(Price - FinalPrice, 2);
+    public double DisplayPrice => HasDiscount ? FinalPrice : Price;
+
+    public string ValidityDisplay => ValidityDays switch
+    {
+        0 => "ללא הגבלה",
+        1 => "יום אחד",
+        7 => "שבוע",
+        14 => "שבועיים",
+        30 => "חודש",
+        60 => "חודשיים",
+        90 => "3 חודשים",
+        365 => "שנה",
+        _ => $"{ValidityDays} ימים",
+    };
 }
 
 /// <summary>
