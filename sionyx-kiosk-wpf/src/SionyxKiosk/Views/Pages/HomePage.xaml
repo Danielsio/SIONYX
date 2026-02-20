@@ -16,9 +16,10 @@
 
             <!-- Stats row -->
             <UniformGrid Rows="1" Margin="0,0,0,24">
-                <controls:StatCard Title="זמן נותר" Value="{Binding RemainingTime}" Icon="⏱" Margin="0,0,12,0" />
-                <controls:StatCard Title="יתרת הדפסות" Value="{Binding PrintBalance}" Icon="🖨" Margin="6,0" />
-                <controls:StatCard Title="הודעות" Value="{Binding UnreadMessages}" Icon="💬" Margin="12,0,0,0" />
+                <controls:StatCard Title="זמן נותר" Value="{Binding RemainingTime}" Icon="⏱" Margin="0,0,8,0" />
+                <controls:StatCard Title="תוקף" Value="{Binding TimeExpiry}" Icon="📅" Margin="4,0" />
+                <controls:StatCard Title="יתרת הדפסות" Value="{Binding PrintBalance}" Icon="🖨" Margin="4,0" />
+                <controls:StatCard Title="הודעות" Value="{Binding UnreadMessages}" Icon="💬" Margin="8,0,0,0" />
             </UniformGrid>
 
             <!-- Unread messages card (visible only when there are unread messages) -->

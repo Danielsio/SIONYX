@@ -16,6 +16,7 @@ public partial class HomeViewModel : ObservableObject, IDisposable
 
     [ObservableProperty] private string _remainingTime = "00:00:00";
     [ObservableProperty] private string _printBalance = "0.00 ₪";
+    [ObservableProperty] private string _timeExpiry = "ללא הגבלה";
     [ObservableProperty] private int _unreadMessages;
     [ObservableProperty] private bool _isSessionActive;
     [ObservableProperty] private bool _isLoading;
@@ -162,6 +163,27 @@ public partial class HomeViewModel : ObservableObject, IDisposable
         var ts = TimeSpan.FromSeconds(Math.Max(0, _user.RemainingTime));
         RemainingTime = ts.ToString(@"hh\:mm\:ss");
         PrintBalance = $"{_user.PrintBalance:F2} ₪";
+        TimeExpiry = FormatExpiry(_user.TimeExpiresAt);
+    }
+
+    private static string FormatExpiry(string? expiresAt)
+    {
+        if (string.IsNullOrEmpty(expiresAt))
+            return "ללא הגבלה";
+
+        if (!DateTime.TryParse(expiresAt, out var dt))
+            return "ללא הגבלה";
+
+        var remaining = dt - DateTime.Now;
+        if (remaining.TotalSeconds <= 0)
+            return "פג תוקף";
+
+        if (remaining.TotalDays >= 2)
+            return $"{(int)remaining.TotalDays} ימים";
+        if (remaining.TotalHours >= 1)
+            return $"{(int)remaining.TotalHours} שעות";
+
+        return $"{(int)remaining.TotalMinutes} דקות";
     }
 
     /// <summary>Refresh display after session ends (remaining time may have changed).</summary>

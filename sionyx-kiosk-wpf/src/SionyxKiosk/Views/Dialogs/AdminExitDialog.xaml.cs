@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Input;
 
 namespace SionyxKiosk.Views.Dialogs;
 
@@ -18,6 +19,11 @@ public partial class AdminExitDialog : Window
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e)
+    {
+        DialogResult = false;
+    }
+
+    private void Cancel_Click(object sender, MouseButtonEventArgs e)
     {
         DialogResult = false;
     }
