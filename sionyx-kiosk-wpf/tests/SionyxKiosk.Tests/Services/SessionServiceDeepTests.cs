@@ -17,7 +17,11 @@ public class SessionServiceDeepTests : IDisposable
     {
         (_firebase, _handler) = TestFirebaseFactory.Create("user-123");
         _handler.SetDefaultSuccess();
-        _service = new SessionService(_firebase, "user-123", "test-org");
+        _service = new SessionService(_firebase, "user-123", "test-org",
+            new ComputerService(_firebase),
+            new OperatingHoursService(_firebase),
+            new ProcessCleanupService(),
+            new BrowserCleanupService());
     }
 
     public void Dispose()

@@ -9,7 +9,7 @@ namespace SionyxKiosk.Services;
 /// print monitoring, operating hours, and session lifecycle.
 /// Replaces both session_service.py and session_manager.py.
 /// </summary>
-public class SessionService : BaseService, IDisposable
+public class SessionService : BaseService, ISessionService
 {
     protected override string ServiceName => "SessionService";
 
@@ -53,15 +53,26 @@ public class SessionService : BaseService, IDisposable
     public event Action<int>? OperatingHoursWarning;  // minutes until closing
     public event Action<string>? OperatingHoursEnded;  // grace behavior
 
-    public SessionService(FirebaseClient firebase, string userId, string orgId)
+    private readonly ProcessCleanupService _processCleanup;
+    private readonly BrowserCleanupService _browserCleanup;
+
+    public SessionService(
+        FirebaseClient firebase,
+        string userId,
+        string orgId,
+        ComputerService computerService,
+        OperatingHoursService operatingHours,
+        ProcessCleanupService processCleanup,
+        BrowserCleanupService browserCleanup)
         : base(firebase)
     {
         _userId = userId;
         _orgId = orgId;
-        _computerService = new ComputerService(firebase);
+        _computerService = computerService;
+        _processCleanup = processCleanup;
+        _browserCleanup = browserCleanup;
 
-        // Operating hours
-        OperatingHours = new OperatingHoursService(firebase);
+        OperatingHours = operatingHours;
         OperatingHours.HoursEndingSoon += OnHoursEndingSoon;
         OperatingHours.HoursEnded += OnHoursEnded;
 
@@ -100,8 +111,7 @@ public class SessionService : BaseService, IDisposable
         // Clean up previous processes
         await Task.Run(() =>
         {
-            var cleanup = new ProcessCleanupService();
-            cleanup.CleanupUserProcesses();
+            _processCleanup.CleanupUserProcesses();
         });
 
         // Mark session active in Firebase
@@ -166,8 +176,7 @@ public class SessionService : BaseService, IDisposable
         {
             try
             {
-                var browserCleanup = new BrowserCleanupService();
-                browserCleanup.CleanupWithBrowserClose();
+                _browserCleanup.CleanupWithBrowserClose();
             }
             catch (Exception ex)
             {

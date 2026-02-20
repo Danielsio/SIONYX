@@ -11,7 +11,7 @@ namespace SionyxKiosk.Infrastructure;
 /// Firebase REST API client for Authentication + Realtime Database + SSE streaming.
 /// Registered as a singleton in the DI container.
 /// </summary>
-public sealed class FirebaseClient : IDisposable
+public sealed class FirebaseClient : IFirebaseClient
 {
     private static readonly ILogger Logger = Log.ForContext<FirebaseClient>();
     private static readonly JsonSerializerOptions JsonOptions = new()

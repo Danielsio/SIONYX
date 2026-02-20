@@ -7,7 +7,7 @@ namespace SionyxKiosk.Services;
 /// <summary>
 /// Fetch and manage packages from Firebase.
 /// </summary>
-public class PackageService : BaseService
+public class PackageService : BaseService, IPackageService
 {
     protected override string ServiceName => "PackageService";
 

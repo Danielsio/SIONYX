@@ -7,7 +7,7 @@ namespace SionyxKiosk.Services;
 /// <summary>
 /// Handle package purchases with pending state and history.
 /// </summary>
-public class PurchaseService : BaseService
+public class PurchaseService : BaseService, IPurchaseService
 {
     protected override string ServiceName => "PurchaseService";
 

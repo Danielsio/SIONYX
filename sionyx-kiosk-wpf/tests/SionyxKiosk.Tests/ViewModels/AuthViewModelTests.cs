@@ -10,7 +10,7 @@ public class AuthViewModelTests
 
     public AuthViewModelTests()
     {
-        var authService = new AuthService(null!, null!);
+        var authService = new AuthService(null!, null!, null!);
         _vm = new AuthViewModel(authService);
     }
 

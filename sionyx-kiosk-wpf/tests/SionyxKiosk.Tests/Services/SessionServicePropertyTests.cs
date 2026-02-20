@@ -20,7 +20,11 @@ public class SessionServicePropertyTests
 
         try
         {
-            var act = () => new SessionService(firebase, "test-uid", "test-org");
+            var act = () => new SessionService(firebase, "test-uid", "test-org",
+                new ComputerService(firebase),
+                new OperatingHoursService(firebase),
+                new ProcessCleanupService(),
+                new BrowserCleanupService());
             // May throw InvalidOperationException if no Dispatcher available
             // or may succeed if running on STA thread
             act.Should().NotBeNull();

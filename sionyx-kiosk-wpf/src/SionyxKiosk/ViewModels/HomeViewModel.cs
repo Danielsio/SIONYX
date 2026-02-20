@@ -166,7 +166,7 @@ public partial class HomeViewModel : ObservableObject, IDisposable
         TimeExpiry = FormatExpiry(_user.TimeExpiresAt);
     }
 
-    private static string FormatExpiry(string? expiresAt)
+    internal static string FormatExpiry(string? expiresAt)
     {
         if (string.IsNullOrEmpty(expiresAt))
             return "ללא הגבלה";

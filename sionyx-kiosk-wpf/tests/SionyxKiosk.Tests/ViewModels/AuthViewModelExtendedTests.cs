@@ -19,7 +19,7 @@ public class AuthViewModelExtendedTests : IDisposable
         (_firebase, _handler) = TestFirebaseFactory.Create();
         _dbPath = Path.Combine(Path.GetTempPath(), $"auth_vm_test_{Guid.NewGuid():N}.db");
         _localDb = new LocalDatabase(_dbPath);
-        var authService = new AuthService(_firebase, _localDb);
+        var authService = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         _vm = new AuthViewModel(authService);
     }
 

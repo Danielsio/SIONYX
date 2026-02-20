@@ -21,7 +21,7 @@ public class AuthServiceComputerRegistrationTests : IDisposable
         (_firebase, _handler) = TestFirebaseFactory.Create();
         _dbPath = Path.Combine(Path.GetTempPath(), $"auth_comp_test_{Guid.NewGuid():N}.db");
         _localDb = new LocalDatabase(_dbPath);
-        _service = new AuthService(_firebase, _localDb);
+        _service = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
     }
 
     public void Dispose()
