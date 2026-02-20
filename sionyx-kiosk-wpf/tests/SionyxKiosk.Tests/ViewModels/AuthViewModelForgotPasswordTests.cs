@@ -30,7 +30,7 @@ public class AuthViewModelForgotPasswordTests : IDisposable
     [Fact]
     public async Task ForgotPasswordCommand_WithNoMetadataService_ShouldSetInfo()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new AuthViewModel(auth); // No metadata service
 
         await vm.ForgotPasswordCommand.ExecuteAsync(null);
@@ -42,7 +42,7 @@ public class AuthViewModelForgotPasswordTests : IDisposable
     [Fact]
     public async Task ForgotPasswordCommand_WithContact_ShouldShowContactInfo()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var orgService = new OrganizationMetadataService(_firebase);
         var vm = new AuthViewModel(auth, orgService);
 
@@ -62,7 +62,7 @@ public class AuthViewModelForgotPasswordTests : IDisposable
     [Fact]
     public async Task ForgotPasswordCommand_WhenFails_ShouldShowDefaultInfo()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var orgService = new OrganizationMetadataService(_firebase);
         var vm = new AuthViewModel(auth, orgService);
 
@@ -76,7 +76,7 @@ public class AuthViewModelForgotPasswordTests : IDisposable
     [Fact]
     public void ToggleMode_ShouldClearForgotPasswordInfo()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new AuthViewModel(auth);
         vm.ForgotPasswordInfo = "some info";
 
@@ -88,7 +88,7 @@ public class AuthViewModelForgotPasswordTests : IDisposable
     [Fact]
     public async Task LoginCommand_ShouldClearErrorBeforeRequest()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new AuthViewModel(auth);
         _handler.When("signInWithPassword", new { idToken = "t", refreshToken = "r", localId = "u", expiresIn = "3600" });
         _handler.When("users/u.json", new { firstName = "Test", lastName = "User", isLoggedIn = false });
@@ -105,7 +105,7 @@ public class AuthViewModelForgotPasswordTests : IDisposable
     [Fact]
     public async Task RegisterCommand_WithEmptyFirstName_ShouldSetError()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new AuthViewModel(auth);
 
         vm.IsLoginMode = false;
@@ -122,7 +122,7 @@ public class AuthViewModelForgotPasswordTests : IDisposable
     [Fact]
     public async Task RegisterCommand_WithEmptyLastName_ShouldSetError()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new AuthViewModel(auth);
 
         vm.IsLoginMode = false;
@@ -139,7 +139,7 @@ public class AuthViewModelForgotPasswordTests : IDisposable
     [Fact]
     public void Email_Property_ShouldBeSettable()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new AuthViewModel(auth);
         vm.Email = "test@test.com";
         vm.Email.Should().Be("test@test.com");
@@ -148,7 +148,7 @@ public class AuthViewModelForgotPasswordTests : IDisposable
     [Fact]
     public void RegistrationSucceeded_ShouldBeSubscribable()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new AuthViewModel(auth);
         vm.RegistrationSucceeded += () => { };
         vm.Should().NotBeNull();

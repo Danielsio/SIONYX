@@ -10,7 +10,7 @@ public class MainViewModelTests
 
     public MainViewModelTests()
     {
-        var authService = new AuthService(null!, null!);
+        var authService = new AuthService(null!, null!, null!);
         _vm = new MainViewModel(authService);
     }
 

@@ -14,6 +14,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="SionyxKiosk.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="Assets\templates\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

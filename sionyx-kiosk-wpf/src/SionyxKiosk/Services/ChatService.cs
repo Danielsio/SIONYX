@@ -7,7 +7,7 @@ namespace SionyxKiosk.Services;
 /// Chat service: SSE-based real-time messaging with cache and debounced last-seen.
 /// Replaces PyQt6 signals with C# events.
 /// </summary>
-public class ChatService : BaseService, IDisposable
+public class ChatService : BaseService, IChatService
 {
     protected override string ServiceName => "ChatService";
 

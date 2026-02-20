@@ -7,7 +7,7 @@ namespace SionyxKiosk.Services;
 /// <summary>
 /// Authentication service: login, register, logout, session recovery.
 /// </summary>
-public class AuthService : BaseService
+public class AuthService : BaseService, IAuthService
 {
     protected override string ServiceName => "AuthService";
 
@@ -16,10 +16,10 @@ public class AuthService : BaseService
 
     public UserData? CurrentUser { get; private set; }
 
-    public AuthService(FirebaseClient firebase, LocalDatabase localDb) : base(firebase)
+    public AuthService(FirebaseClient firebase, LocalDatabase localDb, ComputerService computerService) : base(firebase)
     {
         _localDb = localDb;
-        _computerService = new ComputerService(firebase);
+        _computerService = computerService;
     }
 
     /// <summary>Check if user is already logged in via stored token.</summary>

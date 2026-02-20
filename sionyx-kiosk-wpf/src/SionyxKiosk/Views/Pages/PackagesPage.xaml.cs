@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using SionyxKiosk.Infrastructure;
 using SionyxKiosk.Models;
 using SionyxKiosk.Services;
 using SionyxKiosk.ViewModels;
@@ -12,11 +11,11 @@ namespace SionyxKiosk.Views.Pages;
 
 public partial class PackagesPage : Page
 {
-    private readonly IServiceProvider _services;
+    private readonly IPaymentDialogFactory _dialogFactory;
 
-    public PackagesPage(PackagesViewModel viewModel, IServiceProvider services)
+    public PackagesPage(PackagesViewModel viewModel, IPaymentDialogFactory dialogFactory)
     {
-        _services = services;
+        _dialogFactory = dialogFactory;
         DataContext = viewModel;
         Resources["BoolToVis"] = new BooleanToVisibilityConverter();
         Resources["ZeroToVis"] = new ZeroToVisibilityConverter();
@@ -29,19 +28,10 @@ public partial class PackagesPage : Page
 
     private void OnPurchaseRequested(Package package)
     {
-        var purchaseService = (PurchaseService)_services.GetService(typeof(PurchaseService))!;
-        var metadataService = (OrganizationMetadataService)_services.GetService(typeof(OrganizationMetadataService))!;
-        var firebase = (FirebaseClient)_services.GetService(typeof(FirebaseClient))!;
-        var auth = (AuthService)_services.GetService(typeof(AuthService))!;
-        var userId = auth.CurrentUser?.Uid ?? "";
+        var (succeeded, _) = _dialogFactory.CreateAndShow(package, Window.GetWindow(this));
 
-        var dialog = new PaymentDialog(purchaseService, metadataService, firebase, userId, package);
-        dialog.Owner = Window.GetWindow(this);
-        dialog.ShowDialog();
-
-        if (dialog.PaymentSucceeded)
+        if (succeeded)
         {
-            // Payment succeeded — refresh data
             AlertDialog.Show("הצלחה", "התשלום בוצע בהצלחה! הזמן נוסף לחשבונך.", AlertDialog.AlertType.Success);
         }
     }

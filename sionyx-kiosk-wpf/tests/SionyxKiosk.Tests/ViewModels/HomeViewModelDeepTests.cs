@@ -36,7 +36,11 @@ public class HomeViewModelDeepTests : IDisposable
             PrintBalance = printBalance,
         };
 
-        var session = new SessionService(_firebase, "user-123", "test-org");
+        var session = new SessionService(_firebase, "user-123", "test-org",
+            new ComputerService(_firebase),
+            new OperatingHoursService(_firebase),
+            new ProcessCleanupService(),
+            new BrowserCleanupService());
         var chat = new ChatService(_firebase, "user-123");
         var hours = new OperatingHoursService(_firebase);
 

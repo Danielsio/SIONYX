@@ -30,7 +30,11 @@ public class HomeViewModelTests : IDisposable
             PrintBalance = 15.50,
         };
 
-        var session = new SessionService(_firebase, "user-123", "test-org");
+        var session = new SessionService(_firebase, "user-123", "test-org",
+            new ComputerService(_firebase),
+            new OperatingHoursService(_firebase),
+            new ProcessCleanupService(),
+            new BrowserCleanupService());
         var chat = new ChatService(_firebase, "user-123");
         var hours = new OperatingHoursService(_firebase);
 

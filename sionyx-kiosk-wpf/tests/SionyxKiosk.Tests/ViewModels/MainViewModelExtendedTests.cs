@@ -32,7 +32,7 @@ public class MainViewModelExtendedTests : IDisposable
     [Fact]
     public void LogoutCommand_ShouldRaiseLogoutRequestedEvent()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new MainViewModel(auth);
 
         var raised = false;
@@ -46,7 +46,7 @@ public class MainViewModelExtendedTests : IDisposable
     [Fact]
     public void CurrentUser_ShouldReflectAuthServiceUser()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new MainViewModel(auth);
         // Auth has no current user by default
         vm.CurrentUser.Should().BeNull();
@@ -55,7 +55,7 @@ public class MainViewModelExtendedTests : IDisposable
     [Fact]
     public void Navigate_ToAllPages_ShouldWork()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new MainViewModel(auth);
 
         foreach (var page in new[] { "Home", "Packages", "History", "Help", "Messages" })
@@ -68,7 +68,7 @@ public class MainViewModelExtendedTests : IDisposable
     [Fact]
     public void ToggleSidebar_MultipleTimes_ShouldAlternate()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new MainViewModel(auth);
 
         for (int i = 0; i < 5; i++)
@@ -82,7 +82,7 @@ public class MainViewModelExtendedTests : IDisposable
     [Fact]
     public void PropertyChanged_ShouldFireForCurrentUser()
     {
-        var auth = new AuthService(_firebase, _localDb);
+        var auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
         var vm = new MainViewModel(auth);
         var changed = new List<string>();
         vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName!);
