@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   Card,
   Button,
@@ -15,7 +16,7 @@ import {
   Col,
   Dropdown,
   Empty,
-  Spin,
+  Skeleton,
 } from 'antd';
 import {
   PlusOutlined,
@@ -44,6 +45,19 @@ import { logger } from '../utils/logger';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+};
 
 const PackagesPage = () => {
   const [loading, setLoading] = useState(true);
@@ -354,10 +368,16 @@ const PackagesPage = () => {
   };
 
   return (
-    <div style={{ direction: 'rtl' }}>
+    <motion.div
+      style={{ direction: 'rtl' }}
+      variants={containerVariants}
+      initial='hidden'
+      animate='visible'
+    >
       {/* Header */}
-      <div
+      <motion.div
         className='page-header'
+        variants={itemVariants}
         style={{
           display: 'flex',
           justifyContent: 'space-between',
@@ -382,32 +402,44 @@ const PackagesPage = () => {
             הוסף חבילה
           </Button>
         </Space>
-      </div>
+      </motion.div>
 
       {/* Packages Grid */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 60 }}>
-          <Spin size='large' />
-          <div style={{ marginTop: 16 }}>
-            <Text type='secondary'>טוען חבילות...</Text>
-          </div>
-        </div>
-      ) : packages.length === 0 ? (
-        <Card>
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description='אין חבילות'>
-            <Button type='primary' icon={<PlusOutlined />} onClick={handleCreate}>
-              צור חבילה ראשונה
-            </Button>
-          </Empty>
-        </Card>
-      ) : (
+        <motion.div variants={itemVariants}>
         <Row gutter={[16, 16]}>
-          {packages.map(pkg => (
-            <Col key={pkg.id} xs={24} sm={12} lg={8} xl={6}>
-              <PackageCard pkg={pkg} />
+          {[1, 2, 3, 4].map(i => (
+            <Col key={i} xs={24} sm={12} lg={8} xl={6}>
+              <Card style={{ borderRadius: 16, overflow: 'hidden' }}>
+                <div style={{ background: 'linear-gradient(135deg, #e8eaed 0%, #f0f2f5 100%)', height: 100 }} />
+                <div style={{ padding: 16 }}>
+                  <Skeleton active paragraph={{ rows: 4 }} />
+                </div>
+              </Card>
             </Col>
           ))}
         </Row>
+        </motion.div>
+      ) : packages.length === 0 ? (
+        <motion.div variants={itemVariants}>
+          <Card>
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description='אין חבילות'>
+              <Button type='primary' icon={<PlusOutlined />} onClick={handleCreate}>
+                צור חבילה ראשונה
+              </Button>
+            </Empty>
+          </Card>
+        </motion.div>
+      ) : (
+        <motion.div variants={itemVariants}>
+          <Row gutter={[16, 16]}>
+            {packages.map(pkg => (
+              <Col key={pkg.id} xs={24} sm={12} lg={8} xl={6}>
+                <PackageCard pkg={pkg} />
+              </Col>
+            ))}
+          </Row>
+        </motion.div>
       )}
 
       {/* Create/Edit Modal */}
@@ -416,6 +448,7 @@ const PackagesPage = () => {
         open={modalVisible}
         onOk={handleModalOk}
         onCancel={() => setModalVisible(false)}
+        confirmLoading={loading}
         width={Math.min(600, window.innerWidth - 32)}
         okText={editingPackage ? 'עדכן' : 'צור'}
         cancelText='ביטול'
@@ -598,7 +631,7 @@ const PackagesPage = () => {
           </Descriptions>
         )}
       </Modal>
-    </div>
+    </motion.div>
   );
 };
 
