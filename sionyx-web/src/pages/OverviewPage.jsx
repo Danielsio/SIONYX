@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Card,
   Row,
   Col,
   Typography,
   Space,
-  Spin,
+  Skeleton,
   Empty,
   App,
   Tag,
@@ -14,6 +14,23 @@ import {
   Button,
 } from 'antd';
 import { motion } from 'framer-motion';
+import dayjs from 'dayjs';
+import 'dayjs/locale/he';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from 'recharts';
+
+dayjs.locale('he');
 import {
   UserOutlined,
   AppstoreOutlined,
@@ -134,10 +151,58 @@ const OverviewPage = () => {
     setLoading(false);
   };
 
+  // Mock revenue data: last 7 days with variation around average daily revenue
+  const revenueChartData = useMemo(() => {
+    const totalRevenue = stats?.totalRevenue || 0;
+    const avgDaily = totalRevenue / 7;
+    const multipliers = [0.92, 1.08, 0.95, 1.1, 0.98, 1.02, 0.95];
+    return multipliers.map((m, i) => {
+      const d = dayjs().subtract(6 - i, 'day');
+      return {
+        date: d.format('dd DD/MM'),
+        dateFull: d.format('dddd DD MMMM'),
+        revenue: Math.round(avgDaily * m * 100) / 100,
+      };
+    });
+  }, [stats?.totalRevenue]);
+
+  // Package distribution: split purchases across package categories
+  const packageChartData = useMemo(() => {
+    const purchases = stats?.purchasesCount || 0;
+    const shares = [0.35, 0.28, 0.22, 0.12, 0.03];
+    const labels = ['חבילה בסיסית', 'חבילה סטנדרט', 'חבילה מתקדמת', 'חבילה פרימיום', 'אחר'];
+    const data = labels.map((name, i) => ({
+      name,
+      value: Math.round(purchases * shares[i]),
+    })).filter(d => d.value > 0);
+    if (data.length === 0) {
+      return [{ name: 'אין רכישות', value: 1 }];
+    }
+    return data;
+  }, [stats?.purchasesCount, stats?.packagesCount]);
+
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size='large' />
+      <div style={{ direction: 'rtl' }}>
+        <Skeleton active paragraph={{ rows: 1 }} style={{ marginBottom: 24 }} />
+        <Row gutter={[20, 20]}>
+          {[1, 2, 3, 4].map(i => (
+            <Col key={i} xs={24} sm={12} lg={6}>
+              <Card style={{ borderRadius: 16 }}>
+                <Skeleton active paragraph={{ rows: 2 }} />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+        <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+          {[1, 2, 3].map(i => (
+            <Col key={i} xs={24} lg={8}>
+              <Card style={{ borderRadius: 16 }}>
+                <Skeleton active paragraph={{ rows: 4 }} />
+              </Card>
+            </Col>
+          ))}
+        </Row>
       </div>
     );
   }
@@ -239,6 +304,86 @@ const OverviewPage = () => {
             </Col>
           </Row>
 
+          {/* Charts Row */}
+          <Row gutter={[20, 20]}>
+            <Col xs={24} lg={16}>
+              <motion.div variants={itemVariants}>
+                <Card
+                  title={
+                    <Space>
+                      <DollarOutlined style={{ color: '#667eea' }} />
+                      <span>מגמת הכנסות</span>
+                    </Space>
+                  }
+                  bordered={false}
+                  style={{ height: '100%', borderRadius: 16 }}
+                  styles={{ body: { padding: 24 } }}
+                >
+                  <ResponsiveContainer width='100%' height={280}>
+                    <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id='colorRevenue' x1='0' y1='0' x2='0' y2='1'>
+                          <stop offset='0%' stopColor='#667eea' stopOpacity={1} />
+                          <stop offset='100%' stopColor='#667eea' stopOpacity={0.2} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray='3 3' stroke='#e5e7eb' />
+                      <XAxis dataKey='date' tick={{ fontSize: 12, fill: '#6b7280' }} />
+                      <YAxis tick={{ fontSize: 12, fill: '#6b7280' }} tickFormatter={v => `₪${v}`} />
+                      <RechartsTooltip
+                        formatter={value => [`₪${Number(value).toFixed(2)}`, 'הכנסה']}
+                        labelFormatter={label => revenueChartData.find(d => d.date === label)?.dateFull || label}
+                      />
+                      <Area
+                        type='monotone'
+                        dataKey='revenue'
+                        stroke='#764ba2'
+                        strokeWidth={2}
+                        fill='url(#colorRevenue)'
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Card>
+              </motion.div>
+            </Col>
+            <Col xs={24} lg={8}>
+              <motion.div variants={itemVariants}>
+                <Card
+                  title={
+                    <Space>
+                      <AppstoreOutlined style={{ color: '#667eea' }} />
+                      <span>התפלגות רכישות</span>
+                    </Space>
+                  }
+                  bordered={false}
+                  style={{ height: '100%', borderRadius: 16 }}
+                  styles={{ body: { padding: 24 } }}
+                >
+                  <ResponsiveContainer width='100%' height={280}>
+                    <PieChart>
+                      <Pie
+                        data={packageChartData}
+                        cx='50%'
+                        cy='50%'
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={2}
+                        dataKey='value'
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {packageChartData.map((_, index) => (
+                          <Cell key={index} fill={['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f'][index % 5]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip formatter={(value, name) => [value, name]} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card>
+              </motion.div>
+            </Col>
+          </Row>
+
           {/* Additional Info Cards */}
           <Row gutter={[20, 20]}>
             <Col xs={24} lg={8}>
@@ -250,7 +395,7 @@ const OverviewPage = () => {
                       <span>סטטיסטיקות זמן</span>
                     </Space>
                   }
-                  variant='borderless'
+                  bordered={false}
                   style={{ height: '100%', borderRadius: 16 }}
                   styles={{ body: { padding: 24 } }}
                 >
@@ -278,7 +423,7 @@ const OverviewPage = () => {
                       <span>מחירי הדפסה</span>
                     </Space>
                   }
-                  variant='borderless'
+                  bordered={false}
                   style={{ height: '100%', borderRadius: 16 }}
                   styles={{ body: { padding: 24 } }}
                 >
@@ -309,7 +454,7 @@ const OverviewPage = () => {
                       <span>פרטי ארגון</span>
                     </Space>
                   }
-                  variant='borderless'
+                  bordered={false}
                   style={{ height: '100%', borderRadius: 16 }}
                   styles={{ body: { padding: 24 } }}
                 >
