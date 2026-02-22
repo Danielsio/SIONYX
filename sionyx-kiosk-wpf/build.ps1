@@ -206,10 +206,15 @@ function New-Installer([string]$ver) {
         Write-Ok "Assets copied"
     }
 
-    # Ensure LICENSE.txt exists
+    # Update LICENSE.txt version
     $licensePath = Join-Path $ScriptDir "LICENSE.txt"
-    if (-not (Test-Path $licensePath)) {
-        "SIONYX Software License`nVersion $ver`nCopyright (c) 2025 SIONYX Technologies" | Set-Content $licensePath
+    if (Test-Path $licensePath) {
+        $content = Get-Content $licensePath -Raw
+        $content = $content -replace 'Version \d+\.\d+\.\d+', "Version $ver"
+        Set-Content $licensePath $content -NoNewline
+    }
+    else {
+        "SIONYX Software License`nVersion $ver`nCopyright (c) 2025-2026 SIONYX Technologies" | Set-Content $licensePath
     }
 
     # Ensure icon exists
