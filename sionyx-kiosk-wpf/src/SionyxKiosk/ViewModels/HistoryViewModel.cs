@@ -28,7 +28,7 @@ public partial class HistoryViewModel : ObservableObject
     public ICollectionView FilteredPurchases { get; }
 
     /// <summary>Status options for the filter dropdown.</summary>
-    public List<string> StatusOptions { get; } = new() { "הכל", "הושלם", "ממתין", "נכשל" };
+    public List<string> StatusOptions { get; } = new() { "הכל", "הושלם", "ממתין", "נכשל", "בוטל" };
 
     public HistoryViewModel(PurchaseService purchaseService, string userId)
     {

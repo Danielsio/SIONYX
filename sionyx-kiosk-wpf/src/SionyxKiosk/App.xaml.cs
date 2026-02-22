@@ -98,6 +98,7 @@ public partial class App : Application
                 services.AddSingleton(sp => new OrganizationMetadataService(sp.GetRequiredService<FirebaseClient>()));
                 services.AddSingleton(sp => new OperatingHoursService(sp.GetRequiredService<FirebaseClient>()));
                 services.AddSingleton(sp => new ForceLogoutService(sp.GetRequiredService<FirebaseClient>()));
+                services.AddSingleton(sp => new AnnouncementService(sp.GetRequiredService<FirebaseClient>()));
 
                 // System Services
                 services.AddSingleton(_ => new ProcessCleanupService());
@@ -160,11 +161,12 @@ public partial class App : Application
                     var session = sp.GetRequiredService<SessionService>();
                     var chat = sp.GetRequiredService<ChatService>();
                     var hours = sp.GetRequiredService<OperatingHoursService>();
+                    var announcements = sp.GetRequiredService<AnnouncementService>();
                     var auth = sp.GetRequiredService<AuthService>();
                     var currentUser = auth.CurrentUser;
                     if (currentUser == null)
                         throw new InvalidOperationException("HomeViewModel requires a logged-in user. CurrentUser is null.");
-                    return new HomeViewModel(session, chat, hours, currentUser);
+                    return new HomeViewModel(session, chat, hours, currentUser, announcements);
                 });
                 services.AddTransient<PackagesViewModel>(sp =>
                 {

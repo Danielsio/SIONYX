@@ -84,23 +84,51 @@ namespace SionyxInstaller
 
             try
             {
-                SetRegistryPolicy(session,
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer",
-                    "NoRun", 1);
+                string hivePath = $@"C:\Users\{KioskUsername}\ntuser.dat";
+                const string tempHiveKey = "SIONYX_TEMP_HIVE";
 
-                SetRegistryPolicy(session,
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
-                    "DisableRegistryTools", 1);
+                if (!File.Exists(hivePath))
+                {
+                    session.Log($"[WARN] ntuser.dat not found at {hivePath} — skipping per-user policies");
+                    return ActionResult.Success;
+                }
 
-                SetRegistryPolicy(session,
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
-                    "DisableCMD", 2);
+                int loadResult = RunCommand("reg", $"load \"HKU\\{tempHiveKey}\" \"{hivePath}\"", session);
+                if (loadResult != 0)
+                {
+                    session.Log("[WARN] Could not load user hive — skipping per-user policies");
+                    return ActionResult.Success;
+                }
 
-                SetRegistryPolicy(session,
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
-                    "DisableTaskMgr", 1);
+                try
+                {
+                    SetUserRegistryPolicy(session, tempHiveKey,
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer",
+                        "NoRun", 1);
 
-                session.Log("[OK] Security restrictions applied");
+                    SetUserRegistryPolicy(session, tempHiveKey,
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
+                        "DisableRegistryTools", 1);
+
+                    SetUserRegistryPolicy(session, tempHiveKey,
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
+                        "DisableCMD", 2);
+
+                    SetUserRegistryPolicy(session, tempHiveKey,
+                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
+                        "DisableTaskMgr", 1);
+
+                    session.Log($"[OK] Security restrictions applied to {KioskUsername} only");
+                }
+                finally
+                {
+                    GC.Collect();
+                    GC.WaitForPendingFinalizers();
+                    RunCommand("reg", $"unload \"HKU\\{tempHiveKey}\"", session);
+                }
+
+                CleanupMachineWidePolicies(session);
+
                 return ActionResult.Success;
             }
             catch (Exception ex)
@@ -219,9 +247,9 @@ namespace SionyxInstaller
         }
 
         [CustomAction]
-        public static ActionResult ConfigureAutoLogon(Session session)
+        public static ActionResult EnsureNoAutoLogon(Session session)
         {
-            session.Log("=== ConfigureAutoLogon: START ===");
+            session.Log("=== EnsureNoAutoLogon: START ===");
 
             try
             {
@@ -232,26 +260,28 @@ namespace SionyxInstaller
                 {
                     if (key == null)
                     {
-                        session.Log("[ERROR] Could not open Winlogon registry key");
-                        return ActionResult.Failure;
+                        session.Log("[WARN] Could not open Winlogon registry key");
+                        return ActionResult.Success;
                     }
 
-                    key.SetValue("AutoAdminLogon", "1", RegistryValueKind.String);
-                    key.SetValue("DefaultUserName", KioskUsername, RegistryValueKind.String);
-                    key.SetValue("DefaultPassword", "", RegistryValueKind.String);
-                    key.SetValue("DefaultDomainName", Environment.MachineName, RegistryValueKind.String);
+                    key.SetValue("AutoAdminLogon", "0", RegistryValueKind.String);
+                    key.DeleteValue("DefaultPassword", false);
 
-                    // Remove AutoLogonSID if present (takes precedence and would override our settings)
-                    key.DeleteValue("AutoLogonSID", false);
+                    string currentDefault = key.GetValue("DefaultUserName") as string;
+                    if (string.Equals(currentDefault, KioskUsername, StringComparison.OrdinalIgnoreCase))
+                    {
+                        key.DeleteValue("DefaultUserName", false);
+                        key.DeleteValue("DefaultDomainName", false);
+                    }
                 }
 
-                session.Log($"[OK] Auto-logon configured for {KioskUsername}");
+                session.Log("[OK] Auto-logon disabled — Windows login screen will show all accounts");
                 return ActionResult.Success;
             }
             catch (Exception ex)
             {
-                session.Log($"[ERROR] ConfigureAutoLogon failed: {ex}");
-                return ActionResult.Failure;
+                session.Log($"[WARN] EnsureNoAutoLogon: {ex.Message}");
+                return ActionResult.Success;
             }
         }
 
@@ -463,14 +493,8 @@ namespace SionyxInstaller
 
             try
             {
-                RemoveRegistryPolicy(session,
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer", "NoRun");
-                RemoveRegistryPolicy(session,
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableRegistryTools");
-                RemoveRegistryPolicy(session,
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableCMD");
-                RemoveRegistryPolicy(session,
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableTaskMgr");
+                // Clean up machine-wide policies (from older installs that used HKLM)
+                CleanupMachineWidePolicies(session);
 
                 session.Log("[OK] Security restrictions reverted");
                 return ActionResult.Success;
@@ -671,6 +695,28 @@ namespace SionyxInstaller
                 key.SetValue(name, value, RegistryValueKind.DWord);
                 session.Log($"  Set {name} = {value}");
             }
+        }
+
+        private static void SetUserRegistryPolicy(Session session, string hiveKey, string subKey, string name, int value)
+        {
+            using (var hku = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64))
+            using (var key = hku.CreateSubKey($@"{hiveKey}\{subKey}"))
+            {
+                key.SetValue(name, value, RegistryValueKind.DWord);
+                session.Log($"  Set {name} = {value} (per-user)");
+            }
+        }
+
+        private static void CleanupMachineWidePolicies(Session session)
+        {
+            RemoveRegistryPolicy(session,
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer", "NoRun");
+            RemoveRegistryPolicy(session,
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableRegistryTools");
+            RemoveRegistryPolicy(session,
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableCMD");
+            RemoveRegistryPolicy(session,
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableTaskMgr");
         }
 
         private static void RemoveRegistryPolicy(Session session, string subKey, string name)

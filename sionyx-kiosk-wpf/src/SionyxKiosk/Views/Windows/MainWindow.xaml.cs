@@ -108,6 +108,14 @@ public partial class MainWindow : Window
         NavigateToPage("Home");
     }
 
+    /// <summary>Navigate to the Packages page (called when user needs to buy a package).</summary>
+    public void NavigateToPackages()
+    {
+        NavPackages.IsChecked = true;
+        _vm.CurrentPage = "Packages";
+        NavigateToPage("Packages");
+    }
+
     /// <summary>Show a toast notification in the content area.</summary>
     public void ShowToast(string title, string message,
         Controls.ToastNotification.ToastType type = Controls.ToastNotification.ToastType.Info,

@@ -76,7 +76,10 @@
                             PackageName="{Binding PackageName}"
                             PurchaseDate="{Binding CreatedAt}"
                             Amount="{Binding Amount, StringFormat='₪{0:F2}'}"
-                            Status="{Binding Status}" />
+                            Status="{Binding Status}"
+                            Minutes="{Binding Minutes}"
+                            PrintBudget="{Binding PrintBudget}"
+                            ValidityDays="{Binding ValidityDays}" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

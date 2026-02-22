@@ -230,7 +230,7 @@
     <CustomAction Id="CA_ApplySecurityRestrictions" BinaryRef="CustomActionsDll" DllEntry="ApplySecurityRestrictions" Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="CA_SetupAutoStart"         BinaryRef="CustomActionsDll" DllEntry="SetupAutoStart"         Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="CA_InitializeProfile"      BinaryRef="CustomActionsDll" DllEntry="InitializeProfile"      Execute="deferred" Impersonate="no" Return="check" />
-    <CustomAction Id="CA_ConfigureAutoLogon"      BinaryRef="CustomActionsDll" DllEntry="ConfigureAutoLogon"      Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="CA_EnsureNoAutoLogon"       BinaryRef="CustomActionsDll" DllEntry="EnsureNoAutoLogon"       Execute="deferred" Impersonate="no" Return="ignore" />
     <CustomAction Id="CA_VerifyInstallation"     BinaryRef="CustomActionsDll" DllEntry="VerifyInstallation"     Execute="deferred" Impersonate="no" Return="ignore" />
 
     <!-- UNINSTALL: actions (deferred) -->
@@ -248,7 +248,7 @@
       <Custom Action="CA_ApplySecurityRestrictions" After="CA_CreateKioskUser"        Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="CA_SetupAutoStart"            After="CA_ApplySecurityRestrictions" Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="CA_InitializeProfile"         After="CA_SetupAutoStart"         Condition="NOT Installed AND NOT REMOVE" />
-      <Custom Action="CA_ConfigureAutoLogon"        After="CA_InitializeProfile"      Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="CA_EnsureNoAutoLogon"         After="CA_InitializeProfile"      Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="CA_VerifyInstallation"        After="WriteRegistryValues"       Condition="NOT Installed AND NOT REMOVE" />
 
       <!-- UNINSTALL: run before files are removed -->

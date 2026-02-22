@@ -32,7 +32,7 @@ public class HistoryViewModelCoverageTests : IDisposable
     [Fact]
     public void StatusOptions_HasFourEntries()
     {
-        _vm.StatusOptions.Should().HaveCount(4);
+        _vm.StatusOptions.Should().HaveCount(5);
     }
 
     [Fact]

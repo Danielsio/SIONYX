@@ -8,62 +8,61 @@
         FlowDirection="RightToLeft">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="260" />
+            <ColumnDefinition Width="220" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
         <!-- SIDEBAR -->
-        <Border Grid.Column="0" Background="{StaticResource SidebarGradient}">
+        <Border Grid.Column="0" Background="{StaticResource SidebarGradient}"
+                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,1,0">
             <DockPanel>
-                <!-- Logo + user info area -->
-                <Border DockPanel.Dock="Top" Padding="24,28,24,24"
-                        BorderBrush="#12FFFFFF" BorderThickness="0,0,0,1">
+                <!-- Brand + user info -->
+                <Border DockPanel.Dock="Top" Padding="20,24,20,20"
+                        BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
                     <StackPanel>
-                        <TextBlock Text="SIONYX" FontSize="28" FontWeight="ExtraBold"
-                                   Foreground="White" Margin="0,0,0,14" />
-                        <!-- User avatar circle + name -->
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <Border Width="44" Height="44" CornerRadius="22"
-                                    Background="{StaticResource PrimaryGradient}" Margin="0,0,14,0">
-                                <TextBlock x:Name="AvatarInitials" Text="?" FontSize="17"
+                        <TextBlock Text="קיוסק" FontSize="22" FontWeight="Bold"
+                                   Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,16" />
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="42" Height="42" CornerRadius="21"
+                                    Background="{StaticResource PrimaryGradient}" Margin="0,0,12,0">
+                                <TextBlock x:Name="AvatarInitials" Text="?" FontSize="16"
                                            FontWeight="SemiBold" Foreground="White"
                                            HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Border>
                             <StackPanel VerticalAlignment="Center">
-                                <TextBlock Text="{Binding CurrentUser.FullName}" FontSize="16"
-                                           FontWeight="SemiBold" Foreground="White" />
-                                <TextBlock Text="{Binding CurrentUser.PhoneNumber}" FontSize="13"
-                                           Foreground="#88FFFFFF" />
+                                <TextBlock Text="{Binding CurrentUser.FullName}" FontSize="14"
+                                           FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}" />
+                                <TextBlock Text="{Binding CurrentUser.PhoneNumber}" FontSize="12"
+                                           Foreground="{StaticResource TextMutedBrush}" />
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </Border>
 
                 <!-- Logout button at bottom -->
-                <Border DockPanel.Dock="Bottom" Padding="16,16">
+                <Border DockPanel.Dock="Bottom" Padding="14,14">
                     <Button Style="{StaticResource BtnDanger}"
                             Command="{Binding LogoutCommand}"
                             IsEnabled="{Binding IsLoggingOut, Converter={StaticResource InverseBool}}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <!-- Segoe MDL2 Assets: SignOut glyph (E77B) -->
                             <TextBlock Text="&#xE77B;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="18" Foreground="White"
-                                       VerticalAlignment="Center" Margin="0,0,10,0" />
+                                       FontSize="16" Foreground="White"
+                                       VerticalAlignment="Center" Margin="0,0,8,0" />
                             <TextBlock Text="התנתק" VerticalAlignment="Center"
-                                       FontSize="15" FontWeight="SemiBold" />
+                                       FontSize="14" FontWeight="SemiBold" />
                         </StackPanel>
                     </Button>
                 </Border>
 
                 <!-- Nav items -->
-                <StackPanel Margin="8,16,8,0">
+                <StackPanel Margin="10,14,10,0">
                     <RadioButton x:Name="NavHome" Tag="Home"
                                  Style="{StaticResource SidebarNavButton}" IsChecked="True"
                                  Checked="NavButton_Checked" GroupName="Nav">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE80F;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="18" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Text="בית" FontSize="17" VerticalAlignment="Center" />
+                                       FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Text="בית" FontSize="15" VerticalAlignment="Center" />
                         </StackPanel>
                     </RadioButton>
                     <RadioButton x:Name="NavPackages" Tag="Packages"
@@ -71,8 +70,8 @@
                                  Checked="NavButton_Checked" GroupName="Nav">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE719;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="18" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Text="חבילות" FontSize="17" VerticalAlignment="Center" />
+                                       FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Text="חבילות" FontSize="15" VerticalAlignment="Center" />
                         </StackPanel>
                     </RadioButton>
                     <RadioButton x:Name="NavHistory" Tag="History"
@@ -80,8 +79,8 @@
                                  Checked="NavButton_Checked" GroupName="Nav">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE81C;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="18" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Text="היסטוריה" FontSize="17" VerticalAlignment="Center" />
+                                       FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Text="היסטוריה" FontSize="15" VerticalAlignment="Center" />
                         </StackPanel>
                     </RadioButton>
                     <RadioButton x:Name="NavHelp" Tag="Help"
@@ -89,8 +88,8 @@
                                  Checked="NavButton_Checked" GroupName="Nav">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="&#xE897;" FontFamily="Segoe MDL2 Assets"
-                                       FontSize="18" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Text="עזרה" FontSize="17" VerticalAlignment="Center" />
+                                       FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Text="עזרה" FontSize="15" VerticalAlignment="Center" />
                         </StackPanel>
                     </RadioButton>
                 </StackPanel>

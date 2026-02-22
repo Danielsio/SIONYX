@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SionyxKiosk.Models;
@@ -11,34 +12,44 @@ public partial class HomeViewModel : ObservableObject, IDisposable
     private readonly SessionService _session;
     private readonly ChatService _chat;
     private readonly OperatingHoursService _operatingHours;
+    private readonly AnnouncementService? _announcements;
     private readonly UserData _user;
     private bool _disposed;
 
     [ObservableProperty] private string _remainingTime = "00:00:00";
     [ObservableProperty] private string _printBalance = "0.00 ₪";
-    [ObservableProperty] private string _timeExpiry = "ללא הגבלה";
+    [ObservableProperty] private string _timeExpiry = "—";
     [ObservableProperty] private int _unreadMessages;
     [ObservableProperty] private bool _isSessionActive;
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private bool _isEndingSession;
     [ObservableProperty] private string _errorMessage = "";
     [ObservableProperty] private string _welcomeMessage = "";
+    [ObservableProperty] private bool _hasNoTime;
+    [ObservableProperty] private string _primaryButtonText = "▶  התחל הפעלה";
+
+    public ObservableCollection<Announcement> GlobalAnnouncements { get; } = new();
+    public bool HasAnnouncements => GlobalAnnouncements.Count > 0;
 
     public bool IsSessionInactive => !IsSessionActive;
 
-    /// <summary>Raised when the user wants to view unread messages. The View opens the MessageDialog.</summary>
+    /// <summary>Raised when the user wants to view unread messages.</summary>
     public event Action? ViewMessagesRequested;
+    /// <summary>Raised when user clicks "buy package" button.</summary>
+    public event Action? NavigateToPackagesRequested;
 
     partial void OnIsSessionActiveChanged(bool value)
     {
         OnPropertyChanged(nameof(IsSessionInactive));
     }
 
-    public HomeViewModel(SessionService session, ChatService chat, OperatingHoursService operatingHours, UserData user)
+    public HomeViewModel(SessionService session, ChatService chat, OperatingHoursService operatingHours, UserData user,
+        AnnouncementService? announcements = null)
     {
         _session = session;
         _chat = chat;
         _operatingHours = operatingHours;
+        _announcements = announcements;
         _user = user;
 
         WelcomeMessage = $"שלום, {_user.FullName}!";
@@ -51,6 +62,7 @@ public partial class HomeViewModel : ObservableObject, IDisposable
         _chat.MessagesReceived += OnMessagesReceived;
 
         _ = LoadUnreadCountAsync();
+        _ = LoadAnnouncementsAsync();
     }
 
     private async Task LoadUnreadCountAsync()
@@ -132,6 +144,12 @@ public partial class HomeViewModel : ObservableObject, IDisposable
             ViewMessagesRequested?.Invoke();
     }
 
+    [RelayCommand]
+    private void BuyPackage()
+    {
+        NavigateToPackagesRequested?.Invoke();
+    }
+
     // ── Event handlers ──────────────────────────────────────────
 
     private void OnTimeUpdated(int remaining)
@@ -163,16 +181,38 @@ public partial class HomeViewModel : ObservableObject, IDisposable
         var ts = TimeSpan.FromSeconds(Math.Max(0, _user.RemainingTime));
         RemainingTime = ts.ToString(@"hh\:mm\:ss");
         PrintBalance = $"{_user.PrintBalance:F2} ₪";
-        TimeExpiry = FormatExpiry(_user.TimeExpiresAt);
+        HasNoTime = _user.RemainingTime <= 0;
+        PrimaryButtonText = HasNoTime ? "קנה חבילה" : "▶  התחל הפעלה";
+        TimeExpiry = FormatExpiry(_user.TimeExpiresAt, _user.RemainingTime);
     }
 
-    internal static string FormatExpiry(string? expiresAt)
+    private async Task LoadAnnouncementsAsync()
     {
-        if (string.IsNullOrEmpty(expiresAt))
-            return "ללא הגבלה";
+        if (_announcements == null) return;
+        try
+        {
+            var result = await _announcements.GetActiveAnnouncementsAsync();
+            if (result.IsSuccess && result.Data is List<Announcement> list)
+            {
+                GlobalAnnouncements.Clear();
+                foreach (var a in list)
+                    GlobalAnnouncements.Add(a);
+                OnPropertyChanged(nameof(HasAnnouncements));
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Error(ex, "Failed to load announcements");
+        }
+    }
 
-        if (!DateTime.TryParse(expiresAt, out var dt))
-            return "ללא הגבלה";
+    internal static string FormatExpiry(string? expiresAt, int remainingTime = -1)
+    {
+        if (string.IsNullOrEmpty(expiresAt) || !DateTime.TryParse(expiresAt, out var dt))
+        {
+            // No expiry date set: "unlimited" only makes sense if user actually has time
+            return remainingTime > 0 ? "ללא הגבלה" : "אין";
+        }
 
         var remaining = dt - DateTime.Now;
         if (remaining.TotalSeconds <= 0)

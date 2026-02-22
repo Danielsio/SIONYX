@@ -3,7 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:SionyxKiosk.Views.Controls">
     <Border Background="White" CornerRadius="{StaticResource RadiusLg}"
-            Padding="28,20" Margin="0,0,0,10"
+            Padding="28,22" Margin="0,0,0,12"
             BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
         <Grid>
             <Grid.ColumnDefinitions>
@@ -11,14 +11,36 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <!-- Package info -->
+            <!-- Package info + details -->
             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                 <TextBlock Text="{Binding PackageName, RelativeSource={RelativeSource AncestorType=UserControl}}"
                            FontSize="{StaticResource FontSizeLg}" FontWeight="SemiBold"
                            Foreground="{StaticResource TextPrimaryBrush}" />
-                <TextBlock Text="{Binding PurchaseDate, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                <TextBlock Text="{Binding FormattedDate, RelativeSource={RelativeSource AncestorType=UserControl}}"
                            FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextMutedBrush}"
                            Margin="0,6,0,0" />
+
+                <!-- Detail chips row -->
+                <WrapPanel Margin="0,12,0,0">
+                    <Border CornerRadius="8" Padding="10,5" Margin="0,0,8,4" Background="#EEF2FF"
+                            Visibility="{Binding HasMinutes, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                        <TextBlock FontSize="12" Foreground="#4338CA">
+                            <Run Text="⏱ " /><Run Text="{Binding MinutesDisplay, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" />
+                        </TextBlock>
+                    </Border>
+                    <Border CornerRadius="8" Padding="10,5" Margin="0,0,8,4" Background="#F0FDF4"
+                            Visibility="{Binding HasPrints, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                        <TextBlock FontSize="12" Foreground="#166534">
+                            <Run Text="🖨 " /><Run Text="{Binding PrintsDisplay, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" />
+                        </TextBlock>
+                    </Border>
+                    <Border CornerRadius="8" Padding="10,5" Margin="0,0,8,4" Background="#FFF7ED"
+                            Visibility="{Binding HasValidity, RelativeSource={RelativeSource AncestorType=UserControl}}">
+                        <TextBlock FontSize="12" Foreground="#9A3412">
+                            <Run Text="📅 " /><Run Text="{Binding ValidityDisplay, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" />
+                        </TextBlock>
+                    </Border>
+                </WrapPanel>
             </StackPanel>
 
             <!-- Amount + Status -->
@@ -26,8 +48,8 @@
                 <TextBlock Text="{Binding Amount, RelativeSource={RelativeSource AncestorType=UserControl}}"
                            FontSize="{StaticResource FontSizeXl}" FontWeight="Bold"
                            Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Right" />
-                <controls:StatusBadge Text="{Binding Status, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                      HorizontalAlignment="Right" Margin="0,6,0,0" />
+                <controls:StatusBadge Status="{Binding Status, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      HorizontalAlignment="Right" Margin="0,8,0,0" />
             </StackPanel>
         </Grid>
     </Border>

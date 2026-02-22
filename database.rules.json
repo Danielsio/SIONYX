@@ -127,6 +127,28 @@
           }
         },
         
+        "announcements": {
+          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".indexOn": ["createdAt", "active"],
+
+          "$announcementId": {
+            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true",
+            
+            "title": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
+            },
+            "body": {
+              ".validate": "newData.isString() && newData.val().length <= 1000"
+            },
+            "type": {
+              ".validate": "newData.isString() && (newData.val() == 'info' || newData.val() == 'success' || newData.val() == 'warning' || newData.val() == 'promotion')"
+            },
+            "active": {
+              ".validate": "newData.isBoolean()"
+            }
+          }
+        },
+        
         "computers": {
           ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
           ".indexOn": ["isActive", "lastSeen", "computerName"],

@@ -50,7 +50,8 @@ public class HistoryViewModelDeepTests : IDisposable
         vm.StatusOptions.Should().Contain("הושלם");
         vm.StatusOptions.Should().Contain("ממתין");
         vm.StatusOptions.Should().Contain("נכשל");
-        vm.StatusOptions.Should().HaveCount(4);
+        vm.StatusOptions.Should().Contain("בוטל");
+        vm.StatusOptions.Should().HaveCount(5);
     }
 
     [Fact]
