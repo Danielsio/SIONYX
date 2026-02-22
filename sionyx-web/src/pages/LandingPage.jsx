@@ -1436,7 +1436,6 @@ const LandingPage = memo(() => {
       style={{
         minHeight: '100vh',
         direction: 'rtl',
-        textAlign: 'right',
         position: 'relative',
         overflow: 'hidden',
       }}
