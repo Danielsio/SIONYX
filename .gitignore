@@ -410,6 +410,7 @@ lerna-debug.log*
 .pnpm-debug.log*
 package-lock.json
 !functions/package-lock.json
+!sionyx-web/package-lock.json
 
 # ========================================
 # WPF Kiosk Build Artifacts
