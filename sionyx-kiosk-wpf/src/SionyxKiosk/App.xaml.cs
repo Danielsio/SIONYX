@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using System.Threading;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
@@ -160,7 +161,10 @@ public partial class App : Application
                     var chat = sp.GetRequiredService<ChatService>();
                     var hours = sp.GetRequiredService<OperatingHoursService>();
                     var auth = sp.GetRequiredService<AuthService>();
-                    return new HomeViewModel(session, chat, hours, auth.CurrentUser!);
+                    var currentUser = auth.CurrentUser;
+                    if (currentUser == null)
+                        throw new InvalidOperationException("HomeViewModel requires a logged-in user. CurrentUser is null.");
+                    return new HomeViewModel(session, chat, hours, currentUser);
                 });
                 services.AddTransient<PackagesViewModel>(sp =>
                 {
@@ -527,7 +531,24 @@ public partial class App : Application
     // Helpers
     // ================================================================
 
-    private static string GetVersion() => "1.0.0";
+    private static string GetVersion()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "version.json");
+            if (!File.Exists(path)) return "1.0.0";
+            var json = File.ReadAllText(path);
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("version", out var ver) && ver.ValueKind == JsonValueKind.String)
+                return ver.GetString() ?? "1.0.0";
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Could not read version.json, using fallback");
+        }
+        return "1.0.0";
+    }
 
     private static void WriteCrashLog(Exception? ex, string logDir)
     {
