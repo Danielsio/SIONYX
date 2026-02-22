@@ -14,6 +14,7 @@ export const useAuthStore = create(
       user: null,
       isAuthenticated: false,
       isLoading: false,
+      darkMode: false,
 
       setUser: user =>
         set({
@@ -28,6 +29,8 @@ export const useAuthStore = create(
           user: null,
           isAuthenticated: false,
         }),
+
+      toggleDarkMode: () => set(state => ({ darkMode: !state.darkMode })),
 
       getOrgId: () => {
         const state = get();
@@ -48,6 +51,7 @@ export const useAuthStore = create(
       partialize: state => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,
+        darkMode: state.darkMode,
       }),
     }
   )
