@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  web-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: sionyx-web/package-lock.json
+
+      - name: Install dependencies
+        working-directory: sionyx-web
+        run: npm ci
+
+      - name: Lint
+        working-directory: sionyx-web
+        run: npm run lint
+
+      - name: Test
+        working-directory: sionyx-web
+        run: npm run test:run
+
+  kiosk-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.x"
+
+      - name: Test
+        working-directory: sionyx-kiosk-wpf
+        run: dotnet test
