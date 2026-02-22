@@ -195,7 +195,11 @@ Section "Kiosk Security Setup" SecKiosk
     nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_kiosk_setup.ps1"'
     Pop $0
     Delete "$TEMP\sionyx_kiosk_setup.ps1"
-    DetailPrint "[OK] Security restrictions applied!"
+    ${If} $0 != 0
+        DetailPrint "[WARN] Security policy script returned error code $0"
+    ${Else}
+        DetailPrint "[OK] Security restrictions applied!"
+    ${EndIf}
     DetailPrint ""
     
     ; ========================================================================
@@ -218,6 +222,11 @@ Section "Kiosk Security Setup" SecKiosk
     nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\create_sionyx_task.ps1"'
     Pop $0
     Delete "$TEMP\create_sionyx_task.ps1"
+    ${If} $0 != 0
+        DetailPrint "[WARN] Scheduled task creation script returned error code $0"
+    ${Else}
+        DetailPrint "[OK] Scheduled task created!"
+    ${EndIf}
     
     ; Force Windows profile initialization for SionyxUser.
     ; Windows only creates a proper user profile on first interactive logon.
@@ -268,6 +277,11 @@ Section "Kiosk Security Setup" SecKiosk
     nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\init_profile.ps1"'
     Pop $0
     Delete "$TEMP\init_profile.ps1"
+    ${If} $0 != 0
+        DetailPrint "[WARN] Profile initialization script returned error code $0"
+    ${Else}
+        DetailPrint "[OK] Profile initialized!"
+    ${EndIf}
     
     profile_ready:
     
@@ -282,6 +296,11 @@ Section "Kiosk Security Setup" SecKiosk
     nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\create_profile_dirs.ps1"'
     Pop $0
     Delete "$TEMP\create_profile_dirs.ps1"
+    ${If} $0 != 0
+        DetailPrint "[WARN] Profile directory creation script returned error code $0"
+    ${Else}
+        DetailPrint "[OK] Profile directories created!"
+    ${EndIf}
     
     ; Create startup shortcut
     CreateShortCut "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk" \
@@ -290,14 +309,170 @@ Section "Kiosk Security Setup" SecKiosk
     WriteRegStr HKLM "SOFTWARE\${APP_NAME}" "KioskUsername" "${KIOSK_USERNAME}"
     
     DetailPrint ""
-    DetailPrint "  SETUP COMPLETE!"
+    DetailPrint "============================================"
+    DetailPrint "  STEP 4: Post-Install Verification"
+    DetailPrint "============================================"
     DetailPrint ""
     
-    ; Save install log to disk for post-install review
+    ; Save install log to disk BEFORE verification so the verify script can append to it
     StrCpy $0 "$INSTDIR\install.log"
     Push $0
     Call DumpLog
-    DetailPrint "[OK] Install log saved to $0"
+    
+    ; Run comprehensive post-install verification
+    FileOpen $1 "$TEMP\sionyx_verify_install.ps1" w
+    FileWrite $1 '$$logFile = "$INSTDIR\install.log"$\r$\n'
+    FileWrite $1 '$$errors = @()$\r$\n'
+    FileWrite $1 '$$warnings = @()$\r$\n'
+    FileWrite $1 '$$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 'function Log($$msg) { Write-Host $$msg; Add-Content -Path $$logFile -Value $$msg }$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 'Log ""$\r$\n'
+    FileWrite $1 'Log "============================================"$\r$\n'
+    FileWrite $1 'Log "  POST-INSTALL VERIFICATION ($$timestamp)"$\r$\n'
+    FileWrite $1 'Log "============================================"$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# 1. Check SionyxUser account exists$\r$\n'
+    FileWrite $1 'net user "${KIOSK_USERNAME}" 2>&1 | Out-Null$\r$\n'
+    FileWrite $1 'if ($$LASTEXITCODE -eq 0) {$\r$\n'
+    FileWrite $1 '    Log "[PASS] User account ${KIOSK_USERNAME} exists"$\r$\n'
+    FileWrite $1 '} else {$\r$\n'
+    FileWrite $1 '    Log "[FAIL] User account ${KIOSK_USERNAME} NOT FOUND"$\r$\n'
+    FileWrite $1 '    $$errors += "User account ${KIOSK_USERNAME} was not created"$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# 2. Check user profile directory & registry$\r$\n'
+    FileWrite $1 '$$profilePath = "C:\Users\${KIOSK_USERNAME}"$\r$\n'
+    FileWrite $1 'if (Test-Path $$profilePath) {$\r$\n'
+    FileWrite $1 '    Log "[PASS] Profile directory exists: $$profilePath"$\r$\n'
+    FileWrite $1 '} else {$\r$\n'
+    FileWrite $1 '    Log "[FAIL] Profile directory MISSING: $$profilePath"$\r$\n'
+    FileWrite $1 '    $$errors += "User profile directory was not created"$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# Check ProfileList registry entry$\r$\n'
+    FileWrite $1 'try {$\r$\n'
+    FileWrite $1 '    $$acct = New-Object System.Security.Principal.NTAccount("${KIOSK_USERNAME}")$\r$\n'
+    FileWrite $1 '    $$sid = $$acct.Translate([System.Security.Principal.SecurityIdentifier]).Value$\r$\n'
+    FileWrite $1 '    $$regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\$$sid"$\r$\n'
+    FileWrite $1 '    if (Test-Path $$regPath) {$\r$\n'
+    FileWrite $1 '        Log "[PASS] Profile registry entry exists (SID: $$sid)"$\r$\n'
+    FileWrite $1 '    } else {$\r$\n'
+    FileWrite $1 '        Log "[FAIL] Profile registry entry MISSING for SID $$sid"$\r$\n'
+    FileWrite $1 '        $$errors += "ProfileList registry entry not found - user may get a temporary profile on login"$\r$\n'
+    FileWrite $1 '    }$\r$\n'
+    FileWrite $1 '} catch {$\r$\n'
+    FileWrite $1 '    Log "[FAIL] Could not resolve SID for ${KIOSK_USERNAME}: $$_"$\r$\n'
+    FileWrite $1 '    $$errors += "Could not verify profile registry (SID resolution failed)"$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# 3. Check ntuser.dat (profile properly initialized)$\r$\n'
+    FileWrite $1 'if (Test-Path "$$profilePath\ntuser.dat" -ErrorAction SilentlyContinue) {$\r$\n'
+    FileWrite $1 '    Log "[PASS] Profile initialized (ntuser.dat present)"$\r$\n'
+    FileWrite $1 '} else {$\r$\n'
+    FileWrite $1 '    Log "[WARN] Cannot verify ntuser.dat (access denied or missing)"$\r$\n'
+    FileWrite $1 '    $$warnings += "ntuser.dat could not be verified - profile may need first logon to initialize"$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# 4. Check scheduled task$\r$\n'
+    FileWrite $1 '$$task = $null$\r$\n'
+    FileWrite $1 'try { $$task = Get-ScheduledTask -TaskName "SIONYX Kiosk" -ErrorAction Stop } catch {}$\r$\n'
+    FileWrite $1 'if ($$task) {$\r$\n'
+    FileWrite $1 '    Log "[PASS] Scheduled task SIONYX Kiosk exists (State: $$($$task.State))"$\r$\n'
+    FileWrite $1 '} else {$\r$\n'
+    FileWrite $1 '    Log "[FAIL] Scheduled task SIONYX Kiosk NOT FOUND"$\r$\n'
+    FileWrite $1 '    $$errors += "Scheduled task was not created - app will not auto-start on ${KIOSK_USERNAME} login"$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# 5. Check app executable$\r$\n'
+    FileWrite $1 'if (Test-Path "$INSTDIR\${APP_EXECUTABLE}") {$\r$\n'
+    FileWrite $1 '    Log "[PASS] App executable: $INSTDIR\${APP_EXECUTABLE}"$\r$\n'
+    FileWrite $1 '} else {$\r$\n'
+    FileWrite $1 '    Log "[FAIL] App executable MISSING: $INSTDIR\${APP_EXECUTABLE}"$\r$\n'
+    FileWrite $1 '    $$errors += "Application executable was not installed"$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# 6. Check startup shortcut$\r$\n'
+    FileWrite $1 '$$startupLnk = "$$profilePath\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk"$\r$\n'
+    FileWrite $1 'if (Test-Path $$startupLnk) {$\r$\n'
+    FileWrite $1 '    Log "[PASS] Startup shortcut exists for ${KIOSK_USERNAME}"$\r$\n'
+    FileWrite $1 '} else {$\r$\n'
+    FileWrite $1 '    Log "[WARN] Startup shortcut not found at expected path"$\r$\n'
+    FileWrite $1 '    $$warnings += "Startup shortcut missing - app may not auto-start via Startup folder"$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# 7. Check registry configuration$\r$\n'
+    FileWrite $1 '$$regKeys = @("Install_Dir", "Version", "OrgId", "FirebaseProjectId", "KioskUsername")$\r$\n'
+    FileWrite $1 '$$missingKeys = @()$\r$\n'
+    FileWrite $1 'foreach ($$key in $$regKeys) {$\r$\n'
+    FileWrite $1 '    $$val = Get-ItemProperty -Path "HKLM:\SOFTWARE\${APP_NAME}" -Name $$key -ErrorAction SilentlyContinue$\r$\n'
+    FileWrite $1 '    if (-not $$val) { $$missingKeys += $$key }$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 'if ($$missingKeys.Count -eq 0) {$\r$\n'
+    FileWrite $1 '    Log "[PASS] All registry configuration keys present"$\r$\n'
+    FileWrite $1 '} else {$\r$\n'
+    FileWrite $1 '    Log "[FAIL] Missing registry keys: $$($$missingKeys -join ", ")"$\r$\n'
+    FileWrite $1 '    $$errors += "Registry configuration incomplete - missing: $$($$missingKeys -join ", ")"$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# === FINAL SUMMARY ===$\r$\n'
+    FileWrite $1 'Log ""$\r$\n'
+    FileWrite $1 'Log "--------------------------------------------"$\r$\n'
+    FileWrite $1 'if ($$errors.Count -eq 0 -and $$warnings.Count -eq 0) {$\r$\n'
+    FileWrite $1 '    Log "[OK] ALL CHECKS PASSED - Installation verified successfully!"$\r$\n'
+    FileWrite $1 '} elseif ($$errors.Count -eq 0) {$\r$\n'
+    FileWrite $1 '    Log "[OK] Installation completed with $$( $$warnings.Count) warning(s):"$\r$\n'
+    FileWrite $1 '    foreach ($$w in $$warnings) { Log "  - $$w" }$\r$\n'
+    FileWrite $1 '} else {$\r$\n'
+    FileWrite $1 '    Log "[ERROR] Installation completed with $$($$errors.Count) error(s) and $$($$warnings.Count) warning(s):"$\r$\n'
+    FileWrite $1 '    Log ""$\r$\n'
+    FileWrite $1 '    Log "  ERRORS:"$\r$\n'
+    FileWrite $1 '    foreach ($$e in $$errors) { Log "    - $$e" }$\r$\n'
+    FileWrite $1 '    if ($$warnings.Count -gt 0) {$\r$\n'
+    FileWrite $1 '        Log "  WARNINGS:"$\r$\n'
+    FileWrite $1 '        foreach ($$w in $$warnings) { Log "    - $$w" }$\r$\n'
+    FileWrite $1 '    }$\r$\n'
+    FileWrite $1 '}$\r$\n'
+    FileWrite $1 'Log ""$\r$\n'
+    FileWrite $1 'Log "  Install log: $$logFile"$\r$\n'
+    FileWrite $1 'Log "  To debug, review the log above for [FAIL] or [WARN] entries."$\r$\n'
+    FileWrite $1 'Log "  You can also run Task Scheduler (taskschd.msc) and check the SIONYX Kiosk task."$\r$\n'
+    FileWrite $1 'Log "  For user profile issues, check: lusrmgr.msc or run: net user ${KIOSK_USERNAME}"$\r$\n'
+    FileWrite $1 'Log "--------------------------------------------"$\r$\n'
+    FileWrite $1 '$\r$\n'
+    FileWrite $1 '# Return error count as exit code so NSIS can detect failures$\r$\n'
+    FileWrite $1 'exit $$errors.Count$\r$\n'
+    FileClose $1
+    
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_verify_install.ps1"'
+    Pop $0
+    Delete "$TEMP\sionyx_verify_install.ps1"
+    
+    ${If} $0 != 0
+        DetailPrint ""
+        DetailPrint "[WARNING] Some verification checks failed!"
+        DetailPrint "Review the install log for details: $INSTDIR\install.log"
+        DetailPrint ""
+        MessageBox MB_OK|MB_ICONEXCLAMATION \
+            "Installation completed but $0 verification check(s) failed.$\n$\n\
+            Please review the install log for details:$\n\
+            $INSTDIR\install.log$\n$\n\
+            Look for [FAIL] entries in the log.$\n\
+            Common debug tools:$\n\
+            - Task Scheduler: taskschd.msc$\n\
+            - User accounts: net user ${KIOSK_USERNAME}$\n\
+            - Profile issues: lusrmgr.msc"
+    ${Else}
+        DetailPrint ""
+        DetailPrint "[OK] All verification checks passed!"
+        DetailPrint ""
+    ${EndIf}
+    
+    DetailPrint ""
+    DetailPrint "  SETUP COMPLETE!"
+    DetailPrint ""
+    DetailPrint "[OK] Install log saved to $INSTDIR\install.log"
 SectionEnd
 
 ; ============================================================================
