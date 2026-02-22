@@ -219,6 +219,43 @@ namespace SionyxInstaller
         }
 
         [CustomAction]
+        public static ActionResult ConfigureAutoLogon(Session session)
+        {
+            session.Log("=== ConfigureAutoLogon: START ===");
+
+            try
+            {
+                const string winlogonKey = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon";
+
+                using (var key = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                            .OpenSubKey(winlogonKey, true))
+                {
+                    if (key == null)
+                    {
+                        session.Log("[ERROR] Could not open Winlogon registry key");
+                        return ActionResult.Failure;
+                    }
+
+                    key.SetValue("AutoAdminLogon", "1", RegistryValueKind.String);
+                    key.SetValue("DefaultUserName", KioskUsername, RegistryValueKind.String);
+                    key.SetValue("DefaultPassword", "", RegistryValueKind.String);
+                    key.SetValue("DefaultDomainName", Environment.MachineName, RegistryValueKind.String);
+
+                    // Remove AutoLogonSID if present (takes precedence and would override our settings)
+                    key.DeleteValue("AutoLogonSID", false);
+                }
+
+                session.Log($"[OK] Auto-logon configured for {KioskUsername}");
+                return ActionResult.Success;
+            }
+            catch (Exception ex)
+            {
+                session.Log($"[ERROR] ConfigureAutoLogon failed: {ex}");
+                return ActionResult.Failure;
+            }
+        }
+
+        [CustomAction]
         public static ActionResult VerifyInstallation(Session session)
         {
             session.Log("=== VerifyInstallation: START ===");
@@ -441,6 +478,42 @@ namespace SionyxInstaller
             catch (Exception ex)
             {
                 session.Log($"[WARN] RevertSecurity: {ex.Message}");
+                return ActionResult.Success;
+            }
+        }
+
+        [CustomAction]
+        public static ActionResult RevertAutoLogon(Session session)
+        {
+            session.Log("=== RevertAutoLogon: START ===");
+
+            try
+            {
+                const string winlogonKey = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon";
+
+                using (var key = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                            .OpenSubKey(winlogonKey, true))
+                {
+                    if (key != null)
+                    {
+                        key.SetValue("AutoAdminLogon", "0", RegistryValueKind.String);
+                        key.DeleteValue("DefaultPassword", false);
+
+                        string currentDefault = key.GetValue("DefaultUserName") as string;
+                        if (string.Equals(currentDefault, KioskUsername, StringComparison.OrdinalIgnoreCase))
+                        {
+                            key.DeleteValue("DefaultUserName", false);
+                            key.DeleteValue("DefaultDomainName", false);
+                        }
+                    }
+                }
+
+                session.Log("[OK] Auto-logon reverted");
+                return ActionResult.Success;
+            }
+            catch (Exception ex)
+            {
+                session.Log($"[WARN] RevertAutoLogon: {ex.Message}");
                 return ActionResult.Success;
             }
         }

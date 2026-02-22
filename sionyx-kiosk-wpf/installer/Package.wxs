@@ -230,11 +230,13 @@
     <CustomAction Id="CA_ApplySecurityRestrictions" BinaryRef="CustomActionsDll" DllEntry="ApplySecurityRestrictions" Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="CA_SetupAutoStart"         BinaryRef="CustomActionsDll" DllEntry="SetupAutoStart"         Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="CA_InitializeProfile"      BinaryRef="CustomActionsDll" DllEntry="InitializeProfile"      Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="CA_ConfigureAutoLogon"      BinaryRef="CustomActionsDll" DllEntry="ConfigureAutoLogon"      Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="CA_VerifyInstallation"     BinaryRef="CustomActionsDll" DllEntry="VerifyInstallation"     Execute="deferred" Impersonate="no" Return="ignore" />
 
     <!-- UNINSTALL: actions (deferred) -->
     <CustomAction Id="CA_StopProcesses"          BinaryRef="CustomActionsDll" DllEntry="StopProcesses"          Execute="deferred" Impersonate="no" Return="ignore" />
     <CustomAction Id="CA_RemoveScheduledTask"    BinaryRef="CustomActionsDll" DllEntry="RemoveScheduledTask"    Execute="deferred" Impersonate="no" Return="ignore" />
+    <CustomAction Id="CA_RevertAutoLogon"         BinaryRef="CustomActionsDll" DllEntry="RevertAutoLogon"         Execute="deferred" Impersonate="no" Return="ignore" />
     <CustomAction Id="CA_RevertSecurity"         BinaryRef="CustomActionsDll" DllEntry="RevertSecurity"         Execute="deferred" Impersonate="no" Return="ignore" />
     <CustomAction Id="CA_RemoveKioskUser"        BinaryRef="CustomActionsDll" DllEntry="RemoveKioskUser"        Execute="deferred" Impersonate="no" Return="ignore" />
     <CustomAction Id="CA_CleanupLegacyUser"      BinaryRef="CustomActionsDll" DllEntry="CleanupLegacyUser"      Execute="deferred" Impersonate="no" Return="ignore" />
@@ -246,12 +248,14 @@
       <Custom Action="CA_ApplySecurityRestrictions" After="CA_CreateKioskUser"        Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="CA_SetupAutoStart"            After="CA_ApplySecurityRestrictions" Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="CA_InitializeProfile"         After="CA_SetupAutoStart"         Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="CA_ConfigureAutoLogon"        After="CA_InitializeProfile"      Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="CA_VerifyInstallation"        After="WriteRegistryValues"       Condition="NOT Installed AND NOT REMOVE" />
 
       <!-- UNINSTALL: run before files are removed -->
       <Custom Action="CA_StopProcesses"             Before="RemoveFiles"              Condition="REMOVE = &quot;ALL&quot;" />
       <Custom Action="CA_RemoveScheduledTask"       After="CA_StopProcesses"          Condition="REMOVE = &quot;ALL&quot;" />
-      <Custom Action="CA_RevertSecurity"            After="CA_RemoveScheduledTask"    Condition="REMOVE = &quot;ALL&quot;" />
+      <Custom Action="CA_RevertAutoLogon"            After="CA_RemoveScheduledTask"    Condition="REMOVE = &quot;ALL&quot;" />
+      <Custom Action="CA_RevertSecurity"            After="CA_RevertAutoLogon"        Condition="REMOVE = &quot;ALL&quot;" />
       <Custom Action="CA_RemoveKioskUser"           After="CA_RevertSecurity"         Condition="REMOVE = &quot;ALL&quot;" />
       <Custom Action="CA_CleanupLegacyUser"         After="CA_RemoveKioskUser"        Condition="REMOVE = &quot;ALL&quot;" />
     </InstallExecuteSequence>
