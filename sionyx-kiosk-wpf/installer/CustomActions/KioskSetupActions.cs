@@ -59,8 +59,8 @@ namespace SionyxInstaller
                         return ActionResult.Failure;
                     }
 
-                    RunCommand("wmic",
-                        $"useraccount where name=\"{KioskUsername}\" set PasswordExpires=false",
+                    RunCommand("powershell.exe",
+                        $"-NoProfile -Command \"Set-LocalUser -Name '{KioskUsername}' -PasswordNeverExpires $true\"",
                         session);
                 }
 
@@ -513,12 +513,16 @@ namespace SionyxInstaller
 
         private static string ResolvePath(string fileName)
         {
-            string sysDir = Environment.GetFolderPath(Environment.SpecialFolder.System);
-            string fullPath = Path.Combine(sysDir, fileName);
-            if (File.Exists(fullPath)) return fullPath;
+            if (Path.IsPathRooted(fileName)) return fileName;
 
-            string wbemPath = Path.Combine(sysDir, "wbem", fileName);
-            if (File.Exists(wbemPath)) return wbemPath;
+            string sysDir = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            string withExe = Path.HasExtension(fileName) ? fileName : fileName + ".exe";
+
+            string sys = Path.Combine(sysDir, withExe);
+            if (File.Exists(sys)) return sys;
+
+            string wbem = Path.Combine(sysDir, "wbem", withExe);
+            if (File.Exists(wbem)) return wbem;
 
             return fileName;
         }
