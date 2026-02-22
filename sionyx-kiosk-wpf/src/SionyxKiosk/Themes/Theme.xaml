@@ -436,7 +436,8 @@
                 <ControlTemplate TargetType="RadioButton">
                     <Border x:Name="border" Background="Transparent"
                             CornerRadius="{StaticResource RadiusMd}"
-                            Padding="18,15" SnapsToDevicePixels="True">
+                            Padding="18,15" SnapsToDevicePixels="True"
+                            TextElement.Foreground="#C8CCD8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="4" />
@@ -444,25 +445,21 @@
                             </Grid.ColumnDefinitions>
                             <Border x:Name="indicator" Grid.Column="0" Width="4" CornerRadius="2"
                                     Background="Transparent" VerticalAlignment="Stretch" Margin="0,0,10,0" />
-                            <TextBlock x:Name="label" Grid.Column="1"
-                                       Text="{TemplateBinding Content}"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       Foreground="#C8CCD8"
-                                       FontFamily="{TemplateBinding FontFamily}"
-                                       FontSize="{TemplateBinding FontSize}"
-                                       FontWeight="{TemplateBinding FontWeight}" />
+                            <ContentPresenter Grid.Column="1"
+                                              HorizontalAlignment="Right" VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#1E293B" />
-                            <Setter TargetName="label" Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="TextElement.Foreground" Value="White" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#1E2744" />
                             <Setter TargetName="indicator" Property="Background" Value="{StaticResource PrimaryBrush}" />
-                            <Setter TargetName="label" Property="Foreground" Value="White" />
-                            <Setter TargetName="label" Property="FontWeight" Value="SemiBold" />
+                            <Setter TargetName="border" Property="TextElement.Foreground" Value="White" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

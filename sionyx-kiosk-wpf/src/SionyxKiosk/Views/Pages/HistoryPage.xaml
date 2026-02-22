@@ -10,12 +10,24 @@
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
         <StackPanel>
-            <controls:PageHeader Title="היסטוריית רכישות" Subtitle="צפה ברכישות שלך" Margin="0,0,0,24" />
+            <controls:PageHeader Title="היסטוריה" Subtitle="היסטוריית הרכישות שלך"
+                                 HeaderBrush="{StaticResource HistoryHeaderGradient}" Icon="📋"
+                                 Margin="0,0,0,24" />
 
             <!-- Summary stats -->
             <UniformGrid Rows="1" Margin="0,0,0,24">
-                <controls:StatCard Title="סה״כ רכישות" Value="{Binding TotalPurchases}" Icon="📊" Margin="0,0,12,0" />
-                <controls:StatCard Title="סה״כ הוצאות" Value="{Binding TotalSpent, StringFormat='{}{0:F2} ₪'}" Icon="💰" Margin="12,0,0,0" />
+                <controls:StatCard Title="רכישות" Value="{Binding TotalPurchases}" Icon="📊"
+                                   AccentColor="{StaticResource StatOrangeColor}"
+                                   AccentBgColor="{StaticResource StatOrangeBgColor}"
+                                   Margin="0,0,8,0" />
+                <controls:StatCard Title="סה״כ הוצאות" Value="{Binding TotalSpent, StringFormat='₪{0:F0}'}" Icon="💰"
+                                   AccentColor="{StaticResource StatGreenColor}"
+                                   AccentBgColor="{StaticResource StatGreenBgColor}"
+                                   Margin="4,0" />
+                <controls:StatCard Title="מוצרי הדפסות" Value="{Binding TotalPurchases}" Icon="🖨"
+                                   AccentColor="{StaticResource StatBlueColor}"
+                                   AccentBgColor="{StaticResource StatBlueBgColor}"
+                                   Margin="8,0,0,0" />
             </UniformGrid>
 
             <!-- Filters row -->

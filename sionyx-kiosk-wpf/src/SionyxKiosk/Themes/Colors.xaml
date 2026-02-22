@@ -50,6 +50,18 @@
     <Color x:Key="Gray800Color">#1E293B</Color>
     <Color x:Key="Gray900Color">#0F172A</Color>
 
+    <!-- Stat Card Accent Colors -->
+    <Color x:Key="StatOrangeColor">#F97316</Color>
+    <Color x:Key="StatOrangeBgColor">#FFF7ED</Color>
+    <Color x:Key="StatGreenColor">#10B981</Color>
+    <Color x:Key="StatGreenBgColor">#F0FDF4</Color>
+    <Color x:Key="StatRedColor">#EF4444</Color>
+    <Color x:Key="StatRedBgColor">#FEF2F2</Color>
+    <Color x:Key="StatPurpleColor">#8B5CF6</Color>
+    <Color x:Key="StatPurpleBgColor">#F5F3FF</Color>
+    <Color x:Key="StatBlueColor">#3B82F6</Color>
+    <Color x:Key="StatBlueBgColor">#EFF6FF</Color>
+
     <!-- Auth Theme - Indigo/Violet (matches primary palette) -->
     <Color x:Key="AuthPrimaryColor">#4338CA</Color>
     <Color x:Key="AuthSecondaryColor">#6366F1</Color>
@@ -138,6 +150,27 @@
     <LinearGradientBrush x:Key="SidebarGradient" StartPoint="0,0" EndPoint="0,1">
         <GradientStop Color="#0F1629" Offset="0" />
         <GradientStop Color="#0A0F1F" Offset="1" />
+    </LinearGradientBrush>
+
+    <!-- Page-specific header gradients -->
+    <LinearGradientBrush x:Key="HomeHeaderGradient" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#F59E0B" Offset="0" />
+        <GradientStop Color="#F97316" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="PackagesHeaderGradient" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#6366F1" Offset="0" />
+        <GradientStop Color="#8B5CF6" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="HistoryHeaderGradient" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#3B82F6" Offset="0" />
+        <GradientStop Color="#6366F1" Offset="1" />
+    </LinearGradientBrush>
+
+    <LinearGradientBrush x:Key="HelpHeaderGradient" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#8B5CF6" Offset="0" />
+        <GradientStop Color="#A78BFA" Offset="1" />
     </LinearGradientBrush>
 
     <!-- Auth brand panel — deep indigo to violet, ties into the product palette -->
