@@ -192,7 +192,7 @@ Section "Kiosk Security Setup" SecKiosk
     FileWrite $0 'Set-ItemProperty -Path $$systemPath -Name "DisableTaskMgr" -Value 1 -Type DWord -Force$\r$\n'
     FileClose $0
     
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_kiosk_setup.ps1"'
+    nsExec::ExecToLog '"$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "$TEMP\sionyx_kiosk_setup.ps1"'
     Pop $0
     Delete "$TEMP\sionyx_kiosk_setup.ps1"
     ${If} $0 != 0
@@ -219,7 +219,7 @@ Section "Kiosk Security Setup" SecKiosk
     FileWrite $1 'Register-ScheduledTask -TaskName "SIONYX Kiosk" -Action $$action -Trigger $$trigger -Settings $$settings -Principal $$principal -Force$\r$\n'
     FileClose $1
     
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\create_sionyx_task.ps1"'
+    nsExec::ExecToLog '"$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "$TEMP\create_sionyx_task.ps1"'
     Pop $0
     Delete "$TEMP\create_sionyx_task.ps1"
     ${If} $0 != 0
@@ -274,7 +274,7 @@ Section "Kiosk Security Setup" SecKiosk
     FileWrite $1 '}$\r$\n'
     FileClose $1
     
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\init_profile.ps1"'
+    nsExec::ExecToLog '"$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "$TEMP\init_profile.ps1"'
     Pop $0
     Delete "$TEMP\init_profile.ps1"
     ${If} $0 != 0
@@ -293,7 +293,7 @@ Section "Kiosk Security Setup" SecKiosk
     FileWrite $1 'New-Item -Path "$$profilePath\.sionyx" -ItemType Directory -Force | Out-Null$\r$\n'
     FileWrite $1 'New-Item -Path "$$profilePath\AppData\Local\SIONYX\logs" -ItemType Directory -Force | Out-Null$\r$\n'
     FileClose $1
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\create_profile_dirs.ps1"'
+    nsExec::ExecToLog '"$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "$TEMP\create_profile_dirs.ps1"'
     Pop $0
     Delete "$TEMP\create_profile_dirs.ps1"
     ${If} $0 != 0
@@ -445,7 +445,7 @@ Section "Kiosk Security Setup" SecKiosk
     FileWrite $1 'exit $$errors.Count$\r$\n'
     FileClose $1
     
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_verify_install.ps1"'
+    nsExec::ExecToLog '"$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "$TEMP\sionyx_verify_install.ps1"'
     Pop $0
     Delete "$TEMP\sionyx_verify_install.ps1"
     
@@ -600,7 +600,7 @@ Section "Uninstall"
     FileWrite $0 'Write-Host "[OK] Reverted $$removedCount security policies"$\r$\n'
     FileClose $0
     
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_revert_security.ps1"'
+    nsExec::ExecToLog '"$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "$TEMP\sionyx_revert_security.ps1"'
     Pop $0
     Delete "$TEMP\sionyx_revert_security.ps1"
     
@@ -717,7 +717,7 @@ Section "Uninstall"
     FileWrite $0 '}$\r$\n'
     FileClose $0
     
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_remove_user.ps1"'
+    nsExec::ExecToLog '"$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "$TEMP\sionyx_remove_user.ps1"'
     Pop $0
     Delete "$TEMP\sionyx_remove_user.ps1"
     
@@ -761,7 +761,7 @@ Section "Uninstall"
     FileWrite $0 '}$\r$\n'
     FileClose $0
     
-    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_legacy_cleanup.ps1"'
+    nsExec::ExecToLog '"$WINDIR\Sysnative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy Bypass -File "$TEMP\sionyx_legacy_cleanup.ps1"'
     Pop $0
     Delete "$TEMP\sionyx_legacy_cleanup.ps1"
     

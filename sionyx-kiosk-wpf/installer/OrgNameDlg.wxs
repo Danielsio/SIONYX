@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Fragment>
+  <UI>
+    <!-- Organization Name dialog -->
+    <Dialog Id="OrgNameDlg" Width="370" Height="270" Title="!(loc.InstallDirDlg_Title)">
+
+      <!-- Banner -->
+      <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44"
+               TabSkip="no" Text="!(loc.InstallDirDlgBannerBitmap)" />
+      <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+
+      <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15"
+               Transparent="yes" NoPrefix="yes"
+               Text="{\WixUI_Font_Title}Organization Setup" />
+      <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15"
+               Transparent="yes" NoPrefix="yes"
+               Text="Enter your organization or business name." />
+
+      <!-- Input -->
+      <Control Id="OrgLabel" Type="Text" X="20" Y="60" Width="330" Height="14"
+               Text="Organization Name:" />
+      <Control Id="OrgEdit" Type="Edit" X="20" Y="76" Width="330" Height="18"
+               Property="ORGID" />
+
+      <Control Id="OrgInfo" Type="Text" X="20" Y="104" Width="330" Height="40"
+               Text="This identifies your location in the SIONYX system.&#13;&#10;&#13;&#10;Examples: 'City Gaming Center', 'Tech Hub Cafe'" />
+
+      <!-- Bottom bar -->
+      <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+
+      <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17"
+               Text="!(loc.WixUIBack)" />
+      <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17"
+               Default="yes" Text="!(loc.WixUINext)" />
+      <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17"
+               Cancel="yes" Text="!(loc.WixUICancel)">
+        <Publish Event="SpawnDialog" Value="CancelDlg" />
+      </Control>
+    </Dialog>
+
+    <!-- Validation error dialog -->
+    <Dialog Id="InvalidOrgDlg" Width="280" Height="85" Title="[ProductName] Setup">
+      <Control Id="Icon" Type="Icon" X="15" Y="15" Width="24" Height="24"
+               FixedSize="yes" IconSize="32" Text="WixUI_Ico_Info" />
+      <Control Id="Text" Type="Text" X="48" Y="15" Width="194" Height="30"
+               Text="Please enter a valid organization name." />
+      <Control Id="OK" Type="PushButton" X="112" Y="57" Width="56" Height="17"
+               Default="yes" Cancel="yes" Text="OK">
+        <Publish Event="EndDialog" Value="Return" />
+      </Control>
+    </Dialog>
+  </UI>
+  </Fragment>
+
+</Wix>

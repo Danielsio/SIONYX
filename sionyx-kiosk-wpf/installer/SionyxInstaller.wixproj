@@ -1,0 +1,25 @@
+<Project Sdk="WixToolset.Sdk/6.0.2">
+
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <Platform>x64</Platform>
+    <InstallerPlatform>x64</InstallerPlatform>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ProductVersion Condition="'$(ProductVersion)' == ''">0.0.0</ProductVersion>
+    <PublishDir Condition="'$(PublishDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\dist'))</PublishDir>
+    <SourceDir Condition="'$(SourceDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..'))</SourceDir>
+    <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(PublishDir);SourceDir=$(SourceDir)</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="6.0.2" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="6.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="CustomActions\CustomActions.csproj" />
+  </ItemGroup>
+
+</Project>

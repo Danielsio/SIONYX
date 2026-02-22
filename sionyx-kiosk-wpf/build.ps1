@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Build, package, and release the SIONYX WPF kiosk application.
-    Handles version bumping, dotnet publish, NSIS installer creation,
+    Handles version bumping, dotnet publish, WiX MSI installer creation,
     and Firebase Storage upload.
 
 .PARAMETER Increment
@@ -126,16 +126,8 @@ function Test-Dependencies {
         $ok = $false
     }
 
-    # NSIS
-    $nsisPath = "C:\Program Files (x86)\NSIS"
-    if (Test-Path (Join-Path $nsisPath "makensis.exe")) {
-        $env:PATH += ";$nsisPath"
-        Write-Ok "NSIS found"
-    }
-    else {
-        Write-Err "NSIS not found at $nsisPath"
-        $ok = $false
-    }
+    # WiX SDK is pulled via NuGet (WixToolset.Sdk) - no external install needed
+    Write-Ok "WiX Toolset (NuGet SDK - restored automatically)"
 
     return $ok
 }
@@ -191,36 +183,19 @@ function Invoke-Publish {
 }
 
 function New-Installer([string]$ver) {
-    Write-Header "Creating Installer v$ver"
+    Write-Header "Creating Installer v$ver (WiX MSI)"
 
-    # Copy exe and assets to script dir for NSIS
-    $exe = Join-Path $DistDir "SionyxKiosk.exe"
-    Copy-Item $exe -Destination $ScriptDir -Force
+    $installerDir = Join-Path $ScriptDir "installer"
+    $wixProj = Join-Path $installerDir "SionyxInstaller.wixproj"
 
-    # Copy Assets folder if it exists
-    $assetsDir = Join-Path $DistDir "Assets"
-    if (Test-Path $assetsDir) {
-        $dstAssets = Join-Path $ScriptDir "Assets"
-        if (Test-Path $dstAssets) { Remove-Item $dstAssets -Recurse -Force }
-        Copy-Item $assetsDir -Destination $dstAssets -Recurse -Force
-        Write-Ok "Assets copied"
+    if (-not (Test-Path $wixProj)) {
+        Write-Err "WiX project not found: $wixProj"
+        return $null
     }
 
-    # Update LICENSE.txt version
-    $licensePath = Join-Path $ScriptDir "LICENSE.txt"
-    if (Test-Path $licensePath) {
-        $content = Get-Content $licensePath -Raw
-        $content = $content -replace 'Version \d+\.\d+\.\d+', "Version $ver"
-        Set-Content $licensePath $content -NoNewline
-    }
-    else {
-        "SIONYX Software License`nVersion $ver`nCopyright (c) 2025-2026 SIONYX Technologies" | Set-Content $licensePath
-    }
-
-    # Ensure icon exists
+    # Ensure icon exists at script root (referenced by WiX SourceDir)
     $iconDst = Join-Path $ScriptDir "app-logo.ico"
     if (-not (Test-Path $iconDst)) {
-        # Try to find icon in source project
         $iconSrc = Join-Path $SrcDir "app-logo.ico"
         if (Test-Path $iconSrc) {
             Copy-Item $iconSrc $iconDst
@@ -230,32 +205,40 @@ function New-Installer([string]$ver) {
         }
     }
 
-    # Run NSIS (pipe to Write-Host so output doesn't pollute the function return)
-    Push-Location $ScriptDir
-    $nsisOutput = & makensis /DVERSION="$ver" installer.nsi 2>&1
-    $nsisExit = $LASTEXITCODE
-    $nsisOutput | ForEach-Object { Write-Host $_ }
-    Pop-Location
+    # Build the MSI via dotnet (WiX SDK restores automatically)
+    $publishDir = [System.IO.Path]::GetFullPath($DistDir)
+    $sourceDir = [System.IO.Path]::GetFullPath($ScriptDir)
 
-    if ($nsisExit -ne 0) {
-        Write-Err "NSIS failed"
+    $wixOutput = dotnet build $wixProj `
+        -c Release `
+        -p:Platform=x64 `
+        -p:ProductVersion=$ver `
+        -p:PublishDir=$publishDir `
+        -p:SourceDir=$sourceDir `
+        2>&1
+    $wixExit = $LASTEXITCODE
+    $wixOutput | ForEach-Object { Write-Host $_ }
+
+    if ($wixExit -ne 0) {
+        Write-Err "WiX build failed"
         return $null
     }
 
-    # Rename installer with version
-    $oldName = Join-Path $ScriptDir "SIONYX-Installer.exe"
-    $newName = Join-Path $ScriptDir "sionyx-installer-v$ver.exe"
+    # Find the built MSI
+    $msiDir = Join-Path $installerDir "bin\x64\Release"
+    $msiFile = Get-ChildItem -Path $msiDir -Filter "*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
+
+    if (-not $msiFile) {
+        Write-Err "MSI output not found in $msiDir"
+        return $null
+    }
+
+    # Copy MSI to script dir with versioned name
+    $newName = Join-Path $ScriptDir "sionyx-installer-v$ver.msi"
     if (Test-Path $newName) { Remove-Item $newName }
-    Rename-Item $oldName $newName
+    Copy-Item $msiFile.FullName $newName
 
-    Write-Ok "Installer created: sionyx-installer-v$ver.exe"
-
-    # Cleanup copied files
-    $copiedExe = Join-Path $ScriptDir "SionyxKiosk.exe"
-    if (Test-Path $copiedExe) { Remove-Item $copiedExe }
-    $copiedAssets = Join-Path $ScriptDir "Assets"
-    if (Test-Path $copiedAssets) { Remove-Item $copiedAssets -Recurse -Force }
-
+    Write-Ok "Installer created: sionyx-installer-v$ver.msi"
     return $newName
 }
 
@@ -297,7 +280,7 @@ $newVersion = $newData.version
 Write-Host "  Current version: v$currentVersion"
 Write-Host "  New version:     v$newVersion ($Increment)"
 Write-Host "  Build number:    #$($newData.buildNumber)"
-Write-Host "  Output:          sionyx-installer-v$newVersion.exe"
+Write-Host "  Output:          sionyx-installer-v$newVersion.msi"
 Write-Host ""
 
 if ($DryRun) {
