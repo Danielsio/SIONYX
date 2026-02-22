@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Card,
   Tabs,
@@ -9,7 +10,7 @@ import {
   Button,
   Space,
   Typography,
-  Spin,
+  Skeleton,
   Modal,
   message,
   Badge,
@@ -35,9 +36,23 @@ import {
 } from '../services/computerService';
 import { getUserStatus, getStatusLabel, getStatusColor } from '../constants/userStatus';
 import { useAuthStore } from '../store/authStore';
+import { useOrgId } from '../hooks/useOrgId';
 import { logger } from '../utils/logger';
 
 const { Title, Text } = Typography;
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
+  },
+};
 
 const ComputersPage = () => {
   const [computers, setComputers] = useState([]);
@@ -49,10 +64,11 @@ const ComputersPage = () => {
   const [actionLoading, setActionLoading] = useState({});
 
   const user = useAuthStore(state => state.user);
+  const orgId = useOrgId();
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [orgId]);
 
   const loadData = async () => {
     try {
@@ -484,11 +500,20 @@ const ComputersPage = () => {
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '100px 0' }}>
-        <Spin size='large' />
-        <div style={{ marginTop: 16 }}>
-          <Text>טוען נתוני מחשבים...</Text>
-        </div>
+      <div style={{ direction: 'rtl' }}>
+        <Skeleton active paragraph={{ rows: 1 }} style={{ marginBottom: 24 }} />
+        <Row gutter={[16, 16]}>
+          {[1, 2, 3, 4].map(i => (
+            <Col key={i} xs={24} sm={12} lg={6}>
+              <Card bordered={false} style={{ textAlign: 'center' }}>
+                <Skeleton active paragraph={{ rows: 2 }} />
+              </Card>
+            </Col>
+          ))}
+        </Row>
+        <Card style={{ marginTop: 24 }}>
+          <Skeleton active paragraph={{ rows: 8 }} />
+        </Card>
       </div>
     );
   }
@@ -511,21 +536,27 @@ const ComputersPage = () => {
   }
 
   return (
-    <div style={{ direction: 'rtl' }}>
+    <motion.div
+      style={{ direction: 'rtl' }}
+      variants={containerVariants}
+      initial='hidden'
+      animate='visible'
+    >
       <Space direction='vertical' size='large' style={{ width: '100%' }}>
         {/* Header */}
-        <div>
+        <motion.div variants={itemVariants}>
           <Title level={2} style={{ marginBottom: 8 }}>
             ניהול מחשבים
           </Title>
           <Text type='secondary'>צפה ונתח מחשבים בארגון שלך</Text>
-        </div>
+        </motion.div>
 
         {/* Stats Overview */}
         {stats && (
+          <motion.div variants={itemVariants}>
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12} lg={6}>
-              <Card variant='borderless' style={{ textAlign: 'center' }}>
+              <Card bordered={false} style={{ textAlign: 'center' }}>
                 <Statistic
                   title='סך מחשבים'
                   value={stats.totalComputers}
@@ -535,7 +566,7 @@ const ComputersPage = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card variant='borderless' style={{ textAlign: 'center' }}>
+              <Card bordered={false} style={{ textAlign: 'center' }}>
                 <Statistic
                   title='מחשבים פעילים'
                   value={stats.activeComputers}
@@ -545,7 +576,7 @@ const ComputersPage = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card variant='borderless' style={{ textAlign: 'center' }}>
+              <Card bordered={false} style={{ textAlign: 'center' }}>
                 <Statistic
                   title='בשימוש'
                   value={stats.computersWithUsers}
@@ -555,7 +586,7 @@ const ComputersPage = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
-              <Card variant='borderless' style={{ textAlign: 'center' }}>
+              <Card bordered={false} style={{ textAlign: 'center' }}>
                 <Statistic
                   title='משתמשים פעילים'
                   value={activeUsers.length}
@@ -565,9 +596,11 @@ const ComputersPage = () => {
               </Card>
             </Col>
           </Row>
+          </motion.div>
         )}
 
         {/* Tabs */}
+        <motion.div variants={itemVariants}>
         <Card>
           <Tabs
             activeKey={activeTab}
@@ -580,8 +613,9 @@ const ComputersPage = () => {
             }
           />
         </Card>
+        </motion.div>
       </Space>
-    </div>
+    </motion.div>
   );
 };
 
