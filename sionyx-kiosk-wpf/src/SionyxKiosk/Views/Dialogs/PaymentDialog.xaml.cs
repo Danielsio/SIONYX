@@ -94,8 +94,13 @@ public partial class PaymentDialog : Window
             _server = new LocalFileServer(templatesDir, 0); // Port 0 = auto-pick free port
             _server.Start();
 
-            // Initialize WebView2
-            await PaymentWebView.EnsureCoreWebView2Async();
+            // Initialize WebView2 with a writable user data folder
+            // Default location is the exe directory (Program Files) which KioskUser can't write to
+            var webView2DataDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "SIONYX", "WebView2");
+            var env = await CoreWebView2Environment.CreateAsync(null, webView2DataDir);
+            await PaymentWebView.EnsureCoreWebView2Async(env);
             PaymentWebView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
 
             // Navigate to payment page
