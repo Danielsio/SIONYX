@@ -362,7 +362,7 @@ code {
 .ant-typography h4,
 .ant-typography h5,
 .ant-typography h6 {
-  text-align: right !important;
+  text-align: right;
   direction: rtl !important;
 }
 
