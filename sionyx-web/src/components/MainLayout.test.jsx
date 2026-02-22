@@ -38,6 +38,8 @@ const renderMainLayout = (userOverride = null) => {
     const state = {
       user: mockUser,
       logout: mockLogout,
+      darkMode: false,
+      toggleDarkMode: vi.fn(),
     };
     return selector(state);
   });
@@ -75,14 +77,14 @@ describe('MainLayout', () => {
   it('displays sidebar menu', () => {
     renderMainLayout();
 
-    // Should have navigation menu items
-    expect(screen.getByText('סקירה כללית')).toBeInTheDocument();
+    // Should have navigation menu items (also in breadcrumb when on /admin)
+    expect(screen.getAllByText('סקירה כללית').length).toBeGreaterThanOrEqual(1);
   });
 
   it('displays all menu items', () => {
     renderMainLayout();
 
-    expect(screen.getByText('סקירה כללית')).toBeInTheDocument();
+    expect(screen.getAllByText('סקירה כללית').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('משתמשים')).toBeInTheDocument();
     expect(screen.getByText('חבילות')).toBeInTheDocument();
     expect(screen.getByText('הודעות')).toBeInTheDocument();
