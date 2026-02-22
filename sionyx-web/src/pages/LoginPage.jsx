@@ -22,7 +22,7 @@ const LoginPage = () => {
 
     if (result.success) {
       setUser(result.user);
-      message.success(`Welcome to ${values.orgId}!`);
+      message.success(`ברוך הבא ל-${values.orgId}!`);
       navigate('/admin');
     } else {
       setError(result.error);
@@ -33,26 +33,25 @@ const LoginPage = () => {
   };
 
   return (
-    <App>
-      <div
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '20px',
+        direction: 'rtl',
+      }}
+    >
+      <Card
         style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          padding: '20px',
-          direction: 'rtl',
+          width: '100%',
+          maxWidth: 450,
+          borderRadius: 16,
+          boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
         }}
       >
-        <Card
-          style={{
-            width: '100%',
-            maxWidth: 450,
-            borderRadius: 12,
-            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-          }}
-        >
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <Title level={2} style={{ marginBottom: 8 }}>
               SIONYX מנהל
@@ -153,8 +152,7 @@ const LoginPage = () => {
             </Text>
           </div>
         </Card>
-      </div>
-    </App>
+    </div>
   );
 };
 
