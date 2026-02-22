@@ -3,6 +3,10 @@
 
   <Fragment>
   <UI>
+    <TextStyle Id="OrgFont_Label" FaceName="Segoe UI" Size="11" />
+    <TextStyle Id="OrgFont_Input" FaceName="Segoe UI" Size="11" />
+    <TextStyle Id="OrgFont_Info" FaceName="Segoe UI" Size="10" />
+
     <!-- Organization Name dialog -->
     <Dialog Id="OrgNameDlg" Width="370" Height="270" Title="!(loc.InstallDirDlg_Title)">
 
@@ -19,13 +23,13 @@
                Text="Enter your organization or business name." />
 
       <!-- Input -->
-      <Control Id="OrgLabel" Type="Text" X="20" Y="60" Width="330" Height="14"
-               Text="Organization Name:" />
-      <Control Id="OrgEdit" Type="Edit" X="20" Y="76" Width="330" Height="18"
+      <Control Id="OrgLabel" Type="Text" X="20" Y="60" Width="330" Height="18"
+               Text="{\OrgFont_Label}Organization Name:" />
+      <Control Id="OrgEdit" Type="Edit" X="20" Y="82" Width="330" Height="22"
                Property="ORGID" />
 
-      <Control Id="OrgInfo" Type="Text" X="20" Y="104" Width="330" Height="40"
-               Text="This identifies your location in the SIONYX system.&#13;&#10;&#13;&#10;Examples: 'City Gaming Center', 'Tech Hub Cafe'" />
+      <Control Id="OrgInfo" Type="Text" X="20" Y="114" Width="330" Height="50"
+               Text="{\OrgFont_Info}This identifies your location in the SIONYX system.&#13;&#10;&#13;&#10;Examples: 'City Gaming Center', 'Tech Hub Cafe'" />
 
       <!-- Bottom bar -->
       <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
