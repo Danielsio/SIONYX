@@ -5,7 +5,9 @@
       Title="חבילות" FlowDirection="RightToLeft">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
         <StackPanel Margin="24,0,24,24">
-            <controls:PageHeader Title="חבילות" Subtitle="בחר חבילה שמתאימה לך" Margin="0,0,0,28" />
+            <controls:PageHeader Title="חבילות" Subtitle="בחר את החבילה המתאימה לך"
+                                 HeaderBrush="{StaticResource PackagesHeaderGradient}" Icon="📦"
+                                 Margin="0,0,0,28" />
 
             <!-- Loading -->
             <controls:LoadingSpinner HorizontalAlignment="Center"
@@ -44,8 +46,8 @@
                                         CornerRadius="18,18,0,0">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                            <GradientStop Color="#F5F3FF" Offset="0" />
-                                            <GradientStop Color="#EEF2FF" Offset="1" />
+                                            <GradientStop Color="#EFF6FF" Offset="0" />
+                                            <GradientStop Color="#E0F2FE" Offset="1" />
                                         </LinearGradientBrush>
                                     </Border.Background>
                                     <Grid>
@@ -63,12 +65,12 @@
                                                     Visibility="{Binding HasDiscount, Converter={StaticResource BoolToVis}}">
                                                 <Border.Background>
                                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                                        <GradientStop Color="#10B981" Offset="0" />
-                                                        <GradientStop Color="#059669" Offset="1" />
+                                                        <GradientStop Color="#EF4444" Offset="0" />
+                                                        <GradientStop Color="#DC2626" Offset="1" />
                                                     </LinearGradientBrush>
                                                 </Border.Background>
-                                                <TextBlock Text="{Binding DiscountPercent, StringFormat='{}{0:F0}% הנחה!'}"
-                                                           FontSize="14" FontWeight="Bold" Foreground="White" />
+                                                <TextBlock Text="{Binding DiscountPercent, StringFormat='הנחה {0:F0}%'}"
+                                                           FontSize="13" FontWeight="Bold" Foreground="White" />
                                             </Border>
                                         </StackPanel>
 

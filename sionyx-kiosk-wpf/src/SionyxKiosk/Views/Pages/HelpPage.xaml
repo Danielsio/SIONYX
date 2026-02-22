@@ -5,34 +5,54 @@
       Title="עזרה" FlowDirection="RightToLeft">
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
         <StackPanel>
-            <controls:PageHeader Title="עזרה ותמיכה" Subtitle="שאלות נפוצות ויצירת קשר" Margin="0,0,0,24" />
+            <controls:PageHeader Title="עזרה" Subtitle="שאלות נפוצות ויצירת קשר"
+                                 HeaderBrush="{StaticResource HelpHeaderGradient}" Icon="❓"
+                                 Margin="0,0,0,24" />
 
-            <!-- FAQ Accordion -->
+            <!-- FAQ Section Title -->
             <TextBlock Text="שאלות נפוצות" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
 
+            <!-- FAQ Accordion - click to expand/collapse -->
             <ItemsControl ItemsSource="{Binding FaqItems}" Margin="0,0,0,36">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border Background="White" CornerRadius="{StaticResource RadiusLg}"
-                                Padding="28,22" Margin="0,0,0,10"
-                                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                                Padding="28,0" Margin="0,0,0,10" Cursor="Hand"
+                                BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
+                                MouseLeftButtonUp="FaqItem_Click">
                             <StackPanel>
-                                <TextBlock Text="{Binding Question}" FontWeight="SemiBold"
-                                           FontSize="{StaticResource FontSizeLg}"
-                                           Foreground="{StaticResource TextPrimaryBrush}" />
-                                <TextBlock Text="{Binding Answer}"
+                                <!-- Question row (always visible) -->
+                                <Grid Margin="0,20">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="✓" FontSize="16"
+                                               Foreground="{StaticResource PrimaryBrush}"
+                                               VerticalAlignment="Center" Margin="0,0,12,0" />
+                                    <TextBlock Grid.Column="1" Text="{Binding Question}" FontWeight="SemiBold"
+                                               FontSize="{StaticResource FontSizeLg}"
+                                               Foreground="{StaticResource TextPrimaryBrush}"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Grid.Column="2" x:Name="Chevron" Text="▼"
+                                               FontSize="12" Foreground="{StaticResource TextMutedBrush}"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                                <!-- Answer (collapsed by default) -->
+                                <TextBlock x:Name="AnswerBlock" Text="{Binding Answer}"
                                            FontSize="{StaticResource FontSizeBase}"
                                            Foreground="{StaticResource TextSecondaryBrush}"
-                                           TextWrapping="Wrap" Margin="0,10,0,0"
-                                           LineHeight="24" />
+                                           TextWrapping="Wrap" Margin="28,0,0,20"
+                                           LineHeight="24" Visibility="Collapsed" />
                             </StackPanel>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <!-- Contact card -->
-            <TextBlock Text="יצירת קשר" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
+            <!-- Contact Section -->
+            <TextBlock Text="צור קשר" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
             <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="32,28" Margin="0,0,0,36">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="20" ShadowDepth="4" Direction="270" Color="#0F172A" Opacity="0.07" />
@@ -41,7 +61,7 @@
                     <TextBlock Text="{Binding OrgName}" FontSize="22" FontWeight="Bold"
                                Foreground="{StaticResource TextPrimaryBrush}" Margin="0,0,0,20" />
 
-                    <!-- Phone row with copy button -->
+                    <!-- Phone row -->
                     <Border Background="#F8FAFC" CornerRadius="{StaticResource RadiusLg}"
                             Padding="22,16" Margin="0,0,0,10" Cursor="Hand"
                             MouseLeftButtonUp="PhoneRow_Click">
@@ -57,14 +77,14 @@
                                 <TextBlock Text="{Binding AdminPhone}" FontSize="18" FontWeight="SemiBold"
                                            Foreground="{StaticResource PrimaryBrush}" Margin="0,2,0,0" />
                             </StackPanel>
-                            <TextBlock Grid.Column="2" Text="📋 העתק" FontSize="14"
-                                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="📋" FontSize="18"
+                                       Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center" />
                         </Grid>
                     </Border>
 
-                    <!-- Email row with copy button -->
+                    <!-- Email row -->
                     <Border Background="#F8FAFC" CornerRadius="{StaticResource RadiusLg}"
-                            Padding="22,16" Cursor="Hand"
+                            Padding="22,16" Margin="0,0,0,10" Cursor="Hand"
                             MouseLeftButtonUp="EmailRow_Click">
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -78,8 +98,27 @@
                                 <TextBlock Text="{Binding AdminEmail}" FontSize="18" FontWeight="SemiBold"
                                            Foreground="{StaticResource PrimaryBrush}" Margin="0,2,0,0" />
                             </StackPanel>
-                            <TextBlock Grid.Column="2" Text="📋 העתק" FontSize="14"
-                                       Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="📋" FontSize="18"
+                                       Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center" />
+                        </Grid>
+                    </Border>
+
+                    <!-- Working hours -->
+                    <Border Background="#F8FAFC" CornerRadius="{StaticResource RadiusLg}"
+                            Padding="22,16">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="🕐" FontSize="22" VerticalAlignment="Center" Margin="0,0,14,0" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="שעות פעילות" FontSize="14" Foreground="{StaticResource TextMutedBrush}" />
+                                <TextBlock Text="ימים א׳-ה׳ 09:00-21:00" FontSize="16" FontWeight="SemiBold"
+                                           Foreground="{StaticResource TextPrimaryBrush}" Margin="0,2,0,0" />
+                                <TextBlock Text="שישי 09:00-14:00" FontSize="14"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                            </StackPanel>
                         </Grid>
                     </Border>
 

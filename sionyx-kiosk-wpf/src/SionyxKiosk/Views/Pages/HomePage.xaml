@@ -11,15 +11,29 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
         <StackPanel Margin="0,0,0,32">
 
-            <!-- Page header with personalized greeting -->
-            <controls:PageHeader Title="דף הבית" Subtitle="{Binding WelcomeMessage}" Margin="0,0,0,24" />
+            <!-- Page header with warm gradient -->
+            <controls:PageHeader Title="שלום! 👋" Subtitle="{Binding WelcomeMessage}"
+                                 HeaderBrush="{StaticResource HomeHeaderGradient}"
+                                 Margin="0,0,0,24" />
 
-            <!-- Stats row -->
+            <!-- Stats row with colored accent icons -->
             <UniformGrid Rows="1" Margin="0,0,0,24">
-                <controls:StatCard Title="זמן נותר" Value="{Binding RemainingTime}" Icon="⏱" Margin="0,0,8,0" />
-                <controls:StatCard Title="תוקף" Value="{Binding TimeExpiry}" Icon="📅" Margin="4,0" />
-                <controls:StatCard Title="יתרת הדפסות" Value="{Binding PrintBalance}" Icon="🖨" Margin="4,0" />
-                <controls:StatCard Title="הודעות" Value="{Binding UnreadMessages}" Icon="💬" Margin="8,0,0,0" />
+                <controls:StatCard Title="זמן נותר" Value="{Binding RemainingTime}" Icon="⏱"
+                                   AccentColor="{StaticResource StatOrangeColor}"
+                                   AccentBgColor="{StaticResource StatOrangeBgColor}"
+                                   Margin="0,0,8,0" />
+                <controls:StatCard Title="תוקף" Value="{Binding TimeExpiry}" Icon="📅"
+                                   AccentColor="{StaticResource StatGreenColor}"
+                                   AccentBgColor="{StaticResource StatGreenBgColor}"
+                                   Margin="4,0" />
+                <controls:StatCard Title="יתרת הדפסות" Value="{Binding PrintBalance}" Icon="🖨"
+                                   AccentColor="{StaticResource StatRedColor}"
+                                   AccentBgColor="{StaticResource StatRedBgColor}"
+                                   Margin="4,0" />
+                <controls:StatCard Title="הודעות" Value="{Binding UnreadMessages}" Icon="💬"
+                                   AccentColor="{StaticResource StatPurpleColor}"
+                                   AccentBgColor="{StaticResource StatPurpleBgColor}"
+                                   Margin="8,0,0,0" />
             </UniformGrid>
 
             <!-- Unread messages card (visible only when there are unread messages) -->
