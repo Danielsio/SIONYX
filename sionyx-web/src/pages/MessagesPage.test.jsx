@@ -63,7 +63,10 @@ const mockMessages = [
 
 const renderMessagesPage = () => {
   useAuthStore.mockImplementation(selector => {
-    const state = { user: { orgId: 'my-org', uid: 'admin-123' } };
+    const state = {
+      user: { orgId: 'my-org', uid: 'admin-123' },
+      getOrgId: () => 'my-org',
+    };
     return typeof selector === 'function' ? selector(state) : state;
   });
 
@@ -231,7 +234,10 @@ describe('MessagesPage', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     useAuthStore.mockImplementation(selector => {
-      const state = { user: null };
+      const state = {
+        user: null,
+        getOrgId: () => null,
+      };
       return typeof selector === 'function' ? selector(state) : state;
     });
 
