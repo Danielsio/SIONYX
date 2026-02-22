@@ -199,9 +199,9 @@
     <!-- Insert OrgNameDlg between InstallDirDlg and VerifyReadyDlg.
          Higher Order values override the defaults from WixUI_InstallDir. -->
     <UI>
-      <!-- InstallDirDlg → OrgNameDlg (override default Next → VerifyReadyDlg which is Order 4) -->
-      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="OrgNameDlg" Order="5"
-               Condition="WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID = &quot;1&quot;" />
+      <!-- InstallDirDlg → OrgNameDlg (override default Next → VerifyReadyDlg which is Order 4).
+           No condition needed: CheckTargetPath at Order 1 already prevents navigation on invalid paths. -->
+      <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="OrgNameDlg" Order="5" />
 
       <!-- OrgNameDlg navigation -->
       <Publish Dialog="OrgNameDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg" />
