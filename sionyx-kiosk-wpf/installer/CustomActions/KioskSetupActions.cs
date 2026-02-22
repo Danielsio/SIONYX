@@ -59,9 +59,7 @@ namespace SionyxInstaller
                         return ActionResult.Failure;
                     }
 
-                    RunCommand("powershell.exe",
-                        $"-NoProfile -Command \"Set-LocalUser -Name '{KioskUsername}' -PasswordNeverExpires $true\"",
-                        session);
+                    SetPasswordNeverExpires(KioskUsername, session);
                 }
 
                 // Ensure not in Administrators (ignore errors — may not be a member)
@@ -551,6 +549,25 @@ namespace SionyxInstaller
                     session.Log($"STDERR: {stderr.TrimEnd()}");
 
                 return process.ExitCode;
+            }
+        }
+
+        private static void SetPasswordNeverExpires(string username, Session session)
+        {
+            string wmic = ResolvePath("wmic");
+            if (File.Exists(wmic))
+            {
+                session.Log("Using wmic to set password never expires...");
+                RunCommand("wmic",
+                    $"useraccount where name=\"{username}\" set PasswordExpires=false",
+                    session);
+            }
+            else
+            {
+                session.Log("wmic not available, using PowerShell...");
+                RunCommand("powershell.exe",
+                    $"-NoProfile -Command \"Set-LocalUser -Name '{username}' -PasswordNeverExpires $true\"",
+                    session);
             }
         }
 
