@@ -96,16 +96,75 @@ setGlobalOptions({maxInstances: 10});
 // });
 
 
+const crypto = require("crypto");
 const admin = require("firebase-admin");
 const {onCall} = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
 
 admin.initializeApp();
 
-// Simple encryption utilities for sensitive data
+// Encryption key from env or Firebase config (32 bytes for AES-256)
+const getEncryptionKey = () => {
+  let key = process.env.ENCRYPTION_KEY;
+  if (!key && typeof functions.config === "function") {
+    const cfg = functions.config().nedarim;
+    key = cfg && cfg.encryption_key;
+  }
+  if (key && String(key).length >= 32) {
+    return Buffer.from(String(key).slice(0, 32), "utf8");
+  }
+  return null;
+};
+
+const ALGORITHM = "aes-256-cbc";
+const IV_LENGTH = 16;
+
+/**
+ * Encrypt sensitive data. Uses AES-256-CBC if ENCRYPTION_KEY is configured,
+ * otherwise falls back to base64 (logs warning).
+ * @param {string|object} data - Data to encrypt (will be JSON stringified).
+ * @return {string} Encrypted string (iv:data in base64, or plain base64).
+ */
 const encryptData = (data) => {
-  // Using base64 encoding for now - can be upgraded to proper encryption later
+  const key = getEncryptionKey();
+  if (key) {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+    const encrypted = Buffer.concat([
+      cipher.update(JSON.stringify(data), "utf8"),
+      cipher.final(),
+    ]);
+    return iv.toString("base64") + ":" + encrypted.toString("base64");
+  }
+  logger.warn("ENCRYPTION_KEY not configured — using base64 fallback");
   return Buffer.from(JSON.stringify(data)).toString("base64");
+};
+
+/**
+ * Decrypt data. Tries AES-256-CBC first if key is configured,
+ * otherwise treats input as base64. Use when reading encrypted org metadata.
+ * @param {string} encrypted - Encrypted string from encryptData.
+ * @return {string|object} Decrypted value (parsed from JSON).
+ */
+// eslint-disable-next-line no-unused-vars
+const decryptData = (encrypted) => {
+  const key = getEncryptionKey();
+  if (key) {
+    try {
+      const [ivB64, dataB64] = encrypted.split(":");
+      if (ivB64 && dataB64) {
+        const iv = Buffer.from(ivB64, "base64");
+        const data = Buffer.from(dataB64, "base64");
+        const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
+        return JSON.parse(
+            decipher.update(data) + decipher.final("utf8"),
+        );
+      }
+    } catch (e) {
+      // Fall through to base64
+    }
+  }
+  return JSON.parse(Buffer.from(encrypted, "base64").toString("utf8"));
 };
 
 /**
@@ -143,8 +202,29 @@ exports.nedarimCallback = onRequest(async (req, res) => {
   log.debug("Request payload (masked)", {payload: maskedBody});
 
   try {
+    // CALLBACK_SECRET: validate secret from query param or header if configured
+    let callbackSecret = process.env.CALLBACK_SECRET;
+    if (!callbackSecret && typeof functions.config === "function") {
+      const cfg = functions.config().nedarim;
+      callbackSecret = cfg && cfg.callback_secret;
+    }
+    if (callbackSecret) {
+      const providedSecret = (req.query && req.query.secret) ||
+          (req.headers && req.headers["x-callback-secret"]);
+      if (providedSecret !== callbackSecret) {
+        log.warn("Callback secret validation failed", {
+          hasSecret: !!providedSecret,
+        });
+        return res.status(403).json({
+          success: false,
+          error: "Forbidden",
+          correlationId,
+        });
+      }
+    }
+
     // Nedarim Plus sends data via POST
-    const paymentData = req.body;
+    const paymentData = req.body || {};
 
     // Extract important fields
     const {
@@ -157,6 +237,41 @@ exports.nedarimCallback = onRequest(async (req, res) => {
 
     TransactionId = paymentData.TransactionId;
     Status = paymentData.Status;
+
+    // Type validation: Amount must parse as number
+    const amountNum = Amount != null ? Number(Amount) : NaN;
+    if (Number.isNaN(amountNum) || amountNum < 0) {
+      log.warn("Validation failed: Amount is not a valid number", {
+        receivedAmount: Amount,
+      });
+      return res.status(400).json({
+        success: false,
+        error: "Invalid Amount",
+        correlationId,
+      });
+    }
+
+    // Param1 and Param2 must be non-empty strings
+    if (typeof Param1 !== "string" || !Param1.trim()) {
+      log.warn("Validation failed: Param1 must be a non-empty string", {
+        receivedParam1: Param1,
+      });
+      return res.status(400).json({
+        success: false,
+        error: "Invalid Param1 (purchaseId)",
+        correlationId,
+      });
+    }
+    if (typeof Param2 !== "string" || !Param2.trim()) {
+      log.warn("Validation failed: Param2 must be a non-empty string", {
+        receivedParam2: Param2,
+      });
+      return res.status(400).json({
+        success: false,
+        error: "Invalid Param2 (orgId)",
+        correlationId,
+      });
+    }
 
     log.info("Payment data extraction completed", {
       hasTransactionId: !!TransactionId,
@@ -188,9 +303,9 @@ exports.nedarimCallback = onRequest(async (req, res) => {
       });
     }
 
-    // Parse purchaseId and orgId
-    purchaseId = Param1;
-    orgId = Param2;
+    // Parse purchaseId and orgId (already validated as non-empty strings)
+    purchaseId = Param1.trim();
+    orgId = Param2.trim();
 
     log.info("Payment data extracted successfully", {
       transactionId: TransactionId,
@@ -245,14 +360,24 @@ exports.nedarimCallback = onRequest(async (req, res) => {
       operation: "purchase-update",
     });
 
+    // Sanitize: only store safe fields, never full raw payload
+    const sanitizedRawResponse = {
+      TransactionId,
+      Status,
+      Amount: amountNum,
+      CreditCardNumber: CreditCardNumber ? "****" : undefined,
+      Param1,
+      Param2,
+    };
+
     const updateData = {
       status: Status === "Error" ? "failed" : "completed",
       transactionId: TransactionId,
-      amount: Amount,
+      amount: amountNum,
       creditCardNumber: CreditCardNumber || "****",
       message: Message || "",
       callbackReceivedAt: admin.database.ServerValue.TIMESTAMP,
-      rawResponse: paymentData,
+      rawResponse: sanitizedRawResponse,
       correlationId,
       processedAt: new Date().toISOString(),
     };
