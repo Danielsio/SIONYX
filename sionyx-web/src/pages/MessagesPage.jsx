@@ -13,6 +13,7 @@ import {
   Drawer,
   Empty,
   Spin,
+  Skeleton,
   Divider,
   Tooltip,
 } from 'antd';
@@ -29,6 +30,7 @@ import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/he';
 import { useAuthStore } from '../store/authStore';
+import { useOrgId } from '../hooks/useOrgId';
 import { getAllUsers } from '../services/userService';
 import {
   getAllMessages,
@@ -76,13 +78,14 @@ const MessagesPage = () => {
 
   const { user } = useAuthStore();
   const { message } = App.useApp();
+  const orgId = useOrgId();
 
   useEffect(() => {
     loadData();
-    if (user?.orgId) {
-      cleanupOldMessages(user.orgId).catch(() => {});
+    if (orgId) {
+      cleanupOldMessages(orgId).catch(() => {});
     }
-  }, []);
+  }, [orgId]);
 
   useEffect(() => {
     if (chatVisible && chatEndRef.current) {
@@ -91,12 +94,12 @@ const MessagesPage = () => {
   }, [userMessages, chatVisible]);
 
   const loadData = async () => {
-    if (!user?.orgId) return;
+    if (!orgId) return;
     setLoading(true);
     try {
       const [usersResult, messagesResult] = await Promise.all([
-        getAllUsers(user.orgId),
-        getAllMessages(user.orgId),
+        getAllUsers(orgId),
+        getAllMessages(orgId),
       ]);
 
       if (usersResult.success) setUsers(usersResult.users);
@@ -115,7 +118,7 @@ const MessagesPage = () => {
     setLoadingChat(true);
 
     try {
-      const result = await getMessagesForUser(user.orgId, userItem.uid);
+      const result = await getMessagesForUser(orgId, userItem.uid);
       if (result.success) {
         const sorted = [...result.messages].sort(
           (a, b) => dayjs(a.timestamp).unix() - dayjs(b.timestamp).unix()
@@ -135,10 +138,10 @@ const MessagesPage = () => {
 
     setSending(true);
     try {
-      const result = await sendMessage(user.orgId, selectedUser.uid, newMessage.trim(), user.uid);
+      const result = await sendMessage(orgId, selectedUser.uid, newMessage.trim(), user.uid);
       if (result.success) {
         setNewMessage('');
-        const msgResult = await getMessagesForUser(user.orgId, selectedUser.uid);
+        const msgResult = await getMessagesForUser(orgId, selectedUser.uid);
         if (msgResult.success) {
           const sorted = [...msgResult.messages].sort(
             (a, b) => dayjs(a.timestamp).unix() - dayjs(b.timestamp).unix()
@@ -348,7 +351,7 @@ const MessagesPage = () => {
               whiteSpace: 'nowrap',
             }}
           >
-            {userItem.firstName}
+            {name}
           </Text>
         </div>
       </Tooltip>
@@ -422,9 +425,22 @@ const MessagesPage = () => {
 
       {/* ── Content ──────────────────────────────────────── */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 80 }}>
-          <Spin size="large" />
-        </div>
+        <Row gutter={[20, 20]}>
+          <Col xs={24} lg={16}>
+            <Card style={{ borderRadius: 14 }}>
+              {[1, 2, 3, 4, 5].map(i => (
+                <div key={i} style={{ padding: '14px 18px', borderBottom: '1px solid #eef0f4' }}>
+                  <Skeleton active avatar paragraph={{ rows: 1 }} />
+                </div>
+              ))}
+            </Card>
+          </Col>
+          <Col xs={24} lg={8}>
+            <Card style={{ borderRadius: 14 }}>
+              <Skeleton active paragraph={{ rows: 6 }} />
+            </Card>
+          </Col>
+        </Row>
       ) : (
         <Row gutter={[20, 20]}>
           {/* ── Conversations List ────────────────────────── */}
