@@ -511,11 +511,23 @@ namespace SionyxInstaller
         //  HELPERS
         // ====================================================================
 
+        private static string ResolvePath(string fileName)
+        {
+            string sysDir = Environment.GetFolderPath(Environment.SpecialFolder.System);
+            string fullPath = Path.Combine(sysDir, fileName);
+            if (File.Exists(fullPath)) return fullPath;
+
+            string wbemPath = Path.Combine(sysDir, "wbem", fileName);
+            if (File.Exists(wbemPath)) return wbemPath;
+
+            return fileName;
+        }
+
         private static int RunCommand(string fileName, string arguments, Session session)
         {
             var psi = new ProcessStartInfo
             {
-                FileName = fileName,
+                FileName = ResolvePath(fileName),
                 Arguments = arguments,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
