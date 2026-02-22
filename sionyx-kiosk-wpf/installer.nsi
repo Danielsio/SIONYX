@@ -12,7 +12,7 @@
 !define APP_EXECUTABLE "SionyxKiosk.exe"
 !define APP_ICON "app-logo.ico"
 !define INSTALLER_NAME "SIONYX-Installer.exe"
-!define KIOSK_USERNAME "KioskUser"
+!define KIOSK_USERNAME "SionyxUser"
 
 ; Modern UI
 !include "MUI2.nsh"
@@ -158,7 +158,7 @@ Section "Kiosk Security Setup" SecKiosk
         nsExec::ExecToLog 'net user "${KIOSK_USERNAME}" "" /add /fullname:"SIONYX Kiosk User" /comment:"Restricted kiosk account" /passwordchg:no'
         Pop $0
         ${If} $0 != 0
-            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to create KioskUser account (error $0)"
+            MessageBox MB_OK|MB_ICONEXCLAMATION "Failed to create SionyxUser account (error $0)"
             Abort
         ${EndIf}
         nsExec::ExecToLog 'wmic useraccount where name="${KIOSK_USERNAME}" set PasswordExpires=false'
@@ -219,9 +219,9 @@ Section "Kiosk Security Setup" SecKiosk
     Pop $0
     Delete "$TEMP\create_sionyx_task.ps1"
     
-    ; Force Windows profile initialization for KioskUser.
+    ; Force Windows profile initialization for SionyxUser.
     ; Windows only creates a proper user profile on first interactive logon.
-    ; Without this, manually creating C:\Users\KioskUser causes a "temporary
+    ; Without this, manually creating C:\Users\SionyxUser causes a "temporary
     ; profile" error because the registry ProfileList entry is missing.
     ;
     ; We use the Win32 CreateProfile API (userenv.dll) to create the profile
@@ -365,7 +365,10 @@ Section "Uninstall"
     RMDir "$SMPROGRAMS\${APP_NAME}"
     DetailPrint "  Deleted: Start Menu shortcuts"
     Delete "C:\Users\${KIOSK_USERNAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk"
-    DetailPrint "  Deleted: KioskUser startup shortcut"
+    DetailPrint "  Deleted: SionyxUser startup shortcut"
+    ; Legacy KioskUser startup shortcut
+    Delete "C:\Users\KioskUser\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk"
+    Delete "C:\Users\KioskUser.000\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\${APP_NAME}.lnk"
     
     DetailPrint "[OK] Application files removed"
     
@@ -381,11 +384,17 @@ Section "Uninstall"
     RMDir /r "$LOCALAPPDATA\${APP_NAME}"
     DetailPrint "  Cleaned: $LOCALAPPDATA\${APP_NAME}"
     
-    ; KioskUser app data
+    ; SionyxUser app data
     RMDir /r "C:\Users\${KIOSK_USERNAME}\.sionyx"
     DetailPrint "  Cleaned: C:\Users\${KIOSK_USERNAME}\.sionyx"
     RMDir /r "C:\Users\${KIOSK_USERNAME}\AppData\Local\${APP_NAME}"
     DetailPrint "  Cleaned: C:\Users\${KIOSK_USERNAME}\AppData\Local\${APP_NAME}"
+    
+    ; Legacy KioskUser app data (pre-v3.0.16)
+    RMDir /r "C:\Users\KioskUser\.sionyx"
+    RMDir /r "C:\Users\KioskUser\AppData\Local\${APP_NAME}"
+    RMDir /r "C:\Users\KioskUser.000\.sionyx"
+    RMDir /r "C:\Users\KioskUser.000\AppData\Local\${APP_NAME}"
     
     DetailPrint "[OK] Application data removed"
     
@@ -420,10 +429,10 @@ Section "Uninstall"
     Pop $0
     Delete "$TEMP\sionyx_revert_security.ps1"
     
-    ; ── STEP 6: Remove KioskUser completely ───────────────────────
+    ; ── STEP 6: Remove SionyxUser completely ───────────────────────
     DetailPrint ""
     DetailPrint "------------------------------------------------------------"
-    DetailPrint "  STEP 6: Removing KioskUser account & profile"
+    DetailPrint "  STEP 6: Removing SionyxUser account & profile"
     DetailPrint "------------------------------------------------------------"
     
     FileOpen $0 "$TEMP\sionyx_remove_user.ps1" w
@@ -536,6 +545,50 @@ Section "Uninstall"
     nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_remove_user.ps1"'
     Pop $0
     Delete "$TEMP\sionyx_remove_user.ps1"
+    
+    ; ── STEP 6b: Clean up legacy "KioskUser" from older installations ───
+    DetailPrint ""
+    DetailPrint "------------------------------------------------------------"
+    DetailPrint "  STEP 6b: Cleaning up legacy KioskUser (pre-v3.0.16)"
+    DetailPrint "------------------------------------------------------------"
+    
+    nsExec::ExecToLog 'net user KioskUser 2>&1'
+    Pop $0
+    ${If} $0 == 0
+        nsExec::ExecToLog 'net user KioskUser /delete'
+        Pop $0
+        DetailPrint "[OK] Legacy KioskUser account removed"
+    ${Else}
+        DetailPrint "[INFO] No legacy KioskUser account found"
+    ${EndIf}
+    
+    ; Remove legacy profile folders (KioskUser, KioskUser.000, KioskUser.001)
+    FileOpen $0 "$TEMP\sionyx_legacy_cleanup.ps1" w
+    FileWrite $0 'foreach ($$dir in @("C:\Users\KioskUser", "C:\Users\KioskUser.000", "C:\Users\KioskUser.001")) {$\r$\n'
+    FileWrite $0 '    if (Test-Path $$dir) {$\r$\n'
+    FileWrite $0 '        try {$\r$\n'
+    FileWrite $0 '            $$acl = Get-Acl $$dir$\r$\n'
+    FileWrite $0 '            $$rule = New-Object System.Security.AccessControl.FileSystemAccessRule("Administrators", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow")$\r$\n'
+    FileWrite $0 '            $$acl.SetAccessRule($$rule)$\r$\n'
+    FileWrite $0 '            Set-Acl -Path $$dir -AclObject $$acl -ErrorAction SilentlyContinue$\r$\n'
+    FileWrite $0 '            Remove-Item -Path $$dir -Recurse -Force -ErrorAction Stop$\r$\n'
+    FileWrite $0 '            Write-Host "[OK] Deleted legacy folder: $$dir"$\r$\n'
+    FileWrite $0 '        } catch {$\r$\n'
+    FileWrite $0 '            Write-Host "[WARN] Could not delete $$dir - may need reboot"$\r$\n'
+    FileWrite $0 '        }$\r$\n'
+    FileWrite $0 '    }$\r$\n'
+    FileWrite $0 '}$\r$\n'
+    FileWrite $0 '# Clean orphaned ProfileList entries for KioskUser$\r$\n'
+    FileWrite $0 '$$orphaned = Get-ChildItem "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" -ErrorAction SilentlyContinue | Where-Object { (Get-ItemProperty $$_.PSPath -ErrorAction SilentlyContinue).ProfileImagePath -like "*KioskUser*" }$\r$\n'
+    FileWrite $0 'foreach ($$e in $$orphaned) {$\r$\n'
+    FileWrite $0 '    Remove-Item -Path $$e.PSPath -Recurse -Force$\r$\n'
+    FileWrite $0 '    Write-Host "[OK] Removed legacy ProfileList entry: $$($$e.PSChildName)"$\r$\n'
+    FileWrite $0 '}$\r$\n'
+    FileClose $0
+    
+    nsExec::ExecToLog 'powershell -ExecutionPolicy Bypass -File "$TEMP\sionyx_legacy_cleanup.ps1"'
+    Pop $0
+    Delete "$TEMP\sionyx_legacy_cleanup.ps1"
     
     ; ── STEP 7: Remove registry entries ───────────────────────────
     DetailPrint ""

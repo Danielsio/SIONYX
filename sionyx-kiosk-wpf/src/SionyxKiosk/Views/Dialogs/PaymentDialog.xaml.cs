@@ -95,7 +95,7 @@ public partial class PaymentDialog : Window
             _server.Start();
 
             // Initialize WebView2 with a writable user data folder
-            // Default location is the exe directory (Program Files) which KioskUser can't write to
+            // Default location is the exe directory (Program Files) which SionyxUser can't write to
             var webView2DataDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "SIONYX", "WebView2");
