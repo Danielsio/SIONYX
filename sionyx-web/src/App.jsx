@@ -19,7 +19,7 @@ const ComputersPage = lazy(() => import('./pages/ComputersPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 
 function App() {
-  const { setUser, setLoading, isAuthenticated } = useAuthStore();
+  const { setUser, setLoading, isAuthenticated, darkMode } = useAuthStore();
 
   useEffect(() => {
     // Listen to auth state changes
@@ -62,7 +62,7 @@ function App() {
   return (
     <ConfigProvider
       theme={{
-        algorithm: theme.defaultAlgorithm,
+        algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
           colorPrimary: '#667eea',
           borderRadius: 6,
