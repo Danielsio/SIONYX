@@ -11,6 +11,7 @@ import {
   Drawer,
   Button,
   Tooltip,
+  Breadcrumb,
 } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,12 +26,23 @@ import {
   MessageOutlined,
   DesktopOutlined,
   HomeOutlined,
+  BulbOutlined,
+  BulbFilled,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { signOut } from '../services/authService';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
+
+const breadcrumbMap = {
+  '/admin': 'סקירה כללית',
+  '/admin/users': 'משתמשים',
+  '/admin/packages': 'חבילות',
+  '/admin/messages': 'הודעות',
+  '/admin/computers': 'מחשבים',
+  '/admin/settings': 'הגדרות',
+};
 
 // Sidebar gradient background
 const sidebarStyle = {
@@ -45,6 +57,8 @@ const MainLayout = () => {
   const location = useLocation();
   const user = useAuthStore(state => state.user);
   const logout = useAuthStore(state => state.logout);
+  const darkMode = useAuthStore(state => state.darkMode);
+  const toggleDarkMode = useAuthStore(state => state.toggleDarkMode);
 
   // Check if device is mobile
   useEffect(() => {
@@ -315,13 +329,13 @@ const MainLayout = () => {
         style={{
           marginRight: isMobile ? 0 : collapsed ? 72 : 240,
           transition: 'margin 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-          background: '#f8f9fc',
+          background: darkMode ? '#141414' : '#f8f9fc',
         }}
       >
         <Header
           style={{
             padding: isMobile ? '0 16px' : '0 28px',
-            background: '#fff',
+            background: darkMode ? '#1f1f1f' : '#fff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -339,6 +353,7 @@ const MainLayout = () => {
                 type='text'
                 icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 onClick={toggleSidebar}
+                aria-label={collapsed ? 'הרחב תפריט' : 'צמצם תפריט'}
                 style={{
                   fontSize: 18,
                   width: 40,
@@ -369,6 +384,23 @@ const MainLayout = () => {
               >
                 {!isMobile && 'דף הבית'}
               </Button>
+            </Tooltip>
+
+            <Tooltip title={darkMode ? 'מצב בהיר' : 'מצב כהה'}>
+              <Button
+                type='text'
+                icon={darkMode ? <BulbFilled /> : <BulbOutlined />}
+                onClick={toggleDarkMode}
+                style={{
+                  fontSize: 18,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              />
             </Tooltip>
           </Space>
 
@@ -410,7 +442,9 @@ const MainLayout = () => {
                   borderRadius: 12,
                   transition: 'background 0.2s',
                 }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#f4f5f7')}
+                onMouseEnter={e =>
+                  (e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.08)' : '#f4f5f7')
+                }
                 onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
                 <Avatar
@@ -429,7 +463,13 @@ const MainLayout = () => {
                       alignItems: 'flex-start',
                     }}
                   >
-                    <Text style={{ fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: darkMode ? 'rgba(255,255,255,0.85)' : '#1f2937',
+                      }}
+                    >
                       {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'מנהל'}
                     </Text>
                     {(user?.phone || user?.phoneNumber) && (
@@ -453,13 +493,24 @@ const MainLayout = () => {
             background: 'transparent',
           }}
         >
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Outlet />
-          </motion.div>
+          <Breadcrumb
+            style={{ marginBottom: 16 }}
+            items={[
+              { title: 'ניהול' },
+              { title: breadcrumbMap[location.pathname] || '' },
+            ].filter(item => item.title)}
+          />
+          <AnimatePresence mode='wait'>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </Content>
       </Layout>
     </Layout>

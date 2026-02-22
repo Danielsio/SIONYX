@@ -112,6 +112,8 @@ vi.mock('@ant-design/icons', () => {
     ApiOutlined: createMockIcon('ApiOutlined'),
     CloudOutlined: createMockIcon('CloudOutlined'),
     MenuFoldOutlined: createMockIcon('MenuFoldOutlined'),
+    BulbOutlined: createMockIcon('BulbOutlined'),
+    BulbFilled: createMockIcon('BulbFilled'),
     BellOutlined: createMockIcon('BellOutlined'),
     InboxOutlined: createMockIcon('InboxOutlined'),
     FileOutlined: createMockIcon('FileOutlined'),
