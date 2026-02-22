@@ -13,6 +13,9 @@ packages/
 ## Build output
 publish/
 dist/
+*.msi
+*.exe
+!src/**/*.exe
 
 ## IDE
 .idea/
