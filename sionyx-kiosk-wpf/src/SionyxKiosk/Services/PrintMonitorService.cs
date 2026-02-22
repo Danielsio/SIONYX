@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Text.Json;
 using SionyxKiosk.Infrastructure;
 using Serilog;
@@ -248,11 +249,15 @@ public class PrintMonitorService : BaseService, IDisposable
 
         Logger.Information("Starting print monitor (event-driven + fallback poll, multi-PC safe)");
 
-        LoadPricing();
+        _ = StartMonitoringAsync();
+    }
+
+    private async Task StartMonitoringAsync()
+    {
+        await LoadPricingAsync();
         InitializeKnownJobs();
         _processedJobs.Clear();
         _stopRequested = false;
-        _isMonitoring = true;
 
         // PRIMARY: Event-driven notification (background thread)
         _notificationThread = new Thread(NotificationThreadFunc)
@@ -549,11 +554,11 @@ public class PrintMonitorService : BaseService, IDisposable
 
     // ==================== PRICING ====================
 
-    private void LoadPricing()
+    private async Task LoadPricingAsync()
     {
         try
         {
-            var result = Task.Run(() => Firebase.DbGetAsync("metadata")).GetAwaiter().GetResult();
+            var result = await Firebase.DbGetAsync("metadata");
             if (result.Success && result.Data is JsonElement data && data.ValueKind == JsonValueKind.Object)
             {
                 _bwPrice = data.TryGetProperty("blackAndWhitePrice", out var bw) && bw.TryGetDouble(out var bwVal) ? bwVal : 1.0;
@@ -580,7 +585,7 @@ public class PrintMonitorService : BaseService, IDisposable
 
     // ==================== BUDGET ====================
 
-    private double GetUserBudget(bool forceRefresh = false)
+    private async Task<double> GetUserBudgetAsync(bool forceRefresh = false)
     {
         if (!forceRefresh && _cachedBudget.HasValue && _budgetCacheTime.HasValue)
         {
@@ -590,7 +595,7 @@ public class PrintMonitorService : BaseService, IDisposable
 
         try
         {
-            var result = Task.Run(() => Firebase.DbGetAsync($"users/{_userId}")).GetAwaiter().GetResult();
+            var result = await Firebase.DbGetAsync($"users/{_userId}");
             if (result.Success && result.Data is JsonElement data && data.ValueKind == JsonValueKind.Object)
             {
                 var budget = data.TryGetProperty("printBalance", out var pb) && pb.TryGetDouble(out var val) ? val : 0.0;
@@ -606,20 +611,20 @@ public class PrintMonitorService : BaseService, IDisposable
         return _cachedBudget ?? 0.0;
     }
 
-    private bool DeductBudget(double amount, bool allowNegative = false)
+    private async Task<bool> DeductBudgetAsync(double amount, bool allowNegative = false)
     {
         try
         {
-            var currentBudget = GetUserBudget(forceRefresh: true);
+            var currentBudget = await GetUserBudgetAsync(forceRefresh: true);
             var newBudget = allowNegative
                 ? currentBudget - amount
                 : Math.Max(0.0, currentBudget - amount);
 
-            var result = Task.Run(() => Firebase.DbUpdateAsync($"users/{_userId}", new
+            var result = await Firebase.DbUpdateAsync($"users/{_userId}", new
             {
                 printBalance = newBudget,
                 updatedAt = DateTime.Now.ToString("o"),
-            })).GetAwaiter().GetResult();
+            });
 
             if (result.Success)
             {
@@ -780,7 +785,7 @@ public class PrintMonitorService : BaseService, IDisposable
                     if (shouldProcess)
                     {
                         Logger.Information("New print job detected: ID={JobId} on '{Printer}'", jobId, printer);
-                        HandleNewJob(printer, jobId);
+                        _ = HandleNewJobAsync(printer, jobId);
                     }
                 }
 
@@ -812,7 +817,7 @@ public class PrintMonitorService : BaseService, IDisposable
 
     // ==================== JOB HANDLING ====================
 
-    private void HandleNewJob(string printerName, int jobId)
+    private async Task HandleNewJobAsync(string printerName, int jobId)
     {
         // STEP 1: PAUSE IMMEDIATELY (before spooling finishes)
         var paused = PauseJob(printerName, jobId);
@@ -830,18 +835,18 @@ public class PrintMonitorService : BaseService, IDisposable
             details.IsColor ? _colorPrice : _bwPrice, cost);
 
         if (paused)
-            HandlePausedJob(printerName, jobId, details.DocName, billablePages, cost);
+            await HandlePausedJobAsync(printerName, jobId, details.DocName, billablePages, cost);
         else
-            HandleEscapedJob(details.DocName, billablePages, cost);
+            await HandleEscapedJobAsync(details.DocName, billablePages, cost);
     }
 
-    private void HandlePausedJob(string printerName, int jobId, string docName, int billablePages, double cost)
+    private async Task HandlePausedJobAsync(string printerName, int jobId, string docName, int billablePages, double cost)
     {
-        var budget = GetUserBudget(forceRefresh: true);
+        var budget = await GetUserBudgetAsync(forceRefresh: true);
 
         if (budget >= cost)
         {
-            if (DeductBudget(cost))
+            if (await DeductBudgetAsync(cost))
             {
                 ResumeJob(printerName, jobId);
                 var remaining = budget - cost;
@@ -863,13 +868,13 @@ public class PrintMonitorService : BaseService, IDisposable
         }
     }
 
-    private void HandleEscapedJob(string docName, int billablePages, double cost)
+    private async Task HandleEscapedJobAsync(string docName, int billablePages, double cost)
     {
         Logger.Warning("Job escaped pause: '{Doc}' — charging retroactively", docName);
 
-        var budget = GetUserBudget(forceRefresh: true);
+        var budget = await GetUserBudgetAsync(forceRefresh: true);
 
-        if (DeductBudget(cost, allowNegative: true))
+        if (await DeductBudgetAsync(cost, allowNegative: true))
         {
             var remaining = budget - cost;
             if (remaining < 0)
