@@ -229,7 +229,6 @@ build-config.json
 # Firebase Functions - EXCLUDE these
 functions/node_modules/
 functions/.runtimeconfig.json
-functions/package-lock.json
 functions/npm-debug.log*
 functions/yarn-debug.log*
 functions/yarn-error.log*
@@ -291,6 +290,7 @@ admin-dashboard/.parcel-cache/
 .env.production
 .env.development
 *.env
+!env.example
 env.template
 
 # ========================================
@@ -409,6 +409,7 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 package-lock.json
+!functions/package-lock.json
 
 # ========================================
 # WPF Kiosk Build Artifacts
