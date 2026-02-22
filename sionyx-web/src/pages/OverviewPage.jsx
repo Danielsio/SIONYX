@@ -176,7 +176,7 @@ const OverviewPage = () => {
       value: Math.round(purchases * shares[i]),
     })).filter(d => d.value > 0);
     if (data.length === 0) {
-      return [{ name: 'אין רכישות', value: 1 }];
+      return [];
     }
     return data;
   }, [stats?.purchasesCount, stats?.packagesCount]);
@@ -359,26 +359,30 @@ const OverviewPage = () => {
                   style={{ height: '100%', borderRadius: 16 }}
                   styles={{ body: { padding: 24 } }}
                 >
-                  <ResponsiveContainer width='100%' height={280}>
-                    <PieChart>
-                      <Pie
-                        data={packageChartData}
-                        cx='50%'
-                        cy='50%'
-                        innerRadius={60}
-                        outerRadius={100}
-                        paddingAngle={2}
-                        dataKey='value'
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {packageChartData.map((_, index) => (
-                          <Cell key={index} fill={['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f'][index % 5]} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip formatter={(value, name) => [value, name]} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  {packageChartData.length > 0 ? (
+                    <ResponsiveContainer width='100%' height={280}>
+                      <PieChart>
+                        <Pie
+                          data={packageChartData}
+                          cx='50%'
+                          cy='50%'
+                          innerRadius={60}
+                          outerRadius={100}
+                          paddingAngle={2}
+                          dataKey='value'
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {packageChartData.map((_, index) => (
+                            <Cell key={index} fill={['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f'][index % 5]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip formatter={(value, name) => [value, name]} />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <Empty description='אין רכישות עדיין' image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ padding: '80px 0' }} />
+                  )}
                 </Card>
               </motion.div>
             </Col>
