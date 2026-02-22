@@ -82,8 +82,16 @@ class ErrorBoundary extends Component {
               subTitle='אירעה שגיאה בלתי צפויה. אנא נסה לרענן את העמוד או לחזור לדף הבית.'
               extra={[
                 <Button
-                  key='reload'
+                  key='reset'
                   type='primary'
+                  icon={<ReloadOutlined />}
+                  onClick={this.handleReset}
+                  size='large'
+                >
+                  נסה שוב
+                </Button>,
+                <Button
+                  key='reload'
                   icon={<ReloadOutlined />}
                   onClick={this.handleReload}
                   size='large'
