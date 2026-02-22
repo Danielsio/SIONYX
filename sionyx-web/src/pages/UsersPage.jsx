@@ -11,6 +11,7 @@ import {
   Badge,
   App,
   Spin,
+  Skeleton,
   Modal,
   Form,
   InputNumber,
@@ -51,6 +52,7 @@ import {
   CalendarOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -66,6 +68,7 @@ import {
 } from '../services/userService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
+import { exportToCSV } from '../utils/csvExport';
 import dayjs from 'dayjs';
 import StatCard from '../components/StatCard';
 import { logger } from '../utils/logger';
@@ -143,7 +146,7 @@ const UsersPage = () => {
       setUsers(result.users);
       logger.info(`Loaded ${result.users.length} users`);
     } else {
-      message.error(result.error || 'Failed to load users');
+      message.error(result.error || 'נכשל בטעינת המשתמשים');
       logger.error('Failed to load users:', result.error);
     }
 
@@ -204,7 +207,7 @@ const UsersPage = () => {
       const result = await adjustUserBalance(orgId, adjustingUser.uid, adjustments);
 
       if (result.success) {
-        message.success('User balance updated successfully');
+        message.success('יתרת המשתמש עודכנה בהצלחה');
         setAdjustBalanceVisible(false);
         form.resetFields();
 
@@ -220,7 +223,7 @@ const UsersPage = () => {
           });
         }
       } else {
-        message.error(result.error || 'Failed to update balance');
+        message.error(result.error || 'נכשל בעדכון היתרה');
       }
     } catch (error) {
       logger.error('Validation failed:', error);
@@ -231,17 +234,17 @@ const UsersPage = () => {
 
   const handleGrantAdmin = record => {
     Modal.confirm({
-      title: 'Grant Admin Permission',
-      content: `Are you sure you want to grant admin permission to ${record.firstName} ${record.lastName}?`,
+      title: 'הענקת הרשאות מנהל',
+      content: `האם אתה בטוח שברצונך להעניק הרשאות מנהל ל${record.firstName} ${record.lastName}?`,
       icon: <CrownOutlined style={{ color: '#faad14' }} />,
-      okText: 'Grant',
+      okText: 'הענק',
       okType: 'primary',
-      cancelText: 'Cancel',
+      cancelText: 'ביטול',
       onOk: async () => {
         const result = await grantAdminPermission(orgId, record.uid);
 
         if (result.success) {
-          message.success('Admin permission granted successfully');
+          message.success('הרשאות מנהל הוענקו בהצלחה');
           await loadUsers();
 
           // Update selected user if viewing details
@@ -252,7 +255,7 @@ const UsersPage = () => {
             });
           }
         } else {
-          message.error(result.error || 'Failed to grant admin permission');
+          message.error(result.error || 'נכשל בהענקת הרשאות מנהל');
         }
       },
     });
@@ -260,17 +263,17 @@ const UsersPage = () => {
 
   const handleRevokeAdmin = record => {
     Modal.confirm({
-      title: 'Revoke Admin Permission',
-      content: `Are you sure you want to revoke admin permission from ${record.firstName} ${record.lastName}?`,
+      title: 'הסרת הרשאות מנהל',
+      content: `האם אתה בטוח שברצונך להסיר הרשאות מנהל מ${record.firstName} ${record.lastName}?`,
       icon: <MinusCircleOutlined style={{ color: '#ff4d4f' }} />,
-      okText: 'Revoke',
+      okText: 'הסר',
       okType: 'danger',
-      cancelText: 'Cancel',
+      cancelText: 'ביטול',
       onOk: async () => {
         const result = await revokeAdminPermission(orgId, record.uid);
 
         if (result.success) {
-          message.success('Admin permission revoked successfully');
+          message.success('הרשאות מנהל הוסרו בהצלחה');
           await loadUsers();
 
           // Update selected user if viewing details
@@ -281,7 +284,7 @@ const UsersPage = () => {
             });
           }
         } else {
-          message.error(result.error || 'Failed to revoke admin permission');
+          message.error(result.error || 'נכשל בהסרת הרשאות מנהל');
         }
       },
     });
@@ -289,12 +292,12 @@ const UsersPage = () => {
 
   const handleKickUser = record => {
     Modal.confirm({
-      title: 'Kick User',
-      content: `Are you sure you want to kick ${record.firstName} ${record.lastName}? This will force them to log out immediately.`,
+      title: 'ניתוק משתמש',
+      content: `האם אתה בטוח שברצונך לנתק את ${record.firstName} ${record.lastName}? פעולה זו תנתק אותו מיידית.`,
       icon: <MinusCircleOutlined style={{ color: '#ff4d4f' }} />,
-      okText: 'Kick User',
+      okText: 'נתק משתמש',
       okType: 'danger',
-      cancelText: 'Cancel',
+      cancelText: 'ביטול',
       onOk: async () => {
         setKicking(true);
         try {
@@ -304,11 +307,11 @@ const UsersPage = () => {
             message.success(result.message);
             await loadUsers();
           } else {
-            message.error(result.error || 'Failed to kick user');
+            message.error(result.error || 'נכשל בניתוק המשתמש');
           }
         } catch (error) {
           logger.error('Error kicking user:', error);
-          message.error('An error occurred while kicking user');
+          message.error('שגיאה בניתוק המשתמש');
         } finally {
           setKicking(false);
         }
@@ -924,19 +927,47 @@ const UsersPage = () => {
             </Title>
             <Text style={{ color: '#6b7280', fontSize: 14 }}>נהל וצפה בכל המשתמשים בארגון שלך</Text>
           </div>
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={loadUsers}
-            loading={loading}
-            style={{
-              borderRadius: 10,
-              height: 40,
-              paddingLeft: 20,
-              paddingRight: 20,
-            }}
-          >
-            רענן
-          </Button>
+          <Space>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={() =>
+                exportToCSV(
+                  filteredUsers.map(u => ({
+                    name: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+                    phone: u.phoneNumber || '',
+                    email: u.email || '',
+                    remainingTime: Math.floor((u.remainingTime || 0) / 60),
+                    printBalance: u.printBalance || 0,
+                    status: getUserStatus(u),
+                  })),
+                  [
+                    { title: 'שם', dataIndex: 'name' },
+                    { title: 'טלפון', dataIndex: 'phone' },
+                    { title: 'אימייל', dataIndex: 'email' },
+                    { title: 'זמן נותר (דקות)', dataIndex: 'remainingTime' },
+                    { title: 'תקציב הדפסות', dataIndex: 'printBalance' },
+                    { title: 'סטטוס', dataIndex: 'status' },
+                  ],
+                  `users-${new Date().toISOString().split('T')[0]}`
+                )
+              }
+            >
+              ייצא CSV
+            </Button>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadUsers}
+              loading={loading}
+              style={{
+                borderRadius: 10,
+                height: 40,
+                paddingLeft: 20,
+                paddingRight: 20,
+              }}
+            >
+              רענן
+            </Button>
+          </Space>
         </motion.div>
 
         {/* Stats Row */}
@@ -1040,12 +1071,18 @@ const UsersPage = () => {
 
         {/* Users Grid */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 80 }}>
-            <Spin size='large' />
-            <div style={{ marginTop: 20 }}>
-              <Text style={{ color: '#6b7280' }}>טוען משתמשים...</Text>
-            </div>
-          </div>
+          <Row gutter={[20, 20]}>
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <Col key={i} xs={24} sm={12} lg={8} xl={6}>
+                <Card style={{ borderRadius: 18, overflow: 'hidden' }}>
+                  <div style={{ background: 'linear-gradient(135deg, #e8eaed 0%, #f0f2f5 100%)', height: 140, borderRadius: '18px 18px 0 0' }} />
+                  <div style={{ padding: 16 }}>
+                    <Skeleton active avatar paragraph={{ rows: 3 }} />
+                  </div>
+                </Card>
+              </Col>
+            ))}
+          </Row>
         ) : filteredUsers.length === 0 ? (
           <Card variant='borderless' style={{ borderRadius: 14 }}>
             <Empty
