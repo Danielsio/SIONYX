@@ -107,16 +107,57 @@ public class HomeViewModelCoverageTests : IDisposable
     }
 
     [Fact]
-    public void TimeExpiry_NullExpiry_ShowsUnlimited()
+    public void TimeExpiry_NullExpiry_WithTime_ShowsUnlimited()
     {
         var vm = CreateVm(new UserData
         {
             Uid = "u1",
             FirstName = "A",
             LastName = "B",
+            RemainingTime = 3600,
             TimeExpiresAt = null
         });
         vm.TimeExpiry.Should().Be("ללא הגבלה");
+    }
+
+    [Fact]
+    public void TimeExpiry_NullExpiry_NoTime_ShowsNone()
+    {
+        var vm = CreateVm(new UserData
+        {
+            Uid = "u1",
+            FirstName = "A",
+            LastName = "B",
+            RemainingTime = 0,
+            TimeExpiresAt = null
+        });
+        vm.TimeExpiry.Should().Be("אין");
+    }
+
+    [Fact]
+    public void HasNoTime_TrueWhenNoRemainingTime()
+    {
+        var vm = CreateVm(new UserData
+        {
+            Uid = "u1",
+            FirstName = "A",
+            LastName = "B",
+            RemainingTime = 0,
+        });
+        vm.HasNoTime.Should().BeTrue();
+    }
+
+    [Fact]
+    public void HasNoTime_FalseWhenHasRemainingTime()
+    {
+        var vm = CreateVm(new UserData
+        {
+            Uid = "u1",
+            FirstName = "A",
+            LastName = "B",
+            RemainingTime = 3600,
+        });
+        vm.HasNoTime.Should().BeFalse();
     }
 
     [Fact]

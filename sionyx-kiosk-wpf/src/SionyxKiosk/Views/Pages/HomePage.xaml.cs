@@ -19,20 +19,22 @@ public partial class HomePage : Page
         DataContext = viewModel;
         Resources["StringToVis"] = new Views.Controls.StringToVisibilityConverter();
         Resources["InverseBool"] = new InverseBoolConverter();
+        Resources["InverseBoolToVis"] = new InverseBoolToVisibilityConverter();
         InitializeComponent();
 
-        // Show/hide message card based on unread count
         viewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(HomeViewModel.UnreadMessages))
                 UpdateMessageCard(viewModel.UnreadMessages);
+            if (e.PropertyName == nameof(HomeViewModel.HasAnnouncements))
+                UpdateAnnouncementsSection();
         };
 
-        // Wire message dialog opening
         viewModel.ViewMessagesRequested += OpenMessageDialog;
+        viewModel.NavigateToPackagesRequested += NavigateToPackages;
 
-        // Initialize message card state
         UpdateMessageCard(viewModel.UnreadMessages);
+        UpdateAnnouncementsSection();
     }
 
     private void UpdateMessageCard(int count)
@@ -50,6 +52,20 @@ public partial class HomePage : Page
         }
     }
 
+    private void UpdateAnnouncementsSection()
+    {
+        var count = _vm.GlobalAnnouncements.Count;
+        if (count > 0)
+        {
+            AnnouncementsSection.Visibility = Visibility.Visible;
+            AnnouncementCountText.Text = count.ToString();
+        }
+        else
+        {
+            AnnouncementsSection.Visibility = Visibility.Collapsed;
+        }
+    }
+
     private void MessageCard_Click(object sender, MouseButtonEventArgs e)
     {
         _vm.ViewMessagesCommand.Execute(null);
@@ -62,8 +78,13 @@ public partial class HomePage : Page
         dialog.Owner = Window.GetWindow(this);
         dialog.ShowDialog();
 
-        // After closing the dialog, the messages may have been read — refresh count
         _vm.UnreadMessages = 0;
+    }
+
+    private void NavigateToPackages()
+    {
+        var mainWindow = Window.GetWindow(this) as Windows.MainWindow;
+        mainWindow?.NavigateToPackages();
     }
 
     private void ResumeSession_Click(object sender, RoutedEventArgs e)

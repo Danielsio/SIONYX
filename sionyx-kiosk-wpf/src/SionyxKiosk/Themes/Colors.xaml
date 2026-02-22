@@ -107,10 +107,16 @@
     <SolidColorBrush x:Key="BgPrimaryBrush" Color="{StaticResource SnowColor}" />
     <SolidColorBrush x:Key="BgPageBrush" Color="#F3F5FB" />
     <SolidColorBrush x:Key="BgCardBrush" Color="{StaticResource WhiteColor}" />
-    <SolidColorBrush x:Key="BgSidebarBrush" Color="{StaticResource Gray900Color}" />
-    <SolidColorBrush x:Key="BgSidebarHoverBrush" Color="{StaticResource Gray800Color}" />
+    <SolidColorBrush x:Key="BgSidebarBrush" Color="{StaticResource WhiteColor}" />
+    <SolidColorBrush x:Key="BgSidebarHoverBrush" Color="{StaticResource Gray100Color}" />
     <SolidColorBrush x:Key="BgSecondaryBrush" Color="{StaticResource Gray100Color}" />
     <SolidColorBrush x:Key="BgHoverBrush" Color="{StaticResource Gray200Color}" />
+
+    <!-- Sidebar Nav Active (amber/orange) -->
+    <Color x:Key="NavActiveColor">#F59E0B</Color>
+    <Color x:Key="NavActiveBgColor">#FEF3C7</Color>
+    <SolidColorBrush x:Key="NavActiveBrush" Color="{StaticResource NavActiveColor}" />
+    <SolidColorBrush x:Key="NavActiveBgBrush" Color="{StaticResource NavActiveBgColor}" />
 
     <!-- Borders -->
     <SolidColorBrush x:Key="BorderBrush" Color="{StaticResource Gray300Color}" />
@@ -148,8 +154,8 @@
     </LinearGradientBrush>
 
     <LinearGradientBrush x:Key="SidebarGradient" StartPoint="0,0" EndPoint="0,1">
-        <GradientStop Color="#0F1629" Offset="0" />
-        <GradientStop Color="#0A0F1F" Offset="1" />
+        <GradientStop Color="#FFFFFF" Offset="0" />
+        <GradientStop Color="#F8FAFC" Offset="1" />
     </LinearGradientBrush>
 
     <!-- Page-specific header gradients -->

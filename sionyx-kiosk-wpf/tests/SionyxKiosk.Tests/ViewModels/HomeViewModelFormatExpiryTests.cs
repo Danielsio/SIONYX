@@ -6,21 +6,39 @@ namespace SionyxKiosk.Tests.ViewModels;
 public class HomeViewModelFormatExpiryTests
 {
     [Fact]
-    public void FormatExpiry_Null_ReturnsUnlimited()
+    public void FormatExpiry_Null_WithTime_ReturnsUnlimited()
     {
-        Assert.Equal("ללא הגבלה", HomeViewModel.FormatExpiry(null));
+        Assert.Equal("ללא הגבלה", HomeViewModel.FormatExpiry(null, 3600));
     }
 
     [Fact]
-    public void FormatExpiry_Empty_ReturnsUnlimited()
+    public void FormatExpiry_Null_NoTime_ReturnsNone()
     {
-        Assert.Equal("ללא הגבלה", HomeViewModel.FormatExpiry(""));
+        Assert.Equal("אין", HomeViewModel.FormatExpiry(null, 0));
     }
 
     [Fact]
-    public void FormatExpiry_InvalidDate_ReturnsUnlimited()
+    public void FormatExpiry_Empty_WithTime_ReturnsUnlimited()
     {
-        Assert.Equal("ללא הגבלה", HomeViewModel.FormatExpiry("not-a-date"));
+        Assert.Equal("ללא הגבלה", HomeViewModel.FormatExpiry("", 3600));
+    }
+
+    [Fact]
+    public void FormatExpiry_Empty_NoTime_ReturnsNone()
+    {
+        Assert.Equal("אין", HomeViewModel.FormatExpiry("", 0));
+    }
+
+    [Fact]
+    public void FormatExpiry_InvalidDate_WithTime_ReturnsUnlimited()
+    {
+        Assert.Equal("ללא הגבלה", HomeViewModel.FormatExpiry("not-a-date", 3600));
+    }
+
+    [Fact]
+    public void FormatExpiry_InvalidDate_NoTime_ReturnsNone()
+    {
+        Assert.Equal("אין", HomeViewModel.FormatExpiry("not-a-date", 0));
     }
 
     [Fact]
