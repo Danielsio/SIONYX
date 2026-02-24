@@ -20,8 +20,22 @@
                 <Border DockPanel.Dock="Top" Padding="20,24,20,20"
                         BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
                     <StackPanel>
-                        <TextBlock Text="קיוסק" FontSize="22" FontWeight="Bold"
-                                   Foreground="{StaticResource PrimaryBrush}" Margin="0,0,0,16" />
+                        <StackPanel Margin="0,0,0,16">
+                            <TextBlock Text="SIONYX" FontSize="24" FontWeight="Bold"
+                                       FontFamily="Segoe UI" FlowDirection="LeftToRight"
+                                       HorizontalAlignment="Center">
+                                <TextBlock.Foreground>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#4338CA" Offset="0" />
+                                        <GradientStop Color="#6366F1" Offset="0.5" />
+                                        <GradientStop Color="#8B5CF6" Offset="1" />
+                                    </LinearGradientBrush>
+                                </TextBlock.Foreground>
+                            </TextBlock>
+                            <TextBlock Text="מערכת ניהול זמן" FontSize="11"
+                                       Foreground="{StaticResource TextMutedBrush}"
+                                       HorizontalAlignment="Center" Margin="0,2,0,0" />
+                        </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <Border Width="42" Height="42" CornerRadius="21"
                                     Background="{StaticResource PrimaryGradient}" Margin="0,0,12,0">
