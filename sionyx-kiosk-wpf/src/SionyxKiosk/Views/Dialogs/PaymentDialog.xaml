@@ -10,20 +10,22 @@
         <!-- Dark backdrop -->
         <Border Background="#000000" Opacity="0.62" />
 
-        <!-- Unified card wrapper -->
+        <!-- Shadow wrapper (no clip so shadow renders fully) -->
         <Border x:Name="DialogCard"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                CornerRadius="32" ClipToBounds="True">
+                CornerRadius="32">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="120" ShadowDepth="8" Direction="270"
                                   Color="#000000" Opacity="0.55" />
             </Border.Effect>
 
-            <Grid x:Name="LayoutGrid">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition x:Name="SummaryColumn" Width="400" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <!-- Clip wrapper (rounds the content edges) -->
+            <Border CornerRadius="32" ClipToBounds="True">
+                <Grid x:Name="LayoutGrid">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition x:Name="SummaryColumn" Width="400" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
                 <!-- ═══════════ RIGHT: Order Summary (light theme) ═══════════ -->
                 <Border Grid.Column="0" Background="#F8FAFC">
@@ -178,7 +180,8 @@
                         <wv2:WebView2 x:Name="PaymentWebView" Margin="0,8,0,0" />
                     </DockPanel>
                 </Border>
-            </Grid>
+                </Grid>
+            </Border>
         </Border>
     </Grid>
 </Window>

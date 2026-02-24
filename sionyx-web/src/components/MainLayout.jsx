@@ -28,6 +28,7 @@ import {
   HomeOutlined,
   BulbOutlined,
   BulbFilled,
+  NotificationOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { signOut } from '../services/authService';
@@ -41,6 +42,7 @@ const breadcrumbMap = {
   '/admin/packages': 'חבילות',
   '/admin/messages': 'הודעות',
   '/admin/computers': 'מחשבים',
+  '/admin/announcements': 'הודעות מערכת',
   '/admin/settings': 'הגדרות',
 };
 
@@ -129,6 +131,11 @@ const MainLayout = () => {
       key: '/admin/computers',
       icon: <DesktopOutlined />,
       label: 'מחשבים',
+    },
+    {
+      key: '/admin/announcements',
+      icon: <NotificationOutlined />,
+      label: 'הודעות מערכת',
     },
     {
       key: '/admin/settings',
