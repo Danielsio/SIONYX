@@ -17,6 +17,7 @@ const PackagesPage = lazy(() => import('./pages/PackagesPage'));
 const MessagesPage = lazy(() => import('./pages/MessagesPage'));
 const ComputersPage = lazy(() => import('./pages/ComputersPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const AnnouncementsPage = lazy(() => import('./pages/AnnouncementsPage'));
 
 function App() {
   const { setUser, setLoading, isAuthenticated, darkMode } = useAuthStore();
@@ -97,6 +98,7 @@ function App() {
                 <Route path='packages' element={<PackagesPage />} />
                 <Route path='messages' element={<MessagesPage />} />
                 <Route path='computers' element={<ComputersPage />} />
+                <Route path='announcements' element={<AnnouncementsPage />} />
                 <Route path='settings' element={<SettingsPage />} />
               </Route>
 
