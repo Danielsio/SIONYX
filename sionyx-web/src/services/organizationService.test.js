@@ -139,9 +139,9 @@ describe('organizationService', () => {
       const mockPurchasesSnapshot = {
         exists: () => true,
         val: () => ({
-          'purchase-1': { status: 'completed', amount: 100, minutes: 60 },
-          'purchase-2': { status: 'completed', amount: 50, minutes: 30 },
-          'purchase-3': { status: 'pending', amount: 75, minutes: 45 },
+          'purchase-1': { status: 'completed', amount: 100, minutes: 60, packageName: 'חבילה בסיסית' },
+          'purchase-2': { status: 'completed', amount: 50, minutes: 30, packageName: 'חבילה בסיסית' },
+          'purchase-3': { status: 'pending', amount: 75, minutes: 45, packageName: 'חבילה פרימיום' },
         }),
       };
 
@@ -159,6 +159,7 @@ describe('organizationService', () => {
       expect(result.stats.purchasesCount).toBe(3);
       expect(result.stats.totalRevenue).toBe(150); // Only completed purchases
       expect(result.stats.totalTimeMinutes).toBe(135); // All purchases
+      expect(result.stats.packageDistribution).toEqual({ 'חבילה בסיסית': 2, 'חבילה פרימיום': 1 });
     });
 
     it('should return zeros when no data exists', async () => {
@@ -177,6 +178,7 @@ describe('organizationService', () => {
       expect(result.stats.packagesCount).toBe(0);
       expect(result.stats.purchasesCount).toBe(0);
       expect(result.stats.totalRevenue).toBe(0);
+      expect(result.stats.packageDistribution).toEqual({});
     });
 
     it('should handle database error', async () => {

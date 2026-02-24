@@ -65,7 +65,7 @@ const colors = {
 // ============================================
 // Hero Section Component - Premium v2.0
 // ============================================
-const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadLoading }) => {
+const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadLoading, releaseInfo }) => {
   const heroRef = useRef(null);
   const subtitleRef = useRef(null);
 
@@ -184,7 +184,9 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
           }}
         >
           <RocketOutlined style={{ marginLeft: 6 }} />
-          גרסה 3.0 - חדש!
+          {releaseInfo?.version && releaseInfo.version !== 'Latest'
+            ? `גרסה ${releaseInfo.version} - חדש!`
+            : 'גרסה חדשה זמינה!'}
         </Tag>
       </motion.div>
 
@@ -1451,6 +1453,7 @@ const LandingPage = memo(() => {
           onAdminLogin={handleAdminLogin}
           onDownload={handleDirectDownload}
           downloadLoading={downloadLoading}
+          releaseInfo={releaseInfo}
         />
 
         {/* Features Section */}
@@ -1553,11 +1556,11 @@ const LandingPage = memo(() => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
                     <MailOutlined style={{ marginLeft: 8 }} />
-                    support@sionyx.co.il
+                    info@sionyx.co.il
                   </span>
                   <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
                     <PhoneOutlined style={{ marginLeft: 8 }} />
-                    03-1234567
+                    054-9451310
                   </span>
                 </div>
               </Col>

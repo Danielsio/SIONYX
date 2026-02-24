@@ -179,12 +179,12 @@ export const getOrganizationStats = async orgId => {
     let purchasesCount = 0;
     let totalRevenue = 0;
     let totalTimeMinutes = 0;
+    const packageDistribution = {};
 
     if (purchasesSnapshot.exists()) {
       const purchases = purchasesSnapshot.val();
       purchasesCount = Object.keys(purchases).length;
 
-      // Calculate totals
       Object.values(purchases).forEach(purchase => {
         if (purchase.status === 'completed' && purchase.amount) {
           totalRevenue += parseFloat(purchase.amount) || 0;
@@ -192,6 +192,8 @@ export const getOrganizationStats = async orgId => {
         if (purchase.minutes) {
           totalTimeMinutes += parseInt(purchase.minutes) || 0;
         }
+        const pkgName = purchase.packageName || 'אחר';
+        packageDistribution[pkgName] = (packageDistribution[pkgName] || 0) + 1;
       });
     }
 
@@ -203,6 +205,7 @@ export const getOrganizationStats = async orgId => {
         purchasesCount,
         totalRevenue,
         totalTimeMinutes,
+        packageDistribution,
       },
     };
   } catch (error) {
