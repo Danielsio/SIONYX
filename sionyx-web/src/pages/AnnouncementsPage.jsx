@@ -267,14 +267,11 @@ const AnnouncementsPage = () => {
             <Tag color={config.tagColor}>{config.label}</Tag>
             {!item.active && <Tag color='default'>מושהה</Tag>}
           </Space>
-          <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-            <Button
-              type='text'
-              icon={<MoreOutlined />}
-              size='small'
-              onClick={e => e.stopPropagation()}
-            />
-          </Dropdown>
+          <div onClick={e => e.stopPropagation()}>
+            <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+              <Button type='text' icon={<MoreOutlined />} size='small' />
+            </Dropdown>
+          </div>
         </div>
 
         {/* Body */}
