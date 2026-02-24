@@ -36,6 +36,7 @@
                                        Foreground="{StaticResource TextMutedBrush}"
                                        HorizontalAlignment="Center" Margin="0,2,0,0" />
                         </StackPanel>
+                        <Border Height="1" Background="{StaticResource BorderLightBrush}" Margin="0,0,0,16" />
                         <StackPanel Orientation="Horizontal">
                             <Border Width="42" Height="42" CornerRadius="21"
                                     Background="{StaticResource PrimaryGradient}" Margin="0,0,12,0">

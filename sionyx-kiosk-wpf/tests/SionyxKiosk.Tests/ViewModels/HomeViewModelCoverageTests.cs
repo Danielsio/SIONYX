@@ -90,7 +90,7 @@ public class HomeViewModelCoverageTests : IDisposable
             LastName = "B",
             PrintBalance = 0
         });
-        vm.PrintBalance.Should().Be("0.00 ₪");
+        vm.PrintBalance.Should().Be("—");
     }
 
     [Fact]

@@ -20,6 +20,7 @@ public partial class HistoryViewModel : ObservableObject
     [ObservableProperty] private string _errorMessage = "";
     [ObservableProperty] private double _totalSpent;
     [ObservableProperty] private int _totalPurchases;
+    [ObservableProperty] private double _totalPrintBudget;
     [ObservableProperty] private string _searchText = "";
     [ObservableProperty] private string _selectedStatus = "הכל";
     [ObservableProperty] private bool _sortNewestFirst = true;
@@ -71,6 +72,7 @@ public partial class HistoryViewModel : ObservableObject
 
             TotalPurchases = purchases.Count;
             TotalSpent = purchases.Where(p => p.Status == "completed").Sum(p => p.Amount);
+            TotalPrintBudget = purchases.Where(p => p.Status == "completed").Sum(p => p.PrintBudget);
             FilteredPurchases.Refresh();
         }
         else

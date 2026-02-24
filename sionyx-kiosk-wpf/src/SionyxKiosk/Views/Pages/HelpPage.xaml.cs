@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Animation;
 using SionyxKiosk.ViewModels;
 
 namespace SionyxKiosk.Views.Pages;
@@ -39,14 +40,27 @@ public partial class HelpPage : Page
 
         if (answerBlock == null) return;
 
+        var ease = new CubicEase { EasingMode = EasingMode.EaseInOut };
+        var duration = TimeSpan.FromMilliseconds(250);
+
         if (answerBlock.Visibility == Visibility.Collapsed)
         {
             answerBlock.Visibility = Visibility.Visible;
+            answerBlock.Measure(new Size(answerBlock.MaxWidth > 0 ? answerBlock.MaxWidth : ActualWidth, double.PositiveInfinity));
+            var targetHeight = answerBlock.DesiredSize.Height;
+
+            answerBlock.Opacity = 0;
+            var fadeIn = new DoubleAnimation(0, 1, duration) { EasingFunction = ease };
+            answerBlock.BeginAnimation(OpacityProperty, fadeIn);
+
             if (chevron != null) chevron.Text = "▲";
         }
         else
         {
-            answerBlock.Visibility = Visibility.Collapsed;
+            var fadeOut = new DoubleAnimation(1, 0, duration) { EasingFunction = ease };
+            fadeOut.Completed += (_, _) => answerBlock.Visibility = Visibility.Collapsed;
+            answerBlock.BeginAnimation(OpacityProperty, fadeOut);
+
             if (chevron != null) chevron.Text = "▼";
         }
     }

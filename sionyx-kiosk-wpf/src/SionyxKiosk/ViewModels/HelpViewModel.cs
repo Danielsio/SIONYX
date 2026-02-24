@@ -10,12 +10,15 @@ namespace SionyxKiosk.ViewModels;
 public partial class HelpViewModel : ObservableObject
 {
     private readonly OrganizationMetadataService _orgService;
+    private readonly OperatingHoursService _operatingHours;
 
     [ObservableProperty] private string _adminPhone = "";
     [ObservableProperty] private string _adminEmail = "";
     [ObservableProperty] private string _orgName = "";
     [ObservableProperty] private bool _isLoading;
     [ObservableProperty] private string _copyFeedback = "";
+    [ObservableProperty] private string _workingHoursLine1 = "טוען...";
+    [ObservableProperty] private string _workingHoursLine2 = "";
 
     public ObservableCollection<FaqItem> FaqItems { get; } = new()
     {
@@ -26,9 +29,10 @@ public partial class HelpViewModel : ObservableObject
         new("שכחתי סיסמה", "פנה למנהל המערכת בטלפון או באימייל המוצגים למטה."),
     };
 
-    public HelpViewModel(OrganizationMetadataService orgService)
+    public HelpViewModel(OrganizationMetadataService orgService, OperatingHoursService operatingHours)
     {
         _orgService = orgService;
+        _operatingHours = operatingHours;
     }
 
     [RelayCommand]
@@ -44,6 +48,19 @@ public partial class HelpViewModel : ObservableObject
             AdminPhone = type.GetProperty("phone")?.GetValue(data)?.ToString() ?? "";
             AdminEmail = type.GetProperty("email")?.GetValue(data)?.ToString() ?? "";
             OrgName = type.GetProperty("orgName")?.GetValue(data)?.ToString() ?? "";
+        }
+
+        await _operatingHours.LoadSettingsAsync();
+        var s = _operatingHours.Settings;
+        if (s.Enabled)
+        {
+            WorkingHoursLine1 = $"{s.StartTime} - {s.EndTime}";
+            WorkingHoursLine2 = "";
+        }
+        else
+        {
+            WorkingHoursLine1 = "24/7";
+            WorkingHoursLine2 = "ללא הגבלת שעות";
         }
     }
 

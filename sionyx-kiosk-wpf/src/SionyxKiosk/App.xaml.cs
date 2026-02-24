@@ -181,7 +181,9 @@ public partial class App : Application
                     var auth = sp.GetRequiredService<AuthService>();
                     return new HistoryViewModel(purchase, auth.CurrentUser?.Uid ?? "");
                 });
-                services.AddTransient(sp => new HelpViewModel(sp.GetRequiredService<OrganizationMetadataService>()));
+                services.AddTransient(sp => new HelpViewModel(
+                    sp.GetRequiredService<OrganizationMetadataService>(),
+                    sp.GetRequiredService<OperatingHoursService>()));
                 services.AddTransient<PaymentViewModel>(sp =>
                 {
                     var purchase = sp.GetRequiredService<PurchaseService>();

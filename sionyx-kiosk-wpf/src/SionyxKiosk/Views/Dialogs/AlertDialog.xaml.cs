@@ -7,7 +7,7 @@ public partial class AlertDialog : Window
 {
     public enum AlertType { Info, Success, Warning, Error }
 
-    public AlertDialog(string title, string message, AlertType type = AlertType.Info)
+    public AlertDialog(string title, string message, AlertType type = AlertType.Info, bool showCancel = false)
     {
         InitializeComponent();
         TitleText.Text = title;
@@ -23,11 +23,23 @@ public partial class AlertDialog : Window
                 Color.FromRgb(0xEF, 0x44, 0x44), Color.FromRgb(0xDC, 0x26, 0x26), 135)),
             _ => ("ℹ️", (Brush)FindResource("HeroGradient")),
         };
+
+        if (showCancel)
+        {
+            CancelButton.Visibility = Visibility.Visible;
+            OkButton.Content = "אישור";
+        }
     }
 
     private void OkButton_Click(object sender, RoutedEventArgs e)
     {
         DialogResult = true;
+        Close();
+    }
+
+    private void CancelButton_Click(object sender, RoutedEventArgs e)
+    {
+        DialogResult = false;
         Close();
     }
 
@@ -37,5 +49,13 @@ public partial class AlertDialog : Window
         var dialog = new AlertDialog(title, message, type);
         if (owner != null) dialog.Owner = owner;
         return dialog.ShowDialog();
+    }
+
+    /// <summary>Show a confirmation dialog with OK/Cancel buttons. Returns true if confirmed.</summary>
+    public static bool Confirm(string title, string message, AlertType type = AlertType.Warning, Window? owner = null)
+    {
+        var dialog = new AlertDialog(title, message, type, showCancel: true);
+        if (owner != null) dialog.Owner = owner;
+        return dialog.ShowDialog() == true;
     }
 }

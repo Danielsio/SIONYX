@@ -24,7 +24,7 @@
                                    AccentColor="{StaticResource StatGreenColor}"
                                    AccentBgColor="{StaticResource StatGreenBgColor}"
                                    Margin="4,0" />
-                <controls:StatCard Title="מוצרי הדפסות" Value="{Binding TotalPurchases}" Icon="🖨"
+                <controls:StatCard Title="תקציב הדפסות" Value="{Binding TotalPrintBudget, StringFormat='₪{0:F0}'}" Icon="🖨"
                                    AccentColor="{StaticResource StatBlueColor}"
                                    AccentBgColor="{StaticResource StatBlueBgColor}"
                                    Margin="8,0,0,0" />
@@ -61,9 +61,12 @@
                 </Grid>
             </Border>
 
-            <!-- Loading -->
-            <controls:LoadingSpinner HorizontalAlignment="Center"
-                                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+            <!-- Skeleton loading -->
+            <StackPanel Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                <controls:SkeletonCard />
+                <controls:SkeletonCard />
+                <controls:SkeletonCard />
+            </StackPanel>
 
             <!-- Empty state -->
             <controls:EmptyState x:Name="EmptyPanel" Message="אין היסטוריית רכישות" Visibility="Collapsed" />
