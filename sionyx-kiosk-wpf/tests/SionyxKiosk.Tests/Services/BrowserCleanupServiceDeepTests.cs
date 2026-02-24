@@ -6,6 +6,7 @@ namespace SionyxKiosk.Tests.Services;
 /// <summary>
 /// Deep tests for BrowserCleanupService covering cleanup operations.
 /// </summary>
+[Trait("Category", "Destructive")]
 public class BrowserCleanupServiceDeepTests
 {
     [Fact]

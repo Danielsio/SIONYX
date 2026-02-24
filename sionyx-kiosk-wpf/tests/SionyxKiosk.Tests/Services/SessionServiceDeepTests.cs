@@ -7,6 +7,7 @@ namespace SionyxKiosk.Tests.Services;
 /// Deep coverage tests for SessionService: sync, warnings, operating hours,
 /// and edge cases not covered by the basic tests.
 /// </summary>
+[Trait("Category", "Destructive")]
 public class SessionServiceDeepTests : IDisposable
 {
     private readonly SionyxKiosk.Infrastructure.FirebaseClient _firebase;

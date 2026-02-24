@@ -118,6 +118,7 @@ public class BrowserCleanupFileTests
     }
 
     [Fact]
+    [Trait("Category", "Destructive")]
     public void CleanupFirefox_ViaTempDirectory_ShouldDeleteFiles()
     {
         // We can't easily override the Firefox path, but we can test the structure

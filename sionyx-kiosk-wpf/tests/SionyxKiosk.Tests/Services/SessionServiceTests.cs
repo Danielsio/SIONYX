@@ -3,6 +3,7 @@ using SionyxKiosk.Services;
 
 namespace SionyxKiosk.Tests.Services;
 
+[Trait("Category", "Destructive")]
 public class SessionServiceTests : IDisposable
 {
     private readonly SionyxKiosk.Infrastructure.FirebaseClient _firebase;

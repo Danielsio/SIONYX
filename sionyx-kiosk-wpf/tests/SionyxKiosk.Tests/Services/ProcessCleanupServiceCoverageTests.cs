@@ -8,6 +8,7 @@ namespace SionyxKiosk.Tests.Services;
 /// These tests call real methods against the system; they verify execution without errors
 /// and that returned result shapes are correct.
 /// </summary>
+[Trait("Category", "Destructive")]
 public class ProcessCleanupServiceCoverageTests
 {
     private readonly ProcessCleanupService _service;

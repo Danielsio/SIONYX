@@ -136,7 +136,7 @@ function Invoke-Tests {
     Write-Header "Running Tests"
 
     $testDir = Join-Path $ScriptDir "tests\SionyxKiosk.Tests"
-    dotnet test $testDir --verbosity normal 2>&1 | Out-Host
+    dotnet test $testDir --filter "Category!=Destructive" --verbosity normal 2>&1 | Out-Host
     $exitCode = $LASTEXITCODE
 
     if ($exitCode -ne 0) {

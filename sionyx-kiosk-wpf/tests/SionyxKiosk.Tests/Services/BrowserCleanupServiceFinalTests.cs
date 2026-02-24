@@ -8,6 +8,7 @@ namespace SionyxKiosk.Tests.Services;
 /// Coverage tests for BrowserCleanupService: path helpers, static arrays,
 /// cleanup methods that don't require running browsers.
 /// </summary>
+[Trait("Category", "Destructive")]
 public class BrowserCleanupServiceFinalTests
 {
     private readonly BrowserCleanupService _service = new();

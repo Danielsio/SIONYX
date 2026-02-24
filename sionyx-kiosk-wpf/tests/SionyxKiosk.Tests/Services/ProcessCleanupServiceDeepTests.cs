@@ -7,6 +7,7 @@ namespace SionyxKiosk.Tests.Services;
 /// Deep tests for ProcessCleanupService covering method return structures.
 /// Note: Actual process killing is system-dependent and can't be reliably unit tested.
 /// </summary>
+[Trait("Category", "Destructive")]
 public class ProcessCleanupServiceDeepTests
 {
     [Fact]
