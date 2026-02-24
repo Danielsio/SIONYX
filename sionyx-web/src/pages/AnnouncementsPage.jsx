@@ -204,6 +204,7 @@ const AnnouncementsPage = () => {
   const activeCount = announcements.filter(a => a.active).length;
 
   const AnnouncementCard = ({ item }) => {
+    console.log('[Announcements] rendering card:', item.title, 'id:', item.id);
     const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.info;
 
     const menuItems = [
@@ -218,6 +219,7 @@ const AnnouncementsPage = () => {
     ];
 
     const onMenuClick = ({ key }) => {
+      console.log('[Announcements] menu clicked, key:', key, 'item:', item.title);
       if (key === 'edit') handleEdit(item);
       else if (key === 'toggle') handleToggleActive(item);
       else if (key === 'delete') {
@@ -230,6 +232,10 @@ const AnnouncementsPage = () => {
           onOk: () => handleDelete(item),
         });
       }
+    };
+
+    const onOpenChange = (open) => {
+      console.log('[Announcements] dropdown openChange:', open, 'item:', item.title);
     };
 
     return (
@@ -260,8 +266,21 @@ const AnnouncementsPage = () => {
             <Tag color={config.tagColor}>{config.label}</Tag>
             {!item.active && <Tag color='default'>מושהה</Tag>}
           </Space>
-          <Dropdown menu={{ items: menuItems, onClick: onMenuClick }} trigger={['click']}>
-            <Button type='text' icon={<MoreOutlined />} size='small' style={{ color: config.color }} />
+          <Dropdown
+            menu={{ items: menuItems, onClick: onMenuClick }}
+            trigger={['click']}
+            onOpenChange={onOpenChange}
+          >
+            <Button
+              type='text'
+              icon={<MoreOutlined />}
+              size='small'
+              style={{ color: config.color }}
+              onClick={(e) => {
+                console.log('[Announcements] button clicked for:', item.title);
+                e.stopPropagation();
+              }}
+            />
           </Dropdown>
         </div>
 
