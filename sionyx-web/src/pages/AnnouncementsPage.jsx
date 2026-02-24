@@ -207,43 +207,36 @@ const AnnouncementsPage = () => {
     const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.info;
 
     const menuItems = [
-      {
-        key: 'edit',
-        icon: <EditOutlined />,
-        label: 'ערוך',
-        onClick: () => handleEdit(item),
-      },
+      { key: 'edit', icon: <EditOutlined />, label: 'ערוך' },
       {
         key: 'toggle',
         icon: item.active ? <PauseCircleOutlined /> : <CheckCircleOutlined />,
         label: item.active ? 'השהה' : 'הפעל',
-        onClick: () => handleToggleActive(item),
       },
       { type: 'divider' },
-      {
-        key: 'delete',
-        icon: <DeleteOutlined />,
-        label: 'מחק',
-        danger: true,
-        onClick: () => {
-          Modal.confirm({
-            title: 'מחק הודעה',
-            content: `האם אתה בטוח שברצונך למחוק את "${item.title}"?`,
-            okText: 'מחק',
-            cancelText: 'ביטול',
-            okType: 'danger',
-            onOk: () => handleDelete(item),
-          });
-        },
-      },
+      { key: 'delete', icon: <DeleteOutlined />, label: 'מחק', danger: true },
     ];
+
+    const onMenuClick = ({ key }) => {
+      if (key === 'edit') handleEdit(item);
+      else if (key === 'toggle') handleToggleActive(item);
+      else if (key === 'delete') {
+        Modal.confirm({
+          title: 'מחק הודעה',
+          content: `האם אתה בטוח שברצונך למחוק את "${item.title}"?`,
+          okText: 'מחק',
+          cancelText: 'ביטול',
+          okType: 'danger',
+          onOk: () => handleDelete(item),
+        });
+      }
+    };
 
     return (
       <Card
         hoverable
         style={{
           borderRadius: 16,
-          overflow: 'hidden',
           height: '100%',
           opacity: item.active ? 1 : 0.6,
           borderColor: item.active ? config.border : '#e8ecf4',
@@ -267,11 +260,9 @@ const AnnouncementsPage = () => {
             <Tag color={config.tagColor}>{config.label}</Tag>
             {!item.active && <Tag color='default'>מושהה</Tag>}
           </Space>
-          <div onClick={e => e.stopPropagation()}>
-            <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-              <Button type='text' icon={<MoreOutlined />} size='small' />
-            </Dropdown>
-          </div>
+          <Dropdown menu={{ items: menuItems, onClick: onMenuClick }} trigger={['click']}>
+            <Button type='text' icon={<MoreOutlined />} size='small' style={{ color: config.color }} />
+          </Dropdown>
         </div>
 
         {/* Body */}
