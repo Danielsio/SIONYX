@@ -7,6 +7,7 @@ namespace SionyxKiosk.Tests.Services;
 /// <summary>
 /// Final coverage push for SessionService: countdown tick, sync branches, warning events.
 /// </summary>
+[Trait("Category", "Destructive")]
 public class SessionServiceFinalTests : IDisposable
 {
     private readonly SionyxKiosk.Infrastructure.FirebaseClient _firebase;

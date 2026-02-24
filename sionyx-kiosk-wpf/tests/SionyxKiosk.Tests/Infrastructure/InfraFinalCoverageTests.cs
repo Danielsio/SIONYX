@@ -368,6 +368,7 @@ public class RegistryConfigFinalCoverageTests
 /// <summary>
 /// Final coverage tests for BrowserCleanupService targeting the private helper paths.
 /// </summary>
+[Trait("Category", "Destructive")]
 public class BrowserCleanupFinalCoverageTests
 {
     [Fact]

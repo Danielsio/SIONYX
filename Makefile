@@ -5,7 +5,7 @@
 #
 # Usage:  make <command>
 
-.PHONY: help run test test-cov build build-local build-dry \
+.PHONY: help run test test-all test-cov build build-local build-dry \
         web-dev web-test web-deploy web-deploy-hosting \
         release release-patch release-minor release-major
 
@@ -17,7 +17,8 @@ help:
 	@echo ""
 	@echo "  Kiosk (desktop)"
 	@echo "    make run              Run the kiosk app"
-	@echo "    make test             Run kiosk tests"
+	@echo "    make test             Run kiosk tests (skip destructive)"
+	@echo "    make test-all         Run ALL kiosk tests (including destructive)"
 	@echo "    make test-cov         Run tests with coverage report"
 	@echo "    make build            Build installer + upload"
 	@echo "    make build-local      Build installer (no upload)"
@@ -40,10 +41,13 @@ run:
 	cd sionyx-kiosk-wpf/src/SionyxKiosk && dotnet run
 
 test:
+	cd sionyx-kiosk-wpf && dotnet test --filter "Category!=Destructive" --verbosity normal
+
+test-all:
 	cd sionyx-kiosk-wpf && dotnet test --verbosity normal
 
 test-cov:
-	cd sionyx-kiosk-wpf && dotnet test --collect:"XPlat Code Coverage" --results-directory TestResults --settings coverage.runsettings --verbosity normal
+	cd sionyx-kiosk-wpf && dotnet test --filter "Category!=Destructive" --collect:"XPlat Code Coverage" --results-directory TestResults --settings coverage.runsettings --verbosity normal
 	cd sionyx-kiosk-wpf && dotnet tool run reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:"coverage-report" -reporttypes:Html
 	@echo ""
 	@echo "Coverage report: sionyx-kiosk-wpf/coverage-report/index.html"
