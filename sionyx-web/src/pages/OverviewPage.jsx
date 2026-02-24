@@ -365,19 +365,29 @@ const OverviewPage = () => {
                         <Pie
                           data={packageChartData}
                           cx='50%'
-                          cy='50%'
-                          innerRadius={60}
-                          outerRadius={100}
-                          paddingAngle={2}
+                          cy='45%'
+                          innerRadius={50}
+                          outerRadius={85}
+                          paddingAngle={3}
                           dataKey='value'
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         >
                           {packageChartData.map((_, index) => (
                             <Cell key={index} fill={['#667eea', '#764ba2', '#52c41a', '#faad14', '#ff4d4f'][index % 5]} />
                           ))}
                         </Pie>
                         <RechartsTooltip formatter={(value, name) => [value, name]} />
-                        <Legend />
+                        <Legend
+                          verticalAlign='bottom'
+                          iconType='circle'
+                          iconSize={10}
+                          formatter={(value, entry) => {
+                            const item = packageChartData.find(d => d.name === value);
+                            const total = packageChartData.reduce((s, d) => s + d.value, 0);
+                            const pct = total > 0 ? Math.round((item?.value || 0) / total * 100) : 0;
+                            return `${value} ${pct}%`;
+                          }}
+                          wrapperStyle={{ fontSize: 12, direction: 'rtl' }}
+                        />
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
