@@ -1,37 +1,41 @@
 /**
- * Simple Time Formatter
- * Formats time in simple HH:MM:SS format like "7:28:40"
+ * Time Formatter with Hebrew unit labels
  */
 
 /**
- * Format time in seconds to simple HH:MM:SS format
+ * Format time in seconds to a human-readable Hebrew string.
  * @param {number} seconds - Time in seconds
- * @returns {string} - Formatted time like "7:28:40"
+ * @returns {string} - e.g. "7 שעות ו-28 דקות" or "45 דקות" or "30 שניות"
  */
 export const formatTimeSimple = seconds => {
-  if (!seconds || seconds === 0) return '0:00:00';
+  if (!seconds || seconds <= 0) return '0 דקות';
 
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  const remainingSeconds = seconds % 60;
+  const secs = seconds % 60;
 
-  return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  if (hours > 0 && minutes > 0) return `${hours} שעות ו-${minutes} דקות`;
+  if (hours > 0) return `${hours} שעות`;
+  if (minutes > 0 && secs > 0) return `${minutes} דקות ו-${secs} שניות`;
+  if (minutes > 0) return `${minutes} דקות`;
+  return `${secs} שניות`;
 };
 
 /**
- * Format time in minutes to simple HH:MM format
+ * Format time in minutes to a human-readable Hebrew string.
  * @param {number} minutes - Time in minutes
- * @returns {string} - Formatted time like "7:28"
+ * @returns {string} - e.g. "167 שעות ו-20 דקות" or "45 דקות"
  */
 export const formatMinutesSimple = minutes => {
-  if (!minutes || minutes === 0) return '0:00';
+  if (!minutes || minutes <= 0) return '0 דקות';
 
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
 
-  return `${hours}:${remainingMinutes.toString().padStart(2, '0')}`;
+  if (hours > 0 && remainingMinutes > 0) return `${hours} שעות ו-${remainingMinutes} דקות`;
+  if (hours > 0) return `${hours} שעות`;
+  return `${remainingMinutes} דקות`;
 };
 
-// Keep the old functions for backward compatibility but mark as deprecated
 export const formatMinutesHebrew = formatMinutesSimple;
 export const formatTimeHebrewCompact = formatTimeSimple;

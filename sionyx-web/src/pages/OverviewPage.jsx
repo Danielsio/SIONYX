@@ -166,20 +166,13 @@ const OverviewPage = () => {
     });
   }, [stats?.totalRevenue]);
 
-  // Package distribution: split purchases across package categories
   const packageChartData = useMemo(() => {
-    const purchases = stats?.purchasesCount || 0;
-    const shares = [0.35, 0.28, 0.22, 0.12, 0.03];
-    const labels = ['חבילה בסיסית', 'חבילה סטנדרט', 'חבילה מתקדמת', 'חבילה פרימיום', 'אחר'];
-    const data = labels.map((name, i) => ({
-      name,
-      value: Math.round(purchases * shares[i]),
-    })).filter(d => d.value > 0);
-    if (data.length === 0) {
-      return [];
-    }
-    return data;
-  }, [stats?.purchasesCount, stats?.packagesCount]);
+    const dist = stats?.packageDistribution;
+    if (!dist || Object.keys(dist).length === 0) return [];
+    return Object.entries(dist)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [stats?.packageDistribution]);
 
   if (loading) {
     return (
@@ -313,6 +306,7 @@ const OverviewPage = () => {
                     <Space>
                       <DollarOutlined style={{ color: '#667eea' }} />
                       <span>מגמת הכנסות</span>
+                      <Tag color='default' style={{ fontSize: 11, marginRight: 4 }}>התפלגות משוערת</Tag>
                     </Space>
                   }
                   bordered={false}
@@ -413,16 +407,21 @@ const OverviewPage = () => {
                   style={{ height: '100%', borderRadius: 16 }}
                   styles={{ body: { padding: 24 } }}
                 >
-                  <Space direction='vertical' size='large' style={{ width: '100%' }}>
+                  <Space direction='vertical' size='middle' style={{ width: '100%' }}>
                     <MiniStatCard
                       label='סך זמן שנרכש'
                       value={formatTime(stats?.totalTimeMinutes || 0)}
                       icon={<ClockCircleOutlined />}
                       color='primary'
                     />
-                    <Text type='secondary' style={{ fontSize: 13, display: 'block' }}>
-                      הזמן המצטבר שנרכש על ידי כל המשתמשים בארגון
-                    </Text>
+                    <MiniStatCard
+                      label='זמן ממוצע למשתמש'
+                      value={stats?.usersCount > 0
+                        ? formatTime(Math.round((stats.totalTimeMinutes || 0) / stats.usersCount))
+                        : '0 דקות'}
+                      icon={<UserOutlined />}
+                      color='success'
+                    />
                   </Space>
                 </Card>
               </motion.div>
@@ -651,7 +650,7 @@ const OverviewPage = () => {
                   <Col xs={24} sm={8}>
                     <MiniStatCard
                       label='רכישות למשתמש'
-                      value={((stats.purchasesCount || 0) / stats.usersCount).toFixed(1)}
+                      value={`${((stats.purchasesCount || 0) / stats.usersCount).toFixed(1)} רכישות`}
                       icon={<ShoppingCartOutlined />}
                       color='warning'
                     />
