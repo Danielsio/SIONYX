@@ -26,7 +26,7 @@
 
             <TextBlock Grid.Column="1"
                        Text="{Binding Icon, ElementName=Root}"
-                       FontSize="48" Foreground="#FFFFFF" Opacity="0.3"
+                       FontSize="48" Foreground="#FFFFFF" Opacity="0.5"
                        VerticalAlignment="Center"
                        Visibility="{Binding Icon, ElementName=Root, Converter={StaticResource StringToVisibility}}" />
         </Grid>

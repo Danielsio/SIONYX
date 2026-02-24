@@ -14,7 +14,8 @@ public class HelpViewModelCoverageTests : IDisposable
     {
         (_firebase, _handler) = TestFirebaseFactory.Create();
         var orgService = new OrganizationMetadataService(_firebase);
-        _vm = new HelpViewModel(orgService);
+        var opHours = new OperatingHoursService(_firebase);
+        _vm = new HelpViewModel(orgService, opHours);
     }
 
     public void Dispose() => _firebase.Dispose();

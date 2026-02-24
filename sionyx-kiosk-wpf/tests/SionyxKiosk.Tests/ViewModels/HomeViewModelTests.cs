@@ -98,7 +98,7 @@ public class HomeViewModelTests : IDisposable
     public void InitialState_WithZeroTime_ShouldShowZero()
     {
         var vm = CreateVm(remainingTime: 0);
-        vm.RemainingTime.Should().Be("00:00:00");
+        vm.RemainingTime.Should().Be("—");
     }
 
     [Fact]

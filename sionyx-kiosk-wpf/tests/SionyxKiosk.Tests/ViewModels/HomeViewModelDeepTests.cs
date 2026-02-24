@@ -70,7 +70,7 @@ public class HomeViewModelDeepTests : IDisposable
     public void PrintBalance_ZeroBalance_ShouldShowZero()
     {
         var (vm, _) = CreateVm(printBalance: 0);
-        vm.PrintBalance.Should().Contain("0.00");
+        vm.PrintBalance.Should().Be("—");
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class HomeViewModelDeepTests : IDisposable
     public void RemainingTime_NegativeTime_ShouldClampToZero()
     {
         var (vm, _) = CreateVm(remainingTime: -100);
-        vm.RemainingTime.Should().Be("00:00:00");
+        vm.RemainingTime.Should().Be("—");
     }
 
     // ==================== VIEW MESSAGES COMMAND ====================

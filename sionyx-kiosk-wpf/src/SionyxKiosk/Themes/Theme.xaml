@@ -142,13 +142,9 @@
                                 <GradientStop Color="#4F46E5" Offset="1" />
                             </LinearGradientBrush>
                         </Border.Background>
-                        <TextBlock x:Name="label"
-                                   Text="{TemplateBinding Content}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Foreground="White"
-                                   FontFamily="{TemplateBinding FontFamily}"
-                                   FontSize="{TemplateBinding FontSize}"
-                                   FontWeight="{TemplateBinding FontWeight}" />
+                        <ContentPresenter x:Name="label"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          RecognizesAccessKey="True" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -166,7 +162,7 @@
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="border" Property="Background" Value="#D1D5DB" />
-                            <Setter TargetName="label" Property="Foreground" Value="#9CA3AF" />
+                            <Setter TargetName="border" Property="Opacity" Value="0.6" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -389,8 +385,38 @@
     </Style>
 
     <!-- ======================== SCROLLBARS ======================== -->
+    <Style x:Key="ThinScrollBarThumb" TargetType="Thumb">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border CornerRadius="3" Background="#C1C7CF" Margin="1,0" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style TargetType="ScrollBar">
-        <Setter Property="Width" Value="10" />
+        <Setter Property="Width" Value="6" />
+        <Setter Property="MinWidth" Value="6" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid>
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.Thumb>
+                                <Thumb Style="{StaticResource ThinScrollBarThumb}" />
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Height" Value="6" />
+                <Setter Property="Width" Value="Auto" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- ======================== TOOLTIP ======================== -->

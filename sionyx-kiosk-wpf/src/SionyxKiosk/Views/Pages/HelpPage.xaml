@@ -114,9 +114,9 @@
                             <TextBlock Grid.Column="0" Text="🕐" FontSize="22" VerticalAlignment="Center" Margin="0,0,14,0" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="שעות פעילות" FontSize="14" Foreground="{StaticResource TextMutedBrush}" />
-                                <TextBlock Text="ימים א׳-ה׳ 09:00-21:00" FontSize="16" FontWeight="SemiBold"
+                                <TextBlock Text="{Binding WorkingHoursLine1}" FontSize="16" FontWeight="SemiBold"
                                            Foreground="{StaticResource TextPrimaryBrush}" Margin="0,2,0,0" />
-                                <TextBlock Text="שישי 09:00-14:00" FontSize="14"
+                                <TextBlock Text="{Binding WorkingHoursLine2}" FontSize="14"
                                            Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
                             </StackPanel>
                         </Grid>

@@ -23,7 +23,7 @@
             <Border CornerRadius="32" ClipToBounds="True">
                 <Grid x:Name="LayoutGrid">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition x:Name="SummaryColumn" Width="400" />
+                        <ColumnDefinition x:Name="SummaryColumn" Width="360" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
@@ -53,14 +53,14 @@
                         </Button>
 
                         <!-- Summary content -->
-                        <StackPanel VerticalAlignment="Center" Margin="36,0,36,24">
+                        <StackPanel VerticalAlignment="Center" Margin="28,0,28,20">
 
                             <!-- Header -->
-                            <TextBlock Text="סיכום הזמנה" FontSize="22" FontWeight="Bold"
-                                       Foreground="#1E293B" HorizontalAlignment="Center" Margin="0,0,0,28" />
+                            <TextBlock Text="סיכום הזמנה" FontSize="20" FontWeight="Bold"
+                                       Foreground="#1E293B" HorizontalAlignment="Center" Margin="0,0,0,20" />
 
                             <!-- Package card -->
-                            <Border CornerRadius="20" Padding="24,22" Margin="0,0,0,24"
+                            <Border CornerRadius="16" Padding="20,18" Margin="0,0,0,18"
                                     Background="White" BorderBrush="#E2E8F0" BorderThickness="1">
                                 <Border.Effect>
                                     <DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270"
@@ -68,26 +68,26 @@
                                 </Border.Effect>
                                 <StackPanel>
                                     <!-- Package name -->
-                                    <TextBlock x:Name="PackageNameText" FontSize="22" FontWeight="Bold"
-                                               Foreground="#1E293B" Margin="0,0,0,18" />
+                                    <TextBlock x:Name="PackageNameText" FontSize="19" FontWeight="Bold"
+                                               Foreground="#1E293B" Margin="0,0,0,14" />
 
                                     <!-- Detail: Time -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                        <TextBlock Text="✓" FontSize="16" FontWeight="Bold"
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="✓" FontSize="14" FontWeight="Bold"
                                                    Foreground="#10B981" VerticalAlignment="Center"
-                                                   Margin="0,0,10,0" />
-                                        <TextBlock FontSize="16" Foreground="#475569" VerticalAlignment="Center">
+                                                   Margin="0,0,8,0" />
+                                        <TextBlock FontSize="14" Foreground="#475569" VerticalAlignment="Center">
                                             <Run Text="זמן: " />
                                             <Run x:Name="PackageMinutesText" FontWeight="SemiBold" Foreground="#1E293B" />
                                         </TextBlock>
                                     </StackPanel>
 
                                     <!-- Detail: Prints -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                        <TextBlock Text="✓" FontSize="16" FontWeight="Bold"
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="✓" FontSize="14" FontWeight="Bold"
                                                    Foreground="#10B981" VerticalAlignment="Center"
-                                                   Margin="0,0,10,0" />
-                                        <TextBlock FontSize="16" Foreground="#475569" VerticalAlignment="Center">
+                                                   Margin="0,0,8,0" />
+                                        <TextBlock FontSize="14" Foreground="#475569" VerticalAlignment="Center">
                                             <Run Text="תקציב הדפסות: " />
                                             <Run x:Name="PackagePrintsText" FontWeight="SemiBold" Foreground="#1E293B" />
                                         </TextBlock>
@@ -95,10 +95,10 @@
 
                                     <!-- Detail: Validity -->
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="✓" FontSize="16" FontWeight="Bold"
+                                        <TextBlock Text="✓" FontSize="14" FontWeight="Bold"
                                                    Foreground="#10B981" VerticalAlignment="Center"
-                                                   Margin="0,0,10,0" />
-                                        <TextBlock FontSize="16" Foreground="#475569" VerticalAlignment="Center">
+                                                   Margin="0,0,8,0" />
+                                        <TextBlock FontSize="14" Foreground="#475569" VerticalAlignment="Center">
                                             <Run Text="תקופת תוקף: " />
                                             <Run x:Name="PackageValidityText" FontWeight="SemiBold" Foreground="#1E293B" />
                                         </TextBlock>
@@ -107,7 +107,7 @@
                             </Border>
 
                             <!-- Price section -->
-                            <Border CornerRadius="20" Padding="24,22"
+                            <Border CornerRadius="16" Padding="20,16"
                                     Background="White" BorderBrush="#E2E8F0" BorderThickness="1">
                                 <Border.Effect>
                                     <DropShadowEffect BlurRadius="24" ShadowDepth="4" Direction="270"
@@ -115,7 +115,7 @@
                                 </Border.Effect>
                                 <StackPanel>
                                     <!-- Original price (strikethrough, only if discount) -->
-                                    <TextBlock x:Name="OriginalPriceText" FontSize="20"
+                                    <TextBlock x:Name="OriginalPriceText" FontSize="17"
                                                Foreground="#94A3B8" HorizontalAlignment="Left"
                                                TextDecorations="Strikethrough" Visibility="Collapsed"
                                                Margin="0,0,0,4" />
@@ -127,10 +127,10 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0" Text="סה״כ לתשלום"
-                                                   FontSize="18" FontWeight="SemiBold"
+                                                   FontSize="16" FontWeight="SemiBold"
                                                    Foreground="#475569" VerticalAlignment="Center" />
                                         <TextBlock Grid.Column="1" x:Name="PackagePriceText"
-                                                   FontSize="38" FontWeight="ExtraBold"
+                                                   FontSize="32" FontWeight="ExtraBold"
                                                    VerticalAlignment="Center">
                                             <TextBlock.Foreground>
                                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
@@ -171,12 +171,12 @@
                 <Border Grid.Column="1" Background="White">
                     <DockPanel>
                         <TextBlock DockPanel.Dock="Top" Text="השלמת רכישה"
-                                   FontSize="20" FontWeight="Bold" Foreground="#1E293B"
-                                   Margin="32,28,32,0" />
+                                   FontSize="18" FontWeight="Bold" Foreground="#1E293B"
+                                   Margin="24,20,24,0" />
                         <TextBlock DockPanel.Dock="Top" Text="אמצעי תשלום מאובטח"
-                                   FontSize="14" Foreground="#94A3B8"
-                                   Margin="32,6,32,20" />
-                        <Border DockPanel.Dock="Top" Height="1" Background="#F1F5F9" Margin="32,0" />
+                                   FontSize="13" Foreground="#94A3B8"
+                                   Margin="24,4,24,14" />
+                        <Border DockPanel.Dock="Top" Height="1" Background="#F1F5F9" Margin="24,0" />
                         <wv2:WebView2 x:Name="PaymentWebView" Margin="0,8,0,0" />
                     </DockPanel>
                 </Border>

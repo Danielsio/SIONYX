@@ -32,6 +32,7 @@ public partial class HomePage : Page
 
         viewModel.ViewMessagesRequested += OpenMessageDialog;
         viewModel.NavigateToPackagesRequested += NavigateToPackages;
+        viewModel.SessionStartedSuccessfully += OnSessionStarted;
 
         UpdateMessageCard(viewModel.UnreadMessages);
         UpdateAnnouncementsSection();
@@ -85,6 +86,28 @@ public partial class HomePage : Page
     {
         var mainWindow = Window.GetWindow(this) as Windows.MainWindow;
         mainWindow?.NavigateToPackages();
+    }
+
+    private void OnSessionStarted()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            if (Window.GetWindow(this) is MainWindow main)
+                main.ShowToast("ההפעלה התחילה!", "הזמן שלך רץ, בהצלחה!",
+                    Controls.ToastNotification.ToastType.Success);
+        });
+    }
+
+    private void EndSession_Click(object sender, RoutedEventArgs e)
+    {
+        var confirmed = AlertDialog.Confirm(
+            "סיום הפעלה",
+            "האם אתה בטוח שברצונך לסיים את ההפעלה?",
+            AlertDialog.AlertType.Warning,
+            Window.GetWindow(this));
+
+        if (confirmed)
+            _vm.EndSessionCommand.Execute(null);
     }
 
     private void ResumeSession_Click(object sender, RoutedEventArgs e)

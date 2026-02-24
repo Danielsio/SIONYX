@@ -37,6 +37,8 @@ public partial class HomeViewModel : ObservableObject, IDisposable
     public event Action? ViewMessagesRequested;
     /// <summary>Raised when user clicks "buy package" button.</summary>
     public event Action? NavigateToPackagesRequested;
+    /// <summary>Raised after a session is successfully started.</summary>
+    public event Action? SessionStartedSuccessfully;
 
     partial void OnIsSessionActiveChanged(bool value)
     {
@@ -98,7 +100,10 @@ public partial class HomeViewModel : ObservableObject, IDisposable
             var result = await _session.StartSessionAsync(_user.RemainingTime);
 
             if (result.IsSuccess)
+            {
                 IsSessionActive = true;
+                SessionStartedSuccessfully?.Invoke();
+            }
             else
                 ErrorMessage = result.Error ?? "שגיאה";
         }
@@ -178,10 +183,19 @@ public partial class HomeViewModel : ObservableObject, IDisposable
 
     private void UpdateStats()
     {
-        var ts = TimeSpan.FromSeconds(Math.Max(0, _user.RemainingTime));
-        RemainingTime = ts.ToString(@"hh\:mm\:ss");
-        PrintBalance = $"{_user.PrintBalance:F2} ₪";
         HasNoTime = _user.RemainingTime <= 0;
+
+        if (_user.RemainingTime > 0)
+        {
+            var ts = TimeSpan.FromSeconds(_user.RemainingTime);
+            RemainingTime = ts.ToString(@"hh\:mm\:ss");
+        }
+        else
+        {
+            RemainingTime = "—";
+        }
+
+        PrintBalance = _user.PrintBalance > 0 ? $"{_user.PrintBalance:F2} ₪" : "—";
         PrimaryButtonText = HasNoTime ? "קנה חבילה" : "▶  התחל הפעלה";
         TimeExpiry = FormatExpiry(_user.TimeExpiresAt, _user.RemainingTime);
     }

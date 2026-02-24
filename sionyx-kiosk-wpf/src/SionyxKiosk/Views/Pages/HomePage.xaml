@@ -51,7 +51,7 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0" Orientation="Horizontal">
                             <TextBlock Text="🔔" FontSize="20" VerticalAlignment="Center" Margin="0,0,10,0" />
-                            <TextBlock Text="הודעות חדשות" FontSize="19" FontWeight="Bold"
+                            <TextBlock Text="עדכוני מערכת" FontSize="19" FontWeight="Bold"
                                        Foreground="{StaticResource TextPrimaryBrush}" VerticalAlignment="Center" />
                             <Border x:Name="AnnouncementBadge" CornerRadius="10" Padding="8,2" Margin="10,0,0,0"
                                     VerticalAlignment="Center" Background="{StaticResource PrimaryBrush}">
@@ -103,7 +103,7 @@
                         <TextBlock x:Name="MessageCountText" Text="" FontSize="15"
                                    Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
                     </StackPanel>
-                    <TextBlock Grid.Column="2" Text="צפה בהודעות ←" FontSize="15" FontWeight="SemiBold"
+                    <TextBlock Grid.Column="2" Text="צפה בהודעות →" FontSize="15" FontWeight="SemiBold"
                                Foreground="{StaticResource PrimaryBrush}" VerticalAlignment="Center" />
                 </Grid>
             </Border>
@@ -119,12 +119,23 @@
                         <!-- No time: show buy prompt -->
                         <StackPanel HorizontalAlignment="Center"
                                     Visibility="{Binding HasNoTime, Converter={StaticResource BoolToVis}}">
-                            <TextBlock Text="אין לך זמן נוסף, קנה חבילה כדי להתחיל!"
-                                       FontSize="17" Foreground="{StaticResource TextSecondaryBrush}"
-                                       HorizontalAlignment="Center" Margin="0,0,0,18" />
-                            <Button Content="קנה חבילה" Style="{StaticResource BtnDanger}"
+                            <TextBlock Text="🎯" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,10" />
+                            <TextBlock Text="הזמן שלך נגמר" FontSize="20" FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,6" />
+                            <TextBlock Text="רכוש חבילה חדשה כדי להמשיך ליהנות מהשירותים שלנו"
+                                       FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"
+                                       HorizontalAlignment="Center" Margin="0,0,0,20" />
+                            <Button Style="{StaticResource BtnPrimary}"
                                     Command="{Binding BuyPackageCommand}"
-                                    Width="220" Height="50" FontSize="18" />
+                                    Width="240" Height="52" FontSize="18">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🛒" FontSize="18" Foreground="White"
+                                               VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBlock Text="קנה חבילה" FontSize="18" FontWeight="SemiBold"
+                                               Foreground="White" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
 
                         <!-- Has time: show start session -->
@@ -147,7 +158,7 @@
                                 Click="ResumeSession_Click"
                                 Width="260" Height="52" FontSize="18" Margin="0,0,0,12" />
                         <Button Content="⏹  סיים הפעלה" Style="{StaticResource BtnDanger}"
-                                Command="{Binding EndSessionCommand}"
+                                Click="EndSession_Click"
                                 IsEnabled="{Binding IsEndingSession, Converter={StaticResource InverseBool}}"
                                 Width="260" Height="52" FontSize="18" />
                         <controls:LoadingSpinner HorizontalAlignment="Center" Margin="0,12,0,0"

@@ -28,6 +28,8 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="24,0,24,20">
                 <Button x:Name="OkButton" Content="אישור" Style="{StaticResource BtnPrimary}"
                         Width="120" Click="OkButton_Click" />
+                <Button x:Name="CancelButton" Content="ביטול" Style="{StaticResource BtnGhost}"
+                        Width="120" Margin="10,0,0,0" Click="CancelButton_Click" Visibility="Collapsed" />
             </StackPanel>
         </StackPanel>
     </Border>

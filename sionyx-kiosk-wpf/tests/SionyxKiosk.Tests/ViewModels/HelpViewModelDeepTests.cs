@@ -23,7 +23,8 @@ public class HelpViewModelDeepTests : IDisposable
     private HelpViewModel CreateVm()
     {
         var orgService = new OrganizationMetadataService(_firebase);
-        return new HelpViewModel(orgService);
+        var opHours = new OperatingHoursService(_firebase);
+        return new HelpViewModel(orgService, opHours);
     }
 
     // ==================== INITIAL STATE ====================

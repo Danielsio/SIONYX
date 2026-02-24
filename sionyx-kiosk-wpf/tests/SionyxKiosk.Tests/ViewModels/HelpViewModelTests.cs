@@ -10,7 +10,8 @@ public class HelpViewModelTests
     public void FaqItems_ShouldHaveDefaultEntries()
     {
         var orgService = new OrganizationMetadataService(null!);
-        var vm = new HelpViewModel(orgService);
+        var opHours = new OperatingHoursService(null!);
+        var vm = new HelpViewModel(orgService, opHours);
 
         vm.FaqItems.Should().NotBeEmpty();
         vm.FaqItems.Count.Should().BeGreaterThanOrEqualTo(5);
@@ -20,7 +21,8 @@ public class HelpViewModelTests
     public void FaqItems_AllShouldHaveQuestionAndAnswer()
     {
         var orgService = new OrganizationMetadataService(null!);
-        var vm = new HelpViewModel(orgService);
+        var opHours = new OperatingHoursService(null!);
+        var vm = new HelpViewModel(orgService, opHours);
 
         foreach (var item in vm.FaqItems)
         {
@@ -33,7 +35,8 @@ public class HelpViewModelTests
     public void InitialState_ShouldHaveEmptyContact()
     {
         var orgService = new OrganizationMetadataService(null!);
-        var vm = new HelpViewModel(orgService);
+        var opHours = new OperatingHoursService(null!);
+        var vm = new HelpViewModel(orgService, opHours);
 
         vm.AdminPhone.Should().BeEmpty();
         vm.AdminEmail.Should().BeEmpty();

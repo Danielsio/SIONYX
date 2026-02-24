@@ -9,9 +9,12 @@
                                  HeaderBrush="{StaticResource PackagesHeaderGradient}" Icon="📦"
                                  Margin="0,0,0,28" />
 
-            <!-- Loading -->
-            <controls:LoadingSpinner HorizontalAlignment="Center"
-                                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
+            <!-- Skeleton loading -->
+            <UniformGrid Columns="3" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                <controls:SkeletonCard Margin="12" />
+                <controls:SkeletonCard Margin="12" />
+                <controls:SkeletonCard Margin="12" />
+            </UniformGrid>
 
             <!-- Empty state -->
             <controls:EmptyState Message="אין חבילות זמינות"
@@ -98,7 +101,8 @@
                                 <!-- Feature list -->
                                 <StackPanel Grid.Row="1" Margin="32,24,32,10">
                                     <!-- Time -->
-                                    <Border Padding="0,13" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
+                                    <Border Padding="0,13" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1"
+                                            Visibility="{Binding Minutes, Converter={StaticResource NonZeroToVis}}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
@@ -121,7 +125,8 @@
                                     </Border>
 
                                     <!-- Prints -->
-                                    <Border Padding="0,13" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
+                                    <Border Padding="0,13" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1"
+                                            Visibility="{Binding Prints, Converter={StaticResource NonZeroToVis}}">
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
