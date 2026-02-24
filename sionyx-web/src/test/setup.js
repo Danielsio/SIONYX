@@ -139,6 +139,9 @@ vi.mock('@ant-design/icons', () => {
     FireOutlined: createMockIcon('FireOutlined'),
     ThunderboltFilled: createMockIcon('ThunderboltFilled'),
     StopOutlined: createMockIcon('StopOutlined'),
+    NotificationOutlined: createMockIcon('NotificationOutlined'),
+    PauseCircleOutlined: createMockIcon('PauseCircleOutlined'),
+    SoundOutlined: createMockIcon('SoundOutlined'),
   };
 });
 
