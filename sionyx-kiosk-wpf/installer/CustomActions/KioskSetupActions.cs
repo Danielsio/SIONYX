@@ -31,6 +31,7 @@ namespace SionyxInstaller
         [CustomAction]
         public static ActionResult CreateKioskUser(Session session)
         {
+            var sw = Stopwatch.StartNew();
             session.Log("=== CreateKioskUser: START ===");
 
             try
@@ -67,12 +68,12 @@ namespace SionyxInstaller
                 // Ensure in Users group
                 RunCommand("net", $"localgroup Users \"{KioskUsername}\" /add", session);
 
-                session.Log("[OK] Kiosk user account ready");
+                session.Log($"[OK] Kiosk user account ready ({sw.ElapsedMilliseconds}ms)");
                 return ActionResult.Success;
             }
             catch (Exception ex)
             {
-                session.Log($"[ERROR] CreateKioskUser failed: {ex}");
+                session.Log($"[ERROR] CreateKioskUser failed ({sw.ElapsedMilliseconds}ms): {ex}");
                 return ActionResult.Failure;
             }
         }
@@ -80,6 +81,7 @@ namespace SionyxInstaller
         [CustomAction]
         public static ActionResult ApplySecurityRestrictions(Session session)
         {
+            var sw = Stopwatch.StartNew();
             session.Log("=== ApplySecurityRestrictions: START ===");
 
             try
@@ -129,11 +131,12 @@ namespace SionyxInstaller
 
                 CleanupMachineWidePolicies(session);
 
+                session.Log($"=== ApplySecurityRestrictions: DONE ({sw.ElapsedMilliseconds}ms) ===");
                 return ActionResult.Success;
             }
             catch (Exception ex)
             {
-                session.Log($"[ERROR] ApplySecurityRestrictions failed: {ex}");
+                session.Log($"[ERROR] ApplySecurityRestrictions failed ({sw.ElapsedMilliseconds}ms): {ex}");
                 return ActionResult.Failure;
             }
         }
@@ -141,6 +144,7 @@ namespace SionyxInstaller
         [CustomAction]
         public static ActionResult SetupAutoStart(Session session)
         {
+            var sw = Stopwatch.StartNew();
             session.Log("=== SetupAutoStart: START ===");
 
             try
@@ -173,12 +177,12 @@ namespace SionyxInstaller
                     session.Log($"[WARN] Scheduled task creation returned exit code {rc}");
                 }
 
-                session.Log("[OK] Scheduled task created");
+                session.Log($"[OK] Scheduled task created ({sw.ElapsedMilliseconds}ms)");
                 return ActionResult.Success;
             }
             catch (Exception ex)
             {
-                session.Log($"[ERROR] SetupAutoStart failed: {ex}");
+                session.Log($"[ERROR] SetupAutoStart failed ({sw.ElapsedMilliseconds}ms): {ex}");
                 return ActionResult.Failure;
             }
         }
@@ -186,6 +190,7 @@ namespace SionyxInstaller
         [CustomAction]
         public static ActionResult InitializeProfile(Session session)
         {
+            var sw = Stopwatch.StartNew();
             session.Log("=== InitializeProfile: START ===");
 
             try
@@ -235,13 +240,13 @@ namespace SionyxInstaller
                 string targetExe = Path.Combine(installDir, "SionyxKiosk.exe");
                 string iconPath = Path.Combine(installDir, "app-logo.ico");
                 CreateShortcut(shortcutPath, targetExe, "--kiosk", iconPath, session);
-                session.Log("[OK] Startup shortcut created");
+                session.Log($"[OK] Startup shortcut created ({sw.ElapsedMilliseconds}ms)");
 
                 return ActionResult.Success;
             }
             catch (Exception ex)
             {
-                session.Log($"[ERROR] InitializeProfile failed: {ex}");
+                session.Log($"[ERROR] InitializeProfile failed ({sw.ElapsedMilliseconds}ms): {ex}");
                 return ActionResult.Failure;
             }
         }
@@ -626,11 +631,15 @@ namespace SionyxInstaller
             return fileName;
         }
 
-        private static int RunCommand(string fileName, string arguments, Session session)
+        private static int RunCommand(string fileName, string arguments, Session session, int timeoutMs = 60000)
         {
+            var resolvedPath = ResolvePath(fileName);
+            session.Log($"  [CMD] {resolvedPath} {arguments}");
+            var sw = Stopwatch.StartNew();
+
             var psi = new ProcessStartInfo
             {
-                FileName = ResolvePath(fileName),
+                FileName = resolvedPath,
                 Arguments = arguments,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
@@ -640,15 +649,33 @@ namespace SionyxInstaller
 
             using (var process = Process.Start(psi))
             {
+                var stderrBuilder = new StringBuilder();
+                process.ErrorDataReceived += (s, e) =>
+                {
+                    if (e.Data != null) stderrBuilder.AppendLine(e.Data);
+                };
+                process.BeginErrorReadLine();
+
                 string stdout = process.StandardOutput.ReadToEnd();
-                string stderr = process.StandardError.ReadToEnd();
-                process.WaitForExit();
+
+                bool exited = process.WaitForExit(timeoutMs);
+                sw.Stop();
+
+                if (!exited)
+                {
+                    session.Log($"  [TIMEOUT] Command did not finish in {timeoutMs}ms — killing process");
+                    try { process.Kill(); } catch { /* best effort */ }
+                    return -1;
+                }
 
                 if (!string.IsNullOrWhiteSpace(stdout))
-                    session.Log(stdout.TrimEnd());
-                if (!string.IsNullOrWhiteSpace(stderr) && process.ExitCode != 0)
-                    session.Log($"STDERR: {stderr.TrimEnd()}");
+                    session.Log($"  [STDOUT] {stdout.TrimEnd()}");
 
+                string stderr = stderrBuilder.ToString();
+                if (!string.IsNullOrWhiteSpace(stderr) && process.ExitCode != 0)
+                    session.Log($"  [STDERR] {stderr.TrimEnd()}");
+
+                session.Log($"  [CMD] exit={process.ExitCode} elapsed={sw.ElapsedMilliseconds}ms");
                 return process.ExitCode;
             }
         }
