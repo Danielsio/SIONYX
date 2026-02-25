@@ -204,6 +204,7 @@ const AnnouncementsPage = () => {
   const activeCount = announcements.filter(a => a.active).length;
 
   const AnnouncementCard = ({ item }) => {
+    console.log('[Announcements v3] rendering card:', item.title);
     const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.info;
 
     const menuItems = [
@@ -263,6 +264,7 @@ const AnnouncementsPage = () => {
           <Dropdown
             menu={{ items: menuItems, onClick: onMenuClick }}
             trigger={['click']}
+            onOpenChange={(open) => console.log('[Announcements v3] dropdown open:', open)}
           >
             <Button type='text' icon={<MoreOutlined />} size='small' style={{ color: config.color }} />
           </Dropdown>
