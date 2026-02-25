@@ -15,7 +15,6 @@ vi.mock('../../hooks/useOrgId', () => ({
   useOrgId: (...args) => mockUseOrgId(...args),
 }));
 
-// Mock dayjs with all methods required by Ant Design TimePicker
 vi.mock('dayjs', () => {
   const createDayjsInstance = date => {
     const instance = {
@@ -99,22 +98,6 @@ describe('OperatingHoursSettings', () => {
     );
 
     expect(screen.getByText('הגדרות מפקח בלבד')).toBeInTheDocument();
-  });
-
-  it('shows current status section', async () => {
-    render(
-      <AntApp>
-        <OperatingHoursSettings />
-      </AntApp>
-    );
-
-    await waitFor(() => {
-      expect(getOperatingHours).toHaveBeenCalled();
-    });
-
-    expect(screen.getByText('מצב נוכחי')).toBeInTheDocument();
-    // There are multiple "מושבת" elements (tag and switch), check at least one exists
-    expect(screen.getAllByText('מושבת').length).toBeGreaterThan(0);
   });
 
   it('shows enabled status when enabled', async () => {
@@ -201,14 +184,18 @@ describe('OperatingHoursSettings', () => {
     expect(screen.getByText('סגירה מיידית')).toBeInTheDocument();
   });
 
-  it('shows explanation section', async () => {
+  it('shows weekly schedule card', async () => {
     render(
       <AntApp>
         <OperatingHoursSettings />
       </AntApp>
     );
 
-    expect(screen.getByText('הסבר')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(getOperatingHours).toHaveBeenCalled();
+    });
+
+    expect(screen.getByText('לוח שעות שבועי')).toBeInTheDocument();
   });
 
   it('handles load error', async () => {
@@ -227,8 +214,7 @@ describe('OperatingHoursSettings', () => {
       expect(getOperatingHours).toHaveBeenCalled();
     });
 
-    // Should not crash
-    expect(screen.getByText('עדכן הגדרות')).toBeInTheDocument();
+    expect(screen.getByText('הגדרות כלליות')).toBeInTheDocument();
   });
 
   it('reloads data when orgId changes from null to a value', async () => {

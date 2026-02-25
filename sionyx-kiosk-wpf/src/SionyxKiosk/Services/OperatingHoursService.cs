@@ -4,17 +4,12 @@ using SionyxKiosk.Infrastructure;
 
 namespace SionyxKiosk.Services;
 
-/// <summary>
-/// Checks and enforces organization operating hours.
-/// Uses WPF DispatcherTimer instead of QTimer.
-/// </summary>
 public class OperatingHoursService : BaseService, IDisposable
 {
     protected override string ServiceName => "OperatingHoursService";
 
-    // Events replace PyQt signals
-    public event Action<int>? HoursEndingSoon;   // minutes until closing
-    public event Action<string>? HoursEnded;      // grace behavior
+    public event Action<int>? HoursEndingSoon;
+    public event Action<string>? HoursEnded;
     public event Action<OperatingHoursSettings>? SettingsUpdated;
 
     public OperatingHoursSettings Settings { get; private set; } = new();
@@ -22,6 +17,8 @@ public class OperatingHoursService : BaseService, IDisposable
 
     private readonly DispatcherTimer _checkTimer;
     private bool _warnedGrace;
+
+    private static readonly string[] DayKeys = { "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday" };
 
     public OperatingHoursService(FirebaseClient firebase) : base(firebase)
     {
@@ -49,6 +46,22 @@ public class OperatingHoursService : BaseService, IDisposable
                 GraceBehavior = SafeGet(data, "graceBehavior") ?? "graceful",
             };
 
+            if (data.TryGetProperty("schedule", out var scheduleEl) && scheduleEl.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var dayKey in DayKeys)
+                {
+                    if (scheduleEl.TryGetProperty(dayKey, out var dayEl) && dayEl.ValueKind == JsonValueKind.Object)
+                    {
+                        Settings.Schedule[dayKey] = new DaySchedule
+                        {
+                            Open = !dayEl.TryGetProperty("open", out var o) || o.GetBoolean(),
+                            StartTime = SafeGet(dayEl, "startTime") ?? "08:00",
+                            EndTime = SafeGet(dayEl, "endTime") ?? "22:00",
+                        };
+                    }
+                }
+            }
+
             SettingsUpdated?.Invoke(Settings);
         }
         catch (Exception ex)
@@ -62,8 +75,14 @@ public class OperatingHoursService : BaseService, IDisposable
     {
         if (!Settings.Enabled) return (true, null);
 
+        var today = GetTodaySchedule();
+        if (today == null) return (true, null);
+
+        if (!today.Open)
+            return (false, "היום סגור");
+
         var current = DateTime.Now.TimeOfDay;
-        if (!TryParseTime(Settings.StartTime, out var start) || !TryParseTime(Settings.EndTime, out var end))
+        if (!TryParseTime(today.StartTime, out var start) || !TryParseTime(today.EndTime, out var end))
             return (true, null);
 
         bool isWithin;
@@ -73,7 +92,7 @@ public class OperatingHoursService : BaseService, IDisposable
             isWithin = current >= start || current <= end;
 
         if (!isWithin)
-            return (false, $"שעות הפעילות הן בין {Settings.StartTime} ל-{Settings.EndTime}");
+            return (false, $"שעות הפעילות היום הן {today.StartTime} - {today.EndTime}");
 
         return (true, null);
     }
@@ -81,13 +100,36 @@ public class OperatingHoursService : BaseService, IDisposable
     public int GetMinutesUntilClosing()
     {
         if (!Settings.Enabled) return -1;
-        if (!TryParseTime(Settings.EndTime, out var end)) return -1;
+
+        var today = GetTodaySchedule();
+        if (today == null || !today.Open) return -1;
+        if (!TryParseTime(today.EndTime, out var end)) return -1;
 
         var now = DateTime.Now;
         var endTime = now.Date + end;
         if (endTime <= now) endTime = endTime.AddDays(1);
 
         return (int)(endTime - now).TotalMinutes;
+    }
+
+    /// <summary>
+    /// Returns the schedule for today based on the day of week.
+    /// Falls back to the global StartTime/EndTime if no per-day schedule exists.
+    /// </summary>
+    public DaySchedule? GetTodaySchedule()
+    {
+        int dow = (int)DateTime.Now.DayOfWeek;
+        string dayKey = DayKeys[dow];
+
+        if (Settings.Schedule.TryGetValue(dayKey, out var ds))
+            return ds;
+
+        return new DaySchedule
+        {
+            Open = true,
+            StartTime = Settings.StartTime,
+            EndTime = Settings.EndTime,
+        };
     }
 
     public void StartMonitoring()
@@ -149,9 +191,13 @@ public class OperatingHoursService : BaseService, IDisposable
     }
 }
 
-/// <summary>
-/// Operating hours settings model.
-/// </summary>
+public class DaySchedule
+{
+    public bool Open { get; set; } = true;
+    public string StartTime { get; set; } = "08:00";
+    public string EndTime { get; set; } = "22:00";
+}
+
 public class OperatingHoursSettings
 {
     public bool Enabled { get; set; }
@@ -159,4 +205,5 @@ public class OperatingHoursSettings
     public string EndTime { get; set; } = "00:00";
     public int GracePeriodMinutes { get; set; } = 5;
     public string GraceBehavior { get; set; } = "graceful";
+    public Dictionary<string, DaySchedule> Schedule { get; set; } = new();
 }
