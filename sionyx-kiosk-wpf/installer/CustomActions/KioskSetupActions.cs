@@ -272,6 +272,7 @@ namespace SionyxInstaller
                     {
                         key.DeleteValue("DefaultUserName", false);
                         key.DeleteValue("DefaultDomainName", false);
+                        session.Log("[OK] Cleared DefaultUserName (was set to kiosk user)");
                     }
                 }
 
@@ -531,6 +532,9 @@ namespace SionyxInstaller
                         }
                     }
                 }
+
+                // Restore blank-password restriction
+                RunCommand("reg", @"add ""HKLM\SYSTEM\CurrentControlSet\Control\Lsa"" /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f", session);
 
                 session.Log("[OK] Auto-logon reverted");
                 return ActionResult.Success;
