@@ -11,6 +11,8 @@ import {
   revokeAdminPermission,
   kickUser,
   resetUserPassword,
+  deleteUser,
+  triggerCleanup,
 } from '../services/userService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { useAuthStore } from '../store/authStore';

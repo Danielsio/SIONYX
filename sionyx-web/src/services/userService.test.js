@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ref, get, update } from 'firebase/database';
+import { ref, get, update, remove } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
 import {
   getAllUsers,
@@ -9,6 +9,8 @@ import {
   revokeAdminPermission,
   kickUser,
   resetUserPassword,
+  deleteUser,
+  triggerCleanup,
 } from './userService';
 
 vi.mock('firebase/database');
@@ -379,6 +381,58 @@ describe('userService', () => {
         userId: 'uid-abc',
         newPassword: 'securePass!',
       });
+    });
+  });
+
+  describe('deleteUser', () => {
+    it('calls the deleteUser cloud function', async () => {
+      const mockCallable = vi.fn().mockResolvedValue({
+        data: { success: true, message: 'המשתמש נמחק בהצלחה' },
+      });
+      httpsCallable.mockReturnValue(mockCallable);
+
+      const result = await deleteUser('my-org', 'user-123');
+
+      expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'deleteUser');
+      expect(mockCallable).toHaveBeenCalledWith({ orgId: 'my-org', userId: 'user-123' });
+      expect(result.success).toBe(true);
+      expect(result.message).toBe('המשתמש נמחק בהצלחה');
+    });
+
+    it('handles cloud function error', async () => {
+      const mockCallable = vi.fn().mockRejectedValue(new Error('Permission denied'));
+      httpsCallable.mockReturnValue(mockCallable);
+
+      const result = await deleteUser('my-org', 'user-123');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Permission denied');
+    });
+  });
+
+  describe('triggerCleanup', () => {
+    it('calls the cleanup cloud function', async () => {
+      const mockCallable = vi.fn().mockResolvedValue({
+        data: { success: true, deleted: 3, skipped: 10 },
+      });
+      httpsCallable.mockReturnValue(mockCallable);
+
+      const result = await triggerCleanup('my-org');
+
+      expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'cleanupInactiveUsersManual');
+      expect(mockCallable).toHaveBeenCalledWith({ orgId: 'my-org' });
+      expect(result.success).toBe(true);
+      expect(result.deleted).toBe(3);
+    });
+
+    it('handles cleanup error', async () => {
+      const mockCallable = vi.fn().mockRejectedValue(new Error('Cleanup failed'));
+      httpsCallable.mockReturnValue(mockCallable);
+
+      const result = await triggerCleanup('my-org');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Cleanup failed');
     });
   });
 });

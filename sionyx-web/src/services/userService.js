@@ -1,4 +1,4 @@
-import { ref, get, update } from 'firebase/database';
+import { ref, get, update, remove } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
 import { database, functions } from '../config/firebase';
 import { useAuthStore } from '../store/authStore';
@@ -243,6 +243,48 @@ export const resetUserPassword = async (orgId, userId, newPassword) => {
       success: false,
       error: errorMessage,
     };
+  }
+};
+
+/**
+ * Delete a user (admin only).
+ * Calls Cloud Function which handles auth deletion, messages, and computer cleanup.
+ */
+export const deleteUser = async (orgId, userId) => {
+  try {
+    const deleteUserFn = httpsCallable(functions, 'deleteUser');
+    const result = await deleteUserFn({ orgId, userId });
+
+    return {
+      success: true,
+      message: result.data.message || 'המשתמש נמחק בהצלחה',
+    };
+  } catch (error) {
+    logger.error('Error deleting user:', error);
+    const errorMessage = error.message || 'שגיאה במחיקת המשתמש';
+    return { success: false, error: errorMessage };
+  }
+};
+
+/**
+ * Trigger manual cleanup of inactive users (admin only).
+ * Removes users who never purchased and registered 7+ days ago.
+ */
+export const triggerCleanup = async (orgId) => {
+  try {
+    const cleanupFn = httpsCallable(functions, 'cleanupInactiveUsersManual');
+    const result = await cleanupFn({ orgId });
+
+    return {
+      success: true,
+      deleted: result.data.deleted || 0,
+      skipped: result.data.skipped || 0,
+      message: `נמחקו ${result.data.deleted || 0} משתמשים לא פעילים`,
+    };
+  } catch (error) {
+    logger.error('Error triggering cleanup:', error);
+    const errorMessage = error.message || 'שגיאה בניקוי משתמשים';
+    return { success: false, error: errorMessage };
   }
 };
 

@@ -99,6 +99,7 @@ setGlobalOptions({maxInstances: 10});
 const crypto = require("crypto");
 const admin = require("firebase-admin");
 const {onCall} = require("firebase-functions/v2/https");
+const {onSchedule} = require("firebase-functions/v2/scheduler");
 const functions = require("firebase-functions");
 
 admin.initializeApp();
@@ -927,4 +928,297 @@ exports.registerOrganization = onCall(async (request) => {
         "Failed to register organization: " + error.message,
     );
   }
+});
+
+// ─── Inactive User Cleanup ─────────────────────────────────────────
+
+const INACTIVE_DAYS_NEVER_PURCHASED = 7;
+
+/**
+ * Core cleanup logic shared by scheduled and manual triggers.
+ * Deletes users who never purchased and registered 7+ days ago.
+ * Never deletes admins.
+ * @param {string|null} singleOrgId - If provided, only clean this org.
+ * @return {object} Summary of cleanup results.
+ */
+const runCleanup = async (singleOrgId = null) => {
+  const log = createLogger({service: "user-cleanup"});
+  const timer = createTimer("user-cleanup");
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() -
+      (INACTIVE_DAYS_NEVER_PURCHASED * msPerDay);
+  const summary = {orgs: 0, deleted: 0, skipped: 0, errors: 0};
+
+  let orgsSnapshot;
+  if (singleOrgId) {
+    const orgRef = admin.database().ref(`organizations/${singleOrgId}`);
+    const snap = await orgRef.once("value");
+    if (!snap.exists()) {
+      log.warn("Organization not found", {orgId: singleOrgId});
+      return summary;
+    }
+    orgsSnapshot = {val: () => ({[singleOrgId]: snap.val()})};
+  } else {
+    orgsSnapshot = await admin.database().ref("organizations").once("value");
+    const noData = !orgsSnapshot.exists ||
+        (typeof orgsSnapshot.exists === "function" &&
+        !orgsSnapshot.exists());
+    if (noData) {
+      log.info("No organizations found");
+      return summary;
+    }
+  }
+
+  const organizations = orgsSnapshot.val();
+
+  for (const [orgId, orgData] of Object.entries(organizations)) {
+    if (!orgData || !orgData.users) continue;
+    summary.orgs++;
+
+    const users = orgData.users || {};
+    const purchases = orgData.purchases || {};
+
+    // Build set of userIds that have at least one purchase
+    const usersWithPurchases = new Set();
+    for (const purchase of Object.values(purchases)) {
+      if (purchase.userId) {
+        usersWithPurchases.add(purchase.userId);
+      }
+    }
+
+    for (const [userId, userData] of Object.entries(users)) {
+      // Never delete admins
+      if (userData.isAdmin) {
+        summary.skipped++;
+        continue;
+      }
+
+      // Keep users who ever purchased
+      if (usersWithPurchases.has(userId)) {
+        summary.skipped++;
+        continue;
+      }
+
+      // Keep users registered less than 7 days ago
+      const createdAt = userData.createdAt ?
+          new Date(userData.createdAt).getTime() : 0;
+      if (createdAt > cutoff) {
+        summary.skipped++;
+        continue;
+      }
+
+      // This user should be deleted
+      try {
+        log.info("Deleting inactive user", {orgId, userId});
+
+        // 1. Delete user's messages
+        if (orgData.messages) {
+          const batch = {};
+          for (const [msgId, msg] of Object.entries(orgData.messages)) {
+            if (msg.toUserId === userId) {
+              batch[`organizations/${orgId}/messages/${msgId}`] = null;
+            }
+          }
+          if (Object.keys(batch).length > 0) {
+            await admin.database().ref().update(batch);
+          }
+        }
+
+        // 2. Clear computer association
+        if (userData.currentComputerId && orgData.computers) {
+          const comp = orgData.computers[userData.currentComputerId];
+          if (comp && comp.currentUserId === userId) {
+            const cId = userData.currentComputerId;
+            const cPath =
+                `organizations/${orgId}/computers/${cId}`;
+            await admin.database().ref(cPath)
+                .update({
+                  currentUserId: null,
+                  isActive: false,
+                });
+          }
+        }
+
+        // 3. Delete RTDB user record
+        await admin.database()
+            .ref(`organizations/${orgId}/users/${userId}`)
+            .remove();
+
+        // 4. Delete Firebase Auth account
+        try {
+          await admin.auth().deleteUser(userId);
+        } catch (authErr) {
+          if (authErr.code !== "auth/user-not-found") {
+            log.warn("Failed to delete auth account", {
+              userId, error: authErr.message,
+            });
+          }
+        }
+
+        summary.deleted++;
+      } catch (err) {
+        log.error("Error deleting user", err, {orgId, userId});
+        summary.errors++;
+      }
+    }
+  }
+
+  timer.end(log.info);
+  log.info("Cleanup complete", summary);
+  return summary;
+};
+
+/**
+ * Scheduled cleanup: runs every Saturday night at 3 AM Israel time.
+ */
+exports.cleanupInactiveUsers = onSchedule({
+  schedule: "0 3 * * 0",
+  timeZone: "Asia/Jerusalem",
+  maxInstances: 1,
+}, async () => {
+  const log = createLogger({service: "scheduled-cleanup"});
+  log.info("Starting scheduled inactive user cleanup");
+  const summary = await runCleanup();
+  log.info("Scheduled cleanup finished", summary);
+});
+
+/**
+ * Manual cleanup: callable from web admin.
+ * Requires authenticated admin caller.
+ */
+exports.cleanupInactiveUsersManual = onCall(async (request) => {
+  const correlationId = generateCorrelationId();
+  const log = createLogger({correlationId, service: "manual-cleanup"});
+
+  if (!request.auth) {
+    throw new functions.https.HttpsError(
+        "unauthenticated", "Must be authenticated",
+    );
+  }
+
+  const {orgId} = request.data || {};
+  if (!orgId) {
+    throw new functions.https.HttpsError(
+        "invalid-argument", "Missing orgId",
+    );
+  }
+
+  // Verify caller is admin
+  const callerRef = admin.database()
+      .ref(`organizations/${orgId}/users/${request.auth.uid}`);
+  const callerSnap = await callerRef.once("value");
+  if (!callerSnap.exists() || !callerSnap.val().isAdmin) {
+    throw new functions.https.HttpsError(
+        "permission-denied", "רק מנהלים יכולים לבצע ניקוי",
+    );
+  }
+
+  log.info("Manual cleanup triggered", {orgId, callerUid: request.auth.uid});
+  const summary = await runCleanup(orgId);
+
+  return {
+    success: true,
+    ...summary,
+    correlationId,
+  };
+});
+
+/**
+ * Delete a single user: callable from web admin.
+ * Removes user record, messages, computer association, and auth account.
+ */
+exports.deleteUser = onCall(async (request) => {
+  const correlationId = generateCorrelationId();
+  const log = createLogger({correlationId, service: "delete-user"});
+
+  if (!request.auth) {
+    throw new functions.https.HttpsError(
+        "unauthenticated", "Must be authenticated",
+    );
+  }
+
+  const {orgId, userId} = request.data || {};
+  if (!orgId || !userId) {
+    throw new functions.https.HttpsError(
+        "invalid-argument", "Missing orgId or userId",
+    );
+  }
+
+  // Verify caller is admin
+  const callerRef = admin.database()
+      .ref(`organizations/${orgId}/users/${request.auth.uid}`);
+  const callerSnap = await callerRef.once("value");
+  if (!callerSnap.exists() || !callerSnap.val().isAdmin) {
+    throw new functions.https.HttpsError(
+        "permission-denied", "רק מנהלים יכולים למחוק משתמשים",
+    );
+  }
+
+  // Cannot delete yourself
+  if (userId === request.auth.uid) {
+    throw new functions.https.HttpsError(
+        "failed-precondition", "לא ניתן למחוק את עצמך",
+    );
+  }
+
+  // Check target user exists
+  const userRef = admin.database()
+      .ref(`organizations/${orgId}/users/${userId}`);
+  const userSnap = await userRef.once("value");
+  if (!userSnap.exists()) {
+    throw new functions.https.HttpsError("not-found", "המשתמש לא נמצא");
+  }
+
+  const userData = userSnap.val();
+
+  // Prevent deleting other admins
+  if (userData.isAdmin) {
+    throw new functions.https.HttpsError(
+        "failed-precondition", "לא ניתן למחוק משתמש מנהל",
+    );
+  }
+
+  log.info("Deleting user", {orgId, userId, callerUid: request.auth.uid});
+
+  // 1. Delete messages
+  const messagesSnap = await admin.database()
+      .ref(`organizations/${orgId}/messages`).once("value");
+  if (messagesSnap.exists()) {
+    const batch = {};
+    for (const [msgId, msg] of Object.entries(messagesSnap.val())) {
+      if (msg.toUserId === userId) {
+        batch[`organizations/${orgId}/messages/${msgId}`] = null;
+      }
+    }
+    if (Object.keys(batch).length > 0) {
+      await admin.database().ref().update(batch);
+    }
+  }
+
+  // 2. Clear computer association
+  if (userData.currentComputerId) {
+    const compRef = admin.database()
+        .ref(`organizations/${orgId}/computers/${userData.currentComputerId}`);
+    const compSnap = await compRef.once("value");
+    if (compSnap.exists() && compSnap.val().currentUserId === userId) {
+      await compRef.update({currentUserId: null, isActive: false});
+    }
+  }
+
+  // 3. Delete user record
+  await userRef.remove();
+
+  // 4. Delete auth account
+  try {
+    await admin.auth().deleteUser(userId);
+  } catch (authErr) {
+    if (authErr.code !== "auth/user-not-found") {
+      log.warn("Failed to delete auth account", {
+        userId, error: authErr.message,
+      });
+    }
+  }
+
+  log.info("User deleted successfully", {orgId, userId});
+  return {success: true, message: "המשתמש נמחק בהצלחה", correlationId};
 });
