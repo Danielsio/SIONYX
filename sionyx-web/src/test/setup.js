@@ -79,6 +79,7 @@ vi.mock('@ant-design/icons', () => {
     ClockCircleOutlined: createMockIcon('ClockCircleOutlined'),
     CrownOutlined: createMockIcon('CrownOutlined'),
     DeleteOutlined: createMockIcon('DeleteOutlined'),
+    ClearOutlined: createMockIcon('ClearOutlined'),
     MoreOutlined: createMockIcon('MoreOutlined'),
     SearchOutlined: createMockIcon('SearchOutlined'),
     EyeOutlined: createMockIcon('EyeOutlined'),

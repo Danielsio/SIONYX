@@ -53,6 +53,8 @@ import {
   CheckCircleOutlined,
   CloseCircleOutlined,
   DownloadOutlined,
+  DeleteOutlined,
+  ClearOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -65,6 +67,8 @@ import {
   revokeAdminPermission,
   kickUser,
   resetUserPassword,
+  deleteUser,
+  triggerCleanup,
 } from '../services/userService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
@@ -105,6 +109,8 @@ const UsersPage = () => {
   const [adjustingUser, setAdjustingUser] = useState(null);
   const [adjusting, setAdjusting] = useState(false);
   const [kicking, setKicking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [cleaningUp, setCleaningUp] = useState(false);
   const [form] = Form.useForm();
 
   // Chat related state
@@ -319,6 +325,64 @@ const UsersPage = () => {
     });
   };
 
+  const handleDeleteUser = record => {
+    Modal.confirm({
+      title: 'מחיקת משתמש',
+      content: `האם אתה בטוח שברצונך למחוק את ${record.firstName} ${record.lastName}? פעולה זו בלתי הפיכה ותמחק את חשבון המשתמש, ההודעות שלו, ואת חשבון ההתחברות.`,
+      icon: <DeleteOutlined style={{ color: '#ff4d4f' }} />,
+      okText: 'מחק לצמיתות',
+      okType: 'danger',
+      cancelText: 'ביטול',
+      onOk: async () => {
+        setDeleting(true);
+        try {
+          const result = await deleteUser(orgId, record.uid);
+          if (result.success) {
+            message.success(result.message);
+            setDrawerVisible(false);
+            setSelectedUser(null);
+            await loadUsers();
+          } else {
+            message.error(result.error || 'נכשל במחיקת המשתמש');
+          }
+        } catch (error) {
+          logger.error('Error deleting user:', error);
+          message.error('שגיאה במחיקת המשתמש');
+        } finally {
+          setDeleting(false);
+        }
+      },
+    });
+  };
+
+  const handleCleanup = () => {
+    Modal.confirm({
+      title: 'ניקוי משתמשים לא פעילים',
+      content: 'פעולה זו תמחק את כל המשתמשים שנרשמו לפני יותר מ-7 ימים ומעולם לא רכשו חבילה. מנהלים לא יימחקו. להמשיך?',
+      icon: <ClearOutlined style={{ color: '#fa8c16' }} />,
+      okText: 'בצע ניקוי',
+      okType: 'primary',
+      cancelText: 'ביטול',
+      onOk: async () => {
+        setCleaningUp(true);
+        try {
+          const result = await triggerCleanup(orgId);
+          if (result.success) {
+            message.success(result.message);
+            await loadUsers();
+          } else {
+            message.error(result.error || 'נכשל בניקוי משתמשים');
+          }
+        } catch (error) {
+          logger.error('Error running cleanup:', error);
+          message.error('שגיאה בניקוי משתמשים');
+        } finally {
+          setCleaningUp(false);
+        }
+      },
+    });
+  };
+
   const formatTime = seconds => {
     return formatTimeHebrewCompact(seconds);
   };
@@ -506,6 +570,18 @@ const UsersPage = () => {
             label: 'הענק הרשאות מנהל',
             onClick: () => handleGrantAdmin(userRecord),
           },
+      ...(!userRecord.isAdmin && userRecord.uid !== user?.uid
+        ? [
+            { type: 'divider' },
+            {
+              key: 'delete',
+              icon: <DeleteOutlined />,
+              label: 'מחק משתמש',
+              danger: true,
+              onClick: () => handleDeleteUser(userRecord),
+            },
+          ]
+        : []),
     ];
 
     return (
@@ -929,6 +1005,14 @@ const UsersPage = () => {
           </div>
           <Space>
             <Button
+              icon={<ClearOutlined />}
+              onClick={handleCleanup}
+              loading={cleaningUp}
+              style={{ borderRadius: 10, height: 40 }}
+            >
+              ניקוי לא פעילים
+            </Button>
+            <Button
               icon={<DownloadOutlined />}
               onClick={() =>
                 exportToCSV(
@@ -1310,6 +1394,16 @@ const UsersPage = () => {
                     onClick={() => handleKickUser(selectedUser)}
                   >
                     נתק משתמש
+                  </Button>
+                )}
+                {!selectedUser.isAdmin && selectedUser.uid !== user?.uid && (
+                  <Button
+                    icon={<DeleteOutlined />}
+                    danger
+                    onClick={() => handleDeleteUser(selectedUser)}
+                    loading={deleting}
+                  >
+                    מחק משתמש
                   </Button>
                 )}
               </Space>
