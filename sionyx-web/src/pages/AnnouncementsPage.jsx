@@ -16,7 +16,6 @@ import {
   Col,
   Empty,
   Skeleton,
-  Dropdown,
   Tooltip,
 } from 'antd';
 import {
@@ -25,13 +24,13 @@ import {
   DeleteOutlined,
   ReloadOutlined,
   NotificationOutlined,
-  MoreOutlined,
   CheckCircleOutlined,
   PauseCircleOutlined,
   InfoCircleOutlined,
   WarningOutlined,
   GiftOutlined,
-  SoundOutlined,
+  EyeOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import { useOrgId } from '../hooks/useOrgId';
 import {
@@ -98,8 +97,10 @@ const TYPE_CONFIG = {
 const AnnouncementsPage = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [formModalVisible, setFormModalVisible] = useState(false);
+  const [viewModalVisible, setViewModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [viewingItem, setViewingItem] = useState(null);
   const [form] = Form.useForm();
   const { message } = App.useApp();
   const orgId = useOrgId();
@@ -128,7 +129,7 @@ const AnnouncementsPage = () => {
     setEditingItem(null);
     form.resetFields();
     form.setFieldsValue({ type: 'info', active: true });
-    setModalVisible(true);
+    setFormModalVisible(true);
   };
 
   const handleEdit = item => {
@@ -139,7 +140,8 @@ const AnnouncementsPage = () => {
       type: item.type || 'info',
       active: item.active !== false,
     });
-    setModalVisible(true);
+    setViewModalVisible(false);
+    setFormModalVisible(true);
   };
 
   const handleDelete = async item => {
@@ -148,6 +150,7 @@ const AnnouncementsPage = () => {
     if (result.success) {
       message.success('ההודעה נמחקה בהצלחה');
       setAnnouncements(prev => prev.filter(a => a.id !== item.id));
+      setViewModalVisible(false);
     } else {
       message.error(result.error || 'נכשל במחיקת ההודעה');
     }
@@ -159,15 +162,15 @@ const AnnouncementsPage = () => {
     const result = await toggleAnnouncementActive(orgId, item.id, newActive);
     if (result.success) {
       message.success(newActive ? 'ההודעה הופעלה' : 'ההודעה הושהתה');
-      setAnnouncements(prev =>
-        prev.map(a => (a.id === item.id ? { ...a, active: newActive } : a))
-      );
+      const updated = { ...item, active: newActive };
+      setAnnouncements(prev => prev.map(a => (a.id === item.id ? updated : a)));
+      if (viewingItem?.id === item.id) setViewingItem(updated);
     } else {
       message.error(result.error || 'נכשל בעדכון סטטוס');
     }
   };
 
-  const handleModalOk = async () => {
+  const handleFormSubmit = async () => {
     try {
       const values = await form.validateFields();
       if (!orgId) {
@@ -182,7 +185,7 @@ const AnnouncementsPage = () => {
           setAnnouncements(prev =>
             prev.map(a => (a.id === editingItem.id ? { ...a, ...values } : a))
           );
-          setModalVisible(false);
+          setFormModalVisible(false);
         } else {
           message.error(result.error || 'נכשל בעדכון ההודעה');
         }
@@ -191,7 +194,7 @@ const AnnouncementsPage = () => {
         if (result.success) {
           message.success('ההודעה נוצרה בהצלחה');
           await loadAnnouncements();
-          setModalVisible(false);
+          setFormModalVisible(false);
         } else {
           message.error(result.error || 'נכשל ביצירת ההודעה');
         }
@@ -201,115 +204,23 @@ const AnnouncementsPage = () => {
     }
   };
 
-  const activeCount = announcements.filter(a => a.active).length;
-
-  const AnnouncementCard = ({ item }) => {
-    console.log('[Announcements v3] rendering card:', item.title);
-    const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.info;
-
-    const menuItems = [
-      { key: 'edit', icon: <EditOutlined />, label: 'ערוך' },
-      {
-        key: 'toggle',
-        icon: item.active ? <PauseCircleOutlined /> : <CheckCircleOutlined />,
-        label: item.active ? 'השהה' : 'הפעל',
-      },
-      { type: 'divider' },
-      { key: 'delete', icon: <DeleteOutlined />, label: 'מחק', danger: true },
-    ];
-
-    const onMenuClick = ({ key }) => {
-      if (key === 'edit') handleEdit(item);
-      else if (key === 'toggle') handleToggleActive(item);
-      else if (key === 'delete') {
-        Modal.confirm({
-          title: 'מחק הודעה',
-          content: `האם אתה בטוח שברצונך למחוק את "${item.title}"?`,
-          okText: 'מחק',
-          cancelText: 'ביטול',
-          okType: 'danger',
-          onOk: () => handleDelete(item),
-        });
-      }
-    };
-
-    return (
-      <Card
-        hoverable
-        style={{
-          borderRadius: 16,
-          height: '100%',
-          opacity: item.active ? 1 : 0.6,
-          borderColor: item.active ? config.border : '#e8ecf4',
-          borderWidth: 1.5,
-        }}
-        styles={{ body: { padding: 0 } }}
-      >
-        {/* Header bar */}
-        <div
-          style={{
-            background: config.bg,
-            borderBottom: `2px solid ${config.border}`,
-            padding: '16px 20px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-          }}
-        >
-          <Space>
-            <span style={{ fontSize: 22 }}>{config.icon}</span>
-            <Tag color={config.tagColor}>{config.label}</Tag>
-            {!item.active && <Tag color='default'>מושהה</Tag>}
-          </Space>
-          <Dropdown
-            menu={{ items: menuItems, onClick: onMenuClick }}
-            trigger={['click']}
-            onOpenChange={(open) => console.log('[Announcements v3] dropdown open:', open)}
-          >
-            <Button type='text' icon={<MoreOutlined />} size='small' style={{ color: config.color }} />
-          </Dropdown>
-        </div>
-
-        {/* Body */}
-        <div style={{ padding: '20px 20px 16px' }}>
-          <Title level={5} style={{ margin: '0 0 8px' }}>
-            {item.title}
-          </Title>
-          <Paragraph
-            type='secondary'
-            ellipsis={{ rows: 3 }}
-            style={{ margin: '0 0 16px', minHeight: 60 }}
-          >
-            {item.body || 'אין תוכן נוסף'}
-          </Paragraph>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              borderTop: '1px solid #f0f0f0',
-              paddingTop: 12,
-            }}
-          >
-            <Text type='secondary' style={{ fontSize: 12 }}>
-              {item.createdAt ? dayjs(item.createdAt).format('DD/MM/YYYY HH:mm') : ''}
-            </Text>
-            <Tooltip title={item.active ? 'פעיל - מוצג בקיוסק' : 'מושהה - לא מוצג'}>
-              <div
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  background: item.active ? '#10b981' : '#94a3b8',
-                  boxShadow: item.active ? '0 0 0 3px rgba(16,185,129,0.2)' : 'none',
-                }}
-              />
-            </Tooltip>
-          </div>
-        </div>
-      </Card>
-    );
+  const handleView = item => {
+    setViewingItem(item);
+    setViewModalVisible(true);
   };
+
+  const confirmDelete = item => {
+    Modal.confirm({
+      title: 'מחק הודעה',
+      content: `האם אתה בטוח שברצונך למחוק את "${item.title}"?`,
+      okText: 'מחק',
+      cancelText: 'ביטול',
+      okType: 'danger',
+      onOk: () => handleDelete(item),
+    });
+  };
+
+  const activeCount = announcements.filter(a => a.active).length;
 
   return (
     <motion.div
@@ -349,7 +260,7 @@ const AnnouncementsPage = () => {
         </Space>
       </motion.div>
 
-      {/* Grid */}
+      {/* Cards Grid */}
       {loading ? (
         <motion.div variants={itemVariants}>
           <Row gutter={[16, 16]}>
@@ -365,10 +276,7 @@ const AnnouncementsPage = () => {
       ) : announcements.length === 0 ? (
         <motion.div variants={itemVariants}>
           <Card style={{ borderRadius: 16 }}>
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description='אין הודעות מערכת'
-            >
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description='אין הודעות מערכת'>
               <Button type='primary' icon={<PlusOutlined />} onClick={handleCreate}>
                 צור הודעה ראשונה
               </Button>
@@ -378,21 +286,155 @@ const AnnouncementsPage = () => {
       ) : (
         <motion.div variants={itemVariants}>
           <Row gutter={[16, 16]}>
-            {announcements.map(item => (
-              <Col key={item.id} xs={24} sm={12} lg={8}>
-                <AnnouncementCard item={item} />
-              </Col>
-            ))}
+            {announcements.map(item => {
+              const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.info;
+              return (
+                <Col key={item.id} xs={24} sm={12} lg={8}>
+                  <Card
+                    onClick={() => handleView(item)}
+                    style={{
+                      borderRadius: 16,
+                      height: '100%',
+                      cursor: 'pointer',
+                      opacity: item.active ? 1 : 0.6,
+                      borderColor: item.active ? config.border : '#e8ecf4',
+                      borderWidth: 1.5,
+                      transition: 'box-shadow 0.2s, transform 0.2s',
+                    }}
+                    styles={{ body: { padding: 0 } }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.1)';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
+                    {/* Header */}
+                    <div
+                      style={{
+                        background: config.bg,
+                        borderBottom: `2px solid ${config.border}`,
+                        padding: '14px 20px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Space>
+                        <span style={{ fontSize: 20, color: config.color }}>{config.icon}</span>
+                        <Tag color={config.tagColor}>{config.label}</Tag>
+                        {!item.active && <Tag color='default'>מושהה</Tag>}
+                      </Space>
+                      <Tooltip title={item.active ? 'פעיל' : 'מושהה'}>
+                        <div
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: '50%',
+                            background: item.active ? '#10b981' : '#94a3b8',
+                            boxShadow: item.active ? '0 0 0 3px rgba(16,185,129,0.2)' : 'none',
+                          }}
+                        />
+                      </Tooltip>
+                    </div>
+
+                    {/* Body */}
+                    <div style={{ padding: '18px 20px 16px' }}>
+                      <Title level={5} style={{ margin: '0 0 8px' }}>
+                        {item.title}
+                      </Title>
+                      <Paragraph
+                        type='secondary'
+                        ellipsis={{ rows: 2 }}
+                        style={{ margin: '0 0 12px', minHeight: 44 }}
+                      >
+                        {item.body || 'אין תוכן נוסף'}
+                      </Paragraph>
+                      <Text type='secondary' style={{ fontSize: 12 }}>
+                        {item.createdAt ? dayjs(item.createdAt).format('DD/MM/YYYY HH:mm') : ''}
+                      </Text>
+                    </div>
+                  </Card>
+                </Col>
+              );
+            })}
           </Row>
         </motion.div>
       )}
 
-      {/* Create/Edit Modal */}
+      {/* View/Detail Modal */}
+      <Modal
+        title={null}
+        open={viewModalVisible}
+        onCancel={() => setViewModalVisible(false)}
+        footer={null}
+        width={Math.min(520, window.innerWidth - 32)}
+      >
+        {viewingItem && (() => {
+          const config = TYPE_CONFIG[viewingItem.type] || TYPE_CONFIG.info;
+          return (
+            <div style={{ direction: 'rtl' }}>
+              {/* Type & Status */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: 24, color: config.color }}>{config.icon}</span>
+                <Tag color={config.tagColor} style={{ fontSize: 13 }}>{config.label}</Tag>
+                <Tag color={viewingItem.active ? 'green' : 'default'}>
+                  {viewingItem.active ? 'פעיל' : 'מושהה'}
+                </Tag>
+              </div>
+
+              {/* Title */}
+              <Title level={3} style={{ margin: '0 0 12px' }}>
+                {viewingItem.title}
+              </Title>
+
+              {/* Body */}
+              <Paragraph style={{ fontSize: 15, lineHeight: 1.8, whiteSpace: 'pre-wrap', marginBottom: 16 }}>
+                {viewingItem.body || 'אין תוכן נוסף'}
+              </Paragraph>
+
+              {/* Date */}
+              <Text type='secondary' style={{ fontSize: 13 }}>
+                נוצר: {viewingItem.createdAt ? dayjs(viewingItem.createdAt).format('DD/MM/YYYY HH:mm') : 'לא ידוע'}
+              </Text>
+
+              {/* Action Buttons */}
+              <div
+                style={{
+                  display: 'flex',
+                  gap: 8,
+                  marginTop: 24,
+                  paddingTop: 16,
+                  borderTop: '1px solid #f0f0f0',
+                  flexWrap: 'wrap',
+                }}
+              >
+                <Button icon={<EditOutlined />} onClick={() => handleEdit(viewingItem)}>
+                  ערוך
+                </Button>
+                <Button
+                  icon={viewingItem.active ? <PauseCircleOutlined /> : <CheckCircleOutlined />}
+                  onClick={() => handleToggleActive(viewingItem)}
+                >
+                  {viewingItem.active ? 'השהה' : 'הפעל'}
+                </Button>
+                <Button danger icon={<DeleteOutlined />} onClick={() => confirmDelete(viewingItem)}>
+                  מחק
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+
+      {/* Create/Edit Form Modal */}
       <Modal
         title={editingItem ? 'ערוך הודעה' : 'הודעת מערכת חדשה'}
-        open={modalVisible}
-        onOk={handleModalOk}
-        onCancel={() => setModalVisible(false)}
+        open={formModalVisible}
+        onOk={handleFormSubmit}
+        onCancel={() => setFormModalVisible(false)}
         okText={editingItem ? 'עדכן' : 'צור'}
         cancelText='ביטול'
         width={Math.min(560, window.innerWidth - 32)}

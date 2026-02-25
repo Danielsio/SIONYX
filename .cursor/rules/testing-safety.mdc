@@ -1,0 +1,30 @@
+---
+description: How to run tests safely without crashing the developer's machine
+alwaysApply: true
+---
+
+# Testing Safety
+
+## Kiosk Tests
+Tests tagged `[Trait("Category", "Destructive")]` interact with system processes (kill browsers, cleanup sessions, etc.) and **will crash running applications** on the developer's machine.
+
+### Safe commands (use these):
+- `make test` -- excludes destructive tests via `--filter "Category!=Destructive"`
+- `make test-cov` -- same, with coverage
+- `dotnet build` -- compile only, always safe
+
+### NEVER run directly:
+- `dotnet test` (no filter) -- runs destructive tests
+- `dotnet test --no-build` -- same problem
+- `make test-all` -- intentionally runs everything, CI only
+
+### If you need a specific test class:
+```powershell
+dotnet test --filter "FullyQualifiedName~MySpecificTestClass" --verbosity normal
+```
+
+## Web Tests
+- `make web-test` or `npx vitest run` -- always safe (jsdom, no system side effects)
+
+## Full test suite
+Only runs in GitHub Actions CI (`dotnet test` without filter in `.github/workflows/ci.yml`).

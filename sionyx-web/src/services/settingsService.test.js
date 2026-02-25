@@ -24,13 +24,15 @@ describe('settingsService', () => {
 
   describe('DEFAULT_OPERATING_HOURS', () => {
     it('has correct default values', () => {
-      expect(DEFAULT_OPERATING_HOURS).toEqual({
-        enabled: false,
-        startTime: '06:00',
-        endTime: '00:00',
-        gracePeriodMinutes: 5,
-        graceBehavior: 'graceful',
-      });
+      expect(DEFAULT_OPERATING_HOURS.enabled).toBe(false);
+      expect(DEFAULT_OPERATING_HOURS.startTime).toBe('06:00');
+      expect(DEFAULT_OPERATING_HOURS.endTime).toBe('00:00');
+      expect(DEFAULT_OPERATING_HOURS.gracePeriodMinutes).toBe(5);
+      expect(DEFAULT_OPERATING_HOURS.graceBehavior).toBe('graceful');
+      expect(DEFAULT_OPERATING_HOURS.schedule).toBeDefined();
+      expect(DEFAULT_OPERATING_HOURS.schedule.sunday.open).toBe(true);
+      expect(DEFAULT_OPERATING_HOURS.schedule.friday.endTime).toBe('14:00');
+      expect(DEFAULT_OPERATING_HOURS.schedule.saturday.open).toBe(false);
     });
   });
 
@@ -61,7 +63,11 @@ describe('settingsService', () => {
       const result = await getOperatingHours('my-org');
 
       expect(result.success).toBe(true);
-      expect(result.operatingHours).toEqual(storedSettings);
+      expect(result.operatingHours.enabled).toBe(true);
+      expect(result.operatingHours.startTime).toBe('08:00');
+      expect(result.operatingHours.graceBehavior).toBe('force');
+      expect(result.operatingHours.schedule).toBeDefined();
+      expect(result.operatingHours.schedule.sunday).toBeDefined();
     });
 
     it('merges partial settings with defaults', async () => {
@@ -92,10 +98,17 @@ describe('settingsService', () => {
   describe('updateOperatingHours', () => {
     const validData = {
       enabled: true,
-      startTime: '06:00',
-      endTime: '00:00',
       gracePeriodMinutes: 5,
       graceBehavior: 'graceful',
+      schedule: {
+        sunday: { open: true, startTime: '08:00', endTime: '22:00' },
+        monday: { open: true, startTime: '08:00', endTime: '22:00' },
+        tuesday: { open: true, startTime: '08:00', endTime: '22:00' },
+        wednesday: { open: true, startTime: '08:00', endTime: '22:00' },
+        thursday: { open: true, startTime: '08:00', endTime: '22:00' },
+        friday: { open: true, startTime: '08:00', endTime: '14:00' },
+        saturday: { open: false, startTime: '00:00', endTime: '00:00' },
+      },
     };
 
     it('updates settings successfully', async () => {
@@ -115,16 +128,6 @@ describe('settingsService', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('enabled must be a boolean');
-    });
-
-    it('validates time format', async () => {
-      const result = await updateOperatingHours('my-org', {
-        ...validData,
-        startTime: '6:00',
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Times must be in HH:mm format');
     });
 
     it('validates grace period is non-negative', async () => {

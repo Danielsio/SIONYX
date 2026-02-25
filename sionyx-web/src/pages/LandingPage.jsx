@@ -119,7 +119,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
           top: 0,
           left: 0,
           right: 0,
-          padding: '24px 40px',
+          padding: '16px clamp(16px, 4vw, 40px)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -127,22 +127,23 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
         }}
       >
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div
             style={{
-              width: 42,
-              height: 42,
-              borderRadius: 12,
+              width: 36,
+              height: 36,
+              borderRadius: 10,
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
+              flexShrink: 0,
             }}
           >
-            <span style={{ color: '#fff', fontSize: 18, fontWeight: 800 }}>S</span>
+            <span style={{ color: '#fff', fontSize: 16, fontWeight: 800 }}>S</span>
           </div>
-          <span style={{ color: '#fff', fontSize: 20, fontWeight: 700, letterSpacing: 2 }}>
+          <span style={{ color: '#fff', fontSize: 'clamp(16px, 3vw, 20px)', fontWeight: 700, letterSpacing: 2 }}>
             SIONYX
           </span>
         </div>
@@ -150,7 +151,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
         {/* Admin Button */}
         <AnimatedButton
           variant='ghost'
-          size='medium'
+          size='small'
           icon={<CrownOutlined />}
           onClick={onAdminLogin}
           style={{
@@ -158,6 +159,8 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
             backdropFilter: 'blur(10px)',
             border: '1px solid rgba(255,255,255,0.2)',
             color: '#fff',
+            fontSize: 'clamp(12px, 2.5vw, 14px)',
+            padding: '6px 12px',
           }}
         >
           כניסת מנהל
@@ -177,9 +180,9 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
               'linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)',
             border: '1px solid rgba(102, 126, 234, 0.3)',
             borderRadius: 20,
-            padding: '6px 16px',
+            padding: '5px 14px',
             color: '#a5b4fc',
-            fontSize: 13,
+            fontSize: 'clamp(11px, 2.5vw, 13px)',
             fontWeight: 500,
           }}
         >
@@ -194,7 +197,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
         <h1
           style={{
-            fontSize: 'clamp(3.5rem, 12vw, 8rem)',
+            fontSize: 'clamp(2.5rem, 10vw, 8rem)',
             fontWeight: 900,
             color: 'white',
             margin: 0,
@@ -277,7 +280,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1, duration: 0.5 }}
-        style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}
+        style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', padding: '0 16px' }}
       >
         <AnimatedButton
           variant='primary'

@@ -19,6 +19,7 @@ public partial class HelpViewModel : ObservableObject
     [ObservableProperty] private string _copyFeedback = "";
     [ObservableProperty] private string _workingHoursLine1 = "טוען...";
     [ObservableProperty] private string _workingHoursLine2 = "";
+    [ObservableProperty] private string _workingHoursLine3 = "";
 
     public ObservableCollection<FaqItem> FaqItems { get; } = new()
     {
@@ -52,15 +53,33 @@ public partial class HelpViewModel : ObservableObject
 
         await _operatingHours.LoadSettingsAsync();
         var s = _operatingHours.Settings;
-        if (s.Enabled)
+        if (s.Enabled && s.Schedule.Count > 0)
+        {
+            var dayLabels = new[] { "א'", "ב'", "ג'", "ד'", "ה'", "ו'", "שבת" };
+            var dayKeys = new[] { "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday" };
+            var lines = new List<string>();
+            for (int i = 0; i < dayKeys.Length; i++)
+            {
+                if (s.Schedule.TryGetValue(dayKeys[i], out var ds))
+                    lines.Add(ds.Open ? $"{dayLabels[i]} {ds.StartTime}-{ds.EndTime}" : $"{dayLabels[i]} סגור");
+                else
+                    lines.Add($"{dayLabels[i]} {s.StartTime}-{s.EndTime}");
+            }
+            WorkingHoursLine1 = string.Join("  |  ", lines.Take(3));
+            WorkingHoursLine2 = string.Join("  |  ", lines.Skip(3).Take(2));
+            WorkingHoursLine3 = string.Join("  |  ", lines.Skip(5));
+        }
+        else if (s.Enabled)
         {
             WorkingHoursLine1 = $"{s.StartTime} - {s.EndTime}";
             WorkingHoursLine2 = "";
+            WorkingHoursLine3 = "";
         }
         else
         {
             WorkingHoursLine1 = "24/7";
             WorkingHoursLine2 = "ללא הגבלת שעות";
+            WorkingHoursLine3 = "";
         }
     }
 

@@ -118,6 +118,8 @@
                                            Foreground="{StaticResource TextPrimaryBrush}" Margin="0,2,0,0" />
                                 <TextBlock Text="{Binding WorkingHoursLine2}" FontSize="14"
                                            Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
+                                <TextBlock Text="{Binding WorkingHoursLine3}" FontSize="14"
+                                           Foreground="{StaticResource TextSecondaryBrush}" Margin="0,2,0,0" />
                             </StackPanel>
                         </Grid>
                     </Border>
