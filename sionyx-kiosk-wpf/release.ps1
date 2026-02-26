@@ -27,7 +27,8 @@ param(
     [string]$Increment = "patch",
 
     [switch]$DryRun,
-    [switch]$NoPush
+    [switch]$NoPush,
+    [switch]$SkipTests
 )
 
 $ErrorActionPreference = "Continue"
@@ -137,7 +138,9 @@ Write-Host "Created: $branchName" -ForegroundColor Green
 Write-Step 2 $totalSteps "Building installer v$newVersion"
 
 Push-Location $ScriptDir
-powershell -ExecutionPolicy Bypass -File build.ps1 -Version $newVersion
+$buildArgs = "-Version $newVersion"
+if ($SkipTests) { $buildArgs += " -SkipTests" }
+powershell -ExecutionPolicy Bypass -File build.ps1 $buildArgs
 $buildExit = $LASTEXITCODE
 Pop-Location
 
