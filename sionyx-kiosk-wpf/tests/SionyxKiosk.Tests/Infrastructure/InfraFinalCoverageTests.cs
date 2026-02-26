@@ -371,7 +371,7 @@ public class RegistryConfigFinalCoverageTests
 [Trait("Category", "Destructive")]
 public class BrowserCleanupFinalCoverageTests
 {
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ShouldReturnStructuredResult()
     {
         var service = new SionyxKiosk.Services.BrowserCleanupService();
@@ -383,7 +383,7 @@ public class BrowserCleanupFinalCoverageTests
         result.Should().ContainKey("firefox");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_ShouldReturnBoolResults()
     {
         var service = new SionyxKiosk.Services.BrowserCleanupService();
@@ -396,7 +396,7 @@ public class BrowserCleanupFinalCoverageTests
         }
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupWithBrowserClose_ShouldReturnStructuredResult()
     {
         var service = new SionyxKiosk.Services.BrowserCleanupService();

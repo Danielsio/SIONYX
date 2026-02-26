@@ -8,7 +8,7 @@ public class BrowserCleanupServiceTests
 {
     private readonly BrowserCleanupService _service = new();
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ShouldReturnResults()
     {
         var results = _service.CleanupAllBrowsers();
@@ -19,7 +19,7 @@ public class BrowserCleanupServiceTests
         results.Should().ContainKey("firefox");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ChromeResult_ShouldHaveExpectedKeys()
     {
         var results = _service.CleanupAllBrowsers();
@@ -28,7 +28,7 @@ public class BrowserCleanupServiceTests
         chrome.Should().ContainKey("files_deleted");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_FirefoxResult_ShouldHaveExpectedKeys()
     {
         var results = _service.CleanupAllBrowsers();
@@ -37,7 +37,7 @@ public class BrowserCleanupServiceTests
         firefox.Should().ContainKey("files_deleted");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_ShouldReturnResults()
     {
         var results = _service.CloseBrowsers();
@@ -45,7 +45,7 @@ public class BrowserCleanupServiceTests
         // Should have results for each browser
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupWithBrowserClose_ShouldReturnResults()
     {
         var results = _service.CleanupWithBrowserClose();

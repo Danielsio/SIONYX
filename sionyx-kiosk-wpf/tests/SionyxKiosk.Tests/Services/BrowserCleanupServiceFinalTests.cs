@@ -15,7 +15,7 @@ public class BrowserCleanupServiceFinalTests
 
     // ==================== CLEANUP ALL BROWSERS ====================
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ShouldReturnSuccessKey()
     {
         var results = _service.CleanupAllBrowsers();
@@ -23,7 +23,7 @@ public class BrowserCleanupServiceFinalTests
         results["success"].Should().Be(true);
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ShouldReturnChromeResult()
     {
         var results = _service.CleanupAllBrowsers();
@@ -31,7 +31,7 @@ public class BrowserCleanupServiceFinalTests
         results["chrome"].Should().BeOfType<Dictionary<string, object>>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ShouldReturnEdgeResult()
     {
         var results = _service.CleanupAllBrowsers();
@@ -39,7 +39,7 @@ public class BrowserCleanupServiceFinalTests
         results["edge"].Should().BeOfType<Dictionary<string, object>>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ShouldReturnFirefoxResult()
     {
         var results = _service.CleanupAllBrowsers();
@@ -47,7 +47,7 @@ public class BrowserCleanupServiceFinalTests
         results["firefox"].Should().BeOfType<Dictionary<string, object>>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_EachBrowser_ShouldHaveFilesDeletedKey()
     {
         var results = _service.CleanupAllBrowsers();
@@ -62,7 +62,7 @@ public class BrowserCleanupServiceFinalTests
 
     // ==================== CLOSE BROWSERS ====================
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_ShouldReturnDictionaryOfResults()
     {
         var results = _service.CloseBrowsers();
@@ -76,7 +76,7 @@ public class BrowserCleanupServiceFinalTests
 
     // ==================== PATH HELPERS (via reflection) ====================
 
-    [Fact]
+    [DestructiveFact]
     public void GetChromePaths_ShouldReturnNonEmptyArray()
     {
         var method = typeof(BrowserCleanupService).GetMethod("GetChromePaths",
@@ -86,7 +86,7 @@ public class BrowserCleanupServiceFinalTests
         paths[0].Should().Contain("Chrome");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void GetEdgePaths_ShouldReturnNonEmptyArray()
     {
         var method = typeof(BrowserCleanupService).GetMethod("GetEdgePaths",
@@ -96,7 +96,7 @@ public class BrowserCleanupServiceFinalTests
         paths[0].Should().Contain("Edge");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void GetFirefoxProfilesPath_ShouldReturnValidPath()
     {
         var method = typeof(BrowserCleanupService).GetMethod("GetFirefoxProfilesPath",
@@ -108,7 +108,7 @@ public class BrowserCleanupServiceFinalTests
 
     // ==================== TRY DELETE (non-existent paths) ====================
 
-    [Fact]
+    [DestructiveFact]
     public void TryDeleteFileOrDir_WithNonExistentPath_ShouldReturnZero()
     {
         var method = typeof(BrowserCleanupService).GetMethod("TryDeleteFileOrDir",
@@ -121,7 +121,7 @@ public class BrowserCleanupServiceFinalTests
 
     // ==================== CHROMIUM FILES ARRAY ====================
 
-    [Fact]
+    [DestructiveFact]
     public void ChromiumFiles_ShouldContainCookies()
     {
         var field = typeof(BrowserCleanupService).GetField("ChromiumFiles",
@@ -130,7 +130,7 @@ public class BrowserCleanupServiceFinalTests
         files.Should().Contain("Cookies");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void ChromiumFiles_ShouldContainLoginData()
     {
         var field = typeof(BrowserCleanupService).GetField("ChromiumFiles",
@@ -139,7 +139,7 @@ public class BrowserCleanupServiceFinalTests
         files.Should().Contain("Login Data");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void FirefoxFiles_ShouldContainCookiesSqlite()
     {
         var field = typeof(BrowserCleanupService).GetField("FirefoxFiles",
@@ -150,7 +150,7 @@ public class BrowserCleanupServiceFinalTests
 
     // ==================== FIND CHROMIUM PROFILES ====================
 
-    [Fact]
+    [DestructiveFact]
     public void FindChromiumProfiles_WithEmptyDir_ShouldReturnEmpty()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"chromium_test_{Guid.NewGuid():N}");
@@ -168,7 +168,7 @@ public class BrowserCleanupServiceFinalTests
         }
     }
 
-    [Fact]
+    [DestructiveFact]
     public void FindChromiumProfiles_WithDefaultProfile_ShouldReturnIt()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), $"chromium_test_{Guid.NewGuid():N}");

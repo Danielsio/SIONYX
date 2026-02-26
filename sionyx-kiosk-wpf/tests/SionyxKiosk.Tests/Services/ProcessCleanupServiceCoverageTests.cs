@@ -20,7 +20,7 @@ public class ProcessCleanupServiceCoverageTests
 
     // ==================== CONSTRUCTION ====================
 
-    [Fact]
+    [DestructiveFact]
     public void Service_CanBeConstructed()
     {
         var svc = new ProcessCleanupService();
@@ -29,21 +29,21 @@ public class ProcessCleanupServiceCoverageTests
 
     // ==================== CleanupUserProcesses ====================
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_DoesNotThrow()
     {
         var act = () => _service.CleanupUserProcesses();
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ReturnsNonNullDictionary()
     {
         var result = _service.CleanupUserProcesses();
         result.Should().NotBeNull();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ReturnsExpectedKeys()
     {
         var result = _service.CleanupUserProcesses();
@@ -54,42 +54,42 @@ public class ProcessCleanupServiceCoverageTests
         result.Should().ContainKey("failed_processes");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_SuccessIsBoolean()
     {
         var result = _service.CleanupUserProcesses();
         result["success"].Should().BeOfType<bool>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ClosedCountIsInt()
     {
         var result = _service.CleanupUserProcesses();
         result["closed_count"].Should().BeOfType<int>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_FailedCountIsInt()
     {
         var result = _service.CleanupUserProcesses();
         result["failed_count"].Should().BeOfType<int>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ClosedProcessesIsListOfString()
     {
         var result = _service.CleanupUserProcesses();
         result["closed_processes"].Should().BeAssignableTo<IEnumerable<string>>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_FailedProcessesIsListOfString()
     {
         var result = _service.CleanupUserProcesses();
         result["failed_processes"].Should().BeAssignableTo<IEnumerable<string>>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_SuccessTrueWhenNoFailures()
     {
         var result = _service.CleanupUserProcesses();
@@ -99,7 +99,7 @@ public class ProcessCleanupServiceCoverageTests
             success.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ClosedAndFailedCountsAreNonNegative()
     {
         var result = _service.CleanupUserProcesses();
@@ -109,21 +109,21 @@ public class ProcessCleanupServiceCoverageTests
 
     // ==================== CloseBrowsersOnly ====================
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsersOnly_DoesNotThrow()
     {
         var act = () => _service.CloseBrowsersOnly();
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsersOnly_ReturnsNonNullDictionary()
     {
         var result = _service.CloseBrowsersOnly();
         result.Should().NotBeNull();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsersOnly_ReturnsExpectedKeys()
     {
         var result = _service.CloseBrowsersOnly();
@@ -131,14 +131,14 @@ public class ProcessCleanupServiceCoverageTests
         result.Should().ContainKey("closed_count");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsersOnly_SuccessIsAlwaysTrue()
     {
         var result = _service.CloseBrowsersOnly();
         result["success"].Should().Be(true);
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsersOnly_ClosedCountIsNonNegative()
     {
         var result = _service.CloseBrowsersOnly();
@@ -147,7 +147,7 @@ public class ProcessCleanupServiceCoverageTests
 
     // ==================== MULTIPLE INVOCATIONS ====================
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_CanBeCalledMultipleTimes()
     {
         var act = () =>
@@ -158,7 +158,7 @@ public class ProcessCleanupServiceCoverageTests
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsersOnly_CanBeCalledMultipleTimes()
     {
         var act = () =>

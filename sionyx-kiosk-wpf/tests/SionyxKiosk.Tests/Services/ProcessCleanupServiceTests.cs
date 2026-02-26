@@ -6,14 +6,14 @@ namespace SionyxKiosk.Tests.Services;
 [Trait("Category", "Destructive")]
 public class ProcessCleanupServiceTests
 {
-    [Fact]
+    [DestructiveFact]
     public void Constructor_ShouldNotThrow()
     {
         var service = new ProcessCleanupService();
         service.Should().NotBeNull();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ShouldNotThrow()
     {
         // Should not throw even if no processes match
