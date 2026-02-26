@@ -33,6 +33,7 @@ public partial class HomePage : Page
         viewModel.ViewMessagesRequested += OpenMessageDialog;
         viewModel.NavigateToPackagesRequested += NavigateToPackages;
         viewModel.SessionStartedSuccessfully += OnSessionStarted;
+        viewModel.ResumeSessionRequested += OnResumeSession;
 
         UpdateMessageCard(viewModel.UnreadMessages);
         UpdateAnnouncementsSection();
@@ -90,7 +91,7 @@ public partial class HomePage : Page
 
     private void OnSessionStarted()
     {
-        Dispatcher.Invoke(() =>
+        Dispatcher.InvokeAsync(() =>
         {
             if (Window.GetWindow(this) is MainWindow main)
                 main.ShowToast("ההפעלה התחילה!", "הזמן שלך רץ, בהצלחה!",
@@ -110,9 +111,17 @@ public partial class HomePage : Page
             _vm.EndSessionCommand.Execute(null);
     }
 
+    private void OnResumeSession()
+    {
+        Dispatcher.InvokeAsync(() =>
+        {
+            if (Application.Current is App app)
+                app.ResumeSession();
+        });
+    }
+
     private void ResumeSession_Click(object sender, RoutedEventArgs e)
     {
-        if (Application.Current is App app)
-            app.ResumeSession();
+        _vm.ResumeSessionCommand.Execute(null);
     }
 }

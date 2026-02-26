@@ -39,12 +39,24 @@ public partial class AuthViewModel : ObservableObject
         _metadataService = metadataService;
     }
 
+    private static bool IsValidPhone(string phone)
+    {
+        var digits = phone.Replace("-", "").Replace(" ", "").Trim();
+        return digits.Length >= 9 && digits.Length <= 12 && digits.All(char.IsDigit);
+    }
+
     [RelayCommand]
     private async Task LoginAsync()
     {
         if (string.IsNullOrWhiteSpace(Phone) || string.IsNullOrWhiteSpace(Password))
         {
             ErrorMessage = "אנא מלא את כל השדות";
+            return;
+        }
+
+        if (!IsValidPhone(Phone))
+        {
+            ErrorMessage = "מספר טלפון לא תקין";
             return;
         }
 
@@ -67,6 +79,18 @@ public partial class AuthViewModel : ObservableObject
             string.IsNullOrWhiteSpace(FirstName) || string.IsNullOrWhiteSpace(LastName))
         {
             ErrorMessage = "אנא מלא את כל השדות";
+            return;
+        }
+
+        if (!IsValidPhone(Phone))
+        {
+            ErrorMessage = "מספר טלפון לא תקין";
+            return;
+        }
+
+        if (Password.Length < 6)
+        {
+            ErrorMessage = "הסיסמה חייבת להכיל לפחות 6 תווים";
             return;
         }
 

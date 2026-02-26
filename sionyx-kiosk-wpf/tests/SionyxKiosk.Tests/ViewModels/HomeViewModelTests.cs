@@ -116,4 +116,58 @@ public class HomeViewModelTests : IDisposable
         changed.Should().Contain("ErrorMessage");
         changed.Should().Contain("UnreadMessages");
     }
+
+    [Fact]
+    public void IsLoading_ShouldUpdatePrimaryButtonText()
+    {
+        var vm = CreateVm(remainingTime: 3600);
+
+        vm.PrimaryButtonText.Should().Contain("התחל הפעלה");
+
+        vm.IsLoading = true;
+        vm.PrimaryButtonText.Should().Be("מתחיל...");
+
+        vm.IsLoading = false;
+        vm.PrimaryButtonText.Should().Contain("התחל הפעלה");
+    }
+
+    [Fact]
+    public void IsLoading_WithNoTime_ShouldNotChangePrimaryButtonText()
+    {
+        var vm = CreateVm(remainingTime: 0);
+
+        vm.HasNoTime.Should().BeTrue();
+        vm.PrimaryButtonText.Should().Contain("קנה חבילה");
+
+        vm.IsLoading = true;
+        vm.PrimaryButtonText.Should().Contain("קנה חבילה");
+    }
+
+    [Fact]
+    public void ResumeSessionCommand_ShouldRaiseEvent()
+    {
+        var vm = CreateVm();
+        var raised = false;
+        vm.ResumeSessionRequested += () => raised = true;
+
+        vm.ResumeSessionCommand.Execute(null);
+        raised.Should().BeTrue();
+    }
+
+    [Fact]
+    public void HasNoTime_WithZeroPrintBalance_ShouldShowDash()
+    {
+        var user = new UserData
+        {
+            Uid = "user-123",
+            FirstName = "David",
+            LastName = "Cohen",
+            RemainingTime = 0,
+            PrintBalance = 0,
+        };
+        var vm = CreateVm(user: user, remainingTime: 0);
+
+        vm.PrintBalance.Should().Be("—");
+        vm.RemainingTime.Should().Be("—");
+    }
 }
