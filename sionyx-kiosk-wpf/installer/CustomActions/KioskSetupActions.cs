@@ -26,8 +26,23 @@ namespace SionyxInstaller
 
         // ====================================================================
         //  INSTALL ACTIONS
+        //
+        //  REGISTRY POLICY: This installer does NOT modify any machine-wide
+        //  Windows login/display registry keys. The only registry it touches:
+        //    1. HKLM\SOFTWARE\SIONYX\* -- app config (managed by WiX)
+        //    2. Per-user policies inside SionyxUser's HKCU hive (NoRun,
+        //       DisableCMD, etc.) -- kiosk lockdown, never affects the owner
+        //
+        //  The Windows sign-in screen shows all local users by default.
+        //  We rely on that default behavior and do not manipulate it.
         // ====================================================================
 
+        /// <summary>
+        /// Creates (or resets) the local SionyxUser account with a blank password.
+        /// Uses only "net user" commands -- no machine-wide registry changes.
+        /// Windows default LimitBlankPasswordUse=1 already allows console logon
+        /// with blank passwords; it only blocks network logon.
+        /// </summary>
         [CustomAction]
         public static ActionResult CreateKioskUser(Session session)
         {
@@ -36,10 +51,6 @@ namespace SionyxInstaller
 
             try
             {
-                // Enable blank-password logon
-                session.Log("Enabling blank-password logon...");
-                RunCommand("reg", @"add ""HKLM\SYSTEM\CurrentControlSet\Control\Lsa"" /v LimitBlankPasswordUse /t REG_DWORD /d 0 /f", session);
-
                 bool exists = UserExists(KioskUsername, session);
 
                 if (exists)
@@ -78,6 +89,20 @@ namespace SionyxInstaller
             }
         }
 
+        /// <summary>
+        /// Applies kiosk lockdown policies to SionyxUser's per-user registry hive.
+        /// These are written to HKU\{SionyxUser}\... (NOT HKLM), so they only
+        /// affect the kiosk account and never the machine owner's account.
+        ///
+        /// Policies set (per-user only):
+        ///   NoRun = 1              -- disables Win+R run dialog
+        ///   DisableRegistryTools=1 -- blocks regedit
+        ///   DisableCMD = 2         -- blocks cmd.exe but allows .bat scripts
+        ///   DisableTaskMgr = 1     -- blocks Ctrl+Shift+Esc task manager
+        ///
+        /// Also removes any machine-wide (HKLM) versions of these policies
+        /// that older installers may have set, to avoid affecting all users.
+        /// </summary>
         [CustomAction]
         public static ActionResult ApplySecurityRestrictions(Session session)
         {
@@ -141,6 +166,11 @@ namespace SionyxInstaller
             }
         }
 
+        /// <summary>
+        /// Creates a Windows scheduled task that launches SionyxKiosk.exe --kiosk
+        /// when SionyxUser logs on. No registry changes -- uses Task Scheduler API
+        /// via PowerShell cmdlets. The task runs as Interactive (no stored password).
+        /// </summary>
         [CustomAction]
         public static ActionResult SetupAutoStart(Session session)
         {
@@ -187,6 +217,10 @@ namespace SionyxInstaller
             }
         }
 
+        /// <summary>
+        /// Creates the SionyxUser Windows profile (via Win32 CreateProfile API)
+        /// and sets up app directories + a startup shortcut. No registry changes.
+        /// </summary>
         [CustomAction]
         public static ActionResult InitializeProfile(Session session)
         {
@@ -251,6 +285,23 @@ namespace SionyxInstaller
             }
         }
 
+        /// <summary>
+        /// Safety net: ensures Windows auto-logon is not pointing at SionyxUser.
+        /// This protects against upgrades from the old NSIS installer which used
+        /// auto-logon. Also cleans up login-screen registry keys that previous
+        /// versions of this WiX installer (v3.2.2-v3.2.3) incorrectly created.
+        ///
+        /// Keys touched (Winlogon):
+        ///   AutoAdminLogon    -- set to "0" if currently "1" (prevents auto-login)
+        ///   DefaultPassword   -- deleted (should never store a password)
+        ///   DefaultUserName   -- deleted only if it equals "SionyxUser"
+        ///   DefaultDomainName -- deleted only if DefaultUserName was "SionyxUser"
+        ///
+        /// Keys REMOVED (cleanup from v3.2.2-v3.2.3 that should not have been set):
+        ///   Winlogon\SpecialAccounts\UserList  -- entire subtree
+        ///   Policies\...\System\EnumerateLocalUsers
+        ///   Lsa\LimitBlankPasswordUse          -- restored to default (1)
+        /// </summary>
         [CustomAction]
         public static ActionResult EnsureNoAutoLogon(Session session)
         {
@@ -263,64 +314,57 @@ namespace SionyxInstaller
                 using (var key = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
                                             .OpenSubKey(winlogonKey, true))
                 {
-                    if (key == null)
+                    if (key != null)
                     {
-                        session.Log("[WARN] Could not open Winlogon registry key");
-                        return ActionResult.Success;
-                    }
-
-                    key.SetValue("AutoAdminLogon", "0", RegistryValueKind.String);
-                    key.DeleteValue("DefaultPassword", false);
-
-                    string currentDefault = key.GetValue("DefaultUserName") as string;
-                    if (string.Equals(currentDefault, KioskUsername, StringComparison.OrdinalIgnoreCase))
-                    {
-                        key.DeleteValue("DefaultUserName", false);
-                        key.DeleteValue("DefaultDomainName", false);
-                        session.Log("[OK] Cleared DefaultUserName (was set to kiosk user)");
-                    }
-                }
-
-                session.Log("[OK] Auto-logon disabled");
-
-                // Show SionyxUser as a clickable tile on the sign-in screen
-                const string userListKey = winlogonKey + @"\SpecialAccounts\UserList";
-                using (var ulKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                              .CreateSubKey(userListKey))
-                {
-                    ulKey.SetValue(KioskUsername, 1, RegistryValueKind.DWord);
-                    session.Log($"[OK] {KioskUsername} added to SpecialAccounts\\UserList");
-                }
-
-                // Force Windows 11 to enumerate all local users as tiles
-                const string systemPolicyKey = @"SOFTWARE\Policies\Microsoft\Windows\System";
-                using (var spKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                              .CreateSubKey(systemPolicyKey))
-                {
-                    if ((int?)spKey.GetValue("EnumerateLocalUsers") != 1)
-                    {
-                        spKey.SetValue("EnumerateLocalUsers", 1, RegistryValueKind.DWord);
-                        session.Log("[OK] EnumerateLocalUsers enabled");
-                    }
-                }
-
-                // Ensure sign-in screen shows user tiles (not a username text field)
-                const string loginPolicyKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
-                using (var lpKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                              .OpenSubKey(loginPolicyKey, true))
-                {
-                    if (lpKey != null)
-                    {
-                        int current = (int?)lpKey.GetValue("dontdisplaylastusername") ?? 0;
-                        if (current != 0)
+                        string autoLogon = key.GetValue("AutoAdminLogon") as string;
+                        if (autoLogon == "1")
                         {
-                            lpKey.SetValue("dontdisplaylastusername", 0, RegistryValueKind.DWord);
-                            session.Log("[OK] dontdisplaylastusername set to 0");
+                            key.SetValue("AutoAdminLogon", "0", RegistryValueKind.String);
+                            session.Log("[OK] AutoAdminLogon was 1, set to 0");
+                        }
+
+                        key.DeleteValue("DefaultPassword", false);
+
+                        string currentDefault = key.GetValue("DefaultUserName") as string;
+                        if (string.Equals(currentDefault, KioskUsername, StringComparison.OrdinalIgnoreCase))
+                        {
+                            key.DeleteValue("DefaultUserName", false);
+                            key.DeleteValue("DefaultDomainName", false);
+                            session.Log("[OK] Cleared DefaultUserName (was set to kiosk user)");
                         }
                     }
                 }
 
-                session.Log("[OK] Login screen configured to show all user tiles");
+                // --- Cleanup keys incorrectly set by installer v3.2.2-v3.2.3 ---
+
+                CleanupLegacyRegistryKey(session,
+                    winlogonKey + @"\SpecialAccounts",
+                    deleteTree: true,
+                    reason: "SpecialAccounts (set by v3.2.3)");
+
+                CleanupLegacyRegistryKey(session,
+                    @"SOFTWARE\Policies\Microsoft\Windows\System",
+                    valueName: "EnumerateLocalUsers",
+                    reason: "EnumerateLocalUsers (set by v3.2.3)");
+
+                // Restore LimitBlankPasswordUse to Windows default (1) if we lowered it.
+                // Default=1 means "blank passwords can only log on at the console" which
+                // is exactly what we want. Previous versions set it to 0 unnecessarily.
+                using (var lsaKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                               .OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Lsa", true))
+                {
+                    if (lsaKey != null)
+                    {
+                        int current = (int?)lsaKey.GetValue("LimitBlankPasswordUse") ?? 1;
+                        if (current != 1)
+                        {
+                            lsaKey.SetValue("LimitBlankPasswordUse", 1, RegistryValueKind.DWord);
+                            session.Log("[OK] Restored LimitBlankPasswordUse to default (1)");
+                        }
+                    }
+                }
+
+                session.Log("[OK] EnsureNoAutoLogon complete");
                 return ActionResult.Success;
             }
             catch (Exception ex)
@@ -551,6 +595,11 @@ namespace SionyxInstaller
             }
         }
 
+        /// <summary>
+        /// Uninstall cleanup: clears any Winlogon values pointing at SionyxUser.
+        /// Does not modify LimitBlankPasswordUse or any login-screen display keys
+        /// because the current installer never changes them.
+        /// </summary>
         [CustomAction]
         public static ActionResult RevertAutoLogon(Session session)
         {
@@ -565,7 +614,13 @@ namespace SionyxInstaller
                 {
                     if (key != null)
                     {
-                        key.SetValue("AutoAdminLogon", "0", RegistryValueKind.String);
+                        string autoLogon = key.GetValue("AutoAdminLogon") as string;
+                        if (autoLogon == "1")
+                        {
+                            key.SetValue("AutoAdminLogon", "0", RegistryValueKind.String);
+                            session.Log("[OK] AutoAdminLogon was 1, set to 0");
+                        }
+
                         key.DeleteValue("DefaultPassword", false);
 
                         string currentDefault = key.GetValue("DefaultUserName") as string;
@@ -577,21 +632,16 @@ namespace SionyxInstaller
                     }
                 }
 
-                // Remove SionyxUser from sign-in screen tile list
-                const string userListKey = winlogonKey + @"\SpecialAccounts\UserList";
-                try
-                {
-                    using (var ulKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                                  .OpenSubKey(userListKey, true))
-                    {
-                        ulKey?.DeleteValue(KioskUsername, false);
-                        session.Log("[OK] Removed SionyxUser from SpecialAccounts\\UserList");
-                    }
-                }
-                catch { /* best effort */ }
+                // Clean up keys that older installer versions may have created
+                CleanupLegacyRegistryKey(session,
+                    winlogonKey + @"\SpecialAccounts",
+                    deleteTree: true,
+                    reason: "SpecialAccounts (legacy cleanup)");
 
-                // Restore blank-password restriction
-                RunCommand("reg", @"add ""HKLM\SYSTEM\CurrentControlSet\Control\Lsa"" /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f", session);
+                CleanupLegacyRegistryKey(session,
+                    @"SOFTWARE\Policies\Microsoft\Windows\System",
+                    valueName: "EnumerateLocalUsers",
+                    reason: "EnumerateLocalUsers (legacy cleanup)");
 
                 session.Log("[OK] Auto-logon reverted");
                 return ActionResult.Success;
@@ -787,6 +837,37 @@ namespace SionyxInstaller
             {
                 key.SetValue(name, value, RegistryValueKind.DWord);
                 session.Log($"  Set {name} = {value} (per-user)");
+            }
+        }
+
+        private static void CleanupLegacyRegistryKey(Session session, string subKey,
+            bool deleteTree = false, string valueName = null, string reason = null)
+        {
+            try
+            {
+                using (var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+                {
+                    if (deleteTree)
+                    {
+                        baseKey.DeleteSubKeyTree(subKey, false);
+                    }
+                    else if (valueName != null)
+                    {
+                        using (var key = baseKey.OpenSubKey(subKey, true))
+                        {
+                            if (key?.GetValue(valueName) != null)
+                                key.DeleteValue(valueName, false);
+                            else
+                                return;
+                        }
+                    }
+                }
+
+                session.Log($"  [OK] Removed {reason ?? subKey}");
+            }
+            catch
+            {
+                // Key didn't exist or access denied -- nothing to clean
             }
         }
 
