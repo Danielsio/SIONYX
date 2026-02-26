@@ -141,10 +141,12 @@
                         <!-- Has time: show start session -->
                         <StackPanel HorizontalAlignment="Center"
                                     Visibility="{Binding HasNoTime, Converter={StaticResource InverseBoolToVis}}">
-                            <Button Content="▶  התחל הפעלה" Style="{StaticResource BtnPrimary}"
+                            <Button Content="{Binding PrimaryButtonText}" Style="{StaticResource BtnPrimary}"
                                     Command="{Binding StartSessionCommand}"
                                     Width="260" Height="56" FontSize="19"
                                     IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
+                            <controls:LoadingSpinner HorizontalAlignment="Center" Margin="0,12,0,0"
+                                                     Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
                         </StackPanel>
                     </StackPanel>
 

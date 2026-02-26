@@ -90,4 +90,49 @@ public class AuthViewModelTests
         _vm.Phone = "0501234567";
         changed.Should().Contain("Phone");
     }
+
+    [Theory]
+    [InlineData("0501234567", true)]
+    [InlineData("050-1234567", true)]
+    [InlineData("05012345678", true)]
+    [InlineData("123456789", true)]
+    [InlineData("abc", false)]
+    [InlineData("050-abc-123", false)]
+    [InlineData("12345", false)]
+    [InlineData("", false)]
+    public async Task Login_WithPhoneValidation_ShouldRejectInvalidPhones(string phone, bool isValid)
+    {
+        _vm.Phone = phone;
+        _vm.Password = "password123";
+        await _vm.LoginCommand.ExecuteAsync(null);
+
+        if (!isValid)
+        {
+            _vm.ErrorMessage.Should().Be("מספר טלפון לא תקין");
+        }
+    }
+
+    [Fact]
+    public async Task Register_WithShortPassword_ShouldSetError()
+    {
+        _vm.IsLoginMode = false;
+        _vm.Phone = "0501234567";
+        _vm.Password = "abc";
+        _vm.FirstName = "David";
+        _vm.LastName = "Cohen";
+        await _vm.RegisterCommand.ExecuteAsync(null);
+        _vm.ErrorMessage.Should().Be("הסיסמה חייבת להכיל לפחות 6 תווים");
+    }
+
+    [Fact]
+    public async Task Register_WithInvalidPhone_ShouldSetError()
+    {
+        _vm.IsLoginMode = false;
+        _vm.Phone = "abc";
+        _vm.Password = "password123";
+        _vm.FirstName = "David";
+        _vm.LastName = "Cohen";
+        await _vm.RegisterCommand.ExecuteAsync(null);
+        _vm.ErrorMessage.Should().Be("מספר טלפון לא תקין");
+    }
 }

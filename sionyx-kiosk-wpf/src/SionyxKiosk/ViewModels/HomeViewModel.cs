@@ -39,10 +39,18 @@ public partial class HomeViewModel : ObservableObject, IDisposable
     public event Action? NavigateToPackagesRequested;
     /// <summary>Raised after a session is successfully started.</summary>
     public event Action? SessionStartedSuccessfully;
+    /// <summary>Raised when user wants to resume an active session.</summary>
+    public event Action? ResumeSessionRequested;
 
     partial void OnIsSessionActiveChanged(bool value)
     {
         OnPropertyChanged(nameof(IsSessionInactive));
+    }
+
+    partial void OnIsLoadingChanged(bool value)
+    {
+        if (!HasNoTime)
+            PrimaryButtonText = value ? "מתחיל..." : "▶  התחל הפעלה";
     }
 
     public HomeViewModel(SessionService session, ChatService chat, OperatingHoursService operatingHours, UserData user,
@@ -153,6 +161,12 @@ public partial class HomeViewModel : ObservableObject, IDisposable
     private void BuyPackage()
     {
         NavigateToPackagesRequested?.Invoke();
+    }
+
+    [RelayCommand]
+    private void ResumeSession()
+    {
+        ResumeSessionRequested?.Invoke();
     }
 
     // ── Event handlers ──────────────────────────────────────────
