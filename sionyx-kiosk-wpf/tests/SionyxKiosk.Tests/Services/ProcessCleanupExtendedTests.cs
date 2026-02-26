@@ -6,7 +6,7 @@ namespace SionyxKiosk.Tests.Services;
 [Trait("Category", "Destructive")]
 public class ProcessCleanupExtendedTests
 {
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsersOnly_ShouldReturnResults()
     {
         var service = new ProcessCleanupService();
@@ -16,7 +16,7 @@ public class ProcessCleanupExtendedTests
         results.Should().ContainKey("closed_count");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ShouldReturnAllExpectedKeys()
     {
         var service = new ProcessCleanupService();
@@ -29,7 +29,7 @@ public class ProcessCleanupExtendedTests
         results.Should().ContainKey("failed_processes");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ClosedProcesses_ShouldBeList()
     {
         var service = new ProcessCleanupService();

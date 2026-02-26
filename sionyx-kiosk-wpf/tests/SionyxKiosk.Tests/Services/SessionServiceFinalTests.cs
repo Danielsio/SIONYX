@@ -33,7 +33,7 @@ public class SessionServiceFinalTests : IDisposable
 
     // ==================== COUNTDOWN TICK ====================
 
-    [Fact]
+    [DestructiveFact]
     public void OnCountdownTick_WhenNotActive_ShouldNoOp()
     {
         var method = typeof(SessionService).GetMethod("OnCountdownTick",
@@ -44,7 +44,7 @@ public class SessionServiceFinalTests : IDisposable
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task OnCountdownTick_WhenActive_ShouldUpdateRemainingTime()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -70,7 +70,7 @@ public class SessionServiceFinalTests : IDisposable
         _service.TimeUsed.Should().BeGreaterThanOrEqualTo(0);
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task OnCountdownTick_Near5MinWarning_ShouldFireWarning()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 300}");
@@ -89,7 +89,7 @@ public class SessionServiceFinalTests : IDisposable
         warning5.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task OnCountdownTick_Near1MinWarning_ShouldFireWarning()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 60}");
@@ -108,7 +108,7 @@ public class SessionServiceFinalTests : IDisposable
         warning1.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task OnCountdownTick_Warnings_ShouldOnlyFireOnce()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 300}");
@@ -128,7 +128,7 @@ public class SessionServiceFinalTests : IDisposable
         warning5Count.Should().Be(1); // Only fires once
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task OnCountdownTick_AtZero_ShouldTriggerEnd()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 5}");
@@ -153,7 +153,7 @@ public class SessionServiceFinalTests : IDisposable
 
     // ==================== SYNC ====================
 
-    [Fact]
+    [DestructiveFact]
     public async Task SyncToFirebase_SuccessAfterFailures_ShouldResetCounter()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -174,7 +174,7 @@ public class SessionServiceFinalTests : IDisposable
         failures.Should().Be(0);
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task SyncToFirebase_ExactlyThreeFailures_ShouldGoOffline()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -204,7 +204,7 @@ public class SessionServiceFinalTests : IDisposable
 
     // ==================== CHECK TIME EXPIRATION ====================
 
-    [Fact]
+    [DestructiveFact]
     public async Task CheckTimeExpiration_WithExpiredTime_ShouldFail()
     {
         // Setup: user has expired timeExpiresAt
@@ -219,7 +219,7 @@ public class SessionServiceFinalTests : IDisposable
         result.Error.Should().Contain("פג תוקף");
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task CheckTimeExpiration_WithValidTime_ShouldProceed()
     {
         // User has future timeExpiresAt
@@ -233,7 +233,7 @@ public class SessionServiceFinalTests : IDisposable
         result.IsSuccess.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task CheckTimeExpiration_WithNoExpiry_ShouldProceed()
     {
         _handler.When("users/user-123.json", new

@@ -20,7 +20,7 @@ public class BrowserCleanupServiceCoverageTests
 
     // ==================== CONSTRUCTION ====================
 
-    [Fact]
+    [DestructiveFact]
     public void Service_CanBeConstructed()
     {
         var svc = new BrowserCleanupService();
@@ -29,21 +29,21 @@ public class BrowserCleanupServiceCoverageTests
 
     // ==================== CloseBrowsers ====================
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_DoesNotThrow()
     {
         var act = () => _service.CloseBrowsers();
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_ReturnsNonNullDictionary()
     {
         var result = _service.CloseBrowsers();
         result.Should().NotBeNull();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_ReturnsExpectedKeys()
     {
         var result = _service.CloseBrowsers();
@@ -52,7 +52,7 @@ public class BrowserCleanupServiceCoverageTests
         result.Should().ContainKey("firefox");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_ValuesAreBoolean()
     {
         var result = _service.CloseBrowsers();
@@ -61,7 +61,7 @@ public class BrowserCleanupServiceCoverageTests
         ((object)result["firefox"]).Should().BeOfType<bool>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_ReturnsDictionaryWithThreeEntries()
     {
         var result = _service.CloseBrowsers();
@@ -70,21 +70,21 @@ public class BrowserCleanupServiceCoverageTests
 
     // ==================== CleanupAllBrowsers ====================
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_DoesNotThrow()
     {
         var act = () => _service.CleanupAllBrowsers();
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ReturnsNonNullDictionary()
     {
         var result = _service.CleanupAllBrowsers();
         result.Should().NotBeNull();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ReturnsExpectedKeys()
     {
         var result = _service.CleanupAllBrowsers();
@@ -94,14 +94,14 @@ public class BrowserCleanupServiceCoverageTests
         result.Should().ContainKey("firefox");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_SuccessIsBoolean()
     {
         var result = _service.CleanupAllBrowsers();
         result["success"].Should().BeOfType<bool>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ChromeResultHasExpectedShape()
     {
         var result = _service.CleanupAllBrowsers();
@@ -112,7 +112,7 @@ public class BrowserCleanupServiceCoverageTests
         chrome["files_deleted"].Should().BeOfType<int>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_EdgeResultHasExpectedShape()
     {
         var result = _service.CleanupAllBrowsers();
@@ -123,7 +123,7 @@ public class BrowserCleanupServiceCoverageTests
         edge["files_deleted"].Should().BeOfType<int>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_FirefoxResultHasExpectedShape()
     {
         var result = _service.CleanupAllBrowsers();
@@ -134,7 +134,7 @@ public class BrowserCleanupServiceCoverageTests
         firefox["files_deleted"].Should().BeOfType<int>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_FilesDeletedIsNonNegative()
     {
         var result = _service.CleanupAllBrowsers();
@@ -145,21 +145,21 @@ public class BrowserCleanupServiceCoverageTests
 
     // ==================== CleanupWithBrowserClose ====================
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupWithBrowserClose_DoesNotThrow()
     {
         var act = () => _service.CleanupWithBrowserClose();
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupWithBrowserClose_ReturnsNonNullDictionary()
     {
         var result = _service.CleanupWithBrowserClose();
         result.Should().NotBeNull();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupWithBrowserClose_ReturnsExpectedKeys()
     {
         var result = _service.CleanupWithBrowserClose();
@@ -170,7 +170,7 @@ public class BrowserCleanupServiceCoverageTests
         result.Should().ContainKey("browsers_closed");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupWithBrowserClose_BrowsersClosedHasExpectedShape()
     {
         var result = _service.CleanupWithBrowserClose();
@@ -180,7 +180,7 @@ public class BrowserCleanupServiceCoverageTests
         browsersClosed.Should().ContainKey("firefox");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupWithBrowserClose_IncludesCleanupResults()
     {
         var result = _service.CleanupWithBrowserClose();
@@ -191,7 +191,7 @@ public class BrowserCleanupServiceCoverageTests
 
     // ==================== MULTIPLE INVOCATIONS ====================
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_CanBeCalledMultipleTimes()
     {
         var act = () =>
@@ -202,7 +202,7 @@ public class BrowserCleanupServiceCoverageTests
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_CanBeCalledMultipleTimes()
     {
         var act = () =>
@@ -213,7 +213,7 @@ public class BrowserCleanupServiceCoverageTests
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupWithBrowserClose_CanBeCalledMultipleTimes()
     {
         var act = () =>

@@ -29,7 +29,7 @@ public class SessionServiceTests : IDisposable
 
     // ==================== INITIAL STATE ====================
 
-    [Fact]
+    [DestructiveFact]
     public void InitialState_ShouldBeInactive()
     {
         _service.IsActive.Should().BeFalse();
@@ -40,7 +40,7 @@ public class SessionServiceTests : IDisposable
         _service.IsOnline.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void OperatingHours_ShouldNotBeNull()
     {
         _service.OperatingHours.Should().NotBeNull();
@@ -48,7 +48,7 @@ public class SessionServiceTests : IDisposable
 
     // ==================== START SESSION ====================
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSessionAsync_WhenAlreadyActive_ShouldFail()
     {
         // Mock time expiration check
@@ -61,7 +61,7 @@ public class SessionServiceTests : IDisposable
         result.Error.Should().Contain("already active");
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSessionAsync_WithZeroTime_ShouldFail()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 0}");
@@ -70,7 +70,7 @@ public class SessionServiceTests : IDisposable
         result.IsSuccess.Should().BeFalse();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSessionAsync_WithValidTime_ShouldSucceed()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -83,7 +83,7 @@ public class SessionServiceTests : IDisposable
         _service.StartTime.Should().NotBeNull();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSessionAsync_ShouldFireSessionStartedEvent()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -94,7 +94,7 @@ public class SessionServiceTests : IDisposable
         fired.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSessionAsync_WithExpiredTime_ShouldFail()
     {
         // Mock user with expired time
@@ -111,14 +111,14 @@ public class SessionServiceTests : IDisposable
 
     // ==================== END SESSION ====================
 
-    [Fact]
+    [DestructiveFact]
     public async Task EndSessionAsync_WhenNotActive_ShouldFail()
     {
         var result = await _service.EndSessionAsync();
         result.IsSuccess.Should().BeFalse();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task EndSessionAsync_WhenActive_ShouldSucceed()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -129,7 +129,7 @@ public class SessionServiceTests : IDisposable
         _service.IsActive.Should().BeFalse();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task EndSessionAsync_ShouldFireSessionEndedEvent()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -142,7 +142,7 @@ public class SessionServiceTests : IDisposable
         endReason.Should().Be("user");
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task EndSessionAsync_WithExpiredReason_ShouldPass()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -154,7 +154,7 @@ public class SessionServiceTests : IDisposable
 
     // ==================== EVENTS ====================
 
-    [Fact]
+    [DestructiveFact]
     public void Events_ShouldBeSubscribable()
     {
         _service.SessionStarted += () => { };
@@ -170,14 +170,14 @@ public class SessionServiceTests : IDisposable
 
     // ==================== DISPOSE ====================
 
-    [Fact]
+    [DestructiveFact]
     public void Dispose_ShouldNotThrow()
     {
         var act = () => _service.Dispose();
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task Dispose_AfterActiveSession_ShouldNotThrow()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");

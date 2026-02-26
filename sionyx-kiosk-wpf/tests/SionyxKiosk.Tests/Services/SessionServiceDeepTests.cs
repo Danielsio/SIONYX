@@ -33,14 +33,14 @@ public class SessionServiceDeepTests : IDisposable
 
     // ==================== REINITIALIZE ====================
 
-    [Fact]
+    [DestructiveFact]
     public void Reinitialize_ShouldNotThrow()
     {
         var act = () => _service.Reinitialize("new-user-456");
         act.Should().NotThrow();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void Reinitialize_ShouldAcceptEmptyUserId()
     {
         var act = () => _service.Reinitialize("");
@@ -49,7 +49,7 @@ public class SessionServiceDeepTests : IDisposable
 
     // ==================== START SESSION EDGE CASES ====================
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSessionAsync_WithNegativeTime_ShouldFail()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 0}");
@@ -57,7 +57,7 @@ public class SessionServiceDeepTests : IDisposable
         result.IsSuccess.Should().BeFalse();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSessionAsync_WhenFirebaseFails_ShouldReturnError()
     {
         // GET for time check returns OK, but PATCH for session start fails
@@ -69,7 +69,7 @@ public class SessionServiceDeepTests : IDisposable
         // The important thing: no exception thrown.
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSessionAsync_WithVeryLargeTime_ShouldSucceed()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 86400}");
@@ -78,7 +78,7 @@ public class SessionServiceDeepTests : IDisposable
         _service.RemainingTime.Should().Be(86400);
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSessionAsync_ShouldSetStartTime()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 600}");
@@ -92,7 +92,7 @@ public class SessionServiceDeepTests : IDisposable
         _service.StartTime!.Value.Should().BeOnOrBefore(DateTime.UtcNow);
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSessionAsync_ShouldResetWarningFlags()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -103,7 +103,7 @@ public class SessionServiceDeepTests : IDisposable
 
     // ==================== CHECK TIME EXPIRATION ====================
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSession_WhenTimeExpiresAtNull_ShouldProceed()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -111,7 +111,7 @@ public class SessionServiceDeepTests : IDisposable
         result.IsSuccess.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSession_WhenTimeExpiresAtEmpty_ShouldProceed()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600, \"timeExpiresAt\": \"\"}");
@@ -119,7 +119,7 @@ public class SessionServiceDeepTests : IDisposable
         result.IsSuccess.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSession_WhenTimeExpiresAtInvalidDate_ShouldProceed()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600, \"timeExpiresAt\": \"not-a-date\"}");
@@ -127,7 +127,7 @@ public class SessionServiceDeepTests : IDisposable
         result.IsSuccess.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSession_WhenTimeExpiresAtFuture_ShouldProceed()
     {
         var futureDate = DateTime.Now.AddDays(30).ToString("o");
@@ -137,7 +137,7 @@ public class SessionServiceDeepTests : IDisposable
         result.IsSuccess.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSession_WhenTimeExpiresAtPast_ShouldFail()
     {
         var pastDate = DateTime.Now.AddDays(-1).ToString("o");
@@ -148,7 +148,7 @@ public class SessionServiceDeepTests : IDisposable
         result.Error.Should().Contain("פג תוקף");
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task StartSession_WhenGetUserFails_ShouldProceed()
     {
         // If checking time expiration fails, session should still be startable
@@ -162,7 +162,7 @@ public class SessionServiceDeepTests : IDisposable
 
     // ==================== END SESSION EDGE CASES ====================
 
-    [Fact]
+    [DestructiveFact]
     public async Task EndSessionAsync_DefaultReasonIsUser()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -175,7 +175,7 @@ public class SessionServiceDeepTests : IDisposable
         endReason.Should().Be("user");
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task EndSessionAsync_WithHoursReason_ShouldPass()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -185,7 +185,7 @@ public class SessionServiceDeepTests : IDisposable
         result.IsSuccess.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task EndSessionAsync_SetsIsActiveFalse()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -196,7 +196,7 @@ public class SessionServiceDeepTests : IDisposable
         _service.IsActive.Should().BeFalse();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task EndSessionAsync_CalledTwice_SecondShouldFail()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -212,7 +212,7 @@ public class SessionServiceDeepTests : IDisposable
 
     // ==================== OPERATING HOURS ====================
 
-    [Fact]
+    [DestructiveFact]
     public async Task OperatingHoursWarning_ShouldFireEventDuringSession()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -228,7 +228,7 @@ public class SessionServiceDeepTests : IDisposable
         warningMinutes.Should().Be(15);
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task OperatingHoursEnded_WithForce_ShouldFireEvent()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -244,7 +244,7 @@ public class SessionServiceDeepTests : IDisposable
         endedBehavior.Should().Be("force");
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task OperatingHoursEnded_WithGraceful_ShouldFireEvent()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -260,7 +260,7 @@ public class SessionServiceDeepTests : IDisposable
         endedBehavior.Should().Be("graceful");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void OnHoursEndingSoon_ShouldFireOperatingHoursWarning()
     {
         int? warningMinutes = null;
@@ -275,7 +275,7 @@ public class SessionServiceDeepTests : IDisposable
 
     // ==================== SYNC TO FIREBASE ====================
 
-    [Fact]
+    [DestructiveFact]
     public async Task SyncToFirebase_WhenNotActive_ShouldNoOp()
     {
         _service.IsActive.Should().BeFalse();
@@ -289,7 +289,7 @@ public class SessionServiceDeepTests : IDisposable
         _service.IsOnline.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task SyncToFirebase_WhenActive_SuccessfulSync_ShouldKeepOnline()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -303,7 +303,7 @@ public class SessionServiceDeepTests : IDisposable
         _service.IsOnline.Should().BeTrue();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task SyncToFirebase_ThreeConsecutiveFailures_ShouldGoOffline()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -329,7 +329,7 @@ public class SessionServiceDeepTests : IDisposable
         syncError.Should().NotBeNull();
     }
 
-    [Fact]
+    [DestructiveFact]
     public async Task SyncToFirebase_AfterRecovery_ShouldFireSyncRestored()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
@@ -358,7 +358,7 @@ public class SessionServiceDeepTests : IDisposable
 
     // ==================== DISPOSE ====================
 
-    [Fact]
+    [DestructiveFact]
     public void Dispose_CalledMultipleTimes_ShouldNotThrow()
     {
         _service.Dispose();
@@ -368,7 +368,7 @@ public class SessionServiceDeepTests : IDisposable
 
     // ==================== SESSION PROPERTIES ====================
 
-    [Fact]
+    [DestructiveFact]
     public async Task SessionId_AfterStart_ShouldBeUnique()
     {
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");

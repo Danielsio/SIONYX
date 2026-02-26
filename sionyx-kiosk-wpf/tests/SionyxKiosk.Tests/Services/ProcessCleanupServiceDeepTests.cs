@@ -10,7 +10,7 @@ namespace SionyxKiosk.Tests.Services;
 [Trait("Category", "Destructive")]
 public class ProcessCleanupServiceDeepTests
 {
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ShouldReturnExpectedStructure()
     {
         var service = new ProcessCleanupService();
@@ -23,7 +23,7 @@ public class ProcessCleanupServiceDeepTests
         result.Should().ContainKey("failed_processes");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ClosedCount_ShouldBeNonNegative()
     {
         var service = new ProcessCleanupService();
@@ -33,7 +33,7 @@ public class ProcessCleanupServiceDeepTests
         ((int)result["failed_count"]).Should().BeGreaterThanOrEqualTo(0);
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupUserProcesses_ProcessLists_ShouldBeListOfStrings()
     {
         var service = new ProcessCleanupService();
@@ -43,7 +43,7 @@ public class ProcessCleanupServiceDeepTests
         result["failed_processes"].Should().BeOfType<List<string>>();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsersOnly_ShouldReturnExpectedStructure()
     {
         var service = new ProcessCleanupService();
@@ -53,7 +53,7 @@ public class ProcessCleanupServiceDeepTests
         result.Should().ContainKey("closed_count");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsersOnly_ClosedCount_ShouldBeNonNegative()
     {
         var service = new ProcessCleanupService();
@@ -62,7 +62,7 @@ public class ProcessCleanupServiceDeepTests
         ((int)result["closed_count"]).Should().BeGreaterThanOrEqualTo(0);
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsersOnly_Success_ShouldBeTrue()
     {
         var service = new ProcessCleanupService();

@@ -117,7 +117,7 @@ public class BrowserCleanupFileTests
         }
     }
 
-    [Fact]
+    [DestructiveFact]
     [Trait("Category", "Destructive")]
     public void CleanupFirefox_ViaTempDirectory_ShouldDeleteFiles()
     {

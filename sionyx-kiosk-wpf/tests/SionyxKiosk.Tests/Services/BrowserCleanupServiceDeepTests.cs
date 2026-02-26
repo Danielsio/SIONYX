@@ -9,14 +9,14 @@ namespace SionyxKiosk.Tests.Services;
 [Trait("Category", "Destructive")]
 public class BrowserCleanupServiceDeepTests
 {
-    [Fact]
+    [DestructiveFact]
     public void Constructor_ShouldCreate()
     {
         var service = new BrowserCleanupService();
         service.Should().NotBeNull();
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ShouldReturnResultsWithExpectedKeys()
     {
         var service = new BrowserCleanupService();
@@ -28,7 +28,7 @@ public class BrowserCleanupServiceDeepTests
         result.Should().ContainKey("firefox");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_ChromeResult_ShouldHaveFilesDeletedKey()
     {
         var service = new BrowserCleanupService();
@@ -39,7 +39,7 @@ public class BrowserCleanupServiceDeepTests
         chrome.Should().ContainKey("files_deleted");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_EdgeResult_ShouldHaveFilesDeletedKey()
     {
         var service = new BrowserCleanupService();
@@ -50,7 +50,7 @@ public class BrowserCleanupServiceDeepTests
         edge.Should().ContainKey("files_deleted");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupAllBrowsers_FirefoxResult_ShouldHaveFilesDeletedKey()
     {
         var service = new BrowserCleanupService();
@@ -61,7 +61,7 @@ public class BrowserCleanupServiceDeepTests
         firefox.Should().ContainKey("files_deleted");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_ShouldReturnResults()
     {
         var service = new BrowserCleanupService();
@@ -73,7 +73,7 @@ public class BrowserCleanupServiceDeepTests
         result.Should().ContainKey("firefox");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CleanupWithBrowserClose_ShouldReturnResults()
     {
         var service = new BrowserCleanupService();
@@ -86,7 +86,7 @@ public class BrowserCleanupServiceDeepTests
         result.Should().ContainKey("browsers_closed");
     }
 
-    [Fact]
+    [DestructiveFact]
     public void CloseBrowsers_AllBrowsersValues_ShouldBeBoolean()
     {
         var service = new BrowserCleanupService();
