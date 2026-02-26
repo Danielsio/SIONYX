@@ -372,22 +372,16 @@ public class AuditFixTests : IDisposable
     }
 
     [Fact]
-    public void HelpViewModel_SendFeedback_WithText_ClearsFeedbackText()
+    public void HelpViewModel_SendFeedback_WhitespaceOnly_SetsWarning()
     {
         var orgService = new OrganizationMetadataService(null!);
         var opHours = new OperatingHoursService(null!);
         var vm = new HelpViewModel(orgService, opHours);
 
-        vm.AdminEmail = "admin@test.com";
-        vm.FeedbackText = "Great app!";
-
-        // Will try to open mailto (fails silently in test), but should clear text
+        vm.FeedbackText = "   \t  ";
         _ = vm.SendFeedbackCommand.ExecuteAsync(null);
-        Thread.Sleep(100);
 
-        // Either cleared (mailto succeeded) or still set (fallback message shown)
-        // In CI environment, Process.Start for mailto may fail
-        (vm.FeedbackText == "" || vm.FeedbackStatus.Length > 0).Should().BeTrue();
+        vm.FeedbackStatus.Should().Contain("אנא כתוב");
     }
 
     // ==================== DEVMODE attribute ====================
