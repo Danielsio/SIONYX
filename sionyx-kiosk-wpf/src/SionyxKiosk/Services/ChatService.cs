@@ -84,23 +84,17 @@ public class ChatService : BaseService, IChatService
         if (messages.Count == 0) return;
 
         var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var updates = new Dictionary<string, object>();
 
         foreach (var msg in messages)
         {
             if (msg.TryGetValue("id", out var id) && id is string messageId)
             {
-                updates[$"messages/{messageId}/read"] = true;
-                updates[$"messages/{messageId}/readAt"] = now;
+                await Firebase.DbUpdateAsync($"messages/{messageId}",
+                    new { read = true, readAt = now });
             }
         }
 
-        if (updates.Count > 0)
-        {
-            // Single batch update for all messages
-            await Firebase.DbUpdateAsync("", updates);
-            Logger.Information("Marked {Count} messages as read (batch)", messages.Count);
-        }
+        Logger.Information("Marked {Count} messages as read", messages.Count);
     }
 
     /// <summary>Delete read messages older than 30 days for the current user.</summary>

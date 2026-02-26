@@ -40,7 +40,7 @@ public class OrgMetadataExceptionPathTests : IDisposable
         _handler.ClearHandlers();
         _handler.WhenThrows("metadata", "Connection refused");
 
-        var result = await _service.GetPrintPricingAsync("test-org");
+        var result = await _service.GetPrintPricingAsync();
         result.IsSuccess.Should().BeFalse();
     }
 
@@ -50,7 +50,7 @@ public class OrgMetadataExceptionPathTests : IDisposable
         _handler.ClearHandlers();
         _handler.WhenThrows("metadata", "Connection refused");
 
-        var result = await _service.SetPrintPricingAsync("test-org", 1.0, 3.0);
+        var result = await _service.SetPrintPricingAsync(1.0, 3.0);
         result.IsSuccess.Should().BeFalse();
     }
 

@@ -24,12 +24,16 @@ public class ForceLogoutService
         _firebase = firebase;
     }
 
-    public async void StartListening(string userId)
+    public void StartListening(string userId)
     {
         _userId = userId;
         StopListening();
 
-        // Clear any stale force-logout data BEFORE connecting SSE
+        _ = ClearStaleDataAndListenAsync(userId);
+    }
+
+    private async Task ClearStaleDataAndListenAsync(string userId)
+    {
         try
         {
             await _firebase.DbDeleteAsync($"users/{userId}/forceLogout");

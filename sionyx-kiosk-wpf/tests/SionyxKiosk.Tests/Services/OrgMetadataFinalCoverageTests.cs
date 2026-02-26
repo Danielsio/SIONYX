@@ -62,7 +62,7 @@ public class OrgMetadataFinalCoverageTests : IDisposable
             colorPrice = 5.0,
         });
 
-        var result = await _service.GetPrintPricingAsync("test-org");
+        var result = await _service.GetPrintPricingAsync();
         result.IsSuccess.Should().BeTrue();
     }
 
@@ -72,7 +72,7 @@ public class OrgMetadataFinalCoverageTests : IDisposable
     public async Task SetPrintPricingAsync_WithZeroPrices_ShouldSucceed()
     {
         _handler.SetDefaultSuccess();
-        var result = await _service.SetPrintPricingAsync("test-org", 0, 0);
+        var result = await _service.SetPrintPricingAsync(0, 0);
         result.IsSuccess.Should().BeTrue();
     }
 
