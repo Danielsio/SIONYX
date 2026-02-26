@@ -43,4 +43,41 @@ public class HelpViewModelTests
         vm.OrgName.Should().BeEmpty();
         vm.IsLoading.Should().BeFalse();
     }
+
+    [Fact]
+    public void InitialState_ShouldHaveEmptyFeedback()
+    {
+        var orgService = new OrganizationMetadataService(null!);
+        var opHours = new OperatingHoursService(null!);
+        var vm = new HelpViewModel(orgService, opHours);
+
+        vm.FeedbackText.Should().BeEmpty();
+        vm.FeedbackStatus.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task SendFeedback_WithEmptyText_ShouldShowError()
+    {
+        var orgService = new OrganizationMetadataService(null!);
+        var opHours = new OperatingHoursService(null!);
+        var vm = new HelpViewModel(orgService, opHours);
+
+        vm.FeedbackText = "";
+        await vm.SendFeedbackCommand.ExecuteAsync(null);
+
+        vm.FeedbackStatus.Should().Contain("אנא כתוב הודעה");
+    }
+
+    [Fact]
+    public async Task SendFeedback_WithWhitespace_ShouldShowError()
+    {
+        var orgService = new OrganizationMetadataService(null!);
+        var opHours = new OperatingHoursService(null!);
+        var vm = new HelpViewModel(orgService, opHours);
+
+        vm.FeedbackText = "   ";
+        await vm.SendFeedbackCommand.ExecuteAsync(null);
+
+        vm.FeedbackStatus.Should().Contain("אנא כתוב הודעה");
+    }
 }

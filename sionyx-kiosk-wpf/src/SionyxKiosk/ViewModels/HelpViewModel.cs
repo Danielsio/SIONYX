@@ -20,6 +20,8 @@ public partial class HelpViewModel : ObservableObject
     [ObservableProperty] private string _workingHoursLine1 = "טוען...";
     [ObservableProperty] private string _workingHoursLine2 = "";
     [ObservableProperty] private string _workingHoursLine3 = "";
+    [ObservableProperty] private string _feedbackText = "";
+    [ObservableProperty] private string _feedbackStatus = "";
 
     public ObservableCollection<FaqItem> FaqItems { get; } = new()
     {
@@ -80,6 +82,42 @@ public partial class HelpViewModel : ObservableObject
             WorkingHoursLine1 = "24/7";
             WorkingHoursLine2 = "ללא הגבלת שעות";
             WorkingHoursLine3 = "";
+        }
+    }
+
+    [RelayCommand]
+    private async Task SendFeedbackAsync()
+    {
+        if (string.IsNullOrWhiteSpace(FeedbackText))
+        {
+            FeedbackStatus = "אנא כתוב הודעה לפני השליחה";
+            await Task.Delay(2000);
+            FeedbackStatus = "";
+            return;
+        }
+
+        try
+        {
+            var subject = Uri.EscapeDataString("משוב ממשתמש קיוסק SIONYX");
+            var body = Uri.EscapeDataString(FeedbackText);
+            var mailto = $"mailto:{AdminEmail}?subject={subject}&body={body}";
+
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = mailto,
+                UseShellExecute = true,
+            });
+
+            FeedbackStatus = "נפתח חלון אימייל...";
+            FeedbackText = "";
+            await Task.Delay(3000);
+            FeedbackStatus = "";
+        }
+        catch
+        {
+            FeedbackStatus = "לא הצלחנו לפתוח אימייל. שלח ידנית ל: " + AdminEmail;
+            await Task.Delay(4000);
+            FeedbackStatus = "";
         }
     }
 
