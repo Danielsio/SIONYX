@@ -54,7 +54,6 @@ import {
   CloseCircleOutlined,
   DownloadOutlined,
   DeleteOutlined,
-  ClearOutlined,
 } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
@@ -68,7 +67,6 @@ import {
   kickUser,
   resetUserPassword,
   deleteUser,
-  triggerCleanup,
 } from '../services/userService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
@@ -110,7 +108,6 @@ const UsersPage = () => {
   const [adjusting, setAdjusting] = useState(false);
   const [kicking, setKicking] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [cleaningUp, setCleaningUp] = useState(false);
   const [form] = Form.useForm();
 
   // Chat related state
@@ -350,34 +347,6 @@ const UsersPage = () => {
           message.error('שגיאה במחיקת המשתמש');
         } finally {
           setDeleting(false);
-        }
-      },
-    });
-  };
-
-  const handleCleanup = () => {
-    Modal.confirm({
-      title: 'ניקוי משתמשים לא פעילים',
-      content: 'פעולה זו תמחק את כל המשתמשים שנרשמו לפני יותר מ-7 ימים ומעולם לא רכשו חבילה. מנהלים לא יימחקו. להמשיך?',
-      icon: <ClearOutlined style={{ color: '#fa8c16' }} />,
-      okText: 'בצע ניקוי',
-      okType: 'primary',
-      cancelText: 'ביטול',
-      onOk: async () => {
-        setCleaningUp(true);
-        try {
-          const result = await triggerCleanup(orgId);
-          if (result.success) {
-            message.success(result.message);
-            await loadUsers();
-          } else {
-            message.error(result.error || 'נכשל בניקוי משתמשים');
-          }
-        } catch (error) {
-          logger.error('Error running cleanup:', error);
-          message.error('שגיאה בניקוי משתמשים');
-        } finally {
-          setCleaningUp(false);
         }
       },
     });
@@ -1004,14 +973,6 @@ const UsersPage = () => {
             <Text style={{ color: '#6b7280', fontSize: 14 }}>נהל וצפה בכל המשתמשים בארגון שלך</Text>
           </div>
           <Space>
-            <Button
-              icon={<ClearOutlined />}
-              onClick={handleCleanup}
-              loading={cleaningUp}
-              style={{ borderRadius: 10, height: 40 }}
-            >
-              ניקוי לא פעילים
-            </Button>
             <Button
               icon={<DownloadOutlined />}
               onClick={() =>

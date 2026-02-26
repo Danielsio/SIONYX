@@ -267,28 +267,6 @@ export const deleteUser = async (orgId, userId) => {
 };
 
 /**
- * Trigger manual cleanup of inactive users (admin only).
- * Removes users who never purchased and registered 7+ days ago.
- */
-export const triggerCleanup = async (orgId) => {
-  try {
-    const cleanupFn = httpsCallable(functions, 'cleanupInactiveUsersManual');
-    const result = await cleanupFn({ orgId });
-
-    return {
-      success: true,
-      deleted: result.data.deleted || 0,
-      skipped: result.data.skipped || 0,
-      message: `נמחקו ${result.data.deleted || 0} משתמשים לא פעילים`,
-    };
-  } catch (error) {
-    logger.error('Error triggering cleanup:', error);
-    const errorMessage = error.message || 'שגיאה בניקוי משתמשים';
-    return { success: false, error: errorMessage };
-  }
-};
-
-/**
  * Kick a user (force logout)
  */
 export const kickUser = async (orgId, userId) => {

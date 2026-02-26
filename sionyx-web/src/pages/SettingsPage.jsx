@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, Typography, Tabs, Space } from 'antd';
 import { SettingOutlined, DollarOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../store/authStore';
@@ -8,34 +8,45 @@ import OperatingHoursSettings from '../components/settings/OperatingHoursSetting
 
 const { Title, Text } = Typography;
 
+const useIsMobile = (breakpoint = 768) => {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+
+  return isMobile;
+};
+
 const SettingsPage = () => {
   const user = useAuthStore(state => state.user);
   const userRole = getUserRole(user);
   const isSupervisor = hasRole(user, ROLES.SUPERVISOR);
+  const isMobile = useIsMobile();
 
-  // Build tabs based on user role
   const tabs = [
     {
       key: 'pricing',
       label: (
         <span>
           <DollarOutlined />
-          תמחור הדפסות
+          {' '}תמחור הדפסות
         </span>
       ),
       children: <PricingSettings />,
-      // Available to admin+
     },
   ];
 
-  // Supervisor-only tabs
   if (isSupervisor) {
     tabs.push({
       key: 'operatingHours',
       label: (
         <span>
           <ClockCircleOutlined />
-          שעות פעילות
+          {' '}שעות פעילות
         </span>
       ),
       children: <OperatingHoursSettings />,
@@ -45,7 +56,6 @@ const SettingsPage = () => {
   return (
     <div style={{ direction: 'rtl' }}>
       <Space direction='vertical' size='large' style={{ width: '100%' }}>
-        {/* Header */}
         <div
           className='page-header'
           style={{
@@ -54,17 +64,21 @@ const SettingsPage = () => {
             alignItems: 'center',
             flexWrap: 'wrap',
             gap: 12,
+            padding: isMobile ? '0 4px' : undefined,
           }}
         >
           <div>
-            <Title level={2} style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Title
+              level={isMobile ? 3 : 2}
+              style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}
+            >
               <SettingOutlined />
               הגדרות
             </Title>
-            <Text type='secondary'>
+            <Text type='secondary' style={{ fontSize: isMobile ? 12 : 14 }}>
               נהל את הגדרות הארגון שלך
               {isSupervisor && (
-                <Text type='secondary' style={{ marginRight: 8 }}>
+                <Text type='secondary' style={{ marginRight: 8, fontSize: isMobile ? 12 : 14 }}>
                   • תפקיד: {getRoleDisplayName(userRole)}
                 </Text>
               )}
@@ -72,13 +86,14 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* Settings Tabs */}
-        <Card>
+        <Card
+          styles={{ body: { padding: isMobile ? '12px 8px' : undefined } }}
+        >
           <Tabs
             defaultActiveKey='pricing'
             items={tabs}
-            tabPosition='right'
-            style={{ minHeight: 400 }}
+            tabPosition={isMobile ? 'top' : 'right'}
+            style={{ minHeight: isMobile ? undefined : 400 }}
           />
         </Card>
       </Space>

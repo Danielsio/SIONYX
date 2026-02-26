@@ -1559,11 +1559,11 @@ const LandingPage = memo(() => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
                     <MailOutlined style={{ marginLeft: 8 }} />
-                    info@sionyx.co.il
+                    moshesionov340@gmail.com
                   </span>
                   <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>
                     <PhoneOutlined style={{ marginLeft: 8 }} />
-                    054-9451310
+                    054-8477910
                   </span>
                 </div>
               </Col>
