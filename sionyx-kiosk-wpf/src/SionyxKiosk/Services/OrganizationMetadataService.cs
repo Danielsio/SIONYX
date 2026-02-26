@@ -57,11 +57,11 @@ public class OrganizationMetadataService : BaseService
         }
     }
 
-    public async Task<ServiceResult> GetPrintPricingAsync(string orgId)
+    public async Task<ServiceResult> GetPrintPricingAsync()
     {
         try
         {
-            var result = await Firebase.DbGetAsync($"organizations/{orgId}/metadata");
+            var result = await Firebase.DbGetAsync("metadata");
             if (!result.Success) return Error($"Failed to fetch metadata: {result.Error}");
             if (result.Data is not JsonElement data || data.ValueKind == JsonValueKind.Null)
                 return Error("Organization metadata not found");
@@ -78,16 +78,16 @@ public class OrganizationMetadataService : BaseService
         }
     }
 
-    public async Task<ServiceResult> SetPrintPricingAsync(string orgId, double blackWhitePrice, double colorPrice)
+    public async Task<ServiceResult> SetPrintPricingAsync(double blackWhitePrice, double colorPrice)
     {
         try
         {
-            var result = await Firebase.DbUpdateAsync($"organizations/{orgId}/metadata",
+            var result = await Firebase.DbUpdateAsync("metadata",
                 new { blackAndWhitePrice = blackWhitePrice, colorPrice });
             if (!result.Success) return Error($"Failed to update pricing: {result.Error}");
 
-            Logger.Information("Print pricing updated for org {OrgId}: B&W={Bw} NIS, Color={Color} NIS",
-                orgId, blackWhitePrice, colorPrice);
+            Logger.Information("Print pricing updated: B&W={Bw} NIS, Color={Color} NIS",
+                blackWhitePrice, colorPrice);
             return Success();
         }
         catch (Exception ex)

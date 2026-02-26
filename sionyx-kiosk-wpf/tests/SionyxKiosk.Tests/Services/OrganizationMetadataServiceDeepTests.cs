@@ -118,7 +118,7 @@ public class OrganizationMetadataServiceDeepTests : IDisposable
             colorPrice = 2.5,
         });
 
-        var result = await _service.GetPrintPricingAsync("test-org");
+        var result = await _service.GetPrintPricingAsync();
         result.IsSuccess.Should().BeTrue();
     }
 
@@ -127,7 +127,7 @@ public class OrganizationMetadataServiceDeepTests : IDisposable
     {
         _handler.When("metadata.json", new { name = "org" });
 
-        var result = await _service.GetPrintPricingAsync("test-org");
+        var result = await _service.GetPrintPricingAsync();
         result.IsSuccess.Should().BeTrue();
     }
 
@@ -135,7 +135,7 @@ public class OrganizationMetadataServiceDeepTests : IDisposable
     public async Task GetPrintPricingAsync_WhenFails_ShouldReturnError()
     {
         _handler.WhenError("metadata.json");
-        var result = await _service.GetPrintPricingAsync("test-org");
+        var result = await _service.GetPrintPricingAsync();
         result.IsSuccess.Should().BeFalse();
     }
 
@@ -143,7 +143,7 @@ public class OrganizationMetadataServiceDeepTests : IDisposable
     public async Task GetPrintPricingAsync_WithNullData_ShouldReturnError()
     {
         _handler.WhenRaw("metadata.json", "null");
-        var result = await _service.GetPrintPricingAsync("test-org");
+        var result = await _service.GetPrintPricingAsync();
         result.IsSuccess.Should().BeFalse();
     }
 
@@ -153,7 +153,7 @@ public class OrganizationMetadataServiceDeepTests : IDisposable
     public async Task SetPrintPricingAsync_WithValidData_ShouldSucceed()
     {
         _handler.SetDefaultSuccess();
-        var result = await _service.SetPrintPricingAsync("test-org", 0.5, 2.5);
+        var result = await _service.SetPrintPricingAsync(0.5, 2.5);
         result.IsSuccess.Should().BeTrue();
     }
 
@@ -161,7 +161,7 @@ public class OrganizationMetadataServiceDeepTests : IDisposable
     public async Task SetPrintPricingAsync_WhenFails_ShouldReturnError()
     {
         _handler.WhenError("metadata");
-        var result = await _service.SetPrintPricingAsync("test-org", 0.5, 2.5);
+        var result = await _service.SetPrintPricingAsync(0.5, 2.5);
         result.IsSuccess.Should().BeFalse();
     }
 

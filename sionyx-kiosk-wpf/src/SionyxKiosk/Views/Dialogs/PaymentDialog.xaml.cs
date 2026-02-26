@@ -194,7 +194,7 @@ public partial class PaymentDialog : Window
                 case "close":
                     var success = root.TryGetProperty("success", out var s) && s.GetBoolean();
                     PaymentSucceeded = success;
-                    Dispatcher.Invoke(Close);
+                    Dispatcher.InvokeAsync(Close);
                     break;
             }
         }
@@ -220,20 +220,20 @@ public partial class PaymentDialog : Window
 
                 // Post purchase ID back to JS
                 var msg = JsonSerializer.Serialize(new { action = "purchaseCreated", purchaseId = _purchaseId });
-                Dispatcher.Invoke(() => PaymentWebView.CoreWebView2.PostWebMessageAsJson(msg));
+                Dispatcher.InvokeAsync(() => PaymentWebView.CoreWebView2.PostWebMessageAsJson(msg));
                 Logger.Information("Pending purchase created: {PurchaseId}", _purchaseId);
             }
             else
             {
                 var errorMsg = JsonSerializer.Serialize(new { action = "purchaseError", error = result.Error ?? "שגיאה" });
-                Dispatcher.Invoke(() => PaymentWebView.CoreWebView2.PostWebMessageAsJson(errorMsg));
+                Dispatcher.InvokeAsync(() => PaymentWebView.CoreWebView2.PostWebMessageAsJson(errorMsg));
             }
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Failed to create pending purchase");
             var errorMsg = JsonSerializer.Serialize(new { action = "purchaseError", error = "שגיאה ביצירת רכישה" });
-            Dispatcher.Invoke(() => PaymentWebView.CoreWebView2.PostWebMessageAsJson(errorMsg));
+            Dispatcher.InvokeAsync(() => PaymentWebView.CoreWebView2.PostWebMessageAsJson(errorMsg));
         }
     }
 
@@ -255,13 +255,13 @@ public partial class PaymentDialog : Window
         _statusListener?.Stop();
         _statusListener = _firebase.DbListen($"purchases/{purchaseId}/status", (eventType, data) =>
         {
-            if (eventType != "put" || data == null) return;
+            if (eventType != "put" || data == null || !data.HasValue) return;
             var status = data.Value.ValueKind == JsonValueKind.String ? data.Value.GetString() : null;
 
             if (status is "completed" or "approved")
             {
                 Logger.Information("Purchase {Id} completed via SSE", purchaseId);
-                Dispatcher.Invoke(() =>
+                Dispatcher.InvokeAsync(() =>
                 {
                     PaymentSucceeded = true;
                     var msg = JsonSerializer.Serialize(new { action = "showSuccess" });
@@ -287,7 +287,7 @@ public partial class PaymentDialog : Window
                 if (status is "completed" or "approved")
                 {
                     Logger.Information("Purchase {Id} confirmed via polling", _purchaseId);
-                    Dispatcher.Invoke(() =>
+                    Dispatcher.InvokeAsync(() =>
                     {
                         PaymentSucceeded = true;
                         var msg = JsonSerializer.Serialize(new { action = "showSuccess" });
@@ -301,7 +301,7 @@ public partial class PaymentDialog : Window
         Logger.Warning("Purchase status polling timed out for {Id}", _purchaseId);
         if (!PaymentSucceeded)
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.InvokeAsync(() =>
             {
                 var msg = JsonSerializer.Serialize(new { action = "showTimeout" });
                 PaymentWebView.CoreWebView2.PostWebMessageAsJson(msg);

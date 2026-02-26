@@ -111,7 +111,7 @@ public class OrganizationMetadataServiceTests : IDisposable
             colorPrice = 3.5,
         });
 
-        var result = await _service.GetPrintPricingAsync("test-org");
+        var result = await _service.GetPrintPricingAsync();
         result.IsSuccess.Should().BeTrue();
     }
 
@@ -120,7 +120,7 @@ public class OrganizationMetadataServiceTests : IDisposable
     {
         _handler.WhenError("metadata.json");
 
-        var result = await _service.GetPrintPricingAsync("test-org");
+        var result = await _service.GetPrintPricingAsync();
         result.IsSuccess.Should().BeFalse();
     }
 
@@ -129,7 +129,7 @@ public class OrganizationMetadataServiceTests : IDisposable
     {
         _handler.SetDefaultSuccess();
 
-        var result = await _service.SetPrintPricingAsync("test-org", 1.5, 3.5);
+        var result = await _service.SetPrintPricingAsync(1.5, 3.5);
         result.IsSuccess.Should().BeTrue();
     }
 

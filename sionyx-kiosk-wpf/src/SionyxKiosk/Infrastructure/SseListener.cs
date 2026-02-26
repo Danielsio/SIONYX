@@ -51,20 +51,21 @@ public sealed class SseListener
         Logger.Information("SSE listener started for: {Path}", _path);
     }
 
-    /// <summary>Stop the listener gracefully.</summary>
+    /// <summary>Stop the listener gracefully without blocking the calling thread.</summary>
     public void Stop()
     {
         Logger.Debug("Stopping SSE listener for: {Path}", _path);
         _cts?.Cancel();
 
-        // Wait briefly for clean shutdown
-        try
+        var task = _listenTask;
+        if (task != null)
         {
-            _listenTask?.Wait(TimeSpan.FromMilliseconds(500));
-        }
-        catch (AggregateException)
-        {
-            // Expected on cancellation
+            // Fire-and-forget the cleanup to avoid blocking the UI thread
+            _ = Task.Run(() =>
+            {
+                try { task.Wait(TimeSpan.FromMilliseconds(500)); }
+                catch (AggregateException) { /* Expected on cancellation */ }
+            });
         }
 
         _cts?.Dispose();

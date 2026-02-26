@@ -52,8 +52,8 @@ public class SessionCoordinator
         _sessionEndedHandler = OnSessionEnded;
         _warning5MinHandler = OnWarning5Min;
         _warning1MinHandler = OnWarning1Min;
-        _syncFailedHandler = _ => Application.Current?.Dispatcher.Invoke(() => _floatingTimer?.SetOfflineMode(true));
-        _syncRestoredHandler = () => Application.Current?.Dispatcher.Invoke(() => _floatingTimer?.SetOfflineMode(false));
+        _syncFailedHandler = _ => Application.Current?.Dispatcher.InvokeAsync(() => _floatingTimer?.SetOfflineMode(true));
+        _syncRestoredHandler = () => Application.Current?.Dispatcher.InvokeAsync(() => _floatingTimer?.SetOfflineMode(false));
 
         _session.SessionStarted += _sessionStartedHandler;
         _session.TimeUpdated += _sessionTimeUpdatedHandler;
@@ -66,7 +66,7 @@ public class SessionCoordinator
         _printJobAllowedHandler = OnPrintJobAllowed;
         _printJobBlockedHandler = OnPrintJobBlocked;
         _printBudgetUpdatedHandler = budget =>
-            Application.Current?.Dispatcher.Invoke(() => _floatingTimer?.UpdatePrintBalance(budget));
+            Application.Current?.Dispatcher.InvokeAsync(() => _floatingTimer?.UpdatePrintBalance(budget));
 
         _printMonitor.JobAllowed += _printJobAllowedHandler;
         _printMonitor.JobBlocked += _printJobBlockedHandler;
@@ -103,7 +103,7 @@ public class SessionCoordinator
     /// <summary>Close the floating timer (call during logout/stop).</summary>
     public void CloseFloatingTimer()
     {
-        Application.Current?.Dispatcher.Invoke(() =>
+        Application.Current?.Dispatcher.InvokeAsync(() =>
         {
             if (_floatingTimer != null)
             {
@@ -117,7 +117,7 @@ public class SessionCoordinator
     /// <summary>Resume the active session: show timer, minimize main window.</summary>
     public void ResumeSession()
     {
-        Application.Current?.Dispatcher.Invoke(() =>
+        Application.Current?.Dispatcher.InvokeAsync(() =>
         {
             _floatingTimer?.Show();
             MinimizeMainWindow?.Invoke();
@@ -127,7 +127,7 @@ public class SessionCoordinator
     private void OnSessionStarted()
     {
         _printMonitor.StartMonitoring();
-        Application.Current?.Dispatcher.Invoke(() =>
+        Application.Current?.Dispatcher.InvokeAsync(() =>
         {
             _floatingTimer = new Views.Controls.FloatingTimer();
             _floatingTimer.UpdatePrintBalance(_auth.CurrentUser?.PrintBalance ?? 0);
@@ -139,7 +139,7 @@ public class SessionCoordinator
 
     private void OnTimeUpdated(int remaining)
     {
-        Application.Current?.Dispatcher.Invoke(() =>
+        Application.Current?.Dispatcher.InvokeAsync(() =>
         {
             _floatingTimer?.UpdateTime(remaining);
             _floatingTimer?.UpdateUsageTime(_session.TimeUsed);
@@ -149,7 +149,7 @@ public class SessionCoordinator
     private void OnSessionEnded(string reason)
     {
         _printMonitor.StopMonitoring();
-        Application.Current?.Dispatcher.Invoke(() =>
+        Application.Current?.Dispatcher.InvokeAsync(() =>
         {
             CloseFloatingTimerInternal();
             RestoreMainWindow?.Invoke();
@@ -175,7 +175,7 @@ public class SessionCoordinator
     private void OnPrintJobAllowed(string doc, int pages, double cost, double remaining)
     {
         Logger.Information("Print job allowed: '{Doc}' ({Pages}p, {Cost}₪)", doc, pages, cost);
-        Application.Current?.Dispatcher.Invoke(() => _floatingTimer?.UpdatePrintBalance(remaining));
+        Application.Current?.Dispatcher.InvokeAsync(() => _floatingTimer?.UpdatePrintBalance(remaining));
         Views.Controls.FloatingNotification.Show(
             "הדפסה אושרה", $"{doc} — {cost:F2}₪",
             Views.Controls.FloatingNotification.NotificationType.Success);
@@ -191,7 +191,7 @@ public class SessionCoordinator
 
     private void OnFloatingTimerReturn()
     {
-        Application.Current?.Dispatcher.Invoke(() =>
+        Application.Current?.Dispatcher.InvokeAsync(() =>
         {
             _floatingTimer?.Hide();
             RestoreMainWindow?.Invoke();
