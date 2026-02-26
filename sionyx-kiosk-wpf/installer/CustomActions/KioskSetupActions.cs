@@ -27,14 +27,15 @@ namespace SionyxInstaller
         // ====================================================================
         //  INSTALL ACTIONS
         //
-        //  REGISTRY POLICY: This installer does NOT modify any machine-wide
-        //  Windows login/display registry keys. The only registry it touches:
+        //  REGISTRY POLICY: This installer makes minimal machine-wide changes:
         //    1. HKLM\SOFTWARE\SIONYX\* -- app config (managed by WiX)
         //    2. Per-user policies inside SionyxUser's HKCU hive (NoRun,
         //       DisableCMD, etc.) -- kiosk lockdown, never affects the owner
+        //    3. UserSwitch\Enabled = 1 -- ensures the login screen shows tiles
+        //       for all local users (required because we create a second user;
+        //       some debloat/privacy tools disable this)
         //
-        //  The Windows sign-in screen shows all local users by default.
-        //  We rely on that default behavior and do not manipulate it.
+        //  No other login-screen or Winlogon keys are modified.
         // ====================================================================
 
         /// <summary>
@@ -286,16 +287,20 @@ namespace SionyxInstaller
         }
 
         /// <summary>
-        /// Safety net: ensures Windows auto-logon is not pointing at SionyxUser.
-        /// This protects against upgrades from the old NSIS installer which used
-        /// auto-logon. Also cleans up login-screen registry keys that previous
-        /// versions of this WiX installer (v3.2.2-v3.2.3) incorrectly created.
+        /// Safety net: ensures Windows auto-logon is not pointing at SionyxUser,
+        /// and enables user-switching so all local accounts appear as tiles.
         ///
         /// Keys touched (Winlogon):
         ///   AutoAdminLogon    -- set to "0" if currently "1" (prevents auto-login)
         ///   DefaultPassword   -- deleted (should never store a password)
         ///   DefaultUserName   -- deleted only if it equals "SionyxUser"
         ///   DefaultDomainName -- deleted only if DefaultUserName was "SionyxUser"
+        ///
+        /// Key SET (login screen):
+        ///   LogonUI\UserSwitch\Enabled = 1  -- ensures the sign-in screen shows
+        ///     clickable tiles for every local user. Required because some debloat
+        ///     or privacy tools set this to 0, which hides all but the last user.
+        ///     Without this, the SionyxUser we just created would be inaccessible.
         ///
         /// Keys REMOVED (cleanup from v3.2.2-v3.2.3 that should not have been set):
         ///   Winlogon\SpecialAccounts\UserList  -- entire subtree
@@ -332,6 +337,28 @@ namespace SionyxInstaller
                             key.DeleteValue("DefaultDomainName", false);
                             session.Log("[OK] Cleared DefaultUserName (was set to kiosk user)");
                         }
+                    }
+                }
+
+                // Enable user-switching so the login screen shows tiles for all
+                // local users. This is the ONLY login-screen key we set.
+                // Justification: we create a second local user (SionyxUser) and it
+                // must be accessible from the sign-in screen. Some debloat/privacy
+                // tools set Enabled=0, which hides all users except the last one.
+                const string userSwitchKey =
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserSwitch";
+                using (var switchKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                                  .CreateSubKey(userSwitchKey))
+                {
+                    int current = (int?)switchKey.GetValue("Enabled") ?? 1;
+                    if (current != 1)
+                    {
+                        switchKey.SetValue("Enabled", 1, RegistryValueKind.DWord);
+                        session.Log("[OK] UserSwitch\\Enabled was 0, set to 1 (enables user tile list)");
+                    }
+                    else
+                    {
+                        session.Log("[OK] UserSwitch\\Enabled already 1");
                     }
                 }
 
