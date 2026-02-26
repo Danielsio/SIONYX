@@ -281,7 +281,46 @@ namespace SionyxInstaller
                     }
                 }
 
-                session.Log("[OK] Auto-logon disabled — Windows login screen will show all accounts");
+                session.Log("[OK] Auto-logon disabled");
+
+                // Show SionyxUser as a clickable tile on the sign-in screen
+                const string userListKey = winlogonKey + @"\SpecialAccounts\UserList";
+                using (var ulKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                              .CreateSubKey(userListKey))
+                {
+                    ulKey.SetValue(KioskUsername, 1, RegistryValueKind.DWord);
+                    session.Log($"[OK] {KioskUsername} added to SpecialAccounts\\UserList");
+                }
+
+                // Force Windows 11 to enumerate all local users as tiles
+                const string systemPolicyKey = @"SOFTWARE\Policies\Microsoft\Windows\System";
+                using (var spKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                              .CreateSubKey(systemPolicyKey))
+                {
+                    if ((int?)spKey.GetValue("EnumerateLocalUsers") != 1)
+                    {
+                        spKey.SetValue("EnumerateLocalUsers", 1, RegistryValueKind.DWord);
+                        session.Log("[OK] EnumerateLocalUsers enabled");
+                    }
+                }
+
+                // Ensure sign-in screen shows user tiles (not a username text field)
+                const string loginPolicyKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
+                using (var lpKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                              .OpenSubKey(loginPolicyKey, true))
+                {
+                    if (lpKey != null)
+                    {
+                        int current = (int?)lpKey.GetValue("dontdisplaylastusername") ?? 0;
+                        if (current != 0)
+                        {
+                            lpKey.SetValue("dontdisplaylastusername", 0, RegistryValueKind.DWord);
+                            session.Log("[OK] dontdisplaylastusername set to 0");
+                        }
+                    }
+                }
+
+                session.Log("[OK] Login screen configured to show all user tiles");
                 return ActionResult.Success;
             }
             catch (Exception ex)
@@ -537,6 +576,19 @@ namespace SionyxInstaller
                         }
                     }
                 }
+
+                // Remove SionyxUser from sign-in screen tile list
+                const string userListKey = winlogonKey + @"\SpecialAccounts\UserList";
+                try
+                {
+                    using (var ulKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                                  .OpenSubKey(userListKey, true))
+                    {
+                        ulKey?.DeleteValue(KioskUsername, false);
+                        session.Log("[OK] Removed SionyxUser from SpecialAccounts\\UserList");
+                    }
+                }
+                catch { /* best effort */ }
 
                 // Restore blank-password restriction
                 RunCommand("reg", @"add ""HKLM\SYSTEM\CurrentControlSet\Control\Lsa"" /v LimitBlankPasswordUse /t REG_DWORD /d 1 /f", session);
