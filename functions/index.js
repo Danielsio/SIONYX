@@ -1083,47 +1083,6 @@ exports.cleanupInactiveUsers = onSchedule({
 });
 
 /**
- * Manual cleanup: callable from web admin.
- * Requires authenticated admin caller.
- */
-exports.cleanupInactiveUsersManual = onCall(async (request) => {
-  const correlationId = generateCorrelationId();
-  const log = createLogger({correlationId, service: "manual-cleanup"});
-
-  if (!request.auth) {
-    throw new functions.https.HttpsError(
-        "unauthenticated", "Must be authenticated",
-    );
-  }
-
-  const {orgId} = request.data || {};
-  if (!orgId) {
-    throw new functions.https.HttpsError(
-        "invalid-argument", "Missing orgId",
-    );
-  }
-
-  // Verify caller is admin
-  const callerRef = admin.database()
-      .ref(`organizations/${orgId}/users/${request.auth.uid}`);
-  const callerSnap = await callerRef.once("value");
-  if (!callerSnap.exists() || !callerSnap.val().isAdmin) {
-    throw new functions.https.HttpsError(
-        "permission-denied", "רק מנהלים יכולים לבצע ניקוי",
-    );
-  }
-
-  log.info("Manual cleanup triggered", {orgId, callerUid: request.auth.uid});
-  const summary = await runCleanup(orgId);
-
-  return {
-    success: true,
-    ...summary,
-    correlationId,
-  };
-});
-
-/**
  * Delete a single user: callable from web admin.
  * Removes user record, messages, computer association, and auth account.
  */

@@ -46,7 +46,7 @@ const DAY_COLORS = {
   saturday: '#6366F1',
 };
 
-const DayRow = ({ day, value, onChange, disabled }) => {
+const DayRow = ({ day, value, onChange, disabled, compact }) => {
   const color = DAY_COLORS[day.key];
   const isOpen = value?.open ?? true;
 
@@ -62,19 +62,18 @@ const DayRow = ({ day, value, onChange, disabled }) => {
     <div
       style={{
         display: 'flex',
-        alignItems: 'center',
-        padding: '12px 16px',
+        alignItems: compact ? 'flex-start' : 'center',
+        flexDirection: compact ? 'column' : 'row',
+        padding: compact ? '10px 12px' : '12px 16px',
         borderRadius: 12,
         background: disabled ? '#fafafa' : isOpen ? '#fafffe' : '#fafafa',
         border: `1px solid ${disabled ? '#f0f0f0' : isOpen ? '#e6f7f0' : '#f0f0f0'}`,
-        gap: 12,
-        flexWrap: 'wrap',
+        gap: compact ? 8 : 12,
         opacity: disabled ? 0.5 : 1,
         transition: 'all 0.2s',
       }}
     >
-      {/* Day label */}
-      <div style={{ minWidth: 70, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: compact ? '100%' : undefined }}>
         <div
           style={{
             width: 8,
@@ -84,22 +83,21 @@ const DayRow = ({ day, value, onChange, disabled }) => {
             flexShrink: 0,
           }}
         />
-        <Text strong style={{ fontSize: 14 }}>{day.label}</Text>
+        <Text strong style={{ fontSize: 14, minWidth: compact ? undefined : 55 }}>{day.label}</Text>
+
+        <Switch
+          size='small'
+          checked={isOpen}
+          onChange={handleToggle}
+          disabled={disabled}
+          checkedChildren='פתוח'
+          unCheckedChildren='סגור'
+          style={{ marginRight: 'auto' }}
+        />
       </div>
 
-      {/* Open/Closed toggle */}
-      <Switch
-        size='small'
-        checked={isOpen}
-        onChange={handleToggle}
-        disabled={disabled}
-        checkedChildren='פתוח'
-        unCheckedChildren='סגור'
-      />
-
-      {/* Time pickers */}
       {isOpen ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: compact ? '100%' : undefined }}>
           <TimePicker
             format='HH:mm'
             value={dayjs(value?.startTime || '08:00', 'HH:mm')}
@@ -107,7 +105,7 @@ const DayRow = ({ day, value, onChange, disabled }) => {
             disabled={disabled}
             minuteStep={15}
             size='small'
-            style={{ width: 90 }}
+            style={{ flex: compact ? 1 : undefined, width: compact ? undefined : 90 }}
             placeholder='התחלה'
           />
           <Text type='secondary'>—</Text>
@@ -118,17 +116,32 @@ const DayRow = ({ day, value, onChange, disabled }) => {
             disabled={disabled}
             minuteStep={15}
             size='small'
-            style={{ width: 90 }}
+            style={{ flex: compact ? 1 : undefined, width: compact ? undefined : 90 }}
             placeholder='סיום'
           />
         </div>
       ) : (
-        <Tag color='default' style={{ margin: 0 }}>
-          <CloseCircleOutlined /> סגור
-        </Tag>
+        !compact && (
+          <Tag color='default' style={{ margin: 0 }}>
+            <CloseCircleOutlined /> סגור
+          </Tag>
+        )
       )}
     </div>
   );
+};
+
+const useIsMobile = (breakpoint = 768) => {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, [breakpoint]);
+
+  return isMobile;
 };
 
 const OperatingHoursSettings = () => {
@@ -138,6 +151,7 @@ const OperatingHoursSettings = () => {
   const [settings, setSettings] = useState({ ...DEFAULT_OPERATING_HOURS });
   const [schedule, setSchedule] = useState(DEFAULT_OPERATING_HOURS.schedule);
   const enabled = Form.useWatch('enabled', form);
+  const isMobile = useIsMobile();
 
   const { message } = App.useApp();
   const orgId = useOrgId();
@@ -222,19 +236,23 @@ const OperatingHoursSettings = () => {
   const openDaysCount = Object.values(schedule).filter(d => d.open).length;
 
   return (
-    <Space direction='vertical' size='large' style={{ width: '100%' }}>
+    <Space direction='vertical' size={isMobile ? 'middle' : 'large'} style={{ width: '100%' }}>
       <Alert
         message='הגדרות מפקח בלבד'
         description='הגדרות אלו קובעות מתי משתמשים יכולים להשתמש במערכת. שינויים משפיעים על כל המשתמשים בארגון.'
         type='warning'
         icon={<WarningOutlined />}
         showIcon
+        style={{ fontSize: isMobile ? 12 : undefined }}
       />
 
-      <Row gutter={[24, 24]}>
-        {/* Left column: General settings */}
+      <Row gutter={[isMobile ? 0 : 24, 16]}>
         <Col xs={24} lg={10}>
-          <Card title='הגדרות כלליות' extra={<ClockCircleOutlined />}>
+          <Card
+            title='הגדרות כלליות'
+            extra={<ClockCircleOutlined />}
+            styles={{ body: { padding: isMobile ? 16 : undefined } }}
+          >
             <Form
               form={form}
               layout='vertical'
@@ -293,9 +311,11 @@ const OperatingHoursSettings = () => {
             </Form>
           </Card>
 
-          {/* Summary card */}
           {enabled && (
-            <Card style={{ marginTop: 16 }}>
+            <Card
+              style={{ marginTop: 16 }}
+              styles={{ body: { padding: isMobile ? 12 : undefined } }}
+            >
               <Space direction='vertical' size='small' style={{ width: '100%' }}>
                 <Text strong>
                   <CheckCircleOutlined style={{ color: '#10B981', marginLeft: 6 }} />
@@ -306,15 +326,15 @@ const OperatingHoursSettings = () => {
                 </Text>
                 {DAYS_OF_WEEK.map(day => {
                   const d = schedule[day.key];
-                  return d?.open ? (
+                  return (
                     <div key={day.key} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Text>{day.label}</Text>
-                      <Text type='secondary'>{d.startTime} - {d.endTime}</Text>
-                    </div>
-                  ) : (
-                    <div key={day.key} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Text>{day.label}</Text>
-                      <Text type='secondary' style={{ color: '#ef4444' }}>סגור</Text>
+                      <Text style={{ fontSize: isMobile ? 13 : undefined }}>{day.label}</Text>
+                      <Text
+                        type='secondary'
+                        style={{ color: d?.open ? undefined : '#ef4444', fontSize: isMobile ? 13 : undefined }}
+                      >
+                        {d?.open ? `${d.startTime} - ${d.endTime}` : 'סגור'}
+                      </Text>
                     </div>
                   );
                 })}
@@ -323,18 +343,18 @@ const OperatingHoursSettings = () => {
           )}
         </Col>
 
-        {/* Right column: Weekly schedule */}
         <Col xs={24} lg={14}>
           <Card
             title={
-              <Space>
+              <Space size={isMobile ? 4 : 8} wrap>
                 <ClockCircleOutlined />
                 <span>לוח שעות שבועי</span>
                 {enabled && (
-                  <Tag color='blue'>{openDaysCount}/7 ימים פעילים</Tag>
+                  <Tag color='blue' style={{ margin: 0 }}>{openDaysCount}/7</Tag>
                 )}
               </Space>
             }
+            styles={{ body: { padding: isMobile ? '12px 8px' : undefined } }}
           >
             <Space direction='vertical' size={8} style={{ width: '100%' }}>
               {DAYS_OF_WEEK.map(day => (
@@ -344,29 +364,40 @@ const OperatingHoursSettings = () => {
                   value={schedule[day.key]}
                   onChange={val => handleDayChange(day.key, val)}
                   disabled={!enabled}
+                  compact={isMobile}
                 />
               ))}
             </Space>
 
-            <Divider style={{ margin: '20px 0 16px' }} />
+            <Divider style={{ margin: '16px 0 12px' }} />
 
-            <Space>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               <Button
                 type='primary'
                 icon={<SaveOutlined />}
                 loading={saving}
                 disabled={loading}
                 onClick={handleSave}
+                style={{ flex: isMobile ? '1 1 100%' : undefined }}
               >
                 שמור שינויים
               </Button>
-              <Button onClick={handleReset} disabled={loading}>
+              <Button
+                onClick={handleReset}
+                disabled={loading}
+                style={{ flex: isMobile ? 1 : undefined }}
+              >
                 איפוס
               </Button>
-              <Button icon={<ReloadOutlined />} onClick={loadSettings} loading={loading}>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={loadSettings}
+                loading={loading}
+                style={{ flex: isMobile ? 1 : undefined }}
+              >
                 רענן
               </Button>
-            </Space>
+            </div>
           </Card>
         </Col>
       </Row>

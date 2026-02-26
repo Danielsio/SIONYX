@@ -10,7 +10,6 @@ import {
   kickUser,
   resetUserPassword,
   deleteUser,
-  triggerCleanup,
 } from './userService';
 
 vi.mock('firebase/database');
@@ -410,29 +409,4 @@ describe('userService', () => {
     });
   });
 
-  describe('triggerCleanup', () => {
-    it('calls the cleanup cloud function', async () => {
-      const mockCallable = vi.fn().mockResolvedValue({
-        data: { success: true, deleted: 3, skipped: 10 },
-      });
-      httpsCallable.mockReturnValue(mockCallable);
-
-      const result = await triggerCleanup('my-org');
-
-      expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'cleanupInactiveUsersManual');
-      expect(mockCallable).toHaveBeenCalledWith({ orgId: 'my-org' });
-      expect(result.success).toBe(true);
-      expect(result.deleted).toBe(3);
-    });
-
-    it('handles cleanup error', async () => {
-      const mockCallable = vi.fn().mockRejectedValue(new Error('Cleanup failed'));
-      httpsCallable.mockReturnValue(mockCallable);
-
-      const result = await triggerCleanup('my-org');
-
-      expect(result.success).toBe(false);
-      expect(result.error).toBe('Cleanup failed');
-    });
-  });
 });
