@@ -71,11 +71,12 @@ public class PrintMonitorServiceCoverageTests : IDisposable
     }
 
     [Fact]
-    public void LoadPricing_WithPartialData_ShouldUseAvailable()
+    public async Task LoadPricing_WithPartialData_ShouldUseAvailable()
     {
         _handler.When("metadata.json", new { blackAndWhitePrice = 2.0 });
         var loadMethod = typeof(PrintMonitorService).GetMethod("LoadPricingAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        (loadMethod.Invoke(_service, null) as Task)?.GetAwaiter().GetResult();
+        var loadTask = loadMethod.Invoke(_service, null) as Task;
+        if (loadTask != null) await loadTask;
 
         var calcMethod = typeof(PrintMonitorService).GetMethod("CalculateCost", BindingFlags.NonPublic | BindingFlags.Instance)!;
         var bwCost = (double)calcMethod.Invoke(_service, new object[] { 1, 1, false })!;
@@ -83,11 +84,12 @@ public class PrintMonitorServiceCoverageTests : IDisposable
     }
 
     [Fact]
-    public void LoadPricing_EmptyObject_ShouldKeepDefaults()
+    public async Task LoadPricing_EmptyObject_ShouldKeepDefaults()
     {
         _handler.When("metadata.json", new { });
         var loadMethod = typeof(PrintMonitorService).GetMethod("LoadPricingAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        (loadMethod.Invoke(_service, null) as Task)?.GetAwaiter().GetResult();
+        var loadTask = loadMethod.Invoke(_service, null) as Task;
+        if (loadTask != null) await loadTask;
 
         var calcMethod = typeof(PrintMonitorService).GetMethod("CalculateCost", BindingFlags.NonPublic | BindingFlags.Instance)!;
         var cost = (double)calcMethod.Invoke(_service, new object[] { 1, 1, false })!;
@@ -95,11 +97,12 @@ public class PrintMonitorServiceCoverageTests : IDisposable
     }
 
     [Fact]
-    public void LoadPricing_NullResponse_ShouldKeepDefaults()
+    public async Task LoadPricing_NullResponse_ShouldKeepDefaults()
     {
         _handler.WhenRaw("metadata.json", "null");
         var loadMethod = typeof(PrintMonitorService).GetMethod("LoadPricingAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        (loadMethod.Invoke(_service, null) as Task)?.GetAwaiter().GetResult();
+        var loadTask = loadMethod.Invoke(_service, null) as Task;
+        if (loadTask != null) await loadTask;
 
         var calcMethod = typeof(PrintMonitorService).GetMethod("CalculateCost", BindingFlags.NonPublic | BindingFlags.Instance)!;
         var cost = (double)calcMethod.Invoke(_service, new object[] { 1, 1, true })!;
@@ -107,54 +110,59 @@ public class PrintMonitorServiceCoverageTests : IDisposable
     }
 
     [Fact]
-    public void GetUserBudget_NoPrintBalance_ShouldReturnZero()
+    public async Task GetUserBudget_NoPrintBalance_ShouldReturnZero()
     {
         _handler.When("users/test-uid.json", new { name = "test" });
 
         var method = typeof(PrintMonitorService).GetMethod("GetUserBudgetAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        var budget = (method.Invoke(_service, new object[] { false }) as Task<double>)?.GetAwaiter().GetResult() ?? 0;
+        var task = method.Invoke(_service, new object[] { false }) as Task<double>;
+        var budget = task != null ? await task : 0;
         budget.Should().Be(0.0);
     }
 
     [Fact]
-    public void GetUserBudget_NullResponse_ShouldReturnZero()
+    public async Task GetUserBudget_NullResponse_ShouldReturnZero()
     {
         _handler.WhenRaw("users/test-uid.json", "null");
 
         var method = typeof(PrintMonitorService).GetMethod("GetUserBudgetAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        var budget = (method.Invoke(_service, new object[] { false }) as Task<double>)?.GetAwaiter().GetResult() ?? 0;
+        var task = method.Invoke(_service, new object[] { false }) as Task<double>;
+        var budget = task != null ? await task : 0;
         budget.Should().Be(0.0);
     }
 
     [Fact]
-    public void GetUserBudget_CachingWorks()
+    public async Task GetUserBudget_CachingWorks()
     {
         _handler.When("users/test-uid.json", new { printBalance = 42.0 });
 
         var method = typeof(PrintMonitorService).GetMethod("GetUserBudgetAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
 
-        var b1 = (method.Invoke(_service, new object[] { false }) as Task<double>)?.GetAwaiter().GetResult() ?? 0;
+        var task1 = method.Invoke(_service, new object[] { false }) as Task<double>;
+        var b1 = task1 != null ? await task1 : 0;
         b1.Should().Be(42.0);
 
         _handler.ClearHandlers();
         _handler.WhenError("users/test-uid.json");
 
-        var b2 = (method.Invoke(_service, new object[] { false }) as Task<double>)?.GetAwaiter().GetResult() ?? 0;
+        var task2 = method.Invoke(_service, new object[] { false }) as Task<double>;
+        var b2 = task2 != null ? await task2 : 0;
         b2.Should().Be(42.0);
     }
 
     [Fact]
-    public void DeductBudget_WhenDbFails_ShouldReturnFalse()
+    public async Task DeductBudget_WhenDbFails_ShouldReturnFalse()
     {
         _handler.WhenError("users/test-uid.json");
 
         var method = typeof(PrintMonitorService).GetMethod("DeductBudgetAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        var result = (method.Invoke(_service, new object[] { 10.0, false }) as Task<bool>)?.GetAwaiter().GetResult() ?? false;
+        var task = method.Invoke(_service, new object[] { 10.0, false }) as Task<bool>;
+        var result = task != null ? await task : false;
         result.Should().BeFalse();
     }
 
     [Fact]
-    public void DeductBudget_WithoutAllowNegative_ShouldClampToZero()
+    public async Task DeductBudget_WithoutAllowNegative_ShouldClampToZero()
     {
         _handler.When("users/test-uid.json", new { printBalance = 5.0 });
         _handler.SetDefaultSuccess();
@@ -163,7 +171,8 @@ public class PrintMonitorServiceCoverageTests : IDisposable
         _service.BudgetUpdated += b => budgetReceived = b;
 
         var method = typeof(PrintMonitorService).GetMethod("DeductBudgetAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        (method.Invoke(_service, new object[] { 10.0, false }) as Task)?.GetAwaiter().GetResult();
+        var task = method.Invoke(_service, new object[] { 10.0, false }) as Task;
+        if (task != null) await task;
 
         budgetReceived.Should().Be(0.0);
     }
@@ -192,18 +201,20 @@ public class PrintMonitorServiceCoverageTests : IDisposable
     }
 
     [Fact]
-    public void Reinitialize_ClearsCache()
+    public async Task Reinitialize_ClearsCache()
     {
         _handler.When("users/test-uid.json", new { printBalance = 100.0 });
         var getBudget = typeof(PrintMonitorService).GetMethod("GetUserBudgetAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        (getBudget.Invoke(_service, new object[] { false }) as Task)?.GetAwaiter().GetResult();
+        var firstTask = getBudget.Invoke(_service, new object[] { false }) as Task;
+        if (firstTask != null) await firstTask;
 
         _service.Reinitialize("other-user");
 
         _handler.ClearHandlers();
         _handler.When("users/other-user.json", new { printBalance = 0.0 });
 
-        var budget = (getBudget.Invoke(_service, new object[] { true }) as Task<double>)?.GetAwaiter().GetResult() ?? 0;
+        var task = getBudget.Invoke(_service, new object[] { true }) as Task<double>;
+        var budget = task != null ? await task : 0;
         budget.Should().Be(0.0);
     }
 }
