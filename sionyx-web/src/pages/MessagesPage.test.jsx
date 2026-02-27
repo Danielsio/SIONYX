@@ -5,11 +5,27 @@ import { App as AntApp } from 'antd';
 import MessagesPage from './MessagesPage';
 import { getAllUsers } from '../services/userService';
 import { getAllMessages, getMessagesForUser, sendMessage, cleanupOldMessages } from '../services/chatService';
+import { subscribeToMessages, subscribeToUsers } from '../services/realtimeService';
 import { useAuthStore } from '../store/authStore';
+
+// Realtime subscription data - mutated per test
+const realtimeData = { messages: [], users: [] };
 
 // Mock dependencies
 vi.mock('../services/userService');
 vi.mock('../services/chatService');
+vi.mock('../services/realtimeService', () => ({
+  subscribeToMessages: vi.fn((orgId, callback) => {
+    if (orgId) callback(realtimeData.messages);
+    return vi.fn();
+  }),
+  subscribeToUsers: vi.fn((orgId, callback) => {
+    if (orgId) callback(realtimeData.users);
+    return vi.fn();
+  }),
+  subscribeToComputers: vi.fn(() => vi.fn()),
+  subscribeToAnnouncements: vi.fn(() => vi.fn()),
+}));
 vi.mock('../store/authStore');
 
 // Mock dayjs
@@ -62,6 +78,9 @@ const mockMessages = [
 ];
 
 const renderMessagesPage = () => {
+  realtimeData.messages = [...mockMessages];
+  realtimeData.users = [...mockUsers];
+
   useAuthStore.mockImplementation(selector => {
     const state = {
       user: { orgId: 'my-org', uid: 'admin-123' },
@@ -98,14 +117,15 @@ const renderMessagesPage = () => {
 describe('MessagesPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.setItem('adminOrgId', 'my-org');
+    realtimeData.messages = [...mockMessages];
+    realtimeData.users = [...mockUsers];
   });
 
   it('renders without crashing', async () => {
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToMessages).toHaveBeenCalledWith('my-org', expect.any(Function));
     });
 
     expect(document.body).toBeInTheDocument();
@@ -115,19 +135,16 @@ describe('MessagesPage', () => {
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
     });
-
-    // Text is split by elements, so use a custom matcher
-    expect(screen.getByRole('heading', { level: 2 })).toBeInTheDocument();
   });
 
-  it('loads users and messages on mount', async () => {
+  it('subscribes to messages and users on mount', async () => {
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalledWith('my-org');
-      expect(getAllMessages).toHaveBeenCalledWith('my-org');
+      expect(subscribeToMessages).toHaveBeenCalledWith('my-org', expect.any(Function));
+      expect(subscribeToUsers).toHaveBeenCalledWith('my-org', expect.any(Function));
     });
   });
 
@@ -135,10 +152,9 @@ describe('MessagesPage', () => {
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(screen.getByPlaceholderText(/חפש/)).toBeInTheDocument();
     });
 
-    // Users should be loaded into the page
     expect(document.body).toBeInTheDocument();
   });
 
@@ -146,22 +162,17 @@ describe('MessagesPage', () => {
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      const searchInput = screen.getByPlaceholderText(/חפש/);
+      expect(searchInput).toBeInTheDocument();
     });
-
-    // Should have search input
-    const searchInput = screen.getByPlaceholderText(/חפש/);
-    expect(searchInput).toBeInTheDocument();
   });
 
   it('renders refresh button', async () => {
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(screen.getByText('רענן')).toBeInTheDocument();
     });
-
-    expect(screen.getByText('רענן')).toBeInTheDocument();
   });
 
   it('refreshes data when refresh clicked', async () => {
@@ -169,13 +180,17 @@ describe('MessagesPage', () => {
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('רענן')).toBeInTheDocument();
     });
+
+    // Before refresh: loadData (getAllUsers etc) not called on mount
+    expect(getAllUsers).not.toHaveBeenCalled();
 
     await user.click(screen.getByText('רענן'));
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalledTimes(2);
+      expect(getAllUsers).toHaveBeenCalledTimes(1);
+      expect(getAllMessages).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -188,26 +203,22 @@ describe('MessagesPage', () => {
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToMessages).toHaveBeenCalled();
     });
 
-    // Should not crash
     expect(document.body).toBeInTheDocument();
   });
 
   it('shows empty state when no users', async () => {
-    getAllUsers.mockResolvedValue({
-      success: true,
-      users: [],
-    });
+    realtimeData.messages = [];
+    realtimeData.users = [];
 
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToMessages).toHaveBeenCalled();
     });
 
-    // Should show empty state
     expect(document.body).toBeInTheDocument();
   });
 
@@ -216,10 +227,9 @@ describe('MessagesPage', () => {
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(screen.getByText('רענן')).toBeInTheDocument();
     });
 
-    // Find a user card and click it
     const userCards = await screen.findAllByText(/יוסי|שרה/);
     if (userCards.length > 0) {
       await user.click(userCards[0]);
@@ -241,21 +251,18 @@ describe('MessagesPage', () => {
       return typeof selector === 'function' ? selector(state) : state;
     });
 
-    getAllUsers.mockResolvedValue({ success: true, users: [] });
-    getAllMessages.mockResolvedValue({ success: true, messages: [] });
-
     render(
       <AntApp>
         <MessagesPage />
       </AntApp>
     );
 
-    // Wait for any effects to run
     await waitFor(() => {
       expect(document.body).toBeInTheDocument();
     });
 
-    // Should not crash, services should NOT be called, and no error should be logged
+    expect(subscribeToMessages).not.toHaveBeenCalled();
+    expect(subscribeToUsers).not.toHaveBeenCalled();
     expect(getAllUsers).not.toHaveBeenCalled();
     expect(getAllMessages).not.toHaveBeenCalled();
     expect(errorSpy).not.toHaveBeenCalled();
@@ -267,10 +274,9 @@ describe('MessagesPage', () => {
     renderMessagesPage();
 
     await waitFor(() => {
-      expect(getAllMessages).toHaveBeenCalled();
+      expect(subscribeToMessages).toHaveBeenCalled();
     });
 
-    // Messages should be loaded
     expect(document.body).toBeInTheDocument();
   });
 });

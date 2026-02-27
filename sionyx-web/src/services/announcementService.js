@@ -46,6 +46,8 @@ export const createAnnouncement = async (orgId, data) => {
       body: data.body || '',
       type: data.type || 'info',
       active: data.active !== false,
+      startDate: data.startDate || null,
+      endDate: data.endDate || null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

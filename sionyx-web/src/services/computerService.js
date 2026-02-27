@@ -152,6 +152,97 @@ export const getComputerUsageStats = async () => {
 };
 
 /**
+ * Derive activeUsers and stats from computers and users arrays (for real-time updates)
+ * @param {Array} computers - Array of { id, ...computerData }
+ * @param {Array} usersArray - Array of { uid, ...userData }
+ * @returns {{ activeUsers: Array, stats: Object }}
+ */
+export const deriveFromComputersAndUsers = (computers, usersArray) => {
+  const users = {};
+  (usersArray || []).forEach(u => {
+    users[u.uid] = u;
+  });
+
+  const stats = {
+    totalComputers: computers.length,
+    activeComputers: 0,
+    computersWithUsers: 0,
+    computerDetails: [],
+    userComputerUsage: {},
+  };
+  const activeUsers = [];
+
+  (computers || []).forEach(computer => {
+    const computerId = computer.id;
+    const currentUserId = computer.currentUserId;
+    const isActive = computer.isActive || !!currentUserId;
+
+    if (isActive) stats.activeComputers++;
+    if (currentUserId) stats.computersWithUsers++;
+
+    const userData = users[currentUserId] || {};
+    const userName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
+
+    if (currentUserId) {
+      activeUsers.push({
+        userId: currentUserId,
+        userName,
+        userPhone: userData.phoneNumber || '',
+        computerId,
+        computerName: computer.computerName || 'Unknown',
+        computerLocation: computer.location || '',
+        loginTime: computer.lastUserLogin || '',
+        sessionStartTime: userData.sessionStartTime || null,
+        sessionActive: userData.isSessionActive || false,
+        remainingTime: userData.remainingTime || 0,
+        printBalance: userData.printBalance || 0,
+      });
+
+      stats.computerDetails.push({
+        computerId,
+        computerName: computer.computerName || 'Unknown',
+        location: computer.location || '',
+        isActive,
+        currentUserId,
+        currentUserName: userName,
+        lastSeen: computer.lastSeen || '',
+        osInfo: computer.osInfo || {},
+        macAddress: computer.macAddress || '',
+        ipAddress: computer.networkInfo?.local_ip || '',
+      });
+
+      if (!stats.userComputerUsage[currentUserId]) {
+        stats.userComputerUsage[currentUserId] = {
+          userId: currentUserId,
+          userName,
+          computersUsed: [],
+        };
+      }
+      stats.userComputerUsage[currentUserId].computersUsed.push({
+        computerId,
+        computerName: computer.computerName || 'Unknown',
+        loginTime: computer.lastUserLogin || '',
+      });
+    } else {
+      stats.computerDetails.push({
+        computerId,
+        computerName: computer.computerName || 'Unknown',
+        location: computer.location || '',
+        isActive,
+        currentUserId: null,
+        currentUserName: null,
+        lastSeen: computer.lastSeen || '',
+        osInfo: computer.osInfo || {},
+        macAddress: computer.macAddress || '',
+        ipAddress: computer.networkInfo?.local_ip || '',
+      });
+    }
+  });
+
+  return { activeUsers, stats };
+};
+
+/**
  * Get computer by ID
  */
 export const getComputerById = async computerId => {

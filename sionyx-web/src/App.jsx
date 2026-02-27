@@ -23,12 +23,10 @@ function App() {
   const { setUser, setLoading, isAuthenticated, darkMode } = useAuthStore();
 
   useEffect(() => {
-    // Listen to auth state changes
-    const unsubscribe = onAuthChange(async firebaseUser => {
-      setLoading(true);
+    setLoading(true);
 
+    const unsubscribe = onAuthChange(async firebaseUser => {
       if (firebaseUser) {
-        // User is signed in, get full admin data
         const result = await getCurrentAdminData();
         if (result.success) {
           setUser(result.admin);
@@ -36,7 +34,6 @@ function App() {
           setUser(null);
         }
       } else {
-        // User is signed out
         setUser(null);
       }
 

@@ -22,6 +22,10 @@ import {
   Avatar,
   Table,
   Statistic,
+  Collapse,
+  Segmented,
+  DatePicker,
+  Select,
 } from 'antd';
 import { motion } from 'framer-motion';
 import {
@@ -70,7 +74,7 @@ import {
 } from '../services/userService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
-import { exportToCSV } from '../utils/csvExport';
+import { exportToCSV, exportToExcel, exportToPDF } from '../utils/csvExport';
 import dayjs from 'dayjs';
 import StatCard from '../components/StatCard';
 import { logger } from '../utils/logger';
@@ -99,6 +103,9 @@ const cardVariants = {
 const UsersPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
+  const [statusFilter, setStatusFilter] = useState(null);
+  const [dateRangeFilter, setDateRangeFilter] = useState(null);
+  const [roleFilter, setRoleFilter] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [userPurchases, setUserPurchases] = useState([]);
@@ -395,7 +402,8 @@ const UsersPage = () => {
   };
 
   const handleSendMessage = async values => {
-    if (!user?.uid) {
+    const targetUser = selectedUser;
+    if (!user?.uid || !targetUser) {
       message.error('שגיאה: לא ניתן לזהות את השולח');
       return;
     }
@@ -403,7 +411,7 @@ const UsersPage = () => {
       const { message: messageText } = values;
       setSending(true);
 
-      const result = await sendMessage(orgId, selectedUser.uid, messageText, user.uid);
+      const result = await sendMessage(orgId, targetUser.uid, messageText, user.uid);
 
       if (result.success) {
         message.success('הודעה נשלחה בהצלחה');
@@ -412,7 +420,7 @@ const UsersPage = () => {
 
         // Reload messages if viewing user details
         if (drawerVisible) {
-          const messageResult = await getMessagesForUser(orgId, selectedUser.uid);
+          const messageResult = await getMessagesForUser(orgId, targetUser.uid);
           if (messageResult.success) {
             setUserMessages(messageResult.messages);
           }
@@ -926,17 +934,47 @@ const UsersPage = () => {
     },
   ];
 
-  // Filter users based on search
+  // Filter users: text search AND status AND date AND role
   const filteredUsers = users.filter(u => {
-    if (!searchText) return true;
-    const search = searchText.toLowerCase();
-    return (
-      (u.firstName?.toLowerCase() || '').includes(search) ||
-      (u.lastName?.toLowerCase() || '').includes(search) ||
-      (u.phoneNumber?.toLowerCase() || '').includes(search) ||
-      (u.email?.toLowerCase() || '').includes(search)
-    );
+    if (searchText) {
+      const search = searchText.toLowerCase();
+      const matchesSearch =
+        (u.firstName?.toLowerCase() || '').includes(search) ||
+        (u.lastName?.toLowerCase() || '').includes(search) ||
+        (u.phoneNumber?.toLowerCase() || '').includes(search) ||
+        (u.email?.toLowerCase() || '').includes(search);
+      if (!matchesSearch) return false;
+    }
+    if (statusFilter) {
+      if (getUserStatus(u) !== statusFilter) return false;
+    }
+    if (dateRangeFilter && dateRangeFilter[0] && dateRangeFilter[1]) {
+      const created = u.createdAt ? dayjs(u.createdAt) : null;
+      if (!created || created.isBefore(dateRangeFilter[0], 'day') || created.isAfter(dateRangeFilter[1], 'day')) {
+        return false;
+      }
+    }
+    if (roleFilter === 'admin' && !u.isAdmin) return false;
+    if (roleFilter === 'user' && u.isAdmin) return false;
+    return true;
   });
+
+  const usersExportData = filteredUsers.map(u => ({
+    name: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+    phone: u.phoneNumber || '',
+    email: u.email || '',
+    remainingTime: Math.floor((u.remainingTime || 0) / 60),
+    printBalance: u.printBalance || 0,
+    status: getUserStatus(u),
+  }));
+  const usersExportColumns = [
+    { title: 'שם', dataIndex: 'name' },
+    { title: 'טלפון', dataIndex: 'phone' },
+    { title: 'אימייל', dataIndex: 'email' },
+    { title: 'זמן נותר (דקות)', dataIndex: 'remainingTime' },
+    { title: 'תקציב הדפסות', dataIndex: 'printBalance' },
+    { title: 'סטטוס', dataIndex: 'status' },
+  ];
 
   // Calculate user statistics
   const activeUsers = users.filter(u => getUserStatus(u) === 'active').length;
@@ -973,32 +1011,36 @@ const UsersPage = () => {
             <Text style={{ color: '#6b7280', fontSize: 14 }}>נהל וצפה בכל המשתמשים בארגון שלך</Text>
           </div>
           <Space>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={() =>
-                exportToCSV(
-                  filteredUsers.map(u => ({
-                    name: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
-                    phone: u.phoneNumber || '',
-                    email: u.email || '',
-                    remainingTime: Math.floor((u.remainingTime || 0) / 60),
-                    printBalance: u.printBalance || 0,
-                    status: getUserStatus(u),
-                  })),
-                  [
-                    { title: 'שם', dataIndex: 'name' },
-                    { title: 'טלפון', dataIndex: 'phone' },
-                    { title: 'אימייל', dataIndex: 'email' },
-                    { title: 'זמן נותר (דקות)', dataIndex: 'remainingTime' },
-                    { title: 'תקציב הדפסות', dataIndex: 'printBalance' },
-                    { title: 'סטטוס', dataIndex: 'status' },
-                  ],
-                  `users-${new Date().toISOString().split('T')[0]}`
-                )
-              }
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'csv',
+                    icon: <DownloadOutlined />,
+                    label: 'ייצא CSV',
+                    onClick: () =>
+                      exportToCSV(usersExportData, usersExportColumns, `users-${new Date().toISOString().split('T')[0]}`),
+                  },
+                  {
+                    key: 'excel',
+                    icon: <DownloadOutlined />,
+                    label: 'ייצא Excel',
+                    onClick: () =>
+                      exportToExcel(usersExportData, usersExportColumns, `users-${new Date().toISOString().split('T')[0]}`),
+                  },
+                  {
+                    key: 'pdf',
+                    icon: <DownloadOutlined />,
+                    label: 'ייצא PDF',
+                    onClick: () =>
+                      exportToPDF(usersExportData, usersExportColumns, `users-${new Date().toISOString().split('T')[0]}`, 'ייצוא משתמשים'),
+                  },
+                ],
+              }}
+              trigger={['click']}
             >
-              ייצא CSV
-            </Button>
+              <Button icon={<DownloadOutlined />}>ייצא</Button>
+            </Dropdown>
             <Button
               icon={<ReloadOutlined />}
               onClick={loadUsers}
@@ -1095,22 +1137,68 @@ const UsersPage = () => {
           </Col>
         </Row>
 
-        {/* Search */}
+        {/* Search & Filters */}
         <Card
           variant='borderless'
           style={{ borderRadius: 14 }}
           styles={{ body: { padding: '16px 20px' } }}
         >
-          <Search
-            placeholder='חפש לפי שם, טלפון או אימייל...'
-            allowClear
-            size='large'
-            prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
-            onChange={e => setSearchText(e.target.value)}
-            style={{
-              width: '100%',
-              maxWidth: 500,
-            }}
+          <Collapse
+            ghost
+            items={[
+              {
+                key: 'filters',
+                label: 'סינון וחיפוש',
+                children: (
+                  <Space direction='vertical' size='middle' style={{ width: '100%' }}>
+                    <Search
+                      placeholder='חפש לפי שם, טלפון או אימייל...'
+                      allowClear
+                      size='large'
+                      prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
+                      onChange={e => setSearchText(e.target.value)}
+                      style={{ width: '100%' }}
+                    />
+                    <Space wrap size='middle'>
+                      <Space>
+                        <Text type='secondary'>סטטוס:</Text>
+                        <Segmented
+                          value={statusFilter ?? 'all'}
+                          onChange={v => setStatusFilter(v === 'all' ? null : v)}
+                          options={[
+                            { label: 'הכל', value: 'all' },
+                            { label: 'פעיל', value: 'active' },
+                            { label: 'מושהה', value: 'connected' },
+                            { label: 'לא פעיל', value: 'offline' },
+                          ]}
+                        />
+                      </Space>
+                      <Space>
+                        <Text type='secondary'>תאריך הצטרפות:</Text>
+                        <DatePicker.RangePicker
+                          value={dateRangeFilter}
+                          onChange={setDateRangeFilter}
+                          placeholder={['מ-', 'עד']}
+                        />
+                      </Space>
+                      <Space>
+                        <Text type='secondary'>תפקיד:</Text>
+                        <Select
+                          value={roleFilter ?? 'all'}
+                          onChange={v => setRoleFilter(v === 'all' ? null : v)}
+                          style={{ minWidth: 100 }}
+                          options={[
+                            { label: 'הכל', value: 'all' },
+                            { label: 'מנהל', value: 'admin' },
+                            { label: 'משתמש', value: 'user' },
+                          ]}
+                        />
+                      </Space>
+                    </Space>
+                  </Space>
+                ),
+              },
+            ]}
           />
         </Card>
 
@@ -1370,7 +1458,88 @@ const UsersPage = () => {
               </Space>
             </Card>
 
-            <Card title='היסטוריית רכישות'>
+            <Card
+              title={
+                <Space>
+                  <span>היסטוריית רכישות</span>
+                  <Dropdown
+                    menu={{
+                      items: [
+                        {
+                          key: 'csv',
+                          icon: <DownloadOutlined />,
+                          label: 'ייצא CSV',
+                          onClick: () =>
+                            exportToCSV(
+                              userPurchases.map(p => ({
+                                date: p.createdAt ? dayjs(p.createdAt).format('MMM D, YYYY HH:mm') : '',
+                                package: p.packageName || '',
+                                amount: parseFloat(p.amount) || 0,
+                                status: p.status || '',
+                              })),
+                              [
+                                { title: 'תאריך', dataIndex: 'date' },
+                                { title: 'חבילה', dataIndex: 'package' },
+                                { title: 'סכום', dataIndex: 'amount' },
+                                { title: 'סטטוס', dataIndex: 'status' },
+                              ],
+                              `purchases-${selectedUser?.uid || 'user'}-${new Date().toISOString().split('T')[0]}`
+                            ),
+                        },
+                        {
+                          key: 'excel',
+                          icon: <DownloadOutlined />,
+                          label: 'ייצא Excel',
+                          onClick: () =>
+                            exportToExcel(
+                              userPurchases.map(p => ({
+                                date: p.createdAt ? dayjs(p.createdAt).format('MMM D, YYYY HH:mm') : '',
+                                package: p.packageName || '',
+                                amount: parseFloat(p.amount) || 0,
+                                status: p.status || '',
+                              })),
+                              [
+                                { title: 'תאריך', dataIndex: 'date' },
+                                { title: 'חבילה', dataIndex: 'package' },
+                                { title: 'סכום', dataIndex: 'amount' },
+                                { title: 'סטטוס', dataIndex: 'status' },
+                              ],
+                              `purchases-${selectedUser?.uid || 'user'}-${new Date().toISOString().split('T')[0]}`
+                            ),
+                        },
+                        {
+                          key: 'pdf',
+                          icon: <DownloadOutlined />,
+                          label: 'ייצא PDF',
+                          onClick: () =>
+                            exportToPDF(
+                              userPurchases.map(p => ({
+                                date: p.createdAt ? dayjs(p.createdAt).format('MMM D, YYYY HH:mm') : '',
+                                package: p.packageName || '',
+                                amount: parseFloat(p.amount) || 0,
+                                status: p.status || '',
+                              })),
+                              [
+                                { title: 'תאריך', dataIndex: 'date' },
+                                { title: 'חבילה', dataIndex: 'package' },
+                                { title: 'סכום', dataIndex: 'amount' },
+                                { title: 'סטטוס', dataIndex: 'status' },
+                              ],
+                              `purchases-${selectedUser?.uid || 'user'}-${new Date().toISOString().split('T')[0]}`,
+                              `היסטוריית רכישות - ${selectedUser?.firstName || ''} ${selectedUser?.lastName || ''}`.trim()
+                            ),
+                        },
+                      ],
+                    }}
+                    trigger={['click']}
+                  >
+                    <Button type='text' size='small' icon={<DownloadOutlined />}>
+                      ייצא
+                    </Button>
+                  </Dropdown>
+                </Space>
+              }
+            >
               {loadingPurchases ? (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <Spin />

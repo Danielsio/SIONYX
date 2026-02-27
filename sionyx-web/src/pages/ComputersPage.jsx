@@ -33,7 +33,9 @@ import {
   getActiveComputerUsers,
   forceLogoutUser,
   deleteComputer,
+  deriveFromComputersAndUsers,
 } from '../services/computerService';
+import { subscribeToComputers, subscribeToUsers } from '../services/realtimeService';
 import { getUserStatus, getStatusLabel, getStatusColor } from '../constants/userStatus';
 import { useAuthStore } from '../store/authStore';
 import { useOrgId } from '../hooks/useOrgId';
@@ -56,6 +58,7 @@ const itemVariants = {
 
 const ComputersPage = () => {
   const [computers, setComputers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [activeUsers, setActiveUsers] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -67,10 +70,32 @@ const ComputersPage = () => {
   const orgId = useOrgId();
 
   useEffect(() => {
-    loadData();
+    if (!orgId) return;
+    const unsubComputers = subscribeToComputers(orgId, data => {
+      setComputers(data);
+      setLoading(false);
+    });
+    const unsubUsers = subscribeToUsers(orgId, data => {
+      setUsers(data);
+      setLoading(false);
+    });
+    return () => {
+      unsubComputers();
+      unsubUsers();
+    };
   }, [orgId]);
 
+  useEffect(() => {
+    const { activeUsers: derived, stats: derivedStats } = deriveFromComputersAndUsers(
+      computers,
+      users
+    );
+    setActiveUsers(derived);
+    setStats(derivedStats);
+  }, [computers, users]);
+
   const loadData = async () => {
+    if (!orgId) return;
     try {
       setLoading(true);
       setError(null);

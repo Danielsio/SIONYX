@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useIsMobile from '../hooks/useIsMobile';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   Layout,
@@ -30,6 +31,7 @@ import {
   BulbFilled,
   NotificationOutlined,
 } from '@ant-design/icons';
+import NotificationBell from './NotificationBell';
 import { useAuthStore } from '../store/authStore';
 import { signOut } from '../services/authService';
 
@@ -54,7 +56,7 @@ const sidebarStyle = {
 const MainLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileDrawerVisible, setMobileDrawerVisible] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore(state => state.user);
@@ -62,19 +64,9 @@ const MainLayout = () => {
   const darkMode = useAuthStore(state => state.darkMode);
   const toggleDarkMode = useAuthStore(state => state.toggleDarkMode);
 
-  // Check if device is mobile
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
-        setMobileDrawerVisible(false);
-      }
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    if (!isMobile) setMobileDrawerVisible(false);
+  }, [isMobile]);
 
   const handleLogout = async () => {
     await signOut();
@@ -408,6 +400,10 @@ const MainLayout = () => {
                   justifyContent: 'center',
                 }}
               />
+            </Tooltip>
+
+            <Tooltip title="התראות">
+              <NotificationBell darkMode={darkMode} />
             </Tooltip>
           </Space>
 

@@ -179,13 +179,17 @@ describe('UsersPage', () => {
   });
 
   it('has search functionality', async () => {
+    const user = userEvent.setup();
     renderUsersPage();
 
     await waitFor(() => {
       expect(getAllUsers).toHaveBeenCalled();
     });
 
-    const searchInput = screen.getByPlaceholderText(/חפש/);
+    // Expand the filter panel (search is inside Collapse)
+    await user.click(screen.getByText('סינון וחיפוש'));
+
+    const searchInput = screen.getByPlaceholderText(/חפש לפי שם, טלפון או אימייל/);
     expect(searchInput).toBeInTheDocument();
   });
 
@@ -197,7 +201,10 @@ describe('UsersPage', () => {
       expect(getAllUsers).toHaveBeenCalled();
     });
 
-    const searchInput = screen.getByPlaceholderText(/חפש/);
+    // Expand the filter panel (search is inside Collapse)
+    await user.click(screen.getByText('סינון וחיפוש'));
+
+    const searchInput = screen.getByPlaceholderText(/חפש לפי שם, טלפון או אימייל/);
     await user.type(searchInput, 'יוסי');
 
     // Filtering happens client-side
