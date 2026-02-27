@@ -434,6 +434,38 @@ public class AuditFixTests : IDisposable
         body.Should().Contain("Need help with printing");
     }
 
+    [Fact]
+    public async Task HelpViewModel_SendFeedback_WhenRtdbFails_ShowsError()
+    {
+        _handler.WhenError("feedback/");
+
+        var orgService = new OrganizationMetadataService(_firebase);
+        var opHours = new OperatingHoursService(_firebase);
+        var vm = new HelpViewModel(orgService, opHours, _firebase, "user-123");
+
+        vm.FeedbackText = "Some feedback";
+        await vm.SendFeedbackCommand.ExecuteAsync(null);
+
+        vm.FeedbackText.Should().Be("Some feedback", "text should NOT clear on failure");
+    }
+
+    [Fact]
+    public async Task HelpViewModel_SendFeedback_NoUserId_DefaultsToUnknown()
+    {
+        var orgService = new OrganizationMetadataService(_firebase);
+        var opHours = new OperatingHoursService(_firebase);
+        var vm = new HelpViewModel(orgService, opHours, _firebase);
+
+        vm.FeedbackText = "Anonymous feedback";
+        await vm.SendFeedbackCommand.ExecuteAsync(null);
+
+        var putRequest = _handler.SentRequests
+            .First(r => r.Method == HttpMethod.Put &&
+                        r.RequestUri!.ToString().Contains("feedback/"));
+        var body = await putRequest.Content!.ReadAsStringAsync();
+        body.Should().Contain("unknown");
+    }
+
     // ==================== DEVMODE attribute ====================
 
     [Fact]
