@@ -86,14 +86,14 @@ const loadWidgetVisibility = () => {
       const parsed = JSON.parse(stored);
       return { ...Object.fromEntries(Object.keys(WIDGET_DEFINITIONS).map(k => [k, WIDGET_DEFINITIONS[k].default])), ...parsed };
     }
-  } catch (_) {}
+  } catch (_) { /* localStorage unavailable */ }
   return Object.fromEntries(Object.keys(WIDGET_DEFINITIONS).map(k => [k, WIDGET_DEFINITIONS[k].default]));
 };
 
 const saveWidgetVisibility = visibility => {
   try {
     localStorage.setItem(DASHBOARD_WIDGETS_KEY, JSON.stringify(visibility));
-  } catch (_) {}
+  } catch (_) { /* localStorage unavailable */ }
 };
 
 // Animation variants for staggered children
