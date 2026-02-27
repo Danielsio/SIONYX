@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SionyxKiosk.Infrastructure;
 using SionyxKiosk.Services;
 
 namespace SionyxKiosk.ViewModels;
@@ -11,6 +12,8 @@ public partial class HelpViewModel : ObservableObject
 {
     private readonly OrganizationMetadataService _orgService;
     private readonly OperatingHoursService _operatingHours;
+    private readonly FirebaseClient? _firebase;
+    private readonly string? _userId;
 
     [ObservableProperty] private string _adminPhone = "";
     [ObservableProperty] private string _adminEmail = "";
@@ -32,10 +35,13 @@ public partial class HelpViewModel : ObservableObject
         new("שכחתי סיסמה", "פנה למנהל המערכת בטלפון או באימייל המוצגים למטה."),
     };
 
-    public HelpViewModel(OrganizationMetadataService orgService, OperatingHoursService operatingHours)
+    public HelpViewModel(OrganizationMetadataService orgService, OperatingHoursService operatingHours,
+        FirebaseClient? firebase = null, string? userId = null)
     {
         _orgService = orgService;
         _operatingHours = operatingHours;
+        _firebase = firebase;
+        _userId = userId;
     }
 
     [RelayCommand]
@@ -96,27 +102,41 @@ public partial class HelpViewModel : ObservableObject
             return;
         }
 
+        if (_firebase == null)
+        {
+            FeedbackStatus = "שגיאה בשליחה - נסה שנית";
+            await Task.Delay(2000);
+            FeedbackStatus = "";
+            return;
+        }
+
         try
         {
-            var subject = Uri.EscapeDataString("משוב ממשתמש קיוסק SIONYX");
-            var body = Uri.EscapeDataString(FeedbackText);
-            var mailto = $"mailto:{AdminEmail}?subject={subject}&body={body}";
-
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            var feedbackId = Guid.NewGuid().ToString("N");
+            var result = await _firebase.DbSetAsync($"feedback/{feedbackId}", new
             {
-                FileName = mailto,
-                UseShellExecute = true,
+                text = FeedbackText.Trim(),
+                userId = _userId ?? "unknown",
+                timestamp = DateTime.UtcNow.ToString("o"),
             });
 
-            FeedbackStatus = "נפתח חלון אימייל...";
-            FeedbackText = "";
+            if (result.Success)
+            {
+                FeedbackStatus = "המשוב נשלח בהצלחה, תודה!";
+                FeedbackText = "";
+            }
+            else
+            {
+                FeedbackStatus = "שגיאה בשליחה - נסה שנית";
+            }
+
             await Task.Delay(3000);
             FeedbackStatus = "";
         }
         catch
         {
-            FeedbackStatus = "לא הצלחנו לפתוח אימייל. שלח ידנית ל: " + AdminEmail;
-            await Task.Delay(4000);
+            FeedbackStatus = "שגיאה בשליחה - נסה שנית";
+            await Task.Delay(3000);
             FeedbackStatus = "";
         }
     }

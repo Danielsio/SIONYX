@@ -1181,3 +1181,111 @@ exports.deleteUser = onCall(async (request) => {
   log.info("User deleted successfully", {orgId, userId});
   return {success: true, message: "המשתמש נמחק בהצלחה", correlationId};
 });
+
+// ─── Kiosk Feedback → Email + Cleanup ──────────────────────────────
+
+const nodemailer = require("nodemailer");
+
+/**
+ * Triggered when a kiosk user submits feedback.
+ * Sends an email to the org admin, then deletes the RTDB entry.
+ *
+ * RTDB path: organizations/{orgId}/feedback/{feedbackId}
+ * Required env / Firebase config:
+ *   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+ */
+exports.onFeedbackCreated = functions.database
+    .ref("organizations/{orgId}/feedback/{feedbackId}")
+    .onCreate(async (snapshot, context) => {
+      const {orgId, feedbackId} = context.params;
+      const log = createLogger({
+        service: "feedback-email",
+        orgId,
+        feedbackId,
+      });
+
+      const feedback = snapshot.val();
+      if (!feedback || !feedback.text) {
+        log.warn("Empty feedback entry, cleaning up");
+        await snapshot.ref.remove();
+        return;
+      }
+
+      log.info("Feedback received", {
+        userId: feedback.userId,
+        textLength: feedback.text.length,
+      });
+
+      try {
+        // Look up admin email from org metadata
+        const metaSnap = await admin.database()
+            .ref(`organizations/${orgId}/metadata`).once("value");
+        const meta = metaSnap.val() || {};
+        const adminEmail = meta.admin_email;
+
+        if (!adminEmail) {
+          log.warn("No admin_email configured for org, skipping email");
+          await snapshot.ref.remove();
+          return;
+        }
+
+        // Look up user name for a nicer email
+        let userName = feedback.userId;
+        if (feedback.userId && feedback.userId !== "unknown") {
+          const userSnap = await admin.database()
+              .ref(`organizations/${orgId}/users/${feedback.userId}`)
+              .once("value");
+          const user = userSnap.val();
+          if (user) {
+            userName =
+              `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+              user.phoneNumber || feedback.userId;
+          }
+        }
+
+        // Build SMTP transport from env
+        const smtpHost = process.env.SMTP_HOST;
+        const smtpPort = parseInt(process.env.SMTP_PORT || "587", 10);
+        const smtpUser = process.env.SMTP_USER;
+        const smtpPass = process.env.SMTP_PASS;
+        const smtpFrom = process.env.SMTP_FROM || smtpUser;
+
+        if (!smtpHost || !smtpUser || !smtpPass) {
+          log.warn("SMTP not configured, feedback saved but email not sent");
+          await snapshot.ref.remove();
+          return;
+        }
+
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpPort === 465,
+          auth: {user: smtpUser, pass: smtpPass},
+        });
+
+        const orgName = meta.name || orgId;
+        await transporter.sendMail({
+          from: `"SIONYX Kiosk" <${smtpFrom}>`,
+          to: adminEmail,
+          subject: `משוב חדש מקיוסק – ${orgName}`,
+          text: [
+            `משוב חדש מקיוסק SIONYX`,
+            ``,
+            `ארגון: ${orgName}`,
+            `משתמש: ${userName}`,
+            `זמן: ${feedback.timestamp || new Date().toISOString()}`,
+            ``,
+            `תוכן ההודעה:`,
+            feedback.text,
+          ].join("\n"),
+        });
+
+        log.info("Feedback email sent", {to: adminEmail});
+      } catch (err) {
+        log.error("Failed to send feedback email", err);
+      }
+
+      // Always clean up the RTDB entry
+      await snapshot.ref.remove();
+      log.info("Feedback entry cleaned up");
+    });

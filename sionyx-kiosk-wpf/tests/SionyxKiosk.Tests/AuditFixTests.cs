@@ -384,6 +384,56 @@ public class AuditFixTests : IDisposable
         vm.FeedbackStatus.Should().Contain("אנא כתוב");
     }
 
+    [Fact]
+    public void HelpViewModel_SendFeedback_NoFirebase_ShowsError()
+    {
+        var orgService = new OrganizationMetadataService(null!);
+        var opHours = new OperatingHoursService(null!);
+        var vm = new HelpViewModel(orgService, opHours);
+
+        vm.FeedbackText = "Real feedback text";
+        _ = vm.SendFeedbackCommand.ExecuteAsync(null);
+
+        vm.FeedbackStatus.Should().Contain("שגיאה");
+    }
+
+    [Fact]
+    public async Task HelpViewModel_SendFeedback_WithFirebase_WritesToRtdb()
+    {
+        var orgService = new OrganizationMetadataService(_firebase);
+        var opHours = new OperatingHoursService(_firebase);
+        var vm = new HelpViewModel(orgService, opHours, _firebase, "user-123");
+
+        vm.FeedbackText = "Great kiosk!";
+        await vm.SendFeedbackCommand.ExecuteAsync(null);
+
+        vm.FeedbackText.Should().BeEmpty("text should clear on success");
+
+        var putRequests = _handler.SentRequests
+            .Where(r => r.Method == HttpMethod.Put &&
+                        r.RequestUri!.ToString().Contains("feedback/"))
+            .ToList();
+        putRequests.Should().HaveCount(1, "should write feedback to RTDB");
+    }
+
+    [Fact]
+    public async Task HelpViewModel_SendFeedback_WithFirebase_IncludesUserIdAndText()
+    {
+        var orgService = new OrganizationMetadataService(_firebase);
+        var opHours = new OperatingHoursService(_firebase);
+        var vm = new HelpViewModel(orgService, opHours, _firebase, "user-123");
+
+        vm.FeedbackText = "Need help with printing";
+        await vm.SendFeedbackCommand.ExecuteAsync(null);
+
+        var putRequest = _handler.SentRequests
+            .First(r => r.Method == HttpMethod.Put &&
+                        r.RequestUri!.ToString().Contains("feedback/"));
+        var body = await putRequest.Content!.ReadAsStringAsync();
+        body.Should().Contain("user-123");
+        body.Should().Contain("Need help with printing");
+    }
+
     // ==================== DEVMODE attribute ====================
 
     [Fact]
