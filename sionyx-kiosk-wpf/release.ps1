@@ -138,9 +138,10 @@ Write-Host "Created: $branchName" -ForegroundColor Green
 Write-Step 2 $totalSteps "Building installer v$newVersion"
 
 Push-Location $ScriptDir
-$buildArgs = "-Version $newVersion"
-if ($SkipTests) { $buildArgs += " -SkipTests" }
-powershell -ExecutionPolicy Bypass -File build.ps1 $buildArgs
+$buildScript = Join-Path $ScriptDir "build.ps1"
+$buildParams = @("-ExecutionPolicy", "Bypass", "-File", $buildScript, "-Version", $newVersion)
+if ($SkipTests) { $buildParams += "-SkipTests" }
+& powershell @buildParams
 $buildExit = $LASTEXITCODE
 Pop-Location
 
