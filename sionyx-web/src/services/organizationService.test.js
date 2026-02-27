@@ -139,9 +139,9 @@ describe('organizationService', () => {
       const mockPurchasesSnapshot = {
         exists: () => true,
         val: () => ({
-          'purchase-1': { status: 'completed', amount: 100, minutes: 60, packageName: 'חבילה בסיסית' },
-          'purchase-2': { status: 'completed', amount: 50, minutes: 30, packageName: 'חבילה בסיסית' },
-          'purchase-3': { status: 'pending', amount: 75, minutes: 45, packageName: 'חבילה פרימיום' },
+          'purchase-1': { status: 'completed', amount: 100, minutes: 60, packageName: 'חבילה בסיסית', createdAt: '2024-01-15T10:00:00Z' },
+          'purchase-2': { status: 'completed', amount: 50, minutes: 30, packageName: 'חבילה בסיסית', createdAt: '2024-01-16T10:00:00Z' },
+          'purchase-3': { status: 'pending', amount: 75, minutes: 45, packageName: 'חבילה פרימיום', createdAt: '2024-01-17T10:00:00Z' },
         }),
       };
 
@@ -160,6 +160,9 @@ describe('organizationService', () => {
       expect(result.stats.totalRevenue).toBe(150); // Only completed purchases
       expect(result.stats.totalTimeMinutes).toBe(135); // All purchases
       expect(result.stats.packageDistribution).toEqual({ 'חבילה בסיסית': 2, 'חבילה פרימיום': 1 });
+      expect(result.stats.purchases).toHaveLength(3);
+      expect(result.stats.purchases[0]).toMatchObject({ amount: 100, status: 'completed', packageName: 'חבילה בסיסית', minutes: 60 });
+      expect(result.stats.purchases[0].createdAt).toBeDefined();
     });
 
     it('should return zeros when no data exists', async () => {

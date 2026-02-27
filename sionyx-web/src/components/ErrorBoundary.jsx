@@ -32,8 +32,6 @@ class ErrorBoundary extends Component {
       error,
       errorInfo,
     });
-
-    // TODO: Integrate error reporting service (e.g., Sentry) when ready
   }
 
   handleReload = () => {

@@ -7,10 +7,37 @@ import {
   getComputerUsageStats,
   getActiveComputerUsers,
   forceLogoutUser,
+  deleteComputer,
 } from '../services/computerService';
+import { subscribeToComputers, subscribeToUsers } from '../services/realtimeService';
+
+// Realtime subscription data - mutated per test
+const realtimeData = { computers: [], users: [] };
 
 // Mock dependencies
-vi.mock('../services/computerService');
+vi.mock('../services/computerService', async () => {
+  const actual = await vi.importActual('../services/computerService');
+  return {
+    ...actual,
+    getAllComputers: vi.fn(),
+    getComputerUsageStats: vi.fn(),
+    getActiveComputerUsers: vi.fn(),
+    forceLogoutUser: vi.fn(),
+    deleteComputer: vi.fn(),
+  };
+});
+vi.mock('../services/realtimeService', () => ({
+  subscribeToComputers: vi.fn((orgId, callback) => {
+    if (orgId) callback(realtimeData.computers);
+    return vi.fn();
+  }),
+  subscribeToUsers: vi.fn((orgId, callback) => {
+    if (orgId) callback(realtimeData.users);
+    return vi.fn();
+  }),
+  subscribeToMessages: vi.fn(() => vi.fn()),
+  subscribeToAnnouncements: vi.fn(() => vi.fn()),
+}));
 vi.mock('../store/authStore', () => ({
   useAuthStore: vi.fn(selector => {
     const state = {
@@ -27,6 +54,7 @@ const mockComputers = [
     computerName: 'PC-001',
     isActive: true,
     currentUserId: 'user-1',
+    lastUserLogin: new Date(Date.now() - 1800000).toISOString(),
     lastSeen: new Date().toISOString(),
     osInfo: { platform: 'win32', version: '10.0' },
   },
@@ -37,6 +65,19 @@ const mockComputers = [
     currentUserId: null,
     lastSeen: new Date(Date.now() - 3600000).toISOString(),
     osInfo: { platform: 'win32', version: '11.0' },
+  },
+];
+
+// Users from realtime subscription (uid, firstName, lastName, etc.)
+const mockUsers = [
+  {
+    uid: 'user-1',
+    firstName: 'יוסי',
+    lastName: 'כהן',
+    phoneNumber: '0501234567',
+    sessionStartTime: new Date(Date.now() - 1800000).toISOString(),
+    isSessionActive: true,
+    remainingTime: 3600,
   },
 ];
 
@@ -58,6 +99,9 @@ const mockStats = {
 };
 
 const renderComputersPage = () => {
+  realtimeData.computers = [...mockComputers];
+  realtimeData.users = [...mockUsers];
+
   getAllComputers.mockResolvedValue({
     success: true,
     data: mockComputers,
@@ -74,6 +118,7 @@ const renderComputersPage = () => {
   });
 
   forceLogoutUser.mockResolvedValue({ success: true });
+  deleteComputer.mockResolvedValue({ success: true });
 
   return render(<ComputersPage />);
 };
@@ -81,14 +126,15 @@ const renderComputersPage = () => {
 describe('ComputersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.setItem('adminOrgId', 'my-org');
+    realtimeData.computers = [...mockComputers];
+    realtimeData.users = [...mockUsers];
   });
 
   it('renders without crashing', async () => {
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalled();
+      expect(subscribeToComputers).toHaveBeenCalledWith('my-org', expect.any(Function));
     });
 
     expect(document.body).toBeInTheDocument();
@@ -98,30 +144,22 @@ describe('ComputersPage', () => {
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalled();
+      expect(screen.getByText('ניהול מחשבים')).toBeInTheDocument();
     });
-
-    expect(screen.getByText('ניהול מחשבים')).toBeInTheDocument();
   });
 
-  it('loads all data on mount', async () => {
+  it('subscribes to computers and users on mount', async () => {
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalled();
-      expect(getComputerUsageStats).toHaveBeenCalled();
-      expect(getActiveComputerUsers).toHaveBeenCalled();
+      expect(subscribeToComputers).toHaveBeenCalledWith('my-org', expect.any(Function));
+      expect(subscribeToUsers).toHaveBeenCalledWith('my-org', expect.any(Function));
     });
   });
 
   it('displays computer statistics', async () => {
     renderComputersPage();
 
-    await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalled();
-    });
-
-    // Should show total computers stat
     await waitFor(() => {
       expect(screen.getByText(/סה"כ מחשבים|מחשבים פעילים/)).toBeInTheDocument();
     });
@@ -131,7 +169,7 @@ describe('ComputersPage', () => {
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getComputerUsageStats).toHaveBeenCalled();
+      expect(subscribeToComputers).toHaveBeenCalled();
     });
 
     // Stats should be displayed
@@ -142,11 +180,6 @@ describe('ComputersPage', () => {
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalled();
-    });
-
-    // Should display computer names
-    await waitFor(() => {
       expect(screen.getByText('PC-001')).toBeInTheDocument();
     });
   });
@@ -155,13 +188,8 @@ describe('ComputersPage', () => {
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getActiveComputerUsers).toHaveBeenCalled();
-    });
-
-    // Should display active user name
-    await waitFor(() => {
       const userElements = screen.queryAllByText(/יוסי/);
-      expect(userElements.length).toBeGreaterThanOrEqual(0); // May or may not be visible
+      expect(userElements.length).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -169,10 +197,8 @@ describe('ComputersPage', () => {
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalled();
+      expect(screen.getByText('רענן')).toBeInTheDocument();
     });
-
-    expect(screen.getByText('רענן')).toBeInTheDocument();
   });
 
   it('refreshes data when refresh clicked', async () => {
@@ -180,47 +206,45 @@ describe('ComputersPage', () => {
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('רענן')).toBeInTheDocument();
     });
+
+    // Before refresh: loadData (getAllComputers etc) not called on mount
+    expect(getAllComputers).not.toHaveBeenCalled();
 
     await user.click(screen.getByText('רענן'));
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalledTimes(2);
+      expect(getAllComputers).toHaveBeenCalledTimes(1);
+      expect(getActiveComputerUsers).toHaveBeenCalledTimes(1);
+      expect(getComputerUsageStats).toHaveBeenCalledTimes(1);
     });
   });
 
   it('handles load error gracefully', async () => {
-    getAllComputers.mockResolvedValue({
-      success: false,
-      error: 'Failed to load computers',
-    });
-
+    const user = userEvent.setup();
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalled();
+      expect(screen.getByText('רענן')).toBeInTheDocument();
     });
 
-    // Should show error message
-    expect(document.body).toBeInTheDocument();
+    getAllComputers.mockRejectedValue(new Error('Failed to load computers'));
+    await user.click(screen.getByText('רענן'));
+
+    await waitFor(() => {
+      expect(screen.getByText('נכשל בטעינת נתוני המחשבים')).toBeInTheDocument();
+    });
   });
 
   it('shows empty state when no computers', async () => {
-    getAllComputers.mockResolvedValue({
-      success: true,
-      data: [],
-    });
+    realtimeData.computers = [];
+    realtimeData.users = [];
 
-    getComputerUsageStats.mockResolvedValue({
-      success: true,
-      data: { totalComputers: 0, activeComputers: 0, computersWithUsers: 0 },
-    });
-
-    renderComputersPage();
+    render(<ComputersPage />);
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalled();
+      expect(subscribeToComputers).toHaveBeenCalled();
     });
 
     expect(document.body).toBeInTheDocument();
@@ -230,53 +254,47 @@ describe('ComputersPage', () => {
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalled();
+      const tabs = screen.getAllByRole('tab');
+      expect(tabs.length).toBeGreaterThan(0);
     });
-
-    // Should have tabs
-    const tabs = screen.getAllByRole('tab');
-    expect(tabs.length).toBeGreaterThan(0);
   });
 
   it('shows online status indicator', async () => {
     renderComputersPage();
 
     await waitFor(() => {
-      expect(getAllComputers).toHaveBeenCalled();
+      expect(subscribeToComputers).toHaveBeenCalled();
     });
 
-    // Should show status indicators
     expect(document.body).toBeInTheDocument();
   });
 
   // BUG TESTS - Session Time and Status Display
   describe('Session Time Bug Tests', () => {
     it('should show "מושהה" for logged-in user not in active session', async () => {
-      // Mock user who is logged in but NOT in active session
-      // Using centralized userStatus: CONNECTED status = "מושהה" (on hold)
-      getActiveComputerUsers.mockResolvedValue({
-        success: true,
-        data: [
-          {
-            userId: 'user-1',
-            userName: 'יוסי כהן',
-            computerId: 'comp-1',
-            computerName: 'PC-001',
-            loginTime: new Date(Date.now() - 1800000).toISOString(),
-            sessionActive: false, // NOT in paid session
-            sessionStartTime: null, // No session started
-            remainingTime: 3600,
-          },
-        ],
-      });
+      // User from realtime: logged in but NOT in active session
+      realtimeData.computers = [
+        {
+          id: 'comp-1',
+          computerName: 'PC-001',
+          currentUserId: 'user-1',
+          lastUserLogin: new Date(Date.now() - 1800000).toISOString(),
+        },
+      ];
+      realtimeData.users = [
+        {
+          uid: 'user-1',
+          firstName: 'יוסי',
+          lastName: 'כהן',
+          phoneNumber: '0501234567',
+          isSessionActive: false,
+          sessionStartTime: null,
+          remainingTime: 3600,
+        },
+      ];
 
       render(<ComputersPage />);
 
-      await waitFor(() => {
-        expect(getActiveComputerUsers).toHaveBeenCalled();
-      });
-
-      // Should show "מושהה" (on hold) - user is connected but not in active session
       await waitFor(() => {
         const statusTags = screen.queryAllByText('מושהה');
         expect(statusTags.length).toBeGreaterThan(0);
@@ -286,39 +304,39 @@ describe('ComputersPage', () => {
     it('should show "--" activity time when session has not started', async () => {
       const user = userEvent.setup();
 
-      // Mock user who is logged in but hasn't started paid session
-      getActiveComputerUsers.mockResolvedValue({
-        success: true,
-        data: [
-          {
-            userId: 'user-1',
-            userName: 'יוסי כהן',
-            computerId: 'comp-1',
-            computerName: 'PC-001',
-            loginTime: new Date(Date.now() - 3600000).toISOString(), // Logged in 1 hour ago
-            sessionActive: false,
-            sessionStartTime: null, // No paid session started!
-            remainingTime: 3600,
-          },
-        ],
-      });
+      realtimeData.computers = [
+        {
+          id: 'comp-1',
+          computerName: 'PC-001',
+          currentUserId: 'user-1',
+          lastUserLogin: new Date(Date.now() - 3600000).toISOString(),
+        },
+      ];
+      realtimeData.users = [
+        {
+          uid: 'user-1',
+          firstName: 'יוסי',
+          lastName: 'כהן',
+          phoneNumber: '0501234567',
+          isSessionActive: false,
+          sessionStartTime: null,
+          remainingTime: 3600,
+        },
+      ];
 
       render(<ComputersPage />);
 
       await waitFor(() => {
-        expect(getActiveComputerUsers).toHaveBeenCalled();
+        const userCards = screen.queryAllByText('יוסי כהן');
+        expect(userCards.length).toBeGreaterThan(0);
       });
 
-      // Navigate to the "active users" tab (activity time is shown in UserCard which is on this tab)
       const activeUsersTab = await screen.findByRole('tab', { name: /משתמשים פעילים/i });
       await user.click(activeUsersTab);
 
-      // Click on the user card to expand it (activity time is in expanded section)
       const userCards = await screen.findAllByText('יוסי כהן');
       await user.click(userCards[0]);
 
-      // Should NOT show 1 hour of activity time since session hasn't started
-      // Activity time should show "--" placeholder
       await waitFor(() => {
         const placeholders = screen.queryAllByText('--');
         expect(placeholders.length).toBeGreaterThan(0);
@@ -327,33 +345,35 @@ describe('ComputersPage', () => {
 
     it('should use sessionStartTime for activity calculation, not loginTime', async () => {
       const now = Date.now();
-      // User logged into computer 2 hours ago, but started session 30 minutes ago
-      getActiveComputerUsers.mockResolvedValue({
-        success: true,
-        data: [
-          {
-            userId: 'user-1',
-            userName: 'יוסי כהן',
-            computerId: 'comp-1',
-            computerName: 'PC-001',
-            loginTime: new Date(now - 7200000).toISOString(), // 2 hours ago
-            sessionActive: true,
-            sessionStartTime: new Date(now - 1800000).toISOString(), // 30 minutes ago
-            remainingTime: 3600,
-          },
-        ],
-      });
+      realtimeData.computers = [
+        {
+          id: 'comp-1',
+          computerName: 'PC-001',
+          currentUserId: 'user-1',
+          lastUserLogin: new Date(now - 7200000).toISOString(),
+        },
+      ];
+      realtimeData.users = [
+        {
+          uid: 'user-1',
+          firstName: 'יוסי',
+          lastName: 'כהן',
+          phoneNumber: '0501234567',
+          isSessionActive: true,
+          sessionStartTime: new Date(now - 1800000).toISOString(),
+          remainingTime: 3600,
+        },
+      ];
 
       render(<ComputersPage />);
 
       await waitFor(() => {
-        expect(getActiveComputerUsers).toHaveBeenCalled();
+        const userCards = screen.queryAllByText('יוסי כהן');
+        expect(userCards.length).toBeGreaterThan(0);
       });
 
       // Activity time should show ~30 minutes, NOT 2 hours
-      // Looking for time in format like "0:30:XX" or "30:XX"
       await waitFor(() => {
-        // Should NOT see 2 hours (2:XX:XX or 1:XX:XX)
         const twoHourTime = screen.queryByText(/^2:[0-5][0-9]:[0-5][0-9]$/);
         expect(twoHourTime).toBeNull();
       });

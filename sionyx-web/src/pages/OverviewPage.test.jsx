@@ -5,6 +5,7 @@ import OverviewPage from './OverviewPage';
 import { getOrganizationStats } from '../services/organizationService';
 import { getPrintPricing } from '../services/pricingService';
 import { getAllUsers } from '../services/userService';
+import { getComputerUsageStats } from '../services/computerService';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
 
@@ -12,6 +13,7 @@ import { useDataStore } from '../store/dataStore';
 vi.mock('../services/organizationService');
 vi.mock('../services/pricingService');
 vi.mock('../services/userService');
+vi.mock('../services/computerService');
 vi.mock('../store/authStore');
 vi.mock('../store/dataStore');
 const mockUseOrgId = vi.fn(() => 'my-org');
@@ -42,6 +44,7 @@ const renderOverviewPage = () => {
         purchasesCount: 50,
         totalRevenue: 1500.0,
         totalTimeMinutes: 5000,
+        purchases: [],
       },
       setStats: mockSetStats,
     };
@@ -72,7 +75,13 @@ describe('OverviewPage', () => {
         purchasesCount: 50,
         totalRevenue: 1500.0,
         totalTimeMinutes: 5000,
+        purchases: [],
       },
+    });
+
+    getComputerUsageStats.mockResolvedValue({
+      success: true,
+      data: { totalComputers: 10, activeComputers: 5 },
     });
 
     getPrintPricing.mockResolvedValue({

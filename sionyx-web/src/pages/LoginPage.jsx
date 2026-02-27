@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Input, Button, Card, Typography, Alert, Divider, App } from 'antd';
 import { PhoneOutlined, LockOutlined, BankOutlined } from '@ant-design/icons';
@@ -10,11 +10,20 @@ const { Title, Text } = Typography;
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [cooldown, setCooldown] = useState(0);
   const navigate = useNavigate();
   const setUser = useAuthStore(state => state.setUser);
   const { message } = App.useApp();
 
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setInterval(() => setCooldown(c => Math.max(0, c - 1)), 1000);
+    return () => clearInterval(t);
+  }, [cooldown]);
+
   const onFinish = async values => {
+    if (cooldown > 0) return;
     setLoading(true);
     setError(null);
 
@@ -22,11 +31,17 @@ const LoginPage = () => {
 
     if (result.success) {
       setUser(result.user);
+      setFailedAttempts(0);
       message.success(`ברוך הבא ל-${values.orgId}!`);
       navigate('/admin');
     } else {
       setError(result.error);
       message.error(result.error);
+      setFailedAttempts(prev => {
+        const next = prev + 1;
+        if (next >= 3) setCooldown(30);
+        return next;
+      });
     }
 
     setLoading(false);
@@ -123,10 +138,11 @@ const LoginPage = () => {
                 type='primary'
                 htmlType='submit'
                 loading={loading}
+                disabled={cooldown > 0}
                 block
                 style={{ height: 45, fontSize: 16 }}
               >
-                התחבר
+                {cooldown > 0 ? `המתן ${cooldown} שניות` : 'התחבר'}
               </Button>
             </Form.Item>
           </Form>

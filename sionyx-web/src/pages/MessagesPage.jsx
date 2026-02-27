@@ -39,6 +39,7 @@ import {
   isUserActive,
   cleanupOldMessages,
 } from '../services/chatService';
+import { subscribeToMessages, subscribeToUsers } from '../services/realtimeService';
 import { logger } from '../utils/logger';
 
 dayjs.extend(relativeTime);
@@ -81,10 +82,20 @@ const MessagesPage = () => {
   const orgId = useOrgId();
 
   useEffect(() => {
-    loadData();
-    if (orgId) {
-      cleanupOldMessages(orgId).catch(() => {});
-    }
+    if (!orgId) return;
+    cleanupOldMessages(orgId).catch(() => {});
+    const unsubMessages = subscribeToMessages(orgId, data => {
+      setMessages(data);
+      setLoading(false);
+    });
+    const unsubUsers = subscribeToUsers(orgId, data => {
+      setUsers(data);
+      setLoading(false);
+    });
+    return () => {
+      unsubMessages();
+      unsubUsers();
+    };
   }, [orgId]);
 
   useEffect(() => {
@@ -134,7 +145,7 @@ const MessagesPage = () => {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedUser) return;
+    if (!newMessage.trim() || !selectedUser || !user?.uid) return;
 
     setSending(true);
     try {

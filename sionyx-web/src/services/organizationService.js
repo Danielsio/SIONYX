@@ -155,6 +155,8 @@ export const getOrganizationStats = async orgId => {
         purchasesCount: 0,
         totalRevenue: 0,
         totalTimeMinutes: 0,
+        packageDistribution: {},
+        purchases: [],
       },
     };
   }
@@ -180,12 +182,13 @@ export const getOrganizationStats = async orgId => {
     let totalRevenue = 0;
     let totalTimeMinutes = 0;
     const packageDistribution = {};
+    const purchasesRaw = [];
 
     if (purchasesSnapshot.exists()) {
-      const purchases = purchasesSnapshot.val();
-      purchasesCount = Object.keys(purchases).length;
+      const purchasesData = purchasesSnapshot.val();
+      purchasesCount = Object.keys(purchasesData).length;
 
-      Object.values(purchases).forEach(purchase => {
+      Object.values(purchasesData).forEach(purchase => {
         if (purchase.status === 'completed' && purchase.amount) {
           totalRevenue += parseFloat(purchase.amount) || 0;
         }
@@ -194,6 +197,14 @@ export const getOrganizationStats = async orgId => {
         }
         const pkgName = purchase.packageName || 'אחר';
         packageDistribution[pkgName] = (packageDistribution[pkgName] || 0) + 1;
+
+        purchasesRaw.push({
+          amount: purchase.amount,
+          createdAt: purchase.createdAt,
+          status: purchase.status,
+          packageName: pkgName,
+          minutes: purchase.minutes,
+        });
       });
     }
 
@@ -206,6 +217,7 @@ export const getOrganizationStats = async orgId => {
         totalRevenue,
         totalTimeMinutes,
         packageDistribution,
+        purchases: purchasesRaw,
       },
     };
   } catch (error) {

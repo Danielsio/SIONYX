@@ -17,6 +17,7 @@ import {
   Empty,
   Skeleton,
   Tooltip,
+  DatePicker,
 } from 'antd';
 import {
   PlusOutlined,
@@ -94,9 +95,20 @@ const TYPE_CONFIG = {
   },
 };
 
+const getScheduleStatus = item => {
+  if (!item.active) return { tag: 'מושהה', color: 'default' };
+  const now = dayjs();
+  const start = item.startDate ? dayjs(item.startDate) : null;
+  const end = item.endDate ? dayjs(item.endDate) : null;
+  if (start && now.isBefore(start)) return { tag: 'מתוזמן', color: 'blue' };
+  if (end && now.isAfter(end)) return { tag: 'פג תוקף', color: 'red' };
+  return { tag: 'פעיל', color: 'green' };
+};
+
 const AnnouncementsPage = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toggling, setToggling] = useState({});
   const [formModalVisible, setFormModalVisible] = useState(false);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
@@ -128,7 +140,7 @@ const AnnouncementsPage = () => {
   const handleCreate = () => {
     setEditingItem(null);
     form.resetFields();
-    form.setFieldsValue({ type: 'info', active: true });
+    form.setFieldsValue({ type: 'info', active: true, startDate: null, endDate: null });
     setFormModalVisible(true);
   };
 
@@ -139,6 +151,8 @@ const AnnouncementsPage = () => {
       body: item.body,
       type: item.type || 'info',
       active: item.active !== false,
+      startDate: item.startDate ? dayjs(item.startDate) : null,
+      endDate: item.endDate ? dayjs(item.endDate) : null,
     });
     setViewModalVisible(false);
     setFormModalVisible(true);
@@ -157,16 +171,21 @@ const AnnouncementsPage = () => {
   };
 
   const handleToggleActive = async item => {
-    if (!orgId) return;
+    if (!orgId || toggling[item.id]) return;
+    setToggling(prev => ({ ...prev, [item.id]: true }));
     const newActive = !item.active;
-    const result = await toggleAnnouncementActive(orgId, item.id, newActive);
-    if (result.success) {
-      message.success(newActive ? 'ההודעה הופעלה' : 'ההודעה הושהתה');
-      const updated = { ...item, active: newActive };
-      setAnnouncements(prev => prev.map(a => (a.id === item.id ? updated : a)));
-      if (viewingItem?.id === item.id) setViewingItem(updated);
-    } else {
-      message.error(result.error || 'נכשל בעדכון סטטוס');
+    try {
+      const result = await toggleAnnouncementActive(orgId, item.id, newActive);
+      if (result.success) {
+        message.success(newActive ? 'ההודעה הופעלה' : 'ההודעה הושהתה');
+        const updated = { ...item, active: newActive };
+        setAnnouncements(prev => prev.map(a => (a.id === item.id ? updated : a)));
+        if (viewingItem?.id === item.id) setViewingItem(updated);
+      } else {
+        message.error(result.error || 'נכשל בעדכון סטטוס');
+      }
+    } finally {
+      setToggling(prev => ({ ...prev, [item.id]: false }));
     }
   };
 
@@ -178,19 +197,26 @@ const AnnouncementsPage = () => {
         return;
       }
 
+      const payload = {
+        ...values,
+        startDate: values.startDate ? values.startDate.toISOString() : null,
+        endDate: values.endDate ? values.endDate.toISOString() : null,
+      };
       if (editingItem) {
-        const result = await updateAnnouncement(orgId, editingItem.id, values);
+        const result = await updateAnnouncement(orgId, editingItem.id, payload);
         if (result.success) {
           message.success('ההודעה עודכנה בהצלחה');
           setAnnouncements(prev =>
-            prev.map(a => (a.id === editingItem.id ? { ...a, ...values } : a))
+            prev.map(a =>
+              a.id === editingItem.id ? { ...a, ...payload } : a
+            )
           );
           setFormModalVisible(false);
         } else {
           message.error(result.error || 'נכשל בעדכון ההודעה');
         }
       } else {
-        const result = await createAnnouncement(orgId, values);
+        const result = await createAnnouncement(orgId, payload);
         if (result.success) {
           message.success('ההודעה נוצרה בהצלחה');
           await loadAnnouncements();
@@ -322,10 +348,10 @@ const AnnouncementsPage = () => {
                         alignItems: 'center',
                       }}
                     >
-                      <Space>
+                      <Space wrap>
                         <span style={{ fontSize: 20, color: config.color }}>{config.icon}</span>
                         <Tag color={config.tagColor}>{config.label}</Tag>
-                        {!item.active && <Tag color='default'>מושהה</Tag>}
+                        <Tag color={getScheduleStatus(item).color}>{getScheduleStatus(item).tag}</Tag>
                       </Space>
                       <Tooltip title={item.active ? 'פעיל' : 'מושהה'}>
                         <div
@@ -355,6 +381,17 @@ const AnnouncementsPage = () => {
                       <Text type='secondary' style={{ fontSize: 12 }}>
                         {item.createdAt ? dayjs(item.createdAt).format('DD/MM/YYYY HH:mm') : ''}
                       </Text>
+                      {(item.startDate || item.endDate) && (
+                        <div style={{ marginTop: 8, fontSize: 12, color: '#8c8c8c' }}>
+                          {item.startDate && (
+                            <span>מ־{dayjs(item.startDate).format('DD/MM/YYYY')}</span>
+                          )}
+                          {item.startDate && item.endDate && ' — '}
+                          {item.endDate && (
+                            <span>עד {dayjs(item.endDate).format('DD/MM/YYYY')}</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </Card>
                 </Col>
@@ -377,11 +414,11 @@ const AnnouncementsPage = () => {
           return (
             <div style={{ direction: 'rtl' }}>
               {/* Type & Status */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 24, color: config.color }}>{config.icon}</span>
                 <Tag color={config.tagColor} style={{ fontSize: 13 }}>{config.label}</Tag>
-                <Tag color={viewingItem.active ? 'green' : 'default'}>
-                  {viewingItem.active ? 'פעיל' : 'מושהה'}
+                <Tag color={getScheduleStatus(viewingItem).color} style={{ fontSize: 13 }}>
+                  {getScheduleStatus(viewingItem).tag}
                 </Tag>
               </div>
 
@@ -395,10 +432,15 @@ const AnnouncementsPage = () => {
                 {viewingItem.body || 'אין תוכן נוסף'}
               </Paragraph>
 
-              {/* Date */}
-              <Text type='secondary' style={{ fontSize: 13 }}>
-                נוצר: {viewingItem.createdAt ? dayjs(viewingItem.createdAt).format('DD/MM/YYYY HH:mm') : 'לא ידוע'}
-              </Text>
+              {/* Date & Schedule */}
+              <div style={{ fontSize: 13, color: '#8c8c8c' }}>
+                <div>נוצר: {viewingItem.createdAt ? dayjs(viewingItem.createdAt).format('DD/MM/YYYY HH:mm') : 'לא ידוע'}</div>
+                {(viewingItem.startDate || viewingItem.endDate) && (
+                  <div style={{ marginTop: 8 }}>
+                    לוח זמנים: {viewingItem.startDate ? dayjs(viewingItem.startDate).format('DD/MM/YYYY') : 'ללא הגבלה'} — {viewingItem.endDate ? dayjs(viewingItem.endDate).format('DD/MM/YYYY') : 'ללא הגבלה'}
+                  </div>
+                )}
+              </div>
 
               {/* Action Buttons */}
               <div
@@ -417,6 +459,7 @@ const AnnouncementsPage = () => {
                 <Button
                   icon={viewingItem.active ? <PauseCircleOutlined /> : <CheckCircleOutlined />}
                   onClick={() => handleToggleActive(viewingItem)}
+                  loading={toggling[viewingItem?.id]}
                 >
                   {viewingItem.active ? 'השהה' : 'הפעל'}
                 </Button>
@@ -487,6 +530,18 @@ const AnnouncementsPage = () => {
             <Col xs={24} sm={12}>
               <Form.Item name='active' label='סטטוס' valuePropName='checked'>
                 <Switch checkedChildren='פעיל' unCheckedChildren='מושהה' />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item name='startDate' label='תאריך התחלה'>
+                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" allowClear />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name='endDate' label='תאריך סיום'>
+                <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" allowClear />
               </Form.Item>
             </Col>
           </Row>

@@ -61,6 +61,7 @@ const itemVariants = {
 
 const PackagesPage = () => {
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [viewModalVisible, setViewModalVisible] = useState(false);
   const [editingPackage, setEditingPackage] = useState(null);
@@ -157,6 +158,7 @@ const PackagesPage = () => {
         return;
       }
 
+      setSubmitting(true);
       if (editingPackage) {
         const result = await updatePackage(orgId, editingPackage.id, values);
         if (result.success) {
@@ -178,6 +180,8 @@ const PackagesPage = () => {
       }
     } catch (error) {
       logger.error('Validation failed:', error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -448,7 +452,7 @@ const PackagesPage = () => {
         open={modalVisible}
         onOk={handleModalOk}
         onCancel={() => setModalVisible(false)}
-        confirmLoading={loading}
+        confirmLoading={submitting}
         width={Math.min(600, window.innerWidth - 32)}
         okText={editingPackage ? 'עדכן' : 'צור'}
         cancelText='ביטול'

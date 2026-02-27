@@ -70,6 +70,7 @@ vi.mock('@ant-design/icons', () => {
     MailOutlined: createMockIcon('MailOutlined'),
     PhoneOutlined: createMockIcon('PhoneOutlined'),
     CheckCircleOutlined: createMockIcon('CheckCircleOutlined'),
+    CheckOutlined: createMockIcon('CheckOutlined'),
     CloseCircleOutlined: createMockIcon('CloseCircleOutlined'),
     LoadingOutlined: createMockIcon('LoadingOutlined'),
     LogoutOutlined: createMockIcon('LogoutOutlined'),
