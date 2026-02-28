@@ -98,6 +98,15 @@
                             <TextBlock Text="היסטוריה" FontSize="15" VerticalAlignment="Center" />
                         </StackPanel>
                     </RadioButton>
+                    <RadioButton x:Name="NavPrintHistory" Tag="PrintHistory"
+                                 Style="{StaticResource SidebarNavButton}"
+                                 Checked="NavButton_Checked" GroupName="Nav">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE749;" FontFamily="Segoe MDL2 Assets"
+                                       FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0" />
+                            <TextBlock Text="הדפסות" FontSize="15" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </RadioButton>
                     <RadioButton x:Name="NavHelp" Tag="Help"
                                  Style="{StaticResource SidebarNavButton}"
                                  Checked="NavButton_Checked" GroupName="Nav">
