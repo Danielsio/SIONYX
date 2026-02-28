@@ -32,7 +32,7 @@ public class SessionCoordinatorTests : IDisposable
         _localDb = new LocalDatabase(_dbPath);
         _auth = new AuthService(_firebase, _localDb, new ComputerService(_firebase));
 
-        _coordinator = new SessionCoordinator(_session, _printMonitor, _auth);
+        _coordinator = new SessionCoordinator(_session, _printMonitor, _auth, new PrintHistoryService());
     }
 
     public void Dispose()
