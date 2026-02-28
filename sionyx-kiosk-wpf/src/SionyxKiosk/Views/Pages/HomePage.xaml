@@ -92,10 +92,13 @@
                 </Border>
 
                 <!-- Unread direct messages card -->
-                <Border x:Name="MessageCard" Background="#EFF6FF" CornerRadius="{StaticResource RadiusLg}"
+                <Border x:Name="MessageCard" CornerRadius="{StaticResource RadiusLg}"
                         Padding="24,20" Margin="0,0,0,20" Cursor="Hand"
                         MouseLeftButtonUp="MessageCard_Click"
                         Visibility="Collapsed">
+                    <Border.Background>
+                        <SolidColorBrush Color="{StaticResource StatBlueBgColor}" />
+                    </Border.Background>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -180,17 +183,17 @@
                                          Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
 
                 <!-- Error / warning banner -->
-                <Border Background="#FEF2F2" CornerRadius="14" Padding="24,20" Margin="0,8,0,0"
-                        Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}">
-                    <Border.BorderBrush>
-                        <SolidColorBrush Color="#FECACA" />
-                    </Border.BorderBrush>
-                    <Border.BorderThickness>1</Border.BorderThickness>
+                <Border Background="{StaticResource ErrorLightBrush}" CornerRadius="14" Padding="24,20" Margin="0,8,0,0"
+                        Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}"
+                        BorderBrush="{StaticResource ErrorBrush}" BorderThickness="1">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="⚠" FontSize="24" VerticalAlignment="Center" Margin="0,0,14,0" />
-                        <TextBlock Text="{Binding ErrorMessage}" Foreground="#991B1B"
-                                   FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap"
-                                   VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding ErrorMessage}" FontSize="17" FontWeight="SemiBold"
+                                   TextWrapping="Wrap" VerticalAlignment="Center">
+                            <TextBlock.Foreground>
+                                <SolidColorBrush Color="{StaticResource ErrorDarkColor}" />
+                            </TextBlock.Foreground>
+                        </TextBlock>
                     </StackPanel>
                 </Border>
             </StackPanel>

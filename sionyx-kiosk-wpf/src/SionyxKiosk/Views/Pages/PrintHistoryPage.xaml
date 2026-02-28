@@ -51,11 +51,12 @@
                 <ItemsControl ItemsSource="{Binding Jobs}" Margin="0,0,0,32">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="White" CornerRadius="14" Padding="22,18" Margin="0,0,0,10"
-                                    BorderBrush="#E8ECF4" BorderThickness="1">
+                            <Border Background="{StaticResource BgCardBrush}" CornerRadius="14"
+                                    Padding="22,18" Margin="0,0,0,10"
+                                    BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
                                 <Border.Effect>
                                     <DropShadowEffect BlurRadius="10" ShadowDepth="2" Direction="270"
-                                                      Color="#0F172A" Opacity="0.04" />
+                                                      Color="{StaticResource Gray900Color}" Opacity="0.04" />
                                 </Border.Effect>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
@@ -64,15 +65,14 @@
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
 
-                                    <!-- Status icon -->
                                     <Border Grid.Column="0" Width="48" Height="48" CornerRadius="12"
                                             VerticalAlignment="Center" Margin="0,0,16,0">
                                         <Border.Style>
                                             <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#F0FDF4" />
+                                                <Setter Property="Background" Value="{StaticResource SuccessLightBrush}" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding Status}" Value="denied">
-                                                        <Setter Property="Background" Value="#FEF2F2" />
+                                                        <Setter Property="Background" Value="{StaticResource ErrorLightBrush}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -81,13 +81,12 @@
                                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Border>
 
-                                    <!-- Job details -->
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Text="{Binding DocumentName}" FontSize="16" FontWeight="SemiBold"
-                                                   Foreground="#1E293B" TextTrimming="CharacterEllipsis"
-                                                   MaxWidth="400" />
+                                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" MaxWidth="400" />
                                         <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                                            <TextBlock FontSize="13" Foreground="#64748B">
+                                            <TextBlock FontSize="13" Foreground="{StaticResource TextSecondaryBrush}">
                                                 <Run Text="{Binding PagesDisplay, Mode=OneWay}" />
                                                 <Run Text=" • " />
                                                 <Run Text="{Binding ColorMode, Mode=OneWay}" />
@@ -99,14 +98,14 @@
                                         </StackPanel>
                                     </StackPanel>
 
-                                    <!-- Timestamp + remaining -->
                                     <StackPanel Grid.Column="2" VerticalAlignment="Center"
                                                 HorizontalAlignment="Left">
                                         <TextBlock Text="{Binding TimeDisplay}" FontSize="14" FontWeight="SemiBold"
-                                                   Foreground="#475569" HorizontalAlignment="Left" />
+                                                   Foreground="{StaticResource TextSecondaryBrush}"
+                                                   HorizontalAlignment="Left" />
                                         <TextBlock Text="{Binding DateDisplay}" FontSize="12"
-                                                   Foreground="#94A3B8" HorizontalAlignment="Left"
-                                                   Margin="0,2,0,0" />
+                                                   Foreground="{StaticResource TextMutedBrush}"
+                                                   HorizontalAlignment="Left" Margin="0,2,0,0" />
                                     </StackPanel>
                                 </Grid>
                             </Border>
