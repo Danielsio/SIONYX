@@ -512,6 +512,92 @@ namespace SionyxInstaller
                     errors.Add($"Registry configuration incomplete — missing: {string.Join(", ", missingKeys)}");
                 }
 
+                // 9. Login tile registry values (CRITICAL)
+                Log("");
+                Log("--- Login Tile Registry Values ---");
+
+                using (var lsaKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                               .OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Lsa"))
+                {
+                    int lbp = (int?)lsaKey?.GetValue("LimitBlankPasswordUse") ?? -1;
+                    if (lbp == 0)
+                        Log("[PASS] LimitBlankPasswordUse = 0");
+                    else
+                    {
+                        Log($"[FAIL] LimitBlankPasswordUse = {lbp} (expected 0)");
+                        errors.Add($"LimitBlankPasswordUse is {lbp}, must be 0 for user tiles");
+                    }
+                }
+
+                using (var pwKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                              .OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device"))
+                {
+                    int dpv = (int?)pwKey?.GetValue("DevicePasswordLessBuildVersion") ?? -1;
+                    if (dpv == 0)
+                        Log("[PASS] DevicePasswordLessBuildVersion = 0");
+                    else
+                    {
+                        Log($"[FAIL] DevicePasswordLessBuildVersion = {dpv} (expected 0)");
+                        errors.Add($"DevicePasswordLessBuildVersion is {dpv}, must be 0 for password tiles");
+                    }
+                }
+
+                using (var usKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                              .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserSwitch"))
+                {
+                    int enabled = (int?)usKey?.GetValue("Enabled") ?? -1;
+                    if (enabled == 1)
+                        Log("[PASS] UserSwitch\\Enabled = 1");
+                    else
+                        Log($"[WARN] UserSwitch\\Enabled = {enabled} (may be dynamically managed by Windows)");
+                }
+
+                // Check for leftover machine-wide lockdown policies
+                using (var polSys = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                               .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"))
+                {
+                    foreach (string name in new[] { "DisableRegistryTools", "DisableCMD", "DisableTaskMgr" })
+                    {
+                        int? val = (int?)polSys?.GetValue(name);
+                        if (val != null && val != 0)
+                            Log($"[WARN] Policies\\System\\{name} = {val} (machine-wide lockdown active!)");
+                    }
+                }
+
+                using (var polExp = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                               .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"))
+                {
+                    int? noRun = (int?)polExp?.GetValue("NoRun");
+                    if (noRun != null && noRun != 0)
+                        Log($"[WARN] Policies\\Explorer\\NoRun = {noRun} (Win+R blocked for all users!)");
+                }
+
+                // 10. SpecialAccounts\UserList
+                using (var saKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                              .OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList"))
+                {
+                    int? saVal = (int?)saKey?.GetValue(KioskUsername);
+                    if (saVal == 1)
+                        Log($"[PASS] SpecialAccounts\\UserList\\{KioskUsername} = 1 (forced visible)");
+                    else if (saVal == 0)
+                    {
+                        Log($"[FAIL] SpecialAccounts\\UserList\\{KioskUsername} = 0 (HIDDEN!)");
+                        errors.Add($"{KioskUsername} is hidden via SpecialAccounts\\UserList");
+                    }
+                    else
+                        Log($"[WARN] SpecialAccounts\\UserList\\{KioskUsername} not set");
+                }
+
+                // 11. Windows Hello / NGC provider check
+                using (var logonUi = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                                .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI"))
+                {
+                    string provider = logonUi?.GetValue("LastLoggedOnProvider")?.ToString() ?? "(unknown)";
+                    Log($"[INFO] LastLoggedOnProvider = {provider}");
+                    if (provider.Equals("{D6886603-9D2F-4EB2-B667-1971041FA96B}", StringComparison.OrdinalIgnoreCase))
+                        Log("[INFO]   ^ Windows Hello (NGC) — password tiles may need DevicePasswordLessBuildVersion=0");
+                }
+
                 // Summary
                 Log("");
                 Log("--------------------------------------------");
@@ -529,7 +615,37 @@ namespace SionyxInstaller
                 try { File.WriteAllText(logFile, log.ToString()); }
                 catch { session.Log("[WARN] Could not write install.log"); }
 
-                // Verification failures are warnings, not install failures
+                // Show MessageBox with results (skip in silent/quiet mode to avoid hanging CI)
+                string uiLevelStr = session.CustomActionData.ContainsKey("UILEVEL")
+                    ? session.CustomActionData["UILEVEL"] : "5";
+                bool isSilent = int.TryParse(uiLevelStr, out int uiLevel) && uiLevel <= 3;
+
+                if (isSilent)
+                {
+                    session.Log("[INFO] Silent install detected (UILevel={0}) — skipping MessageBox", uiLevel);
+                }
+                else
+                {
+                    try
+                    {
+                        string summary = errors.Count == 0
+                            ? "ALL CHECKS PASSED\n\nInstallation verified successfully.\nA reboot is recommended for login tile changes to take effect."
+                            : $"{errors.Count} CHECK(S) FAILED\n\n" + string.Join("\n", errors) +
+                              $"\n\nFull log: {logFile}";
+
+                        string title = errors.Count == 0
+                            ? "SIONYX — Install Verified"
+                            : "SIONYX — Install Issues Detected";
+
+                        uint mbType = errors.Count == 0 ? 0x00000040u : 0x00000030u; // INFO or WARNING icon
+                        MessageBoxFromInstaller(title, summary, mbType);
+                    }
+                    catch (Exception mbEx)
+                    {
+                        session.Log($"[WARN] Could not show MessageBox: {mbEx.Message}");
+                    }
+                }
+
                 return ActionResult.Success;
             }
             catch (Exception ex)
@@ -749,43 +865,150 @@ namespace SionyxInstaller
         /// </summary>
         private static void EnableBlankPasswordLogon(Session session)
         {
-            using (var lsaKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                           .OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Lsa", true))
+            // --- LimitBlankPasswordUse ---
+            try
             {
-                if (lsaKey != null)
+                using (var lsaKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                               .OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Lsa", true))
                 {
-                    int current = (int?)lsaKey.GetValue("LimitBlankPasswordUse") ?? 1;
-                    if (current != 0)
+                    if (lsaKey == null)
                     {
-                        lsaKey.SetValue("LimitBlankPasswordUse", 0, RegistryValueKind.DWord);
-                        session.Log("[OK] LimitBlankPasswordUse set to 0 (enables blank-password tile)");
+                        session.Log("[ERROR] Cannot open HKLM\\SYSTEM\\...\\Lsa (null)");
                     }
                     else
                     {
-                        session.Log("[OK] LimitBlankPasswordUse already 0");
+                        int before = (int?)lsaKey.GetValue("LimitBlankPasswordUse") ?? -1;
+                        session.Log($"  LimitBlankPasswordUse BEFORE = {before}");
+                        lsaKey.SetValue("LimitBlankPasswordUse", 0, RegistryValueKind.DWord);
+                        int after = (int?)lsaKey.GetValue("LimitBlankPasswordUse") ?? -1;
+                        session.Log($"  LimitBlankPasswordUse AFTER  = {after}");
+
+                        if (after == 0)
+                            session.Log("[OK] LimitBlankPasswordUse = 0 (verified)");
+                        else
+                            session.Log($"[ERROR] LimitBlankPasswordUse write failed! Expected 0, got {after}");
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                session.Log($"[ERROR] LimitBlankPasswordUse exception: {ex.Message}");
             }
 
-            const string passwordlessKey =
-                @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device";
-            using (var pwKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                          .OpenSubKey(passwordlessKey, true))
+            // --- DevicePasswordLessBuildVersion ---
+            try
             {
-                if (pwKey != null)
+                const string passwordlessKey =
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device";
+                using (var pwKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                              .OpenSubKey(passwordlessKey, true))
                 {
-                    int current = (int?)pwKey.GetValue("DevicePasswordLessBuildVersion") ?? 0;
-                    if (current != 0)
+                    if (pwKey == null)
                     {
-                        pwKey.SetValue("DevicePasswordLessBuildVersion", 0, RegistryValueKind.DWord);
-                        session.Log("[OK] DevicePasswordLessBuildVersion set to 0 (enables password-based tiles)");
+                        session.Log($"[WARN] Key {passwordlessKey} does not exist (OK on older Windows)");
                     }
                     else
                     {
-                        session.Log("[OK] DevicePasswordLessBuildVersion already 0");
+                        int before = (int?)pwKey.GetValue("DevicePasswordLessBuildVersion") ?? -1;
+                        session.Log($"  DevicePasswordLessBuildVersion BEFORE = {before}");
+                        pwKey.SetValue("DevicePasswordLessBuildVersion", 0, RegistryValueKind.DWord);
+                        int after = (int?)pwKey.GetValue("DevicePasswordLessBuildVersion") ?? -1;
+                        session.Log($"  DevicePasswordLessBuildVersion AFTER  = {after}");
+
+                        if (after == 0)
+                            session.Log("[OK] DevicePasswordLessBuildVersion = 0 (verified)");
+                        else
+                            session.Log($"[ERROR] DevicePasswordLessBuildVersion write failed! Expected 0, got {after}");
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                session.Log($"[ERROR] DevicePasswordLessBuildVersion exception: {ex.Message}");
+            }
+
+            // --- UserSwitch\Enabled ---
+            try
+            {
+                const string userSwitchKey =
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserSwitch";
+                using (var switchKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                                  .CreateSubKey(userSwitchKey))
+                {
+                    int before = (int?)switchKey.GetValue("Enabled") ?? -1;
+                    session.Log($"  UserSwitch\\Enabled BEFORE = {before}");
+                    switchKey.SetValue("Enabled", 1, RegistryValueKind.DWord);
+                    int after = (int?)switchKey.GetValue("Enabled") ?? -1;
+                    session.Log($"  UserSwitch\\Enabled AFTER  = {after}");
+
+                    if (after == 1)
+                        session.Log("[OK] UserSwitch\\Enabled = 1 (verified)");
+                    else
+                        session.Log($"[ERROR] UserSwitch\\Enabled write failed! Expected 1, got {after}");
+                }
+            }
+            catch (Exception ex)
+            {
+                session.Log($"[ERROR] UserSwitch\\Enabled exception: {ex.Message}");
+            }
+
+            // --- HideFastUserSwitching policy (overrides UserSwitch\Enabled) ---
+            try
+            {
+                const string logonKey =
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
+                using (var polKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                               .OpenSubKey(logonKey, true))
+                {
+                    if (polKey != null)
+                    {
+                        int? hfus = (int?)polKey.GetValue("HideFastUserSwitching");
+                        session.Log($"  HideFastUserSwitching = {hfus?.ToString() ?? "(not set)"}");
+                        if (hfus != null && hfus != 0)
+                        {
+                            polKey.SetValue("HideFastUserSwitching", 0, RegistryValueKind.DWord);
+                            session.Log("[OK] HideFastUserSwitching set to 0 (user switching enabled)");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                session.Log($"[ERROR] HideFastUserSwitching exception: {ex.Message}");
+            }
+
+            // --- SpecialAccounts\UserList: force SionyxUser tile to show ---
+            try
+            {
+                const string specialKey =
+                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList";
+                using (var saKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                              .CreateSubKey(specialKey))
+                {
+                    int? current = (int?)saKey.GetValue(KioskUsername);
+                    session.Log($"  SpecialAccounts\\UserList\\{KioskUsername} = {current?.ToString() ?? "(not set)"}");
+                    saKey.SetValue(KioskUsername, 1, RegistryValueKind.DWord);
+                    int after = (int?)saKey.GetValue(KioskUsername) ?? -1;
+                    session.Log($"  SpecialAccounts\\UserList\\{KioskUsername} AFTER = {after}");
+
+                    if (after == 1)
+                        session.Log("[OK] SionyxUser forced visible on login screen via SpecialAccounts");
+                    else
+                        session.Log($"[ERROR] SpecialAccounts write failed! Expected 1, got {after}");
+                }
+            }
+            catch (Exception ex)
+            {
+                session.Log($"[ERROR] SpecialAccounts exception: {ex.Message}");
+            }
+        }
+
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        private static extern int MessageBoxW(IntPtr hWnd, string text, string caption, uint type);
+
+        private static void MessageBoxFromInstaller(string title, string text, uint type)
+        {
+            MessageBoxW(IntPtr.Zero, text, title, type | 0x00040000); // MB_TOPMOST
         }
 
         private static string ResolvePath(string fileName)
