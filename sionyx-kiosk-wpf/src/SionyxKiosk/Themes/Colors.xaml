@@ -179,6 +179,11 @@
         <GradientStop Color="#A78BFA" Offset="1" />
     </LinearGradientBrush>
 
+    <LinearGradientBrush x:Key="PrintHistoryHeaderGradient" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#14B8A6" Offset="0" />
+        <GradientStop Color="#06B6D4" Offset="1" />
+    </LinearGradientBrush>
+
     <!-- Auth brand panel — deep indigo to violet, ties into the product palette -->
     <LinearGradientBrush x:Key="AuthGradient" StartPoint="0,0" EndPoint="1,1">
         <GradientStop Color="#312E81" Offset="0" />

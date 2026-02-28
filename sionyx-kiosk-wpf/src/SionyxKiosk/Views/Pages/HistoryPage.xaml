@@ -8,84 +8,92 @@
         <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Page.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0">
-        <StackPanel>
-            <controls:PageHeader Title="היסטוריה" Subtitle="היסטוריית הרכישות שלך"
-                                 HeaderBrush="{StaticResource HistoryHeaderGradient}" Icon="📋"
-                                 Margin="0,0,0,24" />
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-            <!-- Summary stats -->
-            <UniformGrid Rows="1" Margin="0,0,0,24">
-                <controls:StatCard Title="רכישות" Value="{Binding TotalPurchases}" Icon="📊"
-                                   AccentColor="{StaticResource StatOrangeColor}"
-                                   AccentBgColor="{StaticResource StatOrangeBgColor}"
-                                   Margin="0,0,8,0" />
-                <controls:StatCard Title="סה״כ הוצאות" Value="{Binding TotalSpent, StringFormat='₪{0:F0}'}" Icon="💰"
-                                   AccentColor="{StaticResource StatGreenColor}"
-                                   AccentBgColor="{StaticResource StatGreenBgColor}"
-                                   Margin="4,0" />
-                <controls:StatCard Title="תקציב הדפסות" Value="{Binding TotalPrintBudget, StringFormat='₪{0:F0}'}" Icon="🖨"
-                                   AccentColor="{StaticResource StatBlueColor}"
-                                   AccentBgColor="{StaticResource StatBlueBgColor}"
-                                   Margin="8,0,0,0" />
-            </UniformGrid>
+        <!-- Pinned: Page header -->
+        <controls:PageHeader Grid.Row="0" Title="היסטוריה" Subtitle="היסטוריית הרכישות שלך"
+                             HeaderBrush="{StaticResource HistoryHeaderGradient}" Icon="📋"
+                             Margin="0,0,0,24" />
 
-            <!-- Filters row -->
-            <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="22,16" Margin="0,0,0,20">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
+        <!-- Pinned: Summary stats -->
+        <UniformGrid Grid.Row="1" Rows="1" Margin="0,0,0,24">
+            <controls:StatCard Title="רכישות" Value="{Binding TotalPurchases}" Icon="📊"
+                               AccentColor="{StaticResource StatOrangeColor}"
+                               AccentBgColor="{StaticResource StatOrangeBgColor}"
+                               Margin="0,0,8,0" />
+            <controls:StatCard Title="סה״כ הוצאות" Value="{Binding TotalSpent, StringFormat='₪{0:F0}'}" Icon="💰"
+                               AccentColor="{StaticResource StatGreenColor}"
+                               AccentBgColor="{StaticResource StatGreenBgColor}"
+                               Margin="4,0" />
+            <controls:StatCard Title="תקציב הדפסות" Value="{Binding TotalPrintBudget, StringFormat='₪{0:F0}'}" Icon="🖨"
+                               AccentColor="{StaticResource StatBlueColor}"
+                               AccentBgColor="{StaticResource StatBlueBgColor}"
+                               Margin="8,0,0,0" />
+        </UniformGrid>
 
-                    <!-- Search box -->
-                    <TextBox Grid.Column="0" Style="{StaticResource FrostInput}"
-                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             Tag="חיפוש לפי שם חבילה..."
-                             Margin="0,0,12,0" />
+        <!-- Pinned: Filters row -->
+        <Border Grid.Row="2" Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="22,16" Margin="0,0,0,20">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-                    <!-- Status filter -->
-                    <ComboBox Grid.Column="1" Width="150"
-                              ItemsSource="{Binding StatusOptions}"
-                              SelectedItem="{Binding SelectedStatus}"
-                              Style="{StaticResource FrostComboBox}"
-                              Margin="0,0,12,0" />
+                <TextBox Grid.Column="0" Style="{StaticResource FrostInput}"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         Tag="חיפוש לפי שם חבילה..."
+                         Margin="0,0,12,0" />
 
-                    <!-- Sort toggle -->
-                    <Button Grid.Column="2"
-                            Content="{Binding SortNewestFirst, Converter={StaticResource SortLabelConverter}}"
-                            Command="{Binding ToggleSortCommand}"
-                            Style="{StaticResource BtnGhost}"
-                            MinWidth="130" Padding="16,8" />
-                </Grid>
-            </Border>
+                <ComboBox Grid.Column="1" Width="150"
+                          ItemsSource="{Binding StatusOptions}"
+                          SelectedItem="{Binding SelectedStatus}"
+                          Style="{StaticResource FrostComboBox}"
+                          Margin="0,0,12,0" />
 
-            <!-- Skeleton loading -->
-            <StackPanel Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
-                <controls:SkeletonCard />
-                <controls:SkeletonCard />
-                <controls:SkeletonCard />
+                <Button Grid.Column="2"
+                        Content="{Binding SortNewestFirst, Converter={StaticResource SortLabelConverter}}"
+                        Command="{Binding ToggleSortCommand}"
+                        Style="{StaticResource BtnGhost}"
+                        MinWidth="130" Padding="16,8" />
+            </Grid>
+        </Border>
+
+        <!-- Scrollable: Content area -->
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Padding="0">
+            <StackPanel>
+                <!-- Skeleton loading -->
+                <StackPanel Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                    <controls:SkeletonCard />
+                    <controls:SkeletonCard />
+                    <controls:SkeletonCard />
+                </StackPanel>
+
+                <!-- Empty state -->
+                <controls:EmptyState x:Name="EmptyPanel" Message="אין היסטוריית רכישות" Visibility="Collapsed" />
+
+                <!-- Purchase list -->
+                <ItemsControl ItemsSource="{Binding FilteredPurchases}" Margin="0,0,0,32">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <controls:PurchaseCard
+                                PackageName="{Binding PackageName}"
+                                PurchaseDate="{Binding CreatedAt}"
+                                Amount="{Binding Amount, StringFormat='₪{0:F2}'}"
+                                Status="{Binding Status}"
+                                Minutes="{Binding Minutes}"
+                                PrintBudget="{Binding PrintBudget}"
+                                ValidityDays="{Binding ValidityDays}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </StackPanel>
-
-            <!-- Empty state -->
-            <controls:EmptyState x:Name="EmptyPanel" Message="אין היסטוריית רכישות" Visibility="Collapsed" />
-
-            <!-- Purchase list (bound to FilteredPurchases ICollectionView) -->
-            <ItemsControl ItemsSource="{Binding FilteredPurchases}" Margin="0,0,0,32">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <controls:PurchaseCard
-                            PackageName="{Binding PackageName}"
-                            PurchaseDate="{Binding CreatedAt}"
-                            Amount="{Binding Amount, StringFormat='₪{0:F2}'}"
-                            Status="{Binding Status}"
-                            Minutes="{Binding Minutes}"
-                            PrintBudget="{Binding PrintBudget}"
-                            ValidityDays="{Binding ValidityDays}" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </StackPanel>
-    </ScrollViewer>
+        </ScrollViewer>
+    </Grid>
 </Page>
