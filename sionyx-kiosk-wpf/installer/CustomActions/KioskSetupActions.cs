@@ -40,9 +40,12 @@ namespace SionyxInstaller
 
         /// <summary>
         /// Creates (or resets) the local SionyxUser account with a blank password.
-        /// Uses only "net user" commands -- no machine-wide registry changes.
-        /// Windows default LimitBlankPasswordUse=1 already allows console logon
-        /// with blank passwords; it only blocks network logon.
+        /// Sets LimitBlankPasswordUse=0 BEFORE user creation so that the Windows
+        /// credential provider includes blank-password accounts in sign-in tile
+        /// enumeration. Without this, machines with DevicePasswordLessBuildVersion=2
+        /// (Windows 11 passwordless mode) filter out blank-password users entirely.
+        /// Also sets DevicePasswordLessBuildVersion=0 to disable passwordless-only
+        /// mode, which hides password-based tiles on the sign-in screen.
         /// </summary>
         [CustomAction]
         public static ActionResult CreateKioskUser(Session session)
@@ -52,6 +55,8 @@ namespace SionyxInstaller
 
             try
             {
+                EnableBlankPasswordLogon(session);
+
                 bool exists = UserExists(KioskUsername, session);
 
                 if (exists)
@@ -374,22 +379,11 @@ namespace SionyxInstaller
                     valueName: "EnumerateLocalUsers",
                     reason: "EnumerateLocalUsers (set by v3.2.3)");
 
-                // Restore LimitBlankPasswordUse to Windows default (1) if we lowered it.
-                // Default=1 means "blank passwords can only log on at the console" which
-                // is exactly what we want. Previous versions set it to 0 unnecessarily.
-                using (var lsaKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                               .OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Lsa", true))
-                {
-                    if (lsaKey != null)
-                    {
-                        int current = (int?)lsaKey.GetValue("LimitBlankPasswordUse") ?? 1;
-                        if (current != 1)
-                        {
-                            lsaKey.SetValue("LimitBlankPasswordUse", 1, RegistryValueKind.DWord);
-                            session.Log("[OK] Restored LimitBlankPasswordUse to default (1)");
-                        }
-                    }
-                }
+                // Ensure LimitBlankPasswordUse=0 so the kiosk user tile is visible.
+                // On machines with DevicePasswordLessBuildVersion=2 (Windows 11
+                // passwordless mode), value=1 causes credential providers to filter
+                // out blank-password users from the sign-in tile list.
+                EnableBlankPasswordLogon(session);
 
                 session.Log("[OK] EnsureNoAutoLogon complete");
                 return ActionResult.Success;
@@ -743,6 +737,56 @@ namespace SionyxInstaller
         // ====================================================================
         //  HELPERS
         // ====================================================================
+
+        /// <summary>
+        /// Sets two registry values required for blank-password kiosk user tiles:
+        ///   1. LimitBlankPasswordUse=0 — allows credential providers to enumerate
+        ///      blank-password accounts on the sign-in screen.
+        ///   2. DevicePasswordLessBuildVersion=0 — disables Windows 11 passwordless-only
+        ///      mode which hides password-based tiles entirely.
+        /// Both are needed on machines where these values have been set to their
+        /// restrictive defaults (by Windows Update, AtlasOS, or privacy tools).
+        /// </summary>
+        private static void EnableBlankPasswordLogon(Session session)
+        {
+            using (var lsaKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                           .OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Lsa", true))
+            {
+                if (lsaKey != null)
+                {
+                    int current = (int?)lsaKey.GetValue("LimitBlankPasswordUse") ?? 1;
+                    if (current != 0)
+                    {
+                        lsaKey.SetValue("LimitBlankPasswordUse", 0, RegistryValueKind.DWord);
+                        session.Log("[OK] LimitBlankPasswordUse set to 0 (enables blank-password tile)");
+                    }
+                    else
+                    {
+                        session.Log("[OK] LimitBlankPasswordUse already 0");
+                    }
+                }
+            }
+
+            const string passwordlessKey =
+                @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device";
+            using (var pwKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
+                                          .OpenSubKey(passwordlessKey, true))
+            {
+                if (pwKey != null)
+                {
+                    int current = (int?)pwKey.GetValue("DevicePasswordLessBuildVersion") ?? 0;
+                    if (current != 0)
+                    {
+                        pwKey.SetValue("DevicePasswordLessBuildVersion", 0, RegistryValueKind.DWord);
+                        session.Log("[OK] DevicePasswordLessBuildVersion set to 0 (enables password-based tiles)");
+                    }
+                    else
+                    {
+                        session.Log("[OK] DevicePasswordLessBuildVersion already 0");
+                    }
+                }
+            }
+        }
 
         private static string ResolvePath(string fileName)
         {
