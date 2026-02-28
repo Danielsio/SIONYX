@@ -88,8 +88,13 @@ jobs:
             -ArgumentList "/i `"$($msi.FullName)`" /qn ORGID=ci-test-org /l*v `"$logFile`"" `
             -Wait -PassThru
           if ($proc.ExitCode -ne 0) {
-            Write-Host "=== MSI install log (last 100 lines) ==="
-            Get-Content $logFile | Select-Object -Last 100
+            Write-Host "`n=== CUSTOM ACTION LOG (errors & actions) ==="
+            if (Test-Path $logFile) {
+              Get-Content $logFile | Select-String -Pattern '\[ERROR\]|\[FAIL\]|Return value 3|ActionStart|failed|exception' -SimpleMatch:$false |
+                Select-Object -First 60 | ForEach-Object { Write-Host $_.Line }
+              Write-Host "`n=== MSI install log (last 40 lines) ==="
+              Get-Content $logFile | Select-Object -Last 40
+            }
             throw "MSI install failed with exit code $($proc.ExitCode)"
           }
           Write-Host "MSI installed successfully"
@@ -319,8 +324,13 @@ jobs:
             -ArgumentList "/x `"$($msi.FullName)`" /qn /l*v `"$logFile`"" `
             -Wait -PassThru
           if ($proc.ExitCode -ne 0) {
-            Write-Host "=== MSI uninstall log (last 100 lines) ==="
-            Get-Content $logFile | Select-Object -Last 100
+            Write-Host "`n=== UNINSTALL LOG (errors & actions) ==="
+            if (Test-Path $logFile) {
+              Get-Content $logFile | Select-String -Pattern '\[ERROR\]|\[FAIL\]|Return value 3|ActionStart|failed|exception' -SimpleMatch:$false |
+                Select-Object -First 60 | ForEach-Object { Write-Host $_.Line }
+              Write-Host "`n=== MSI uninstall log (last 40 lines) ==="
+              Get-Content $logFile | Select-Object -Last 40
+            }
             throw "MSI uninstall failed with exit code $($proc.ExitCode)"
           }
           Write-Host "MSI uninstalled successfully"
