@@ -78,6 +78,16 @@ jobs:
             "-p:PublishDir=$publishDir" `
             "-p:SourceDir=$sourceDir"
 
+      - name: Disable password complexity (Server default blocks blank passwords)
+        shell: pwsh
+        run: |
+          secedit /export /cfg C:\secpol.cfg
+          (Get-Content C:\secpol.cfg) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' `
+            -replace 'MinimumPasswordLength = \d+', 'MinimumPasswordLength = 0' |
+            Set-Content C:\secpol.cfg
+          secedit /configure /db C:\Windows\security\local.db /cfg C:\secpol.cfg /areas SECURITYPOLICY
+          Remove-Item C:\secpol.cfg
+
       - name: Install MSI (silent)
         shell: pwsh
         run: |
