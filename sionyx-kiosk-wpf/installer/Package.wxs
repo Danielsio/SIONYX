@@ -224,7 +224,7 @@
     <!-- INSTALL: data-setters (immediate) + actions (deferred) -->
     <SetProperty Id="CA_SetupAutoStart"      Before="CA_SetupAutoStart"      Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER]" />
     <SetProperty Id="CA_InitializeProfile"   Before="CA_InitializeProfile"   Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER]" />
-    <SetProperty Id="CA_VerifyInstallation"  Before="CA_VerifyInstallation"  Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER]" />
+    <SetProperty Id="CA_VerifyInstallation"  Before="CA_VerifyInstallation"  Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER];UILEVEL=[UILevel]" />
 
     <CustomAction Id="CA_CreateKioskUser"        BinaryRef="CustomActionsDll" DllEntry="CreateKioskUser"        Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="CA_ApplySecurityRestrictions" BinaryRef="CustomActionsDll" DllEntry="ApplySecurityRestrictions" Execute="deferred" Impersonate="no" Return="check" />
