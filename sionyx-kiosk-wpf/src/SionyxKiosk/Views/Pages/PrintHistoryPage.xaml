@@ -1,0 +1,119 @@
+<Page x:Class="SionyxKiosk.Views.Pages.PrintHistoryPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:controls="clr-namespace:SionyxKiosk.Views.Controls"
+      Title="היסטוריית הדפסות" FlowDirection="RightToLeft">
+
+    <Page.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Pinned: Page header -->
+        <controls:PageHeader Grid.Row="0" Title="היסטוריית הדפסות" Subtitle="מעקב אחר עבודות ההדפסה שלך"
+                             HeaderBrush="{StaticResource PrintHistoryHeaderGradient}" Icon="🖨"
+                             Margin="0,0,0,24" />
+
+        <!-- Pinned: Summary stats -->
+        <UniformGrid Grid.Row="1" Rows="1" Margin="0,0,0,24">
+            <controls:StatCard Title="עמודים" Value="{Binding TotalPages}" Icon="📄"
+                               AccentColor="{StaticResource StatBlueColor}"
+                               AccentBgColor="{StaticResource StatBlueBgColor}"
+                               Margin="0,0,8,0" />
+            <controls:StatCard Title="עלות כוללת" Value="{Binding TotalCost, StringFormat='₪{0:F2}'}" Icon="💰"
+                               AccentColor="{StaticResource StatOrangeColor}"
+                               AccentBgColor="{StaticResource StatOrangeBgColor}"
+                               Margin="4,0" />
+            <controls:StatCard Title="אושרו" Value="{Binding ApprovedCount}" Icon="✅"
+                               AccentColor="{StaticResource StatGreenColor}"
+                               AccentBgColor="{StaticResource StatGreenBgColor}"
+                               Margin="4,0" />
+            <controls:StatCard Title="נדחו" Value="{Binding DeniedCount}" Icon="❌"
+                               AccentColor="{StaticResource StatRedColor}"
+                               AccentBgColor="{StaticResource StatRedBgColor}"
+                               Margin="8,0,0,0" />
+        </UniformGrid>
+
+        <!-- Scrollable: Print job list -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Padding="0">
+            <StackPanel>
+                <!-- Empty state -->
+                <controls:EmptyState x:Name="EmptyPanel" Message="אין היסטוריית הדפסות עדיין"
+                                     Visibility="{Binding HasJobs, Converter={StaticResource InverseBoolToVis}}" />
+
+                <!-- Print job list -->
+                <ItemsControl ItemsSource="{Binding Jobs}" Margin="0,0,0,32">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="White" CornerRadius="14" Padding="22,18" Margin="0,0,0,10"
+                                    BorderBrush="#E8ECF4" BorderThickness="1">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Direction="270"
+                                                      Color="#0F172A" Opacity="0.04" />
+                                </Border.Effect>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Status icon -->
+                                    <Border Grid.Column="0" Width="48" Height="48" CornerRadius="12"
+                                            VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#F0FDF4" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Status}" Value="denied">
+                                                        <Setter Property="Background" Value="#FEF2F2" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding StatusIcon}" FontSize="22"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+
+                                    <!-- Job details -->
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DocumentName}" FontSize="16" FontWeight="SemiBold"
+                                                   Foreground="#1E293B" TextTrimming="CharacterEllipsis"
+                                                   MaxWidth="400" />
+                                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                            <TextBlock FontSize="13" Foreground="#64748B">
+                                                <Run Text="{Binding PagesDisplay, Mode=OneWay}" />
+                                                <Run Text=" • " />
+                                                <Run Text="{Binding ColorMode, Mode=OneWay}" />
+                                                <Run Text=" • " />
+                                                <Run Text="{Binding CostDisplay, Mode=OneWay}" />
+                                                <Run Text=" • " />
+                                                <Run Text="{Binding StatusDisplay, Mode=OneWay}" />
+                                            </TextBlock>
+                                        </StackPanel>
+                                    </StackPanel>
+
+                                    <!-- Timestamp + remaining -->
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center"
+                                                HorizontalAlignment="Left">
+                                        <TextBlock Text="{Binding TimeDisplay}" FontSize="14" FontWeight="SemiBold"
+                                                   Foreground="#475569" HorizontalAlignment="Left" />
+                                        <TextBlock Text="{Binding DateDisplay}" FontSize="12"
+                                                   Foreground="#94A3B8" HorizontalAlignment="Left"
+                                                   Margin="0,2,0,0" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

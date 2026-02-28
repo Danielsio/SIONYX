@@ -126,6 +126,8 @@ public partial class App : Application
                     return new PrintMonitorService(fb, "");
                 });
 
+                services.AddSingleton(_ => new PrintHistoryService());
+
                 services.AddSingleton(_ => new KeyboardRestrictionService());
                 services.AddSingleton(_ => new GlobalHotkeyService());
                 services.AddSingleton(_ => new ProcessRestrictionService());
@@ -149,7 +151,8 @@ public partial class App : Application
                 services.AddSingleton(sp => new SessionCoordinator(
                     sp.GetRequiredService<SessionService>(),
                     sp.GetRequiredService<PrintMonitorService>(),
-                    sp.GetRequiredService<AuthService>()));
+                    sp.GetRequiredService<AuthService>(),
+                    sp.GetRequiredService<PrintHistoryService>()));
 
                 // ViewModels
                 services.AddTransient<AuthViewModel>(sp => new AuthViewModel(
@@ -197,6 +200,8 @@ public partial class App : Application
                     return new PaymentViewModel(purchase, auth.CurrentUser?.Uid ?? "");
                 });
                 services.AddTransient(sp => new MessageViewModel(sp.GetRequiredService<ChatService>()));
+                services.AddTransient(sp => new PrintHistoryViewModel(
+                    sp.GetRequiredService<PrintHistoryService>()));
 
                 // Views
                 services.AddTransient<AuthWindow>();
@@ -216,6 +221,8 @@ public partial class App : Application
                     return new PackagesPage(vm, sp.GetRequiredService<IPaymentDialogFactory>());
                 });
                 services.AddTransient<HistoryPage>();
+                services.AddTransient(sp => new PrintHistoryPage(
+                    sp.GetRequiredService<PrintHistoryViewModel>()));
                 services.AddTransient<HelpPage>();
             })
             .Build();
@@ -271,6 +278,7 @@ public partial class App : Application
                 "הותנקת מהמערכת על ידי מנהל. אנא התחבר מחדש.",
                 AlertDialog.AlertType.Warning, MainWindow);
             await StopSystemServicesAsync();
+            _host!.Services.GetRequiredService<PrintHistoryService>().Clear();
             var auth = _host!.Services.GetRequiredService<AuthService>();
             await auth.LogoutAsync();
             if (MainWindow is Views.Windows.MainWindow mw) { mw.AllowClose(); mw.Close(); }
@@ -371,6 +379,8 @@ public partial class App : Application
             try
             {
                 await StopSystemServicesAsync();
+
+                _host!.Services.GetRequiredService<PrintHistoryService>().Clear();
 
                 var auth = _host!.Services.GetRequiredService<AuthService>();
                 await auth.LogoutAsync();
@@ -480,6 +490,7 @@ public partial class App : Application
                     _ = Task.Run(async () =>
                     {
                         await StopSystemServicesAsync();
+                        _host!.Services.GetRequiredService<PrintHistoryService>().Clear();
                         await auth.LogoutAsync();
                         Current.Dispatcher.Invoke(() =>
                         {

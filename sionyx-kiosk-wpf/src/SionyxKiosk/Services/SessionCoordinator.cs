@@ -15,8 +15,8 @@ public class SessionCoordinator
     private readonly SessionService _session;
     private readonly PrintMonitorService _printMonitor;
     private readonly AuthService _auth;
+    private readonly PrintHistoryService _printHistory;
 
-    // Handler references for proper unsubscription
     private Action? _sessionStartedHandler;
     private Action<int>? _sessionTimeUpdatedHandler;
     private Action<string>? _sessionEndedHandler;
@@ -30,16 +30,16 @@ public class SessionCoordinator
 
     private Views.Controls.FloatingTimer? _floatingTimer;
 
-    /// <summary>Called when we need to minimize the main window.</summary>
     public event Action? MinimizeMainWindow;
-    /// <summary>Called when we need to restore the main window.</summary>
     public event Action? RestoreMainWindow;
 
-    public SessionCoordinator(SessionService session, PrintMonitorService printMonitor, AuthService auth)
+    public SessionCoordinator(SessionService session, PrintMonitorService printMonitor,
+        AuthService auth, PrintHistoryService printHistory)
     {
         _session = session;
         _printMonitor = printMonitor;
         _auth = auth;
+        _printHistory = printHistory;
     }
 
     /// <summary>Subscribe to all session and print monitor events.</summary>
@@ -175,6 +175,7 @@ public class SessionCoordinator
     private void OnPrintJobAllowed(string doc, int pages, double cost, double remaining)
     {
         Logger.Information("Print job allowed: '{Doc}' ({Pages}p, {Cost}₪)", doc, pages, cost);
+        _printHistory.AddJob(doc, pages, 1, false, cost, "approved", remaining);
         Application.Current?.Dispatcher.InvokeAsync(() => _floatingTimer?.UpdatePrintBalance(remaining));
         Views.Controls.FloatingNotification.Show(
             "הדפסה אושרה", $"{doc} — {cost:F2}₪",
@@ -184,6 +185,7 @@ public class SessionCoordinator
     private void OnPrintJobBlocked(string doc, int pages, double cost, double budget)
     {
         Logger.Warning("Print job blocked: '{Doc}' ({Pages}p, {Cost}₪, budget={Budget}₪)", doc, pages, cost, budget);
+        _printHistory.AddJob(doc, pages, 1, false, cost, "denied", budget);
         Views.Controls.FloatingNotification.Show(
             "הדפסה נדחתה", $"יתרה לא מספיקה ({budget:F2}₪ זמין, צריך {cost:F2}₪)",
             Views.Controls.FloatingNotification.NotificationType.Error, 5000);
