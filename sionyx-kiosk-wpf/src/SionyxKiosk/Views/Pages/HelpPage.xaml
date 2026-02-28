@@ -25,10 +25,20 @@
                 <ItemsControl ItemsSource="{Binding FaqItems}" Margin="0,0,0,36">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Background="White" CornerRadius="{StaticResource RadiusLg}"
+                            <Border x:Name="FaqBorder" CornerRadius="{StaticResource RadiusLg}"
                                     Padding="28,0" Margin="0,0,0,10" Cursor="Hand"
                                     BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1"
                                     MouseLeftButtonUp="FaqItem_Click">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="White" />
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="{StaticResource BgSecondaryBrush}" />
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
                                 <StackPanel>
                                     <Grid Margin="0,20">
                                         <Grid.ColumnDefinitions>
@@ -145,14 +155,11 @@
                                    FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"
                                    TextWrapping="Wrap" Margin="0,0,0,16" LineHeight="22" />
                         <TextBox Text="{Binding FeedbackText, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource FrostInput}"
                                  AcceptsReturn="True" TextWrapping="Wrap"
-                                 MinHeight="100" MaxHeight="200"
-                                 FontSize="15" Padding="14,12"
+                                 MinHeight="100" MaxHeight="200" Height="Auto"
                                  VerticalScrollBarVisibility="Auto"
-                                 FlowDirection="RightToLeft"
-                                 Background="#F8FAFC"
-                                 BorderBrush="{StaticResource BorderLightBrush}"
-                                 BorderThickness="1" />
+                                 FlowDirection="RightToLeft" />
                         <Button Content="📧  שלח משוב" Style="{StaticResource BtnPrimary}"
                                 Command="{Binding SendFeedbackCommand}"
                                 Width="200" Height="44" FontSize="16" Margin="0,16,0,0"

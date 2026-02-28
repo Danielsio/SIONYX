@@ -15,28 +15,41 @@
             <StackPanel Grid.Column="0" VerticalAlignment="Center">
                 <TextBlock Text="{Binding PackageName, RelativeSource={RelativeSource AncestorType=UserControl}}"
                            FontSize="{StaticResource FontSizeLg}" FontWeight="SemiBold"
-                           Foreground="{StaticResource TextPrimaryBrush}" />
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                 <TextBlock Text="{Binding FormattedDate, RelativeSource={RelativeSource AncestorType=UserControl}}"
                            FontSize="{StaticResource FontSizeBase}" Foreground="{StaticResource TextMutedBrush}"
-                           Margin="0,6,0,0" />
+                           Margin="0,6,0,0" TextTrimming="CharacterEllipsis" />
 
                 <!-- Detail chips row -->
                 <WrapPanel Margin="0,12,0,0">
-                    <Border CornerRadius="8" Padding="10,5" Margin="0,0,8,4" Background="#EEF2FF"
+                    <Border CornerRadius="8" Padding="10,5" Margin="0,0,8,4"
+                            Background="{StaticResource PrimaryGhostBrush}"
                             Visibility="{Binding HasMinutes, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                        <TextBlock FontSize="12" Foreground="#4338CA">
+                        <TextBlock FontSize="12">
+                            <TextBlock.Foreground>
+                                <SolidColorBrush Color="{StaticResource PrimaryDarkColor}" />
+                            </TextBlock.Foreground>
                             <Run Text="⏱ " /><Run Text="{Binding MinutesDisplay, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" />
                         </TextBlock>
                     </Border>
-                    <Border CornerRadius="8" Padding="10,5" Margin="0,0,8,4" Background="#F0FDF4"
+                    <Border CornerRadius="8" Padding="10,5" Margin="0,0,8,4"
+                            Background="{StaticResource SuccessLightBrush}"
                             Visibility="{Binding HasPrints, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                        <TextBlock FontSize="12" Foreground="#166534">
+                        <TextBlock FontSize="12">
+                            <TextBlock.Foreground>
+                                <SolidColorBrush Color="{StaticResource SuccessDarkColor}" />
+                            </TextBlock.Foreground>
                             <Run Text="🖨 " /><Run Text="{Binding PrintsDisplay, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" />
                         </TextBlock>
                     </Border>
-                    <Border CornerRadius="8" Padding="10,5" Margin="0,0,8,4" Background="#FFF7ED"
+                    <Border CornerRadius="8" Padding="10,5" Margin="0,0,8,4"
+                            Background="{StaticResource WarningLightBrush}"
                             Visibility="{Binding HasValidity, RelativeSource={RelativeSource AncestorType=UserControl}}">
-                        <TextBlock FontSize="12" Foreground="#9A3412">
+                        <TextBlock FontSize="12">
+                            <TextBlock.Foreground>
+                                <SolidColorBrush Color="{StaticResource WarningDarkColor}" />
+                            </TextBlock.Foreground>
                             <Run Text="📅 " /><Run Text="{Binding ValidityDisplay, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=OneWay}" />
                         </TextBlock>
                     </Border>

@@ -43,9 +43,11 @@
     </Window.Resources>
 
     <Grid Background="{StaticResource AuthPageBg}">
-        <!-- Centered card — white card on dark bg = strong elevation -->
+        <!-- Viewbox scales the auth card on screens smaller than 1000x700 -->
+        <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center"
+                 Stretch="Uniform" StretchDirection="DownOnly"
+                 MaxWidth="1000" MaxHeight="700" Margin="24">
         <Border CornerRadius="20" Background="White" ClipToBounds="True"
-                HorizontalAlignment="Center" VerticalAlignment="Center"
                 Width="1000" Height="700">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="120" ShadowDepth="0" Opacity="0.35" Color="#6366F1" />
@@ -164,5 +166,6 @@
                 </Border>
             </Canvas>
         </Border>
+        </Viewbox>
     </Grid>
 </Window>

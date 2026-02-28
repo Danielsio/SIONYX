@@ -190,24 +190,20 @@
                             CornerRadius="{StaticResource RadiusMd}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
-                        <TextBlock x:Name="label"
-                                   Text="{TemplateBinding Content}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Foreground="{StaticResource TextPrimaryBrush}"
-                                   FontFamily="{TemplateBinding FontFamily}"
-                                   FontSize="{TemplateBinding FontSize}"
-                                   FontWeight="{TemplateBinding FontWeight}" />
+                        <ContentPresenter x:Name="label"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          RecognizesAccessKey="True" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#F9FAFB" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgSecondaryBrush}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#EFF1F5" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgHoverBrush}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#E5E7EB" />
-                            <Setter TargetName="label" Property="Foreground" Value="#9CA3AF" />
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource BgHoverBrush}" />
+                            <Setter TargetName="border" Property="Opacity" Value="0.6" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -268,17 +264,16 @@
                             CornerRadius="{StaticResource RadiusMd}"
                             Padding="{TemplateBinding Padding}"
                             SnapsToDevicePixels="True">
-                        <TextBlock x:Name="label"
-                                   Text="{TemplateBinding Content}"
-                                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                                   Foreground="{StaticResource PrimaryBrush}"
-                                   FontFamily="{TemplateBinding FontFamily}"
-                                   FontSize="{TemplateBinding FontSize}"
-                                   FontWeight="{TemplateBinding FontWeight}" />
+                        <ContentPresenter x:Name="label"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center"
+                                          RecognizesAccessKey="True" />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryGhostBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource PrimaryLightBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -389,7 +384,19 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Thumb">
-                    <Border CornerRadius="3" Background="#C1C7CF" Margin="1,0" />
+                    <Border x:Name="thumbBorder" CornerRadius="3"
+                            Background="{StaticResource BorderBrush}" Margin="1,0"
+                            Opacity="0.6" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="thumbBorder" Property="Opacity" Value="0.85" />
+                            <Setter TargetName="thumbBorder" Property="Background" Value="{StaticResource TextMutedBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="thumbBorder" Property="Opacity" Value="1" />
+                            <Setter TargetName="thumbBorder" Property="Background" Value="{StaticResource TextSecondaryBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
@@ -401,7 +408,7 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ScrollBar">
-                    <Grid>
+                    <Grid Background="Transparent">
                         <Track x:Name="PART_Track" IsDirectionReversed="True">
                             <Track.Thumb>
                                 <Thumb Style="{StaticResource ThinScrollBarThumb}" />
@@ -465,7 +472,11 @@
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{StaticResource NavActiveBgBrush}" />
-                            <Setter TargetName="border" Property="TextElement.Foreground" Value="#92400E" />
+                            <Setter TargetName="border" Property="TextElement.Foreground">
+                                <Setter.Value>
+                                    <SolidColorBrush Color="{StaticResource WarningDarkColor}" />
+                                </Setter.Value>
+                            </Setter>
                             <Setter Property="FontWeight" Value="SemiBold" />
                         </Trigger>
                     </ControlTemplate.Triggers>
