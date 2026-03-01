@@ -57,18 +57,16 @@ jobs:
           dotnet-version: "8.x"
 
       - name: Generate .env for E2E
+        working-directory: sionyx-kiosk-wpf
         shell: pwsh
         run: |
           @"
+          ORG_ID=sionov
           FIREBASE_API_KEY=AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c
           FIREBASE_AUTH_DOMAIN=sionyx-19636.firebaseapp.com
           FIREBASE_PROJECT_ID=sionyx-19636
           FIREBASE_DATABASE_URL=https://sionyx-19636-default-rtdb.europe-west1.firebasedatabase.app
           FIREBASE_STORAGE_BUCKET=sionyx-19636.firebasestorage.app
-          FIREBASE_MESSAGING_SENDER_ID=961130757239
-          FIREBASE_APP_ID=1:961130757239:web:1a87dffcea40aac13f1a72
-          FIREBASE_MEASUREMENT_ID=G-ZEM9LH1301
-          FIREBASE_ORG_ID=sionov
           NEDARIM_CALLBACK_URL=https://us-central1-sionyx-19636.cloudfunctions.net/nedarimCallback
           "@ | Set-Content .env
 

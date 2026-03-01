@@ -9,15 +9,36 @@ public class KioskAppFixture : IDisposable
 {
     public Application App { get; }
     public UIA3Automation Automation { get; } = new();
+    public string? LaunchError { get; private set; }
 
     public KioskAppFixture()
     {
         KillExisting();
-        App = Application.Launch(FindExe());
+        var exePath = FindExe();
+        App = Application.Launch(exePath);
+
+        // Give the app a moment to start (or crash)
+        Thread.Sleep(3000);
+
+        try
+        {
+            if (App.HasExited)
+            {
+                LaunchError = $"App exited immediately with code {App.ExitCode}. " +
+                              $"Exe: {exePath}. Check .env file and Firebase config.";
+            }
+        }
+        catch (InvalidOperationException)
+        {
+            LaunchError = $"App process not associated (crashed on startup). Exe: {exePath}";
+        }
     }
 
     public Window GetAuthWindow(TimeSpan? timeout = null)
     {
+        if (LaunchError != null)
+            throw new InvalidOperationException($"App failed to start: {LaunchError}");
+
         return App.GetMainWindow(Automation, timeout ?? TimeSpan.FromSeconds(30));
     }
 
