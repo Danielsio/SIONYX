@@ -97,7 +97,7 @@ public sealed class FirebaseConfig
         var dir = AppDomain.CurrentDomain.BaseDirectory;
 
         // Try project root patterns
-        for (var i = 0; i < 5; i++)
+        for (var i = 0; i < 8; i++)
         {
             var envPath = Path.Combine(dir, ".env");
             if (File.Exists(envPath)) return envPath;

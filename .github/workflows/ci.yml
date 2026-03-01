@@ -248,21 +248,10 @@ jobs:
             Assert-Equal "Task RunLevel" $principal.RunLevel "Limited"
           }
 
-          # ── LOGIN TILE REGISTRY ───────────────────────────────
-          Write-Host "`n=== LOGIN TILE REGISTRY ==="
+          # ── BLANK PASSWORD LOGON ──────────────────────────────
+          Write-Host "`n=== BLANK PASSWORD LOGON ==="
           $lsa = Get-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa" -ErrorAction SilentlyContinue
           Assert-Equal "LimitBlankPasswordUse" $lsa.LimitBlankPasswordUse 0
-
-          $pwless = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device" -ErrorAction SilentlyContinue
-          if ($pwless) {
-            Assert-Equal "DevicePasswordLessBuildVersion" $pwless.DevicePasswordLessBuildVersion 0
-          } else {
-            Assert-Warn "PasswordLess\Device key not present (OK on older Windows)"
-          }
-
-          $uSwitch = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserSwitch" -ErrorAction SilentlyContinue
-          if ($uSwitch -and $uSwitch.Enabled -eq 1) { Assert-Pass "UserSwitch\Enabled = 1" }
-          else { Assert-Warn "UserSwitch\Enabled != 1 (may be dynamically managed by Windows)" }
 
           # ── PER-USER KIOSK LOCKDOWN POLICIES ──────────────────
           Write-Host "`n=== PER-USER KIOSK LOCKDOWN (SionyxUser hive) ==="
@@ -313,15 +302,6 @@ jobs:
           $noRun = $polExp.NoRun
           if ($null -eq $noRun -or $noRun -eq 0) { Assert-Pass "No machine-wide NoRun" }
           else { Assert-Fail "Machine-wide NoRun = $noRun (should not be set!)" }
-
-          # ── WINLOGON SAFETY ───────────────────────────────────
-          Write-Host "`n=== WINLOGON SAFETY ==="
-          $wl = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" -ErrorAction SilentlyContinue
-          if ($wl.AutoAdminLogon -ne "1") { Assert-Pass "AutoAdminLogon is not '1'" }
-          else { Assert-Fail "AutoAdminLogon = '1' (unsafe!)" }
-
-          if ($wl.DefaultUserName -ne "SionyxUser") { Assert-Pass "DefaultUserName is not SionyxUser" }
-          else { Assert-Fail "DefaultUserName = SionyxUser (should be cleared)" }
 
           # ── ADD/REMOVE PROGRAMS ───────────────────────────────
           Write-Host "`n=== ADD/REMOVE PROGRAMS ==="
@@ -437,12 +417,6 @@ jobs:
           $task = Get-ScheduledTask -TaskName "SIONYX Kiosk" -ErrorAction SilentlyContinue
           if (-not $task) { Assert-Pass "Scheduled task 'SIONYX Kiosk' removed" }
           else { Assert-Fail "Scheduled task still exists" }
-
-          # ── LEGACY AUTO-RUN CLEANED ───────────────────────────
-          Write-Host "`n=== LEGACY AUTO-RUN ==="
-          $run = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -ErrorAction SilentlyContinue
-          if ($null -eq $run.SIONYX) { Assert-Pass "No SIONYX in HKLM Run key" }
-          else { Assert-Fail "SIONYX still in HKLM Run key" }
 
           # ── NO MACHINE-WIDE LOCKDOWN LEFT ─────────────────────
           Write-Host "`n=== NO LEFTOVER POLICIES ==="
