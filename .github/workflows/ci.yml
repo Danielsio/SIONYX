@@ -52,6 +52,8 @@ jobs:
       FUNCTIONS_BASE: https://us-central1-sionyx-19636.cloudfunctions.net
       E2E_ORG_ID: cie2etest
       E2E_ORG_NAME: "CI E2E Test"
+      E2E_ADMIN_PHONE: "0500000001"
+      E2E_ADMIN_PASSWORD: "CiTest123456"
       E2E_ADMIN_FIRST: CI
       E2E_ADMIN_LAST: Test
     steps:
@@ -76,19 +78,14 @@ jobs:
 
       - name: Create test organization
         shell: pwsh
-        env:
-          E2E_NEDARIM_MOSAD_ID: ${{ secrets.E2E_NEDARIM_MOSAD_ID }}
-          E2E_NEDARIM_API_VALID: ${{ secrets.E2E_NEDARIM_API_VALID }}
-          E2E_TEST_PHONE: ${{ secrets.E2E_TEST_PHONE }}
-          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
         run: |
           $body = @{
             data = @{
               organizationName = $env:E2E_ORG_NAME
-              nedarimMosadId   = if ($env:E2E_NEDARIM_MOSAD_ID) { $env:E2E_NEDARIM_MOSAD_ID } else { "test-mosad" }
-              nedarimApiValid  = if ($env:E2E_NEDARIM_API_VALID) { $env:E2E_NEDARIM_API_VALID } else { "test-api-key" }
-              adminPhone       = if ($env:E2E_TEST_PHONE) { $env:E2E_TEST_PHONE } else { "0500000001" }
-              adminPassword    = if ($env:E2E_TEST_PASSWORD) { $env:E2E_TEST_PASSWORD } else { "ci-test-pass-123" }
+              nedarimMosadId   = "ci-test-mosad"
+              nedarimApiValid  = "ci-test-api-key"
+              adminPhone       = $env:E2E_ADMIN_PHONE
+              adminPassword    = $env:E2E_ADMIN_PASSWORD
               adminFirstName   = $env:E2E_ADMIN_FIRST
               adminLastName    = $env:E2E_ADMIN_LAST
             }
@@ -118,8 +115,8 @@ jobs:
       - name: Run E2E smoke tests
         working-directory: sionyx-kiosk-wpf
         env:
-          SIONYX_E2E_PHONE: ${{ secrets.E2E_TEST_PHONE }}
-          SIONYX_E2E_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          SIONYX_E2E_PHONE: ${{ env.E2E_ADMIN_PHONE }}
+          SIONYX_E2E_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
         run: dotnet test tests/SionyxKiosk.E2E --verbosity normal
 
       - name: Cleanup test org
