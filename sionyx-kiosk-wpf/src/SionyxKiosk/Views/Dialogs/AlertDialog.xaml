@@ -3,34 +3,50 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         WindowStartupLocation="CenterOwner" SizeToContent="WidthAndHeight"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
-        MaxWidth="440" MinWidth="360" FlowDirection="RightToLeft">
-    <Border CornerRadius="16" Background="White" ClipToBounds="True">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="24" ShadowDepth="6" Direction="270" Color="#0F172A" Opacity="0.12" />
-        </Border.Effect>
-        <StackPanel>
-            <!-- Header with gradient -->
-            <Border x:Name="HeaderBorder" Padding="24,20"
-                    Background="{StaticResource HeroGradient}">
-                <StackPanel>
-                    <TextBlock x:Name="IconText" Text="ℹ️" FontSize="28" Margin="0,0,0,8" />
-                    <TextBlock x:Name="TitleText" Text="הודעה"
-                               FontSize="20" FontWeight="Bold" Foreground="White" />
-                </StackPanel>
-            </Border>
+        MaxWidth="480" MinWidth="380" FlowDirection="RightToLeft">
 
-            <!-- Body -->
-            <TextBlock x:Name="BodyText" Text="" Margin="24,20" TextWrapping="Wrap"
-                       FontSize="{StaticResource FontSizeBase}"
-                       Foreground="{StaticResource TextPrimaryBrush}" />
+    <!-- Outer padding so the shadow has room to render outside the card -->
+    <Border Padding="24">
+        <Border CornerRadius="20" Background="White" ClipToBounds="False">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="48" ShadowDepth="12" Direction="270"
+                                  Color="#0F172A" Opacity="0.22" />
+            </Border.Effect>
+            <Grid>
+                <!-- Clipped inner content (so header corners are rounded) -->
+                <Border CornerRadius="20" ClipToBounds="True">
+                    <StackPanel>
+                        <!-- Header with gradient + centered icon -->
+                        <Border x:Name="HeaderBorder" Padding="32,28"
+                                Background="{StaticResource HeroGradient}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock x:Name="IconText" Text="ℹ️" FontSize="36"
+                                           HorizontalAlignment="Center" Margin="0,0,0,10" />
+                                <TextBlock x:Name="TitleText" Text="הודעה"
+                                           FontSize="22" FontWeight="Bold" Foreground="White"
+                                           HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </Border>
 
-            <!-- Actions -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="24,0,24,20">
-                <Button x:Name="OkButton" Content="אישור" Style="{StaticResource BtnPrimary}"
-                        Width="120" Click="OkButton_Click" />
-                <Button x:Name="CancelButton" Content="ביטול" Style="{StaticResource BtnGhost}"
-                        Width="120" Margin="10,0,0,0" Click="CancelButton_Click" Visibility="Collapsed" />
-            </StackPanel>
-        </StackPanel>
+                        <!-- Body -->
+                        <TextBlock x:Name="BodyText" Text="" Margin="32,28,32,24" TextWrapping="Wrap"
+                                   FontSize="16" LineHeight="26" TextAlignment="Center"
+                                   Foreground="{StaticResource TextPrimaryBrush}" />
+
+                        <!-- Separator line -->
+                        <Border Height="1" Background="#E8ECF4" Margin="24,0" />
+
+                        <!-- Actions -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="32,20,32,28">
+                            <Button x:Name="OkButton" Content="אישור" Style="{StaticResource BtnPrimary}"
+                                    Width="140" Height="44" FontSize="16" Click="OkButton_Click" />
+                            <Button x:Name="CancelButton" Content="ביטול" Style="{StaticResource BtnGhost}"
+                                    Width="140" Height="44" FontSize="16"
+                                    Margin="12,0,0,0" Click="CancelButton_Click" Visibility="Collapsed" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
     </Border>
 </Window>

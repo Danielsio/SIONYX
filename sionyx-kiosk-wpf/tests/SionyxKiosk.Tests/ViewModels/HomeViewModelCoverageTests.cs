@@ -161,16 +161,17 @@ public class HomeViewModelCoverageTests : IDisposable
     }
 
     [Fact]
-    public void TimeExpiry_FutureExpiry_ShowsDays()
+    public void TimeExpiry_FutureExpiry_ShowsExactDate()
     {
+        var dt = DateTime.Now.AddDays(5).AddMinutes(1);
         var vm = CreateVm(new UserData
         {
             Uid = "u1",
             FirstName = "A",
             LastName = "B",
-            TimeExpiresAt = DateTime.Now.AddDays(5).AddMinutes(1).ToString("o")
+            TimeExpiresAt = dt.ToString("o")
         });
-        vm.TimeExpiry.Should().Contain("ימים");
+        vm.TimeExpiry.Should().Be(dt.ToString("dd/MM/yyyy HH:mm"));
     }
 
     [Fact]

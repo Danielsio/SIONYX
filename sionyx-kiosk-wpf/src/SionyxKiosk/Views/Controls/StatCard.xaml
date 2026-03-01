@@ -33,8 +33,9 @@
                            Foreground="{StaticResource TextSecondaryBrush}"
                            Margin="0,0,0,4" />
                 <TextBlock Text="{Binding Value, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                           FontSize="24" FontWeight="Bold"
-                           Foreground="{StaticResource TextPrimaryBrush}" />
+                           FontSize="20" FontWeight="Bold"
+                           Foreground="{StaticResource TextPrimaryBrush}"
+                           TextTrimming="CharacterEllipsis" />
             </StackPanel>
         </Grid>
     </Border>

@@ -26,7 +26,7 @@
                                AccentColor="{StaticResource StatOrangeColor}"
                                AccentBgColor="{StaticResource StatOrangeBgColor}"
                                Margin="0,0,8,0" />
-            <controls:StatCard Title="תוקף עד" Value="{Binding TimeExpiry}" Icon="📅"
+            <controls:StatCard Title="בתוקף עד" Value="{Binding TimeExpiry}" Icon="📅"
                                AccentColor="{StaticResource StatGreenColor}"
                                AccentBgColor="{StaticResource StatGreenBgColor}"
                                Margin="4,0" />
@@ -177,10 +177,6 @@
                         </StackPanel>
                     </StackPanel>
                 </Border>
-
-                <!-- Loading indicator -->
-                <controls:LoadingSpinner HorizontalAlignment="Center"
-                                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
 
                 <!-- Error / warning banner -->
                 <Border Background="{StaticResource ErrorLightBrush}" CornerRadius="14" Padding="24,20" Margin="0,8,0,0"

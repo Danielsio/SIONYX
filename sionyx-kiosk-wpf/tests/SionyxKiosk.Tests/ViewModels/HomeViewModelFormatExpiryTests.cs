@@ -56,62 +56,59 @@ public class HomeViewModelFormatExpiryTests
     }
 
     [Fact]
-    public void FormatExpiry_ThreeDaysOut_ReturnsDays()
+    public void FormatExpiry_ThreeDaysOut_ReturnsExactDate()
     {
-        var future = DateTime.Now.AddDays(3).AddMinutes(1).ToString("o");
-        var result = HomeViewModel.FormatExpiry(future);
-        Assert.Equal("3 ימים", result);
+        var future = DateTime.Now.AddDays(3).AddMinutes(1);
+        var result = HomeViewModel.FormatExpiry(future.ToString("o"));
+        Assert.Equal(future.ToString("dd/MM/yyyy HH:mm"), result);
     }
 
     [Fact]
-    public void FormatExpiry_TenDaysOut_ReturnsDays()
+    public void FormatExpiry_TenDaysOut_ReturnsExactDate()
     {
-        var future = DateTime.Now.AddDays(10).AddMinutes(1).ToString("o");
-        var result = HomeViewModel.FormatExpiry(future);
-        Assert.Equal("10 ימים", result);
+        var future = DateTime.Now.AddDays(10).AddMinutes(1);
+        var result = HomeViewModel.FormatExpiry(future.ToString("o"));
+        Assert.Equal(future.ToString("dd/MM/yyyy HH:mm"), result);
     }
 
     [Fact]
-    public void FormatExpiry_TwoDaysExact_ReturnsDays()
+    public void FormatExpiry_TwoDaysExact_ReturnsExactDate()
     {
-        var future = DateTime.Now.AddDays(2).AddMinutes(1).ToString("o");
-        var result = HomeViewModel.FormatExpiry(future);
-        Assert.Equal("2 ימים", result);
+        var future = DateTime.Now.AddDays(2).AddMinutes(1);
+        var result = HomeViewModel.FormatExpiry(future.ToString("o"));
+        Assert.Equal(future.ToString("dd/MM/yyyy HH:mm"), result);
     }
 
     [Fact]
-    public void FormatExpiry_TwentyHours_ReturnsHours()
+    public void FormatExpiry_TwentyHours_ReturnsExactDate()
     {
-        var future = DateTime.Now.AddHours(20).AddSeconds(30).ToString("o");
-        var result = HomeViewModel.FormatExpiry(future);
-        Assert.EndsWith("שעות", result);
-        Assert.Contains("20", result);
+        var future = DateTime.Now.AddHours(20).AddSeconds(30);
+        var result = HomeViewModel.FormatExpiry(future.ToString("o"));
+        Assert.Equal(future.ToString("dd/MM/yyyy HH:mm"), result);
     }
 
     [Fact]
-    public void FormatExpiry_OneHour_ReturnsHours()
+    public void FormatExpiry_OneHour_ReturnsExactDate()
     {
-        var future = DateTime.Now.AddHours(1).AddMinutes(5).ToString("o");
-        var result = HomeViewModel.FormatExpiry(future);
-        Assert.EndsWith("שעות", result);
+        var future = DateTime.Now.AddHours(1).AddMinutes(5);
+        var result = HomeViewModel.FormatExpiry(future.ToString("o"));
+        Assert.Equal(future.ToString("dd/MM/yyyy HH:mm"), result);
     }
 
     [Fact]
-    public void FormatExpiry_ThirtyMinutes_ReturnsMinutes()
+    public void FormatExpiry_ThirtyMinutes_ReturnsExactDate()
     {
-        var future = DateTime.Now.AddMinutes(31).ToString("o");
-        var result = HomeViewModel.FormatExpiry(future);
-        Assert.EndsWith("דקות", result);
-        Assert.Contains("30", result);
+        var future = DateTime.Now.AddMinutes(31);
+        var result = HomeViewModel.FormatExpiry(future.ToString("o"));
+        Assert.Equal(future.ToString("dd/MM/yyyy HH:mm"), result);
     }
 
     [Fact]
-    public void FormatExpiry_FiveMinutes_ReturnsMinutes()
+    public void FormatExpiry_FiveMinutes_ReturnsExactDate()
     {
-        var future = DateTime.Now.AddMinutes(6).ToString("o");
-        var result = HomeViewModel.FormatExpiry(future);
-        Assert.EndsWith("דקות", result);
-        Assert.Contains("5", result);
+        var future = DateTime.Now.AddMinutes(6);
+        var result = HomeViewModel.FormatExpiry(future.ToString("o"));
+        Assert.Equal(future.ToString("dd/MM/yyyy HH:mm"), result);
     }
 
     [Fact]
