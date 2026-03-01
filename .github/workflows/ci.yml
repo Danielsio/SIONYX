@@ -48,6 +48,12 @@ jobs:
   kiosk-e2e:
     runs-on: windows-latest
     needs: [kiosk-tests]
+    env:
+      FUNCTIONS_BASE: https://us-central1-sionyx-19636.cloudfunctions.net
+      E2E_ORG_ID: cie2etest
+      E2E_ORG_NAME: "CI E2E Test"
+      E2E_ADMIN_FIRST: CI
+      E2E_ADMIN_LAST: Test
     steps:
       - uses: actions/checkout@v4
 
@@ -56,12 +62,47 @@ jobs:
         with:
           dotnet-version: "8.x"
 
+      - name: Cleanup previous test org
+        shell: pwsh
+        run: |
+          $body = @{ data = @{ orgId = $env:E2E_ORG_ID } } | ConvertTo-Json -Depth 3
+          try {
+            $resp = Invoke-RestMethod -Uri "$env:FUNCTIONS_BASE/cleanupTestOrganization" `
+              -Method Post -ContentType "application/json" -Body $body
+            Write-Host "Cleanup: $($resp.result.message)"
+          } catch {
+            Write-Host "Cleanup skipped (org may not exist): $($_.Exception.Message)"
+          }
+
+      - name: Create test organization
+        shell: pwsh
+        env:
+          E2E_NEDARIM_MOSAD_ID: ${{ secrets.E2E_NEDARIM_MOSAD_ID }}
+          E2E_NEDARIM_API_VALID: ${{ secrets.E2E_NEDARIM_API_VALID }}
+          E2E_TEST_PHONE: ${{ secrets.E2E_TEST_PHONE }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+        run: |
+          $body = @{
+            data = @{
+              organizationName = $env:E2E_ORG_NAME
+              nedarimMosadId   = if ($env:E2E_NEDARIM_MOSAD_ID) { $env:E2E_NEDARIM_MOSAD_ID } else { "test-mosad" }
+              nedarimApiValid  = if ($env:E2E_NEDARIM_API_VALID) { $env:E2E_NEDARIM_API_VALID } else { "test-api-key" }
+              adminPhone       = if ($env:E2E_TEST_PHONE) { $env:E2E_TEST_PHONE } else { "0500000001" }
+              adminPassword    = if ($env:E2E_TEST_PASSWORD) { $env:E2E_TEST_PASSWORD } else { "ci-test-pass-123" }
+              adminFirstName   = $env:E2E_ADMIN_FIRST
+              adminLastName    = $env:E2E_ADMIN_LAST
+            }
+          } | ConvertTo-Json -Depth 3
+          $resp = Invoke-RestMethod -Uri "$env:FUNCTIONS_BASE/registerOrganization" `
+            -Method Post -ContentType "application/json" -Body $body
+          Write-Host "Created org: $($resp.result.orgId)"
+
       - name: Generate .env for E2E
         working-directory: sionyx-kiosk-wpf
         shell: pwsh
         run: |
           @"
-          ORG_ID=sionov
+          ORG_ID=$($env:E2E_ORG_ID)
           FIREBASE_API_KEY=AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c
           FIREBASE_AUTH_DOMAIN=sionyx-19636.firebaseapp.com
           FIREBASE_PROJECT_ID=sionyx-19636
@@ -80,6 +121,19 @@ jobs:
           SIONYX_E2E_PHONE: ${{ secrets.E2E_TEST_PHONE }}
           SIONYX_E2E_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
         run: dotnet test tests/SionyxKiosk.E2E --verbosity normal
+
+      - name: Cleanup test org
+        if: always()
+        shell: pwsh
+        run: |
+          $body = @{ data = @{ orgId = $env:E2E_ORG_ID } } | ConvertTo-Json -Depth 3
+          try {
+            $resp = Invoke-RestMethod -Uri "$env:FUNCTIONS_BASE/cleanupTestOrganization" `
+              -Method Post -ContentType "application/json" -Body $body
+            Write-Host "Cleanup: $($resp.result.message)"
+          } catch {
+            Write-Host "Cleanup failed (non-fatal): $($_.Exception.Message)"
+          }
 
   installer-test:
     runs-on: windows-latest
