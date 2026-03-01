@@ -1176,3 +1176,84 @@ exports.deleteUser = onCall(async (request) => {
   return {success: true, message: "המשתמש נמחק בהצלחה", correlationId};
 });
 
+/**
+ * Cleanup a test organization (CI use only).
+ * Safety: only allows deletion of orgs whose ID starts with "ci" or "test".
+ * Removes RTDB data and the admin Firebase Auth user.
+ */
+exports.cleanupTestOrganization = onCall(
+    async (request) => {
+      const {orgId} = request.data || {};
+
+      if (!orgId) {
+        throw new functions.https.HttpsError(
+            "invalid-argument",
+            "orgId is required",
+        );
+      }
+
+      const lower = orgId.toLowerCase();
+      if (!lower.startsWith("ci") &&
+          !lower.startsWith("test")) {
+        throw new functions.https.HttpsError(
+            "permission-denied",
+            "Only test/CI orgs can be deleted",
+        );
+      }
+
+      const orgRef = admin.database()
+          .ref(`organizations/${orgId}`);
+      const orgSnap = await orgRef.once("value");
+
+      if (!orgSnap.exists()) {
+        return {success: true, message: "Nothing to clean"};
+      }
+
+      const metadata = orgSnap.child("metadata").val();
+
+      // Delete admin Firebase Auth user
+      if (metadata && metadata.admin_uid) {
+        try {
+          await admin.auth().deleteUser(
+              metadata.admin_uid,
+          );
+        } catch (err) {
+          if (err.code !== "auth/user-not-found") {
+            logger.warn("Admin delete failed", {
+              orgId, error: err.message,
+            });
+          }
+        }
+      }
+
+      // Delete other user auth accounts
+      const usersSnap = orgSnap.child("users");
+      if (usersSnap.exists()) {
+        const users = usersSnap.val();
+        for (const uid of Object.keys(users)) {
+          if (metadata && uid === metadata.admin_uid) {
+            continue;
+          }
+          try {
+            await admin.auth().deleteUser(uid);
+          } catch (err) {
+            if (err.code !== "auth/user-not-found") {
+              logger.warn("User delete failed", {
+                orgId, uid, error: err.message,
+              });
+            }
+          }
+        }
+      }
+
+      // Remove entire org tree from RTDB
+      await orgRef.remove();
+      logger.info("Test org cleaned up", {orgId});
+
+      return {
+        success: true,
+        message: `Organization '${orgId}' cleaned up`,
+      };
+    },
+);
+

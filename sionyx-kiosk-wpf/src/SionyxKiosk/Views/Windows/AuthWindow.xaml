@@ -69,11 +69,13 @@
                                        Style="{StaticResource TextSubtitle}" Margin="0,0,0,36" />
 
                             <TextBlock Text="מספר טלפון" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
-                            <TextBox x:Name="LoginPhoneInput" Style="{StaticResource FrostInput}"
+                            <TextBox x:Name="LoginPhoneInput" AutomationProperties.AutomationId="LoginPhoneInput"
+                                     Style="{StaticResource FrostInput}"
                                      Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,18" />
 
                             <TextBlock Text="סיסמה" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
-                            <PasswordBox x:Name="LoginPasswordInput" Style="{StaticResource FrostPasswordBox}"
+                            <PasswordBox x:Name="LoginPasswordInput" AutomationProperties.AutomationId="LoginPasswordInput"
+                                         Style="{StaticResource FrostPasswordBox}"
                                          Margin="0,0,0,8" />
 
                             <TextBlock x:Name="LoginError" Text="{Binding ErrorMessage}"
@@ -81,7 +83,8 @@
                                        Margin="0,8,0,0" TextWrapping="Wrap"
                                        Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}" />
 
-                            <Button x:Name="LoginButton" Content="{Binding LoginButtonText}"
+                            <Button x:Name="LoginButton" AutomationProperties.AutomationId="LoginButton"
+                                    Content="{Binding LoginButtonText}"
                                     Style="{StaticResource BtnPrimary}"
                                     Command="{Binding LoginCommand}" Margin="0,24,0,0"
                                     IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
