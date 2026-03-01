@@ -258,6 +258,7 @@ public class PrintMonitorService : BaseService, IDisposable
         InitializeKnownJobs();
         _processedJobs.Clear();
         _stopRequested = false;
+        _isMonitoring = true;
 
         // PRIMARY: Event-driven notification (background thread)
         _notificationThread = new Thread(NotificationThreadFunc)

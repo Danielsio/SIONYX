@@ -217,4 +217,43 @@ public class PrintMonitorServiceCoverageTests : IDisposable
         var budget = task != null ? await task : 0;
         budget.Should().Be(0.0);
     }
+
+    [Fact]
+    public void StartMonitoring_ShouldSetIsMonitoringTrue()
+    {
+        _handler.When("metadata.json", new { blackAndWhitePrice = 1.0, colorPrice = 3.0 });
+
+        _service.StartMonitoring();
+
+        // Give the async init a moment to complete
+        Thread.Sleep(500);
+
+        _service.IsMonitoring.Should().BeTrue(
+            "StartMonitoring must set IsMonitoring=true so ScanForNewJobs actually processes jobs");
+    }
+
+    [Fact]
+    public void StopMonitoring_AfterStart_ShouldSetIsMonitoringFalse()
+    {
+        _handler.When("metadata.json", new { blackAndWhitePrice = 1.0, colorPrice = 3.0 });
+
+        _service.StartMonitoring();
+        Thread.Sleep(500);
+        _service.IsMonitoring.Should().BeTrue();
+
+        _service.StopMonitoring();
+        _service.IsMonitoring.Should().BeFalse();
+    }
+
+    [Fact]
+    public void StartMonitoring_CalledTwice_ShouldNotThrow()
+    {
+        _handler.When("metadata.json", new { blackAndWhitePrice = 1.0, colorPrice = 3.0 });
+
+        _service.StartMonitoring();
+        Thread.Sleep(500);
+
+        var act = () => _service.StartMonitoring();
+        act.Should().NotThrow("calling StartMonitoring twice should be a no-op");
+    }
 }

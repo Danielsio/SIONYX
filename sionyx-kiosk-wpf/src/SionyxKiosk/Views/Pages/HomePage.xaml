@@ -30,7 +30,8 @@
                                AccentColor="{StaticResource StatGreenColor}"
                                AccentBgColor="{StaticResource StatGreenBgColor}"
                                Margin="4,0" />
-            <controls:StatCard Title="יתרת הדפסות" Value="{Binding PrintBalance}" Icon="🖨"
+            <controls:StatCard x:Name="StatPrintBalance" AutomationProperties.AutomationId="StatPrintBalance"
+                               Title="יתרת הדפסות" Value="{Binding PrintBalance}" Icon="🖨"
                                AccentColor="{StaticResource StatRedColor}"
                                AccentBgColor="{StaticResource StatRedBgColor}"
                                Margin="4,0" />
@@ -150,7 +151,8 @@
                             <!-- Has time: show start session -->
                             <StackPanel HorizontalAlignment="Center"
                                         Visibility="{Binding HasNoTime, Converter={StaticResource InverseBoolToVis}}">
-                                <Button Content="{Binding PrimaryButtonText}" Style="{StaticResource BtnPrimary}"
+                                <Button x:Name="StartSessionButton" AutomationProperties.AutomationId="StartSessionButton"
+                                        Content="{Binding PrimaryButtonText}" Style="{StaticResource BtnPrimary}"
                                         Command="{Binding StartSessionCommand}"
                                         Width="260" Height="56" FontSize="19"
                                         IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
