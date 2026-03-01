@@ -106,11 +106,7 @@ admin.initializeApp();
 
 // Encryption key from env or Firebase config (32 bytes for AES-256)
 const getEncryptionKey = () => {
-  let key = process.env.ENCRYPTION_KEY;
-  if (!key && typeof functions.config === "function") {
-    const cfg = functions.config().nedarim;
-    key = cfg && cfg.encryption_key;
-  }
+  const key = process.env.ENCRYPTION_KEY;
   if (key && String(key).length >= 32) {
     return Buffer.from(String(key).slice(0, 32), "utf8");
   }
@@ -204,11 +200,7 @@ exports.nedarimCallback = onRequest(async (req, res) => {
 
   try {
     // CALLBACK_SECRET: validate secret from query param or header if configured
-    let callbackSecret = process.env.CALLBACK_SECRET;
-    if (!callbackSecret && typeof functions.config === "function") {
-      const cfg = functions.config().nedarim;
-      callbackSecret = cfg && cfg.callback_secret;
-    }
+    const callbackSecret = process.env.CALLBACK_SECRET;
     if (callbackSecret) {
       const providedSecret = (req.query && req.query.secret) ||
           (req.headers && req.headers["x-callback-secret"]);

@@ -13,6 +13,16 @@ public partial class PackagesPage : Page
 {
     private readonly IPaymentDialogFactory _dialogFactory;
 
+    public static readonly DependencyProperty CardWidthProperty =
+        DependencyProperty.Register(nameof(CardWidth), typeof(double), typeof(PackagesPage),
+            new PropertyMetadata(320.0));
+
+    public double CardWidth
+    {
+        get => (double)GetValue(CardWidthProperty);
+        set => SetValue(CardWidthProperty, value);
+    }
+
     public PackagesPage(PackagesViewModel viewModel, IPaymentDialogFactory dialogFactory)
     {
         _dialogFactory = dialogFactory;
@@ -23,8 +33,25 @@ public partial class PackagesPage : Page
         InitializeComponent();
 
         Loaded += async (_, _) => await viewModel.LoadPackagesCommand.ExecuteAsync(null);
+        Loaded += (_, _) => UpdateCardWidth();
+        SizeChanged += (_, _) => UpdateCardWidth();
 
         viewModel.PurchaseRequested += OnPurchaseRequested;
+    }
+
+    private void UpdateCardWidth()
+    {
+        var available = ActualWidth;
+        if (available <= 0) return;
+
+        const double minWidth = 280;
+        const double maxWidth = 420;
+        const double itemMargin = 24;
+        const int maxColumns = 4;
+
+        int columns = Math.Max(1, Math.Min(maxColumns, (int)(available / (minWidth + itemMargin))));
+        double cardWidth = (available / columns) - itemMargin;
+        CardWidth = Math.Clamp(cardWidth, minWidth, maxWidth);
     }
 
     private void OnPurchaseRequested(Package package)

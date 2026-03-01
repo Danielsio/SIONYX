@@ -354,7 +354,6 @@ public partial class App : Application
 
         mainVm.LogoutRequested += OnLogoutRequested;
 
-        // Always fullscreen, topmost (kiosk behavior)
         mainWindow.WindowState = WindowState.Maximized;
         mainWindow.Topmost = true;
 

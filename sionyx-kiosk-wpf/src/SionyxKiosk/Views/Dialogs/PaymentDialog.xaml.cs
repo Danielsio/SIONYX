@@ -54,8 +54,10 @@ public partial class PaymentDialog : Window
         var screenH = SystemParameters.PrimaryScreenHeight;
         var screenW = SystemParameters.PrimaryScreenWidth;
 
-        var dialogH = Math.Clamp(screenH * 0.72, 560, 820);
-        var dialogW = Math.Clamp(screenW * 0.52, 800, 1040);
+        var dialogH = Math.Clamp(screenH * 0.75, 480, 820);
+        var dialogW = Math.Clamp(screenW * 0.55, 700, 1040);
+
+        SummaryColumn.Width = new GridLength(Math.Clamp(dialogW * 0.35, 240, 360));
 
         DialogCard.Width = dialogW;
         DialogCard.Height = dialogH;

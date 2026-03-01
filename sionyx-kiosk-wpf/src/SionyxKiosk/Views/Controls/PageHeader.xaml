@@ -6,7 +6,7 @@
     <UserControl.Resources>
         <local:StringToVisibilityConverter x:Key="StringToVisibility" />
     </UserControl.Resources>
-    <Border x:Name="HeaderBorder" CornerRadius="{StaticResource RadiusXl}" Padding="40,28"
+    <Border x:Name="HeaderBorder" CornerRadius="{StaticResource RadiusXl}" Padding="28,20"
             Background="{StaticResource HeroGradient}">
         <Grid>
             <Grid.ColumnDefinitions>
