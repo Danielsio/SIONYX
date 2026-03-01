@@ -5,7 +5,7 @@
 
   <!-- ================================================================
        SIONYX Kiosk Installer — WiX 6 (MSI, 64-bit)
-       Replaces the legacy NSIS installer.
+       Clean rewrite: no host-machine registry hacks.
        ================================================================ -->
 
   <Package Name="SIONYX"
@@ -18,23 +18,10 @@
 
     <SummaryInformation Description="SIONYX Kiosk Management System" />
 
-    <!-- Automatic upgrade: detects previous MSI versions, uninstalls first -->
     <MajorUpgrade DowngradeErrorMessage="A newer version of SIONYX is already installed."
                   Schedule="afterInstallInitialize" />
 
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
-
-    <!-- Block install if legacy NSIS version is present -->
-    <Property Id="NSISINSTALLED">
-      <RegistrySearch Id="NsisSearch"
-                      Root="HKLM"
-                      Key="Software\Microsoft\Windows\CurrentVersion\Uninstall\SIONYX"
-                      Name="UninstallString"
-                      Type="raw" />
-    </Property>
-
-    <Launch Condition="NOT NSISINSTALLED"
-            Message="A previous (non-MSI) version of SIONYX is installed. Please uninstall it first via Settings &gt; Apps, then run this installer again." />
 
     <!-- Public property for Organization ID (set by custom dialog) -->
     <Property Id="ORGID" Secure="yes" />
@@ -74,7 +61,6 @@
       </Component>
     </ComponentGroup>
 
-    <!-- Non-advertised shortcuts (separate components with registry key paths) -->
     <ComponentGroup Id="Shortcuts" Directory="INSTALLFOLDER">
       <Component Id="DesktopShortcutComp" Guid="*">
         <Shortcut Id="DesktopShortcut"
@@ -109,7 +95,6 @@
       </Component>
     </ComponentGroup>
 
-    <!-- Start Menu uninstall shortcut -->
     <ComponentGroup Id="UninstallShortcut" Directory="ProgramMenuDir">
       <Component Id="UninstallShortcutComp" Guid="*">
         <Shortcut Id="UninstallLink"
@@ -188,29 +173,26 @@
     <Property Id="ARPNOREPAIR" Value="yes" Secure="yes" />
 
     <!-- ================================================================
-         UI — WixUI_InstallDir + custom Org Name dialog
+         UI — WixUI_InstallDir + custom Org Name dialog + finish text
          ================================================================ -->
 
     <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
     <WixVariable Id="WixUILicenseRtf" Value="LICENSE.rtf" />
 
+    <Property Id="WIXUI_EXITDIALOGOPTIONALTEXT"
+              Value="Setup complete! Next steps:&#13;&#10;&#13;&#10;1. Press Win+L to lock your PC (or sign out)&#13;&#10;2. Click 'SionyxUser' on the login screen&#13;&#10;&#13;&#10;The kiosk app starts automatically when SionyxUser signs in.&#13;&#10;To return to your admin account, press Ctrl+Alt+Q in the kiosk app." />
+
     <ui:WixUI Id="WixUI_InstallDir" />
 
-    <!-- Insert OrgNameDlg between InstallDirDlg and VerifyReadyDlg.
-         Higher Order values override the defaults from WixUI_InstallDir. -->
     <UI>
-      <!-- InstallDirDlg → OrgNameDlg (override default Next → VerifyReadyDlg which is Order 4).
-           No condition needed: CheckTargetPath at Order 1 already prevents navigation on invalid paths. -->
       <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="OrgNameDlg" Order="5" />
 
-      <!-- OrgNameDlg navigation -->
       <Publish Dialog="OrgNameDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg" />
       <Publish Dialog="OrgNameDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg"
                Condition="ORGID" />
       <Publish Dialog="OrgNameDlg" Control="Next" Event="SpawnDialog" Value="InvalidOrgDlg"
                Condition="NOT ORGID" />
 
-      <!-- VerifyReadyDlg Back → OrgNameDlg (override default Back → InstallDirDlg) -->
       <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="OrgNameDlg" Order="5"
                Condition="NOT Installed" />
     </UI>
@@ -222,42 +204,35 @@
     <Binary Id="CustomActionsDll" SourceFile="$(var.CustomActions.TargetDir)\CustomActions.CA.dll" />
 
     <!-- INSTALL: data-setters (immediate) + actions (deferred) -->
-    <SetProperty Id="CA_SetupAutoStart"      Before="CA_SetupAutoStart"      Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER]" />
-    <SetProperty Id="CA_InitializeProfile"   Before="CA_InitializeProfile"   Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER]" />
-    <SetProperty Id="CA_VerifyInstallation"  Before="CA_VerifyInstallation"  Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER];UILEVEL=[UILevel]" />
+    <SetProperty Id="CA_SetupAutoStart"     Before="CA_SetupAutoStart"     Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER]" />
+    <SetProperty Id="CA_InitializeProfile"  Before="CA_InitializeProfile"  Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER]" />
+    <SetProperty Id="CA_VerifyInstallation" Before="CA_VerifyInstallation" Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER];UILEVEL=[UILevel]" />
 
-    <CustomAction Id="CA_CreateKioskUser"        BinaryRef="CustomActionsDll" DllEntry="CreateKioskUser"        Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="CA_CreateKioskUser"          BinaryRef="CustomActionsDll" DllEntry="CreateKioskUser"          Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="CA_ApplySecurityRestrictions" BinaryRef="CustomActionsDll" DllEntry="ApplySecurityRestrictions" Execute="deferred" Impersonate="no" Return="check" />
-    <CustomAction Id="CA_SetupAutoStart"         BinaryRef="CustomActionsDll" DllEntry="SetupAutoStart"         Execute="deferred" Impersonate="no" Return="check" />
-    <CustomAction Id="CA_InitializeProfile"      BinaryRef="CustomActionsDll" DllEntry="InitializeProfile"      Execute="deferred" Impersonate="no" Return="check" />
-    <CustomAction Id="CA_EnsureNoAutoLogon"       BinaryRef="CustomActionsDll" DllEntry="EnsureNoAutoLogon"       Execute="deferred" Impersonate="no" Return="ignore" />
-    <CustomAction Id="CA_VerifyInstallation"     BinaryRef="CustomActionsDll" DllEntry="VerifyInstallation"     Execute="deferred" Impersonate="no" Return="ignore" />
+    <CustomAction Id="CA_SetupAutoStart"           BinaryRef="CustomActionsDll" DllEntry="SetupAutoStart"           Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="CA_InitializeProfile"        BinaryRef="CustomActionsDll" DllEntry="InitializeProfile"        Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="CA_VerifyInstallation"       BinaryRef="CustomActionsDll" DllEntry="VerifyInstallation"       Execute="deferred" Impersonate="no" Return="ignore" />
 
-    <!-- UNINSTALL: actions (deferred) -->
-    <CustomAction Id="CA_StopProcesses"          BinaryRef="CustomActionsDll" DllEntry="StopProcesses"          Execute="deferred" Impersonate="no" Return="ignore" />
-    <CustomAction Id="CA_RemoveScheduledTask"    BinaryRef="CustomActionsDll" DllEntry="RemoveScheduledTask"    Execute="deferred" Impersonate="no" Return="ignore" />
-    <CustomAction Id="CA_RevertAutoLogon"         BinaryRef="CustomActionsDll" DllEntry="RevertAutoLogon"         Execute="deferred" Impersonate="no" Return="ignore" />
-    <CustomAction Id="CA_RevertSecurity"         BinaryRef="CustomActionsDll" DllEntry="RevertSecurity"         Execute="deferred" Impersonate="no" Return="ignore" />
-    <CustomAction Id="CA_RemoveKioskUser"        BinaryRef="CustomActionsDll" DllEntry="RemoveKioskUser"        Execute="deferred" Impersonate="no" Return="ignore" />
-    <CustomAction Id="CA_CleanupLegacyUser"      BinaryRef="CustomActionsDll" DllEntry="CleanupLegacyUser"      Execute="deferred" Impersonate="no" Return="ignore" />
+    <!-- UNINSTALL -->
+    <CustomAction Id="CA_StopProcesses"       BinaryRef="CustomActionsDll" DllEntry="StopProcesses"       Execute="deferred" Impersonate="no" Return="ignore" />
+    <CustomAction Id="CA_RemoveScheduledTask" BinaryRef="CustomActionsDll" DllEntry="RemoveScheduledTask" Execute="deferred" Impersonate="no" Return="ignore" />
+    <CustomAction Id="CA_RevertSecurity"      BinaryRef="CustomActionsDll" DllEntry="RevertSecurity"      Execute="deferred" Impersonate="no" Return="ignore" />
+    <CustomAction Id="CA_RemoveKioskUser"     BinaryRef="CustomActionsDll" DllEntry="RemoveKioskUser"     Execute="deferred" Impersonate="no" Return="ignore" />
 
-    <!-- Schedule the custom actions -->
     <InstallExecuteSequence>
-      <!-- INSTALL: run after files are written -->
-      <Custom Action="CA_CreateKioskUser"           After="InstallFiles"              Condition="NOT Installed AND NOT REMOVE" />
-      <Custom Action="CA_ApplySecurityRestrictions" After="CA_CreateKioskUser"        Condition="NOT Installed AND NOT REMOVE" />
-      <Custom Action="CA_SetupAutoStart"            After="CA_ApplySecurityRestrictions" Condition="NOT Installed AND NOT REMOVE" />
-      <Custom Action="CA_InitializeProfile"         After="CA_SetupAutoStart"         Condition="NOT Installed AND NOT REMOVE" />
-      <Custom Action="CA_EnsureNoAutoLogon"         Before="InstallFinalize"          Condition="NOT REMOVE" />
-      <Custom Action="CA_VerifyInstallation"        After="WriteRegistryValues"       Condition="NOT Installed AND NOT REMOVE" />
+      <!-- INSTALL -->
+      <Custom Action="CA_CreateKioskUser"          After="InstallFiles"                 Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="CA_ApplySecurityRestrictions" After="CA_CreateKioskUser"           Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="CA_SetupAutoStart"           After="CA_ApplySecurityRestrictions"  Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="CA_InitializeProfile"        After="CA_SetupAutoStart"            Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="CA_VerifyInstallation"       After="WriteRegistryValues"          Condition="NOT Installed AND NOT REMOVE" />
 
-      <!-- UNINSTALL: run before files are removed -->
-      <Custom Action="CA_StopProcesses"             Before="RemoveFiles"              Condition="REMOVE = &quot;ALL&quot;" />
-      <Custom Action="CA_RemoveScheduledTask"       After="CA_StopProcesses"          Condition="REMOVE = &quot;ALL&quot;" />
-      <Custom Action="CA_RevertAutoLogon"            After="CA_RemoveScheduledTask"    Condition="REMOVE = &quot;ALL&quot;" />
-      <Custom Action="CA_RevertSecurity"            After="CA_RevertAutoLogon"        Condition="REMOVE = &quot;ALL&quot;" />
-      <Custom Action="CA_RemoveKioskUser"           After="CA_RevertSecurity"         Condition="REMOVE = &quot;ALL&quot;" />
-      <Custom Action="CA_CleanupLegacyUser"         After="CA_RemoveKioskUser"        Condition="REMOVE = &quot;ALL&quot;" />
+      <!-- UNINSTALL -->
+      <Custom Action="CA_StopProcesses"       Before="RemoveFiles"         Condition="REMOVE = &quot;ALL&quot;" />
+      <Custom Action="CA_RemoveScheduledTask" After="CA_StopProcesses"     Condition="REMOVE = &quot;ALL&quot;" />
+      <Custom Action="CA_RevertSecurity"      After="CA_RemoveScheduledTask" Condition="REMOVE = &quot;ALL&quot;" />
+      <Custom Action="CA_RemoveKioskUser"     After="CA_RevertSecurity"    Condition="REMOVE = &quot;ALL&quot;" />
     </InstallExecuteSequence>
 
   </Package>

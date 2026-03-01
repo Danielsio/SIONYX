@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Management;
 using System.Runtime.InteropServices;
-using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using Microsoft.Win32;
@@ -11,6 +10,16 @@ using WixToolset.Dtf.WindowsInstaller;
 
 namespace SionyxInstaller
 {
+    /// <summary>
+    /// WiX custom actions for SIONYX Kiosk installer.
+    ///
+    /// System registry changes (outside HKLM\SOFTWARE\SIONYX):
+    ///   - Lsa\LimitBlankPasswordUse = 0  (required for blank-password user tiles)
+    ///   - Per-user policies in SionyxUser's HKU hive only (never HKLM)
+    ///
+    /// No other system keys are modified. If a host machine has non-standard
+    /// Windows configuration, that should be resolved separately.
+    /// </summary>
     public class KioskSetupActions
     {
         private const string KioskUsername = "SionyxUser";
@@ -26,26 +35,12 @@ namespace SionyxInstaller
 
         // ====================================================================
         //  INSTALL ACTIONS
-        //
-        //  REGISTRY POLICY: This installer makes minimal machine-wide changes:
-        //    1. HKLM\SOFTWARE\SIONYX\* -- app config (managed by WiX)
-        //    2. Per-user policies inside SionyxUser's HKCU hive (NoRun,
-        //       DisableCMD, etc.) -- kiosk lockdown, never affects the owner
-        //    3. UserSwitch\Enabled = 1 -- ensures the login screen shows tiles
-        //       for all local users (required because we create a second user;
-        //       some debloat/privacy tools disable this)
-        //
-        //  No other login-screen or Winlogon keys are modified.
         // ====================================================================
 
         /// <summary>
         /// Creates (or resets) the local SionyxUser account with a blank password.
-        /// Sets LimitBlankPasswordUse=0 BEFORE user creation so that the Windows
-        /// credential provider includes blank-password accounts in sign-in tile
-        /// enumeration. Without this, machines with DevicePasswordLessBuildVersion=2
-        /// (Windows 11 passwordless mode) filter out blank-password users entirely.
-        /// Also sets DevicePasswordLessBuildVersion=0 to disable passwordless-only
-        /// mode, which hides password-based tiles on the sign-in screen.
+        /// Sets LimitBlankPasswordUse=0 so credential providers show the account
+        /// on the Windows sign-in screen.
         /// </summary>
         [CustomAction]
         public static ActionResult CreateKioskUser(Session session)
@@ -55,7 +50,8 @@ namespace SionyxInstaller
 
             try
             {
-                EnableBlankPasswordLogon(session);
+                // Allow blank-password accounts to appear on login screen
+                SetLimitBlankPasswordUse(session, enabled: false);
 
                 bool exists = UserExists(KioskUsername, session);
 
@@ -80,9 +76,7 @@ namespace SionyxInstaller
                     SetPasswordNeverExpires(KioskUsername, session);
                 }
 
-                // Ensure not in Administrators (ignore errors — may not be a member)
                 RunCommand("net", $"localgroup Administrators \"{KioskUsername}\" /delete", session);
-                // Ensure in Users group
                 RunCommand("net", $"localgroup Users \"{KioskUsername}\" /add", session);
 
                 session.Log($"[OK] Kiosk user account ready ({sw.ElapsedMilliseconds}ms)");
@@ -97,17 +91,8 @@ namespace SionyxInstaller
 
         /// <summary>
         /// Applies kiosk lockdown policies to SionyxUser's per-user registry hive.
-        /// These are written to HKU\{SionyxUser}\... (NOT HKLM), so they only
-        /// affect the kiosk account and never the machine owner's account.
-        ///
-        /// Policies set (per-user only):
-        ///   NoRun = 1              -- disables Win+R run dialog
-        ///   DisableRegistryTools=1 -- blocks regedit
-        ///   DisableCMD = 2         -- blocks cmd.exe but allows .bat scripts
-        ///   DisableTaskMgr = 1     -- blocks Ctrl+Shift+Esc task manager
-        ///
-        /// Also removes any machine-wide (HKLM) versions of these policies
-        /// that older installers may have set, to avoid affecting all users.
+        /// Written to HKU\{SionyxUser}\... (NOT HKLM) so they only affect the
+        /// kiosk account, never the machine owner.
         /// </summary>
         [CustomAction]
         public static ActionResult ApplySecurityRestrictions(Session session)
@@ -160,8 +145,6 @@ namespace SionyxInstaller
                     RunCommand("reg", $"unload \"HKU\\{tempHiveKey}\"", session);
                 }
 
-                CleanupMachineWidePolicies(session);
-
                 session.Log($"=== ApplySecurityRestrictions: DONE ({sw.ElapsedMilliseconds}ms) ===");
                 return ActionResult.Success;
             }
@@ -173,9 +156,8 @@ namespace SionyxInstaller
         }
 
         /// <summary>
-        /// Creates a Windows scheduled task that launches SionyxKiosk.exe --kiosk
-        /// when SionyxUser logs on. No registry changes -- uses Task Scheduler API
-        /// via PowerShell cmdlets. The task runs as Interactive (no stored password).
+        /// Creates a scheduled task that launches SionyxKiosk.exe --kiosk
+        /// when SionyxUser logs on.
         /// </summary>
         [CustomAction]
         public static ActionResult SetupAutoStart(Session session)
@@ -188,11 +170,8 @@ namespace SionyxInstaller
                 string installDir = session.CustomActionData["INSTALLDIR"];
                 string appExe = Path.Combine(installDir, "SionyxKiosk.exe");
 
-                // Remove existing task (ignore errors)
                 RunCommand("schtasks", "/delete /tn \"SIONYX Kiosk\" /f", session);
 
-                // Build the PowerShell command for task creation
-                // We use the full scheduled-task cmdlets for maximum control
                 string psScript =
                     $"$action = New-ScheduledTaskAction -Execute '{appExe}' -Argument '--kiosk'; " +
                     $"$trigger = New-ScheduledTaskTrigger -AtLogOn -User '{KioskUsername}'; " +
@@ -209,9 +188,7 @@ namespace SionyxInstaller
                     session);
 
                 if (rc != 0)
-                {
                     session.Log($"[WARN] Scheduled task creation returned exit code {rc}");
-                }
 
                 session.Log($"[OK] Scheduled task created ({sw.ElapsedMilliseconds}ms)");
                 return ActionResult.Success;
@@ -225,7 +202,7 @@ namespace SionyxInstaller
 
         /// <summary>
         /// Creates the SionyxUser Windows profile (via Win32 CreateProfile API)
-        /// and sets up app directories + a startup shortcut. No registry changes.
+        /// and sets up app directories + a startup shortcut.
         /// </summary>
         [CustomAction]
         public static ActionResult InitializeProfile(Session session)
@@ -238,7 +215,6 @@ namespace SionyxInstaller
                 string installDir = session.CustomActionData["INSTALLDIR"];
                 string profilePath = $@"C:\Users\{KioskUsername}";
 
-                // Create profile via Win32 API if it doesn't exist
                 if (!File.Exists(Path.Combine(profilePath, "ntuser.dat")))
                 {
                     string sid = GetUserSid(KioskUsername);
@@ -264,7 +240,6 @@ namespace SionyxInstaller
                     session.Log("[INFO] Profile already exists");
                 }
 
-                // Create app directories
                 string startupPath = Path.Combine(profilePath,
                     @"AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup");
                 string sionyxDir = Path.Combine(profilePath, ".sionyx");
@@ -275,7 +250,6 @@ namespace SionyxInstaller
                 Directory.CreateDirectory(logsDir);
                 session.Log("[OK] Profile directories created");
 
-                // Create startup shortcut for SionyxUser
                 string shortcutPath = Path.Combine(startupPath, "SIONYX.lnk");
                 string targetExe = Path.Combine(installDir, "SionyxKiosk.exe");
                 string iconPath = Path.Combine(installDir, "app-logo.ico");
@@ -292,109 +266,9 @@ namespace SionyxInstaller
         }
 
         /// <summary>
-        /// Safety net: ensures Windows auto-logon is not pointing at SionyxUser,
-        /// and enables user-switching so all local accounts appear as tiles.
-        ///
-        /// Keys touched (Winlogon):
-        ///   AutoAdminLogon    -- set to "0" if currently "1" (prevents auto-login)
-        ///   DefaultPassword   -- deleted (should never store a password)
-        ///   DefaultUserName   -- deleted only if it equals "SionyxUser"
-        ///   DefaultDomainName -- deleted only if DefaultUserName was "SionyxUser"
-        ///
-        /// Key SET (login screen):
-        ///   LogonUI\UserSwitch\Enabled = 1  -- ensures the sign-in screen shows
-        ///     clickable tiles for every local user. Required because some debloat
-        ///     or privacy tools set this to 0, which hides all but the last user.
-        ///     Without this, the SionyxUser we just created would be inaccessible.
-        ///
-        /// Keys REMOVED (cleanup from v3.2.2-v3.2.3 that should not have been set):
-        ///   Winlogon\SpecialAccounts\UserList  -- entire subtree
-        ///   Policies\...\System\EnumerateLocalUsers
-        ///   Lsa\LimitBlankPasswordUse          -- restored to default (1)
+        /// Post-install verification: checks user, profile, task, exe, and registry.
+        /// Writes results to install.log and shows a summary MessageBox.
         /// </summary>
-        [CustomAction]
-        public static ActionResult EnsureNoAutoLogon(Session session)
-        {
-            session.Log("=== EnsureNoAutoLogon: START ===");
-
-            try
-            {
-                const string winlogonKey = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon";
-
-                using (var key = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                            .OpenSubKey(winlogonKey, true))
-                {
-                    if (key != null)
-                    {
-                        string autoLogon = key.GetValue("AutoAdminLogon") as string;
-                        if (autoLogon == "1")
-                        {
-                            key.SetValue("AutoAdminLogon", "0", RegistryValueKind.String);
-                            session.Log("[OK] AutoAdminLogon was 1, set to 0");
-                        }
-
-                        key.DeleteValue("DefaultPassword", false);
-
-                        string currentDefault = key.GetValue("DefaultUserName") as string;
-                        if (string.Equals(currentDefault, KioskUsername, StringComparison.OrdinalIgnoreCase))
-                        {
-                            key.DeleteValue("DefaultUserName", false);
-                            key.DeleteValue("DefaultDomainName", false);
-                            session.Log("[OK] Cleared DefaultUserName (was set to kiosk user)");
-                        }
-                    }
-                }
-
-                // Enable user-switching so the login screen shows tiles for all
-                // local users. This is the ONLY login-screen key we set.
-                // Justification: we create a second local user (SionyxUser) and it
-                // must be accessible from the sign-in screen. Some debloat/privacy
-                // tools set Enabled=0, which hides all users except the last one.
-                const string userSwitchKey =
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserSwitch";
-                using (var switchKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                                  .CreateSubKey(userSwitchKey))
-                {
-                    int current = (int?)switchKey.GetValue("Enabled") ?? 1;
-                    if (current != 1)
-                    {
-                        switchKey.SetValue("Enabled", 1, RegistryValueKind.DWord);
-                        session.Log("[OK] UserSwitch\\Enabled was 0, set to 1 (enables user tile list)");
-                    }
-                    else
-                    {
-                        session.Log("[OK] UserSwitch\\Enabled already 1");
-                    }
-                }
-
-                // --- Cleanup keys incorrectly set by installer v3.2.2-v3.2.3 ---
-
-                CleanupLegacyRegistryKey(session,
-                    winlogonKey + @"\SpecialAccounts",
-                    deleteTree: true,
-                    reason: "SpecialAccounts (set by v3.2.3)");
-
-                CleanupLegacyRegistryKey(session,
-                    @"SOFTWARE\Policies\Microsoft\Windows\System",
-                    valueName: "EnumerateLocalUsers",
-                    reason: "EnumerateLocalUsers (set by v3.2.3)");
-
-                // Ensure LimitBlankPasswordUse=0 so the kiosk user tile is visible.
-                // On machines with DevicePasswordLessBuildVersion=2 (Windows 11
-                // passwordless mode), value=1 causes credential providers to filter
-                // out blank-password users from the sign-in tile list.
-                EnableBlankPasswordLogon(session);
-
-                session.Log("[OK] EnsureNoAutoLogon complete");
-                return ActionResult.Success;
-            }
-            catch (Exception ex)
-            {
-                session.Log($"[WARN] EnsureNoAutoLogon: {ex.Message}");
-                return ActionResult.Success;
-            }
-        }
-
         [CustomAction]
         public static ActionResult VerifyInstallation(Session session)
         {
@@ -456,14 +330,7 @@ namespace SionyxInstaller
                     }
                 }
 
-                // 4. ntuser.dat
-                string ntuserPath = Path.Combine(profilePath, "ntuser.dat");
-                if (File.Exists(ntuserPath))
-                    Log("[PASS] Profile initialized (ntuser.dat present)");
-                else
-                    Log("[WARN] Cannot verify ntuser.dat (access denied or missing)");
-
-                // 5. Scheduled task
+                // 4. Scheduled task
                 int taskCheck = RunCommand("schtasks", "/query /tn \"SIONYX Kiosk\"", session);
                 if (taskCheck == 0)
                     Log("[PASS] Scheduled task SIONYX Kiosk exists");
@@ -473,7 +340,7 @@ namespace SionyxInstaller
                     errors.Add("Scheduled task was not created");
                 }
 
-                // 6. App executable
+                // 5. App executable
                 string exePath = Path.Combine(installDir, "SionyxKiosk.exe");
                 if (File.Exists(exePath))
                     Log($"[PASS] App executable: {exePath}");
@@ -483,7 +350,7 @@ namespace SionyxInstaller
                     errors.Add("Application executable was not installed");
                 }
 
-                // 7. Startup shortcut
+                // 6. Startup shortcut
                 string startupLnk = Path.Combine(profilePath,
                     @"AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\SIONYX.lnk");
                 if (File.Exists(startupLnk))
@@ -491,7 +358,7 @@ namespace SionyxInstaller
                 else
                     Log("[WARN] Startup shortcut not found at expected path");
 
-                // 8. Registry configuration
+                // 7. Registry configuration
                 string[] regKeys = { "Install_Dir", "Version", "OrgId", "FirebaseProjectId", "KioskUsername" };
                 var missingKeys = new System.Collections.Generic.List<string>();
                 using (var appKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
@@ -512,90 +379,18 @@ namespace SionyxInstaller
                     errors.Add($"Registry configuration incomplete — missing: {string.Join(", ", missingKeys)}");
                 }
 
-                // 9. Login tile registry values (CRITICAL)
-                Log("");
-                Log("--- Login Tile Registry Values ---");
-
+                // 8. LimitBlankPasswordUse
                 using (var lsaKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
                                                .OpenSubKey(@"SYSTEM\CurrentControlSet\Control\Lsa"))
                 {
                     int lbp = (int?)lsaKey?.GetValue("LimitBlankPasswordUse") ?? -1;
                     if (lbp == 0)
-                        Log("[PASS] LimitBlankPasswordUse = 0");
+                        Log("[PASS] LimitBlankPasswordUse = 0 (blank-password tiles enabled)");
                     else
                     {
                         Log($"[FAIL] LimitBlankPasswordUse = {lbp} (expected 0)");
-                        errors.Add($"LimitBlankPasswordUse is {lbp}, must be 0 for user tiles");
+                        errors.Add($"LimitBlankPasswordUse is {lbp}, must be 0 for SionyxUser to appear on login screen");
                     }
-                }
-
-                using (var pwKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                              .OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device"))
-                {
-                    int dpv = (int?)pwKey?.GetValue("DevicePasswordLessBuildVersion") ?? -1;
-                    if (dpv == 0)
-                        Log("[PASS] DevicePasswordLessBuildVersion = 0");
-                    else
-                    {
-                        Log($"[FAIL] DevicePasswordLessBuildVersion = {dpv} (expected 0)");
-                        errors.Add($"DevicePasswordLessBuildVersion is {dpv}, must be 0 for password tiles");
-                    }
-                }
-
-                using (var usKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                              .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserSwitch"))
-                {
-                    int enabled = (int?)usKey?.GetValue("Enabled") ?? -1;
-                    if (enabled == 1)
-                        Log("[PASS] UserSwitch\\Enabled = 1");
-                    else
-                        Log($"[WARN] UserSwitch\\Enabled = {enabled} (may be dynamically managed by Windows)");
-                }
-
-                // Check for leftover machine-wide lockdown policies
-                using (var polSys = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                               .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System"))
-                {
-                    foreach (string name in new[] { "DisableRegistryTools", "DisableCMD", "DisableTaskMgr" })
-                    {
-                        int? val = (int?)polSys?.GetValue(name);
-                        if (val != null && val != 0)
-                            Log($"[WARN] Policies\\System\\{name} = {val} (machine-wide lockdown active!)");
-                    }
-                }
-
-                using (var polExp = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                               .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer"))
-                {
-                    int? noRun = (int?)polExp?.GetValue("NoRun");
-                    if (noRun != null && noRun != 0)
-                        Log($"[WARN] Policies\\Explorer\\NoRun = {noRun} (Win+R blocked for all users!)");
-                }
-
-                // 10. SpecialAccounts\UserList
-                using (var saKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                              .OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList"))
-                {
-                    int? saVal = (int?)saKey?.GetValue(KioskUsername);
-                    if (saVal == 1)
-                        Log($"[PASS] SpecialAccounts\\UserList\\{KioskUsername} = 1 (forced visible)");
-                    else if (saVal == 0)
-                    {
-                        Log($"[FAIL] SpecialAccounts\\UserList\\{KioskUsername} = 0 (HIDDEN!)");
-                        errors.Add($"{KioskUsername} is hidden via SpecialAccounts\\UserList");
-                    }
-                    else
-                        Log($"[WARN] SpecialAccounts\\UserList\\{KioskUsername} not set");
-                }
-
-                // 11. Windows Hello / NGC provider check
-                using (var logonUi = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                                .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI"))
-                {
-                    string provider = logonUi?.GetValue("LastLoggedOnProvider")?.ToString() ?? "(unknown)";
-                    Log($"[INFO] LastLoggedOnProvider = {provider}");
-                    if (provider.Equals("{D6886603-9D2F-4EB2-B667-1971041FA96B}", StringComparison.OrdinalIgnoreCase))
-                        Log("[INFO]   ^ Windows Hello (NGC) — password tiles may need DevicePasswordLessBuildVersion=0");
                 }
 
                 // Summary
@@ -611,25 +406,25 @@ namespace SionyxInstaller
                 }
                 Log("--------------------------------------------");
 
-                // Write log file
                 try { File.WriteAllText(logFile, log.ToString()); }
                 catch { session.Log("[WARN] Could not write install.log"); }
 
-                // Show MessageBox with results (skip in silent/quiet mode to avoid hanging CI)
+                // Show MessageBox (skip in silent mode)
                 string uiLevelStr = session.CustomActionData.ContainsKey("UILEVEL")
                     ? session.CustomActionData["UILEVEL"] : "5";
                 bool isSilent = int.TryParse(uiLevelStr, out int uiLevel) && uiLevel <= 3;
 
-                if (isSilent)
-                {
-                    session.Log("[INFO] Silent install detected (UILevel={0}) — skipping MessageBox", uiLevel);
-                }
-                else
+                if (!isSilent)
                 {
                     try
                     {
                         string summary = errors.Count == 0
-                            ? "ALL CHECKS PASSED\n\nInstallation verified successfully.\nA reboot is recommended for login tile changes to take effect."
+                            ? "ALL CHECKS PASSED\n\n" +
+                              "Installation verified successfully.\n\n" +
+                              "Next steps:\n" +
+                              "1. Press Win+L to lock your PC (or sign out)\n" +
+                              "2. Click 'SionyxUser' on the login screen\n\n" +
+                              "The kiosk app starts automatically."
                             : $"{errors.Count} CHECK(S) FAILED\n\n" + string.Join("\n", errors) +
                               $"\n\nFull log: {logFile}";
 
@@ -637,7 +432,7 @@ namespace SionyxInstaller
                             ? "SIONYX — Install Verified"
                             : "SIONYX — Install Issues Detected";
 
-                        uint mbType = errors.Count == 0 ? 0x00000040u : 0x00000030u; // INFO or WARNING icon
+                        uint mbType = errors.Count == 0 ? 0x00000040u : 0x00000030u;
                         MessageBoxFromInstaller(title, summary, mbType);
                     }
                     catch (Exception mbEx)
@@ -651,7 +446,7 @@ namespace SionyxInstaller
             catch (Exception ex)
             {
                 session.Log($"[ERROR] VerifyInstallation failed: {ex}");
-                return ActionResult.Success; // Don't fail the install over verification
+                return ActionResult.Success;
             }
         }
 
@@ -663,20 +458,16 @@ namespace SionyxInstaller
         public static ActionResult StopProcesses(Session session)
         {
             session.Log("=== StopProcesses: START ===");
-
             try
             {
                 int rc = RunCommand("taskkill", "/F /IM SionyxKiosk.exe", session);
-                session.Log(rc == 0
-                    ? "[OK] SionyxKiosk process terminated"
-                    : "[INFO] SionyxKiosk was not running");
-
+                session.Log(rc == 0 ? "[OK] SionyxKiosk terminated" : "[INFO] SionyxKiosk was not running");
                 return ActionResult.Success;
             }
             catch (Exception ex)
             {
                 session.Log($"[WARN] StopProcesses: {ex.Message}");
-                return ActionResult.Success; // Don't block uninstall
+                return ActionResult.Success;
             }
         }
 
@@ -684,25 +475,10 @@ namespace SionyxInstaller
         public static ActionResult RemoveScheduledTask(Session session)
         {
             session.Log("=== RemoveScheduledTask: START ===");
-
             try
             {
                 int rc = RunCommand("schtasks", "/delete /tn \"SIONYX Kiosk\" /f", session);
-                session.Log(rc == 0
-                    ? "[OK] Scheduled task removed"
-                    : "[INFO] Scheduled task not found");
-
-                // Also clear any legacy auto-run registry entry
-                try
-                {
-                    using (var runKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                                   .OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run", true))
-                    {
-                        runKey?.DeleteValue(AppName, false);
-                    }
-                }
-                catch { /* ignore */ }
-
+                session.Log(rc == 0 ? "[OK] Scheduled task removed" : "[INFO] Scheduled task not found");
                 return ActionResult.Success;
             }
             catch (Exception ex)
@@ -716,11 +492,13 @@ namespace SionyxInstaller
         public static ActionResult RevertSecurity(Session session)
         {
             session.Log("=== RevertSecurity: START ===");
-
             try
             {
-                // Clean up machine-wide policies (from older installs that used HKLM)
-                CleanupMachineWidePolicies(session);
+                // Remove any machine-wide policies (from older installs that used HKLM)
+                RemoveRegistryPolicy(session, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer", "NoRun");
+                RemoveRegistryPolicy(session, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableRegistryTools");
+                RemoveRegistryPolicy(session, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableCMD");
+                RemoveRegistryPolicy(session, @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableTaskMgr");
 
                 session.Log("[OK] Security restrictions reverted");
                 return ActionResult.Success;
@@ -732,69 +510,10 @@ namespace SionyxInstaller
             }
         }
 
-        /// <summary>
-        /// Uninstall cleanup: clears any Winlogon values pointing at SionyxUser.
-        /// Does not modify LimitBlankPasswordUse or any login-screen display keys
-        /// because the current installer never changes them.
-        /// </summary>
-        [CustomAction]
-        public static ActionResult RevertAutoLogon(Session session)
-        {
-            session.Log("=== RevertAutoLogon: START ===");
-
-            try
-            {
-                const string winlogonKey = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon";
-
-                using (var key = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                            .OpenSubKey(winlogonKey, true))
-                {
-                    if (key != null)
-                    {
-                        string autoLogon = key.GetValue("AutoAdminLogon") as string;
-                        if (autoLogon == "1")
-                        {
-                            key.SetValue("AutoAdminLogon", "0", RegistryValueKind.String);
-                            session.Log("[OK] AutoAdminLogon was 1, set to 0");
-                        }
-
-                        key.DeleteValue("DefaultPassword", false);
-
-                        string currentDefault = key.GetValue("DefaultUserName") as string;
-                        if (string.Equals(currentDefault, KioskUsername, StringComparison.OrdinalIgnoreCase))
-                        {
-                            key.DeleteValue("DefaultUserName", false);
-                            key.DeleteValue("DefaultDomainName", false);
-                        }
-                    }
-                }
-
-                // Clean up keys that older installer versions may have created
-                CleanupLegacyRegistryKey(session,
-                    winlogonKey + @"\SpecialAccounts",
-                    deleteTree: true,
-                    reason: "SpecialAccounts (legacy cleanup)");
-
-                CleanupLegacyRegistryKey(session,
-                    @"SOFTWARE\Policies\Microsoft\Windows\System",
-                    valueName: "EnumerateLocalUsers",
-                    reason: "EnumerateLocalUsers (legacy cleanup)");
-
-                session.Log("[OK] Auto-logon reverted");
-                return ActionResult.Success;
-            }
-            catch (Exception ex)
-            {
-                session.Log($"[WARN] RevertAutoLogon: {ex.Message}");
-                return ActionResult.Success;
-            }
-        }
-
         [CustomAction]
         public static ActionResult RemoveKioskUser(Session session)
         {
             session.Log("=== RemoveKioskUser: START ===");
-
             try
             {
                 RemoveUserAndProfile(KioskUsername, session);
@@ -807,65 +526,17 @@ namespace SionyxInstaller
             }
         }
 
-        [CustomAction]
-        public static ActionResult CleanupLegacyUser(Session session)
-        {
-            session.Log("=== CleanupLegacyUser: START ===");
-
-            try
-            {
-                if (UserExists("KioskUser", session))
-                {
-                    RemoveUserAndProfile("KioskUser", session);
-                    session.Log("[OK] Legacy KioskUser removed");
-                }
-                else
-                {
-                    session.Log("[INFO] No legacy KioskUser found");
-                }
-
-                // Clean up orphaned profile folders
-                foreach (string dir in new[] { @"C:\Users\KioskUser", @"C:\Users\KioskUser.000", @"C:\Users\KioskUser.001" })
-                {
-                    if (Directory.Exists(dir))
-                    {
-                        try
-                        {
-                            Directory.Delete(dir, true);
-                            session.Log($"[OK] Deleted legacy folder: {dir}");
-                        }
-                        catch
-                        {
-                            session.Log($"[WARN] Could not delete {dir} — may need reboot");
-                        }
-                    }
-                }
-
-                return ActionResult.Success;
-            }
-            catch (Exception ex)
-            {
-                session.Log($"[WARN] CleanupLegacyUser: {ex.Message}");
-                return ActionResult.Success;
-            }
-        }
-
         // ====================================================================
         //  HELPERS
         // ====================================================================
 
         /// <summary>
-        /// Sets two registry values required for blank-password kiosk user tiles:
-        ///   1. LimitBlankPasswordUse=0 — allows credential providers to enumerate
-        ///      blank-password accounts on the sign-in screen.
-        ///   2. DevicePasswordLessBuildVersion=0 — disables Windows 11 passwordless-only
-        ///      mode which hides password-based tiles entirely.
-        /// Both are needed on machines where these values have been set to their
-        /// restrictive defaults (by Windows Update, AtlasOS, or privacy tools).
+        /// Sets LimitBlankPasswordUse. When disabled (value=0), Windows credential
+        /// providers show blank-password accounts on the sign-in screen.
+        /// This is the only system registry value the installer modifies.
         /// </summary>
-        private static void EnableBlankPasswordLogon(Session session)
+        private static void SetLimitBlankPasswordUse(Session session, bool enabled)
         {
-            // --- LimitBlankPasswordUse ---
             try
             {
                 using (var lsaKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
@@ -873,133 +544,18 @@ namespace SionyxInstaller
                 {
                     if (lsaKey == null)
                     {
-                        session.Log("[ERROR] Cannot open HKLM\\SYSTEM\\...\\Lsa (null)");
+                        session.Log("[ERROR] Cannot open HKLM\\SYSTEM\\...\\Lsa");
+                        return;
                     }
-                    else
-                    {
-                        int before = (int?)lsaKey.GetValue("LimitBlankPasswordUse") ?? -1;
-                        session.Log($"  LimitBlankPasswordUse BEFORE = {before}");
-                        lsaKey.SetValue("LimitBlankPasswordUse", 0, RegistryValueKind.DWord);
-                        int after = (int?)lsaKey.GetValue("LimitBlankPasswordUse") ?? -1;
-                        session.Log($"  LimitBlankPasswordUse AFTER  = {after}");
 
-                        if (after == 0)
-                            session.Log("[OK] LimitBlankPasswordUse = 0 (verified)");
-                        else
-                            session.Log($"[ERROR] LimitBlankPasswordUse write failed! Expected 0, got {after}");
-                    }
+                    int value = enabled ? 1 : 0;
+                    lsaKey.SetValue("LimitBlankPasswordUse", value, RegistryValueKind.DWord);
+                    session.Log($"[OK] LimitBlankPasswordUse = {value}");
                 }
             }
             catch (Exception ex)
             {
-                session.Log($"[ERROR] LimitBlankPasswordUse exception: {ex.Message}");
-            }
-
-            // --- DevicePasswordLessBuildVersion ---
-            try
-            {
-                const string passwordlessKey =
-                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\PasswordLess\Device";
-                using (var pwKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                              .OpenSubKey(passwordlessKey, true))
-                {
-                    if (pwKey == null)
-                    {
-                        session.Log($"[WARN] Key {passwordlessKey} does not exist (OK on older Windows)");
-                    }
-                    else
-                    {
-                        int before = (int?)pwKey.GetValue("DevicePasswordLessBuildVersion") ?? -1;
-                        session.Log($"  DevicePasswordLessBuildVersion BEFORE = {before}");
-                        pwKey.SetValue("DevicePasswordLessBuildVersion", 0, RegistryValueKind.DWord);
-                        int after = (int?)pwKey.GetValue("DevicePasswordLessBuildVersion") ?? -1;
-                        session.Log($"  DevicePasswordLessBuildVersion AFTER  = {after}");
-
-                        if (after == 0)
-                            session.Log("[OK] DevicePasswordLessBuildVersion = 0 (verified)");
-                        else
-                            session.Log($"[ERROR] DevicePasswordLessBuildVersion write failed! Expected 0, got {after}");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                session.Log($"[ERROR] DevicePasswordLessBuildVersion exception: {ex.Message}");
-            }
-
-            // --- UserSwitch\Enabled ---
-            try
-            {
-                const string userSwitchKey =
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\UserSwitch";
-                using (var switchKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                                  .CreateSubKey(userSwitchKey))
-                {
-                    int before = (int?)switchKey.GetValue("Enabled") ?? -1;
-                    session.Log($"  UserSwitch\\Enabled BEFORE = {before}");
-                    switchKey.SetValue("Enabled", 1, RegistryValueKind.DWord);
-                    int after = (int?)switchKey.GetValue("Enabled") ?? -1;
-                    session.Log($"  UserSwitch\\Enabled AFTER  = {after}");
-
-                    if (after == 1)
-                        session.Log("[OK] UserSwitch\\Enabled = 1 (verified)");
-                    else
-                        session.Log($"[ERROR] UserSwitch\\Enabled write failed! Expected 1, got {after}");
-                }
-            }
-            catch (Exception ex)
-            {
-                session.Log($"[ERROR] UserSwitch\\Enabled exception: {ex.Message}");
-            }
-
-            // --- HideFastUserSwitching policy (overrides UserSwitch\Enabled) ---
-            try
-            {
-                const string logonKey =
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
-                using (var polKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                               .OpenSubKey(logonKey, true))
-                {
-                    if (polKey != null)
-                    {
-                        int? hfus = (int?)polKey.GetValue("HideFastUserSwitching");
-                        session.Log($"  HideFastUserSwitching = {hfus?.ToString() ?? "(not set)"}");
-                        if (hfus != null && hfus != 0)
-                        {
-                            polKey.SetValue("HideFastUserSwitching", 0, RegistryValueKind.DWord);
-                            session.Log("[OK] HideFastUserSwitching set to 0 (user switching enabled)");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                session.Log($"[ERROR] HideFastUserSwitching exception: {ex.Message}");
-            }
-
-            // --- SpecialAccounts\UserList: force SionyxUser tile to show ---
-            try
-            {
-                const string specialKey =
-                    @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList";
-                using (var saKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                              .CreateSubKey(specialKey))
-                {
-                    int? current = (int?)saKey.GetValue(KioskUsername);
-                    session.Log($"  SpecialAccounts\\UserList\\{KioskUsername} = {current?.ToString() ?? "(not set)"}");
-                    saKey.SetValue(KioskUsername, 1, RegistryValueKind.DWord);
-                    int after = (int?)saKey.GetValue(KioskUsername) ?? -1;
-                    session.Log($"  SpecialAccounts\\UserList\\{KioskUsername} AFTER = {after}");
-
-                    if (after == 1)
-                        session.Log("[OK] SionyxUser forced visible on login screen via SpecialAccounts");
-                    else
-                        session.Log($"[ERROR] SpecialAccounts write failed! Expected 1, got {after}");
-                }
-            }
-            catch (Exception ex)
-            {
-                session.Log($"[ERROR] SpecialAccounts exception: {ex.Message}");
+                session.Log($"[ERROR] LimitBlankPasswordUse: {ex.Message}");
             }
         }
 
@@ -1081,14 +637,12 @@ namespace SionyxInstaller
             string wmic = ResolvePath("wmic");
             if (File.Exists(wmic))
             {
-                session.Log("Using wmic to set password never expires...");
                 RunCommand("wmic",
                     $"useraccount where name=\"{username}\" set PasswordExpires=false",
                     session);
             }
             else
             {
-                session.Log("wmic not available, using PowerShell...");
                 RunCommand("powershell.exe",
                     $"-NoProfile -Command \"Set-LocalUser -Name '{username}' -PasswordNeverExpires $true\"",
                     session);
@@ -1114,16 +668,6 @@ namespace SionyxInstaller
             }
         }
 
-        private static void SetRegistryPolicy(Session session, string subKey, string name, int value)
-        {
-            using (var key = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                        .CreateSubKey(subKey))
-            {
-                key.SetValue(name, value, RegistryValueKind.DWord);
-                session.Log($"  Set {name} = {value}");
-            }
-        }
-
         private static void SetUserRegistryPolicy(Session session, string hiveKey, string subKey, string name, int value)
         {
             using (var hku = RegistryKey.OpenBaseKey(RegistryHive.Users, RegistryView.Registry64))
@@ -1132,49 +676,6 @@ namespace SionyxInstaller
                 key.SetValue(name, value, RegistryValueKind.DWord);
                 session.Log($"  Set {name} = {value} (per-user)");
             }
-        }
-
-        private static void CleanupLegacyRegistryKey(Session session, string subKey,
-            bool deleteTree = false, string valueName = null, string reason = null)
-        {
-            try
-            {
-                using (var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
-                {
-                    if (deleteTree)
-                    {
-                        baseKey.DeleteSubKeyTree(subKey, false);
-                    }
-                    else if (valueName != null)
-                    {
-                        using (var key = baseKey.OpenSubKey(subKey, true))
-                        {
-                            if (key?.GetValue(valueName) != null)
-                                key.DeleteValue(valueName, false);
-                            else
-                                return;
-                        }
-                    }
-                }
-
-                session.Log($"  [OK] Removed {reason ?? subKey}");
-            }
-            catch
-            {
-                // Key didn't exist or access denied -- nothing to clean
-            }
-        }
-
-        private static void CleanupMachineWidePolicies(Session session)
-        {
-            RemoveRegistryPolicy(session,
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer", "NoRun");
-            RemoveRegistryPolicy(session,
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableRegistryTools");
-            RemoveRegistryPolicy(session,
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableCMD");
-            RemoveRegistryPolicy(session,
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", "DisableTaskMgr");
         }
 
         private static void RemoveRegistryPolicy(Session session, string subKey, string name)
@@ -1219,14 +720,12 @@ namespace SionyxInstaller
         {
             string sid = GetUserSid(username);
 
-            // Delete user account
             if (UserExists(username, session))
             {
                 RunCommand("net", $"user \"{username}\" /delete", session);
                 session.Log($"[OK] User account '{username}' deleted");
             }
 
-            // Remove profile via WMI
             if (sid != null)
             {
                 try
@@ -1246,7 +745,6 @@ namespace SionyxInstaller
                     session.Log($"[WARN] WMI profile removal failed: {ex.Message}");
                 }
 
-                // Clean ProfileList registry
                 string profileRegPath = $@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\{sid}";
                 try
                 {
@@ -1259,7 +757,6 @@ namespace SionyxInstaller
                 catch { /* already clean */ }
             }
 
-            // Delete profile folder
             string profilePath = $@"C:\Users\{username}";
             if (Directory.Exists(profilePath))
             {
@@ -1274,36 +771,6 @@ namespace SionyxInstaller
                     RunCommand("cmd", $"/c rmdir /s /q \"{profilePath}\"", session);
                 }
             }
-
-            // Clean orphaned ProfileList entries
-            try
-            {
-                using (var profileList = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)
-                                                    .OpenSubKey(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"))
-                {
-                    if (profileList != null)
-                    {
-                        foreach (string subKeyName in profileList.GetSubKeyNames())
-                        {
-                            using (var entry = profileList.OpenSubKey(subKeyName))
-                            {
-                                string imagePath = entry?.GetValue("ProfileImagePath") as string;
-                                if (imagePath != null && imagePath.IndexOf(username, StringComparison.OrdinalIgnoreCase) >= 0)
-                                {
-                                    using (var baseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
-                                    {
-                                        baseKey.DeleteSubKeyTree(
-                                            $@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\{subKeyName}",
-                                            false);
-                                        session.Log($"[OK] Removed orphaned ProfileList entry: {subKeyName}");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch { /* best effort */ }
         }
     }
 }
