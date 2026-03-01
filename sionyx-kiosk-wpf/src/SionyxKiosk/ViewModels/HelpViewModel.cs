@@ -2,7 +2,6 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using SionyxKiosk.Infrastructure;
 using SionyxKiosk.Services;
 
 namespace SionyxKiosk.ViewModels;
@@ -12,8 +11,6 @@ public partial class HelpViewModel : ObservableObject
 {
     private readonly OrganizationMetadataService _orgService;
     private readonly OperatingHoursService _operatingHours;
-    private readonly FirebaseClient? _firebase;
-    private readonly string? _userId;
 
     [ObservableProperty] private string _adminPhone = "";
     [ObservableProperty] private string _adminEmail = "";
@@ -23,8 +20,6 @@ public partial class HelpViewModel : ObservableObject
     [ObservableProperty] private string _workingHoursLine1 = "טוען...";
     [ObservableProperty] private string _workingHoursLine2 = "";
     [ObservableProperty] private string _workingHoursLine3 = "";
-    [ObservableProperty] private string _feedbackText = "";
-    [ObservableProperty] private string _feedbackStatus = "";
 
     public ObservableCollection<FaqItem> FaqItems { get; } = new()
     {
@@ -35,13 +30,10 @@ public partial class HelpViewModel : ObservableObject
         new("שכחתי סיסמה", "פנה למנהל המערכת בטלפון או באימייל המוצגים למטה."),
     };
 
-    public HelpViewModel(OrganizationMetadataService orgService, OperatingHoursService operatingHours,
-        FirebaseClient? firebase = null, string? userId = null)
+    public HelpViewModel(OrganizationMetadataService orgService, OperatingHoursService operatingHours)
     {
         _orgService = orgService;
         _operatingHours = operatingHours;
-        _firebase = firebase;
-        _userId = userId;
     }
 
     [RelayCommand]
@@ -88,56 +80,6 @@ public partial class HelpViewModel : ObservableObject
             WorkingHoursLine1 = "24/7";
             WorkingHoursLine2 = "ללא הגבלת שעות";
             WorkingHoursLine3 = "";
-        }
-    }
-
-    [RelayCommand]
-    private async Task SendFeedbackAsync()
-    {
-        if (string.IsNullOrWhiteSpace(FeedbackText))
-        {
-            FeedbackStatus = "אנא כתוב הודעה לפני השליחה";
-            await Task.Delay(2000);
-            FeedbackStatus = "";
-            return;
-        }
-
-        if (_firebase == null)
-        {
-            FeedbackStatus = "שגיאה בשליחה - נסה שנית";
-            await Task.Delay(2000);
-            FeedbackStatus = "";
-            return;
-        }
-
-        try
-        {
-            var feedbackId = Guid.NewGuid().ToString("N");
-            var result = await _firebase.DbSetAsync($"feedback/{feedbackId}", new
-            {
-                text = FeedbackText.Trim(),
-                userId = _userId ?? "unknown",
-                timestamp = DateTime.UtcNow.ToString("o"),
-            });
-
-            if (result.Success)
-            {
-                FeedbackStatus = "המשוב נשלח בהצלחה, תודה!";
-                FeedbackText = "";
-            }
-            else
-            {
-                FeedbackStatus = "שגיאה בשליחה - נסה שנית";
-            }
-
-            await Task.Delay(3000);
-            FeedbackStatus = "";
-        }
-        catch
-        {
-            FeedbackStatus = "שגיאה בשליחה - נסה שנית";
-            await Task.Delay(3000);
-            FeedbackStatus = "";
         }
     }
 
