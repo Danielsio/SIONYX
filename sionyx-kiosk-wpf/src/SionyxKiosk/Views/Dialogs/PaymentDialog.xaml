@@ -23,7 +23,7 @@
             <Border CornerRadius="32" ClipToBounds="True">
                 <Grid x:Name="LayoutGrid">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition x:Name="SummaryColumn" Width="360" />
+                        <ColumnDefinition x:Name="SummaryColumn" Width="320" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 

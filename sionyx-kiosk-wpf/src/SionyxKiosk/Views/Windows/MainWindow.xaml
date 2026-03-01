@@ -122,7 +122,7 @@
 
         <!-- MAIN CONTENT -->
         <Grid Grid.Column="1" Background="{StaticResource BgPrimaryBrush}">
-            <Frame x:Name="ContentFrame" NavigationUIVisibility="Hidden" Margin="40,36" />
+            <Frame x:Name="ContentFrame" NavigationUIVisibility="Hidden" Margin="28,24" />
 
             <!-- Toast overlay (top of content area) -->
             <controls:ToastNotification x:Name="Toast"

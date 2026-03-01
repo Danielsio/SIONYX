@@ -1,7 +1,7 @@
 <UserControl x:Class="SionyxKiosk.Views.Controls.StatCard"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             MinWidth="160" MinHeight="90">
+             MinWidth="140" MinHeight="80">
     <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="18,16"
             SnapsToDevicePixels="True">
         <Border.Effect>
