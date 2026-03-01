@@ -58,7 +58,7 @@ public class KioskAppFixture : IDisposable
             $"Failed to get auth window after retries: {lastError?.Message}", lastError);
     }
 
-    public Window? WaitForWindowByTitle(string titleFragment, TimeSpan? timeout = null)
+    public Window? WaitForWindowByTitle(string title, TimeSpan? timeout = null, bool exact = false)
     {
         var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(30));
         while (DateTime.UtcNow < deadline)
@@ -66,8 +66,11 @@ public class KioskAppFixture : IDisposable
             try
             {
                 var windows = App.GetAllTopLevelWindows(Automation);
-                var match = windows.FirstOrDefault(w =>
-                    w.Title?.Contains(titleFragment, StringComparison.OrdinalIgnoreCase) == true);
+                var match = exact
+                    ? windows.FirstOrDefault(w =>
+                        string.Equals(w.Title, title, StringComparison.OrdinalIgnoreCase))
+                    : windows.FirstOrDefault(w =>
+                        w.Title?.Contains(title, StringComparison.OrdinalIgnoreCase) == true);
                 if (match != null) return match;
             }
             catch
