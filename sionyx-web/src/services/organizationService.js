@@ -14,11 +14,6 @@ import { logger } from '../utils/logger';
  * - Getting organization statistics for the admin dashboard
  */
 
-// Base64 encoding for NEDARIM credentials (stored in Firebase RTDB behind security rules)
-const encodeData = data => {
-  return btoa(JSON.stringify(data));
-};
-
 const decodeData = encodedData => {
   try {
     return JSON.parse(atob(encodedData));
@@ -106,7 +101,7 @@ export const getOrganizationMetadata = async orgId => {
         // Try new Cloud Function format first
         decodedMosadId = decodeCloudFunctionData(data.nedarim_mosad_id);
         decodedApiValid = decodeCloudFunctionData(data.nedarim_api_valid);
-      } catch (error) {
+      } catch {
         // Fall back to old format
         decodedMosadId = decodeData(data.nedarim_mosad_id);
         decodedApiValid = decodeData(data.nedarim_api_valid);

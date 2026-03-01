@@ -74,9 +74,6 @@ describe('ErrorBoundary', () => {
   });
 
   it('shows error details in development mode', () => {
-    // Mock import.meta.env.DEV to true
-    const originalDev = import.meta.env.DEV;
-
     // In test environment, DEV should be true
     render(
       <ErrorBoundary>
@@ -92,13 +89,9 @@ describe('ErrorBoundary', () => {
   });
 
   it('captures error info in state', () => {
-    let errorBoundaryRef;
-
     render(
       <ErrorBoundary
-        ref={ref => {
-          errorBoundaryRef = ref;
-        }}
+        ref={() => {}}
       >
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>

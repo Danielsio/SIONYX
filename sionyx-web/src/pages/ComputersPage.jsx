@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   Card,
   Tabs,
@@ -37,7 +37,6 @@ import {
 } from '../services/computerService';
 import { subscribeToComputers, subscribeToUsers } from '../services/realtimeService';
 import { getUserStatus, getStatusLabel, getStatusColor } from '../constants/userStatus';
-import { useAuthStore } from '../store/authStore';
 import { useOrgId } from '../hooks/useOrgId';
 import { logger } from '../utils/logger';
 
@@ -66,7 +65,6 @@ const ComputersPage = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [actionLoading, setActionLoading] = useState({});
 
-  const user = useAuthStore(state => state.user);
   const orgId = useOrgId();
 
   useEffect(() => {
@@ -205,8 +203,6 @@ const ComputersPage = () => {
   // User Card Component - for active users display
   const UserCard = ({ user }) => {
     const [expanded, setExpanded] = useState(false);
-    const remainingColor =
-      user.remainingTime > 3600 ? '#52c41a' : user.remainingTime > 1800 ? '#faad14' : '#ff4d4f';
 
     // Use centralized status logic - map activeUsers data to getUserStatus format
     // Users in activeUsers list are always logged in (isLoggedIn: true)

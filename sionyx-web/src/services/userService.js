@@ -1,4 +1,4 @@
-import { ref, get, update, remove } from 'firebase/database';
+import { ref, get, update } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
 import { database, functions } from '../config/firebase';
 import { useAuthStore } from '../store/authStore';

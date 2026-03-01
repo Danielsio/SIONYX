@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useRef, memo, useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 
 // Detect if we should use reduced animations (large screens need lighter animations)
 const usePerformanceMode = () => {

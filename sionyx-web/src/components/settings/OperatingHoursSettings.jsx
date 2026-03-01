@@ -156,10 +156,6 @@ const OperatingHoursSettings = () => {
   const { message } = App.useApp();
   const orgId = useOrgId();
 
-  useEffect(() => {
-    loadSettings();
-  }, [orgId]);
-
   const loadSettings = async () => {
     setLoading(true);
 
@@ -186,6 +182,10 @@ const OperatingHoursSettings = () => {
 
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadSettings();
+  }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
     try {

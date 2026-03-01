@@ -4,7 +4,7 @@
  */
 
 import { memo, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 
 // Letter-by-letter animation component
 const AnimatedLetters = memo(({ text, delay = 0, stagger = 0.03, style = {}, className = '' }) => {
@@ -259,7 +259,7 @@ const AnimatedText = memo(
   ({
     children,
     mode = 'letters', // letters, words, gradient, glow, typewriter
-    as: Component = 'span',
+    as: _Component = 'span',
     ...props
   }) => {
     const text = typeof children === 'string' ? children : '';

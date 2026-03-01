@@ -18,14 +18,12 @@ vi.mock('../store/notificationStore', () => ({
 describe('realtimeService', () => {
   let mockUnsubscribe;
   let onValueCallback;
-  let onValueErrorCallback;
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockUnsubscribe = vi.fn();
-    onValue.mockImplementation((refArg, callback, errorCallback) => {
+    onValue.mockImplementation((refArg, callback, _errorCallback) => {
       onValueCallback = callback;
-      onValueErrorCallback = errorCallback;
       return mockUnsubscribe;
     });
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ref, get, update, remove } from 'firebase/database';
+import { get, update } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
 import {
   getAllUsers,

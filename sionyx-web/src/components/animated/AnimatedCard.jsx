@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, memo } from 'react';
-import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion'; // eslint-disable-line no-unused-vars
 
 const AnimatedCard = memo(
   ({

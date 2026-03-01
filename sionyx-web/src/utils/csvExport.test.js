@@ -22,7 +22,7 @@ describe('csvExport', () => {
     });
 
     vi.stubGlobal('document', {
-      createElement: (tag) => {
+      createElement: (_tag) => {
         const el = { href: '', download: '', click: () => { clickedLink = el; } };
         return el;
       },
@@ -151,25 +151,21 @@ describe('csvExport', () => {
 describe('exportToExcel', () => {
   let clickedLink;
   let createdUrl;
-  let revokedUrl;
 
   beforeEach(() => {
     clickedLink = null;
     createdUrl = null;
-    revokedUrl = null;
 
     vi.stubGlobal('URL', {
       createObjectURL: blob => {
         createdUrl = blob;
         return 'blob:mock-url';
       },
-      revokeObjectURL: url => {
-        revokedUrl = url;
-      },
+      revokeObjectURL: () => {},
     });
 
     vi.stubGlobal('document', {
-      createElement: tag => {
+      createElement: (_tag) => {
         const el = { href: '', download: '', click: () => { clickedLink = el; } };
         return el;
       },

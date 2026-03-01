@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   Card,
   Tag,
@@ -27,7 +28,6 @@ import {
   DatePicker,
   Select,
 } from 'antd';
-import { motion } from 'framer-motion';
 import {
   getStatusLabel as getPurchaseStatusLabel,
   getStatusColor as getPurchaseStatusColor,
@@ -135,10 +135,6 @@ const UsersPage = () => {
   const { message } = App.useApp();
   const orgId = useOrgId();
 
-  useEffect(() => {
-    loadUsers();
-  }, [orgId]);
-
   const loadUsers = async () => {
     setLoading(true);
 
@@ -162,6 +158,10 @@ const UsersPage = () => {
 
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadUsers();
+  }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleViewUser = async record => {
     setSelectedUser(record);
@@ -463,7 +463,6 @@ const UsersPage = () => {
   // User Card Component - Enhanced with premium styling
   const UserCard = ({ userRecord, index = 0 }) => {
     const status = getUserStatus(userRecord);
-    const statusColor = getUserStatusColor(status);
     const statusLabel = getUserStatusLabel(status);
     const userName =
       `${userRecord.firstName || ''} ${userRecord.lastName || ''}`.trim() || 'לא זמין';

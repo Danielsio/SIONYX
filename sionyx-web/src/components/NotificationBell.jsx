@@ -20,7 +20,7 @@ const TYPE_ICONS = {
   system: <SettingOutlined style={{ color: '#8c8c8c' }} />,
 };
 
-const NotificationBell = ({ darkMode }) => {
+const NotificationBell = ({ darkMode: _darkMode }) => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotificationStore();
 
   const content = (

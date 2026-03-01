@@ -27,18 +27,18 @@ vi.mock('../components/animated', () => {
       children,
       onClick,
       icon,
-      loading,
-      fullWidth,
-      variant,
-      size,
-      magnetic,
+      _loading,
+      _fullWidth,
+      _variant,
+      _size,
+      _magnetic,
       ...props
     }) => React.createElement('button', { onClick, ...props }, icon, children),
-    AnimatedCard: ({ children, onClick, tilt, glow, entrance, delay, variant, ...props }) =>
+    AnimatedCard: ({ children, onClick, _tilt, _glow, _entrance, _delay, _variant, ...props }) =>
       React.createElement('div', { onClick, ...props }, children),
-    GlowingText: ({ children, color, glowIntensity, pulse }) =>
+    GlowingText: ({ children, _color, _glowIntensity, _pulse }) =>
       React.createElement('span', null, children),
-    GradientText: ({ children, gradient, animate }) => React.createElement('span', null, children),
+    GradientText: ({ children, _gradient, _animate }) => React.createElement('span', null, children),
   };
 });
 
@@ -216,7 +216,7 @@ describe('LandingPage', () => {
 
   it('handles registration form submission', async () => {
     const user = userEvent.setup();
-    const { mockNavigate } = renderLandingPage();
+    renderLandingPage();
 
     // Open the modal
     const registerButton = screen.getAllByText(/התחל עכשיו/)[0];
@@ -392,13 +392,12 @@ describe('LandingPage', () => {
 
     // Make gsap.context execute its callback AND verify fromTo args
     const fromToCalls = [];
-    const origFromTo = gsap.default.fromTo;
     gsap.default.fromTo.mockImplementation((...args) => {
       fromToCalls.push(args[0]);
       if (!args[0]) throw new Error('GSAP: Cannot tween a null target');
     });
 
-    gsap.default.context.mockImplementation((cb, scope) => {
+    gsap.default.context.mockImplementation((cb, _scope) => {
       cb();
       return { revert: vi.fn() };
     });

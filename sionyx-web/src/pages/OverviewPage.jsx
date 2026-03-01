@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   Card,
   Row,
@@ -16,7 +17,6 @@ import {
   Switch,
   Segmented,
 } from 'antd';
-import { motion } from 'framer-motion';
 import dayjs from 'dayjs';
 import 'dayjs/locale/he';
 import {
@@ -86,14 +86,14 @@ const loadWidgetVisibility = () => {
       const parsed = JSON.parse(stored);
       return { ...Object.fromEntries(Object.keys(WIDGET_DEFINITIONS).map(k => [k, WIDGET_DEFINITIONS[k].default])), ...parsed };
     }
-  } catch (_) { /* localStorage unavailable */ }
+  } catch { /* localStorage unavailable */ }
   return Object.fromEntries(Object.keys(WIDGET_DEFINITIONS).map(k => [k, WIDGET_DEFINITIONS[k].default]));
 };
 
 const saveWidgetVisibility = visibility => {
   try {
     localStorage.setItem(DASHBOARD_WIDGETS_KEY, JSON.stringify(visibility));
-  } catch (_) { /* localStorage unavailable */ }
+  } catch { /* localStorage unavailable */ }
 };
 
 // Animation variants for staggered children
@@ -127,7 +127,7 @@ const OverviewPage = () => {
     colorPrice: 3.0,
   });
   const [recentUsers, setRecentUsers] = useState([]);
-  const [allUsers, setAllUsers] = useState([]);
+  const [, setAllUsers] = useState([]);
   const [computerStats, setComputerStats] = useState(null);
   const [revenueRangeDays, setRevenueRangeDays] = useState(7);
   const [widgetVisibility, setWidgetVisibility] = useState(loadWidgetVisibility);
@@ -256,14 +256,7 @@ const OverviewPage = () => {
     return stats?.usersCount ? 0 : 0;
   }, [recentUsers, stats?.usersCount]);
 
-  const allUsersForMetrics = useMemo(() => {
-    const active = recentUsers;
-    const total = stats?.usersCount || 0;
-    return { active, total };
-  }, [recentUsers, stats?.usersCount]);
-
   const newUsersCounts = useMemo(() => {
-    const purchases = stats?.purchases || [];
     const users = recentUsers;
     const now = dayjs();
     const weekAgo = now.subtract(7, 'day');
@@ -533,7 +526,7 @@ const OverviewPage = () => {
                           verticalAlign='bottom'
                           iconType='circle'
                           iconSize={10}
-                          formatter={(value, entry) => {
+                          formatter={(value, _entry) => {
                             const item = packageChartData.find(d => d.name === value);
                             const total = packageChartData.reduce((s, d) => s + d.value, 0);
                             const pct = total > 0 ? Math.round((item?.value || 0) / total * 100) : 0;

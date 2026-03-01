@@ -1,10 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 describe('logger', () => {
-  let originalEnv;
-
   beforeEach(() => {
-    originalEnv = import.meta.env.DEV;
     vi.restoreAllMocks();
   });
 
