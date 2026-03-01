@@ -14,7 +14,7 @@ import {
   Tooltip,
   Breadcrumb,
 } from 'antd';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   DashboardOutlined,
   UserOutlined,

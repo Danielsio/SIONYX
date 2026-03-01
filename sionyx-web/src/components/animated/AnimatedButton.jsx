@@ -4,7 +4,7 @@
  */
 
 import { useRef, useState, useCallback, memo } from 'react';
-import { motion, useSpring, useTransform } from 'framer-motion';
+import { motion, useSpring } from 'framer-motion'; // eslint-disable-line no-unused-vars
 
 const AnimatedButton = memo(
   ({
@@ -28,9 +28,6 @@ const AnimatedButton = memo(
     const x = useSpring(0, { stiffness: 150, damping: 15 });
     const y = useSpring(0, { stiffness: 150, damping: 15 });
     const scale = useSpring(1, { stiffness: 400, damping: 25 });
-
-    // Glow intensity based on hover
-    const glowOpacity = useTransform(scale, [1, 1.05], [0.3, 0.8]);
 
     const handleMouseMove = useCallback(
       e => {

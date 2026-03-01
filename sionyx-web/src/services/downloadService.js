@@ -210,7 +210,7 @@ export const formatReleaseDate = dateString => {
       month: 'long',
       day: 'numeric',
     });
-  } catch (error) {
+  } catch {
     return 'תאריך לא ידוע';
   }
 };

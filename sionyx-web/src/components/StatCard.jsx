@@ -5,7 +5,7 @@
  */
 
 import { Card, Statistic, Typography } from 'antd';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 
 const { Text } = Typography;
 
@@ -347,7 +347,7 @@ export const MiniStatCard = ({ label, value, icon, color = 'primary', style = {}
 /**
  * InfoStatCard - For displaying key-value info with icon
  */
-export const InfoStatCard = ({ title, children, icon, extra, style = {} }) => {
+export const InfoStatCard = ({ title, children, icon: _icon, extra, style = {} }) => {
   return (
     <Card
       title={title}

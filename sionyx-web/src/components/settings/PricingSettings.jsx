@@ -52,10 +52,6 @@ const PricingSettings = () => {
   const { message } = App.useApp();
   const orgId = useOrgId();
 
-  useEffect(() => {
-    loadPricing();
-  }, [orgId]);
-
   const loadPricing = async () => {
     setLoading(true);
 
@@ -79,6 +75,10 @@ const PricingSettings = () => {
 
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadPricing();
+  }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
     try {

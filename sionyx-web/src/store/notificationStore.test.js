@@ -7,7 +7,7 @@ describe('notificationStore', () => {
   });
 
   it('addNotification adds a notification with id, timestamp, read: false', () => {
-    const { addNotification, notifications } = useNotificationStore.getState();
+    const { addNotification } = useNotificationStore.getState();
     addNotification({ type: 'message', message: 'Test notification' });
 
     const state = useNotificationStore.getState();

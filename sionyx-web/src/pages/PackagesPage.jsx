@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   Card,
   Button,
@@ -79,10 +79,6 @@ const PackagesPage = () => {
   } = useDataStore();
   const orgId = useOrgId();
 
-  useEffect(() => {
-    loadPackages();
-  }, [orgId]);
-
   const loadPackages = async () => {
     setLoading(true);
 
@@ -100,6 +96,10 @@ const PackagesPage = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadPackages();
+  }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreate = () => {
     setEditingPackage(null);

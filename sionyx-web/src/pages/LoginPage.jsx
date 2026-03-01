@@ -10,7 +10,7 @@ const { Title, Text } = Typography;
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [, setFailedAttempts] = useState(0);
   const [cooldown, setCooldown] = useState(0);
   const navigate = useNavigate();
   const setUser = useAuthStore(state => state.setUser);
@@ -113,7 +113,7 @@ const LoginPage = () => {
               rules={[
                 { required: true, message: 'אנא הזן את מספר הטלפון שלך' },
                 {
-                  pattern: /^[\d\s\-\+\(\)]+$/,
+                  pattern: /^[\d\s\-+()]+$/,
                   message: 'אנא הזן מספר טלפון תקין',
                 },
               ]}

@@ -18,7 +18,7 @@ vi.mock('../../hooks/useOrgId', () => ({
 vi.mock('dayjs', () => {
   const createDayjsInstance = date => {
     const instance = {
-      format: fmt => (typeof date === 'string' ? date : '06:00'),
+      format: _fmt => (typeof date === 'string' ? date : '06:00'),
       isValid: () => true,
       hour: () => 6,
       minute: () => 0,

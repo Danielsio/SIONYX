@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   Card,
   Button,
@@ -117,10 +117,6 @@ const AnnouncementsPage = () => {
   const { message } = App.useApp();
   const orgId = useOrgId();
 
-  useEffect(() => {
-    loadAnnouncements();
-  }, [orgId]);
-
   const loadAnnouncements = async () => {
     setLoading(true);
     if (!orgId) {
@@ -136,6 +132,10 @@ const AnnouncementsPage = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    loadAnnouncements();
+  }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCreate = () => {
     setEditingItem(null);

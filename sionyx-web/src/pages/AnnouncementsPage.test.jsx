@@ -3,13 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App as AntApp } from 'antd';
 import AnnouncementsPage from './AnnouncementsPage';
-import {
-  getAllAnnouncements,
-  createAnnouncement,
-  updateAnnouncement,
-  deleteAnnouncement,
-  toggleAnnouncementActive,
-} from '../services/announcementService';
+import { getAllAnnouncements } from '../services/announcementService';
 
 vi.mock('../services/announcementService');
 const mockUseOrgId = vi.fn(() => 'my-org');

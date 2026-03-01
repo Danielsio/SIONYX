@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ref, get, set, update, remove, push } from 'firebase/database';
+import { get, set, update, remove, push } from 'firebase/database';
 import {
   getAllPackages,
   createPackage,

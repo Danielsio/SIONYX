@@ -41,7 +41,7 @@ function App() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [setUser, setLoading]);
 
   const LoadingFallback = () => (
     <div

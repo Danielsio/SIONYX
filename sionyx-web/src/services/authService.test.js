@@ -4,7 +4,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { ref, get, set } from 'firebase/database';
+import { get, set } from 'firebase/database';
 import { signInAdmin, signOut, getCurrentAdminData, onAuthChange } from './authService';
 import { auth } from '../config/firebase';
 
@@ -54,7 +54,7 @@ describe('authService', () => {
         exists: () => false,
       });
 
-      const result = await signInAdmin('1234567890', 'password', 'my-org-123');
+      await signInAdmin('1234567890', 'password', 'my-org-123');
 
       // Should fail because user doesn't exist in org, but orgId validation passed
       expect(signInWithEmailAndPassword).toHaveBeenCalled();
