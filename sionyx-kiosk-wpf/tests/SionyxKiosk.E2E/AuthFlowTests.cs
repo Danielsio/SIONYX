@@ -1,13 +1,13 @@
 using FlaUI.Core.AutomationElements;
 using FlaUI.Core.Input;
-using FlaUI.Core.WindowsAPI;
 using FluentAssertions;
 using SionyxKiosk.E2E.Fixtures;
 
 namespace SionyxKiosk.E2E;
 
 [Trait("Category", "E2E")]
-public class AuthFlowTests : IClassFixture<KioskAppFixture>
+[Collection("KioskApp")]
+public class AuthFlowTests
 {
     private readonly KioskAppFixture _app;
     private readonly string? _phone;
@@ -22,32 +22,33 @@ public class AuthFlowTests : IClassFixture<KioskAppFixture>
 
     private bool HasCredentials => !string.IsNullOrEmpty(_phone) && !string.IsNullOrEmpty(_password);
 
+    private Window? DoLogin()
+    {
+        var authWindow = _app.GetAuthWindow();
+
+        var phoneInput = authWindow.FindFirstDescendant(cf => cf.ByAutomationId("LoginPhoneInput"))?.AsTextBox();
+        if (phoneInput == null) return null;
+        phoneInput.Text = _phone!;
+
+        var passwordInput = authWindow.FindFirstDescendant(cf => cf.ByAutomationId("LoginPasswordInput"));
+        if (passwordInput == null) return null;
+        passwordInput.Focus();
+        Keyboard.Type(_password!);
+
+        var loginButton = authWindow.FindFirstDescendant(cf => cf.ByAutomationId("LoginButton"))?.AsButton();
+        if (loginButton == null) return null;
+        loginButton.Click();
+
+        return _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(30));
+    }
+
     [Fact]
     public void Login_ShouldShowMainWindow()
     {
         if (!HasCredentials)
-        {
-            // No test credentials configured -- skip gracefully
             return;
-        }
 
-        var authWindow = _app.GetAuthWindow();
-
-        var phoneInput = authWindow.FindFirstDescendant(cf => cf.ByAutomationId("LoginPhoneInput"))?.AsTextBox();
-        phoneInput.Should().NotBeNull();
-        phoneInput!.Text = _phone!;
-
-        var passwordInput = authWindow.FindFirstDescendant(cf => cf.ByAutomationId("LoginPasswordInput"));
-        passwordInput.Should().NotBeNull();
-        passwordInput!.Focus();
-        Keyboard.Type(_password!);
-
-        var loginButton = authWindow.FindFirstDescendant(cf => cf.ByAutomationId("LoginButton"))?.AsButton();
-        loginButton.Should().NotBeNull();
-        loginButton!.Click();
-
-        // Wait for main window (auth window closes, main window opens)
-        var mainWindow = _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(30));
+        var mainWindow = DoLogin();
         mainWindow.Should().NotBeNull("main window should appear after successful login");
         mainWindow!.Title.Should().Be("SIONYX");
     }
@@ -58,10 +59,16 @@ public class AuthFlowTests : IClassFixture<KioskAppFixture>
         if (!HasCredentials)
             return;
 
+        // Ensure we're logged in (may already be from Login_ShouldShowMainWindow)
         var mainWindow = _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(5));
         if (mainWindow == null)
         {
-            // Login test didn't run or failed -- skip
+            mainWindow = DoLogin();
+        }
+
+        if (mainWindow == null)
+        {
+            // Login failed -- skip rather than false-fail
             return;
         }
 

@@ -4,7 +4,8 @@ using SionyxKiosk.E2E.Fixtures;
 namespace SionyxKiosk.E2E;
 
 [Trait("Category", "E2E")]
-public class SmokeTests : IClassFixture<KioskAppFixture>
+[Collection("KioskApp")]
+public class SmokeTests
 {
     private readonly KioskAppFixture _app;
 
