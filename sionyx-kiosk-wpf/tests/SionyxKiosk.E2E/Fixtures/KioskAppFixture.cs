@@ -17,8 +17,7 @@ public class KioskAppFixture : IDisposable
         var exePath = FindExe();
         App = Application.Launch(exePath);
 
-        // Give the app a moment to start (or crash)
-        Thread.Sleep(3000);
+        Thread.Sleep(5000);
 
         try
         {
@@ -39,7 +38,24 @@ public class KioskAppFixture : IDisposable
         if (LaunchError != null)
             throw new InvalidOperationException($"App failed to start: {LaunchError}");
 
-        return App.GetMainWindow(Automation, timeout ?? TimeSpan.FromSeconds(30));
+        var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(30));
+        Exception? lastError = null;
+
+        while (DateTime.UtcNow < deadline)
+        {
+            try
+            {
+                return App.GetMainWindow(Automation, TimeSpan.FromSeconds(5));
+            }
+            catch (Exception ex) when (ex.Message.Contains("E_FAIL") || ex.Message.Contains("COM"))
+            {
+                lastError = ex;
+                Thread.Sleep(1000);
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"Failed to get auth window after retries: {lastError?.Message}", lastError);
     }
 
     public Window? WaitForWindowByTitle(string titleFragment, TimeSpan? timeout = null)
@@ -47,10 +63,17 @@ public class KioskAppFixture : IDisposable
         var deadline = DateTime.UtcNow + (timeout ?? TimeSpan.FromSeconds(30));
         while (DateTime.UtcNow < deadline)
         {
-            var windows = App.GetAllTopLevelWindows(Automation);
-            var match = windows.FirstOrDefault(w =>
-                w.Title?.Contains(titleFragment, StringComparison.OrdinalIgnoreCase) == true);
-            if (match != null) return match;
+            try
+            {
+                var windows = App.GetAllTopLevelWindows(Automation);
+                var match = windows.FirstOrDefault(w =>
+                    w.Title?.Contains(titleFragment, StringComparison.OrdinalIgnoreCase) == true);
+                if (match != null) return match;
+            }
+            catch
+            {
+                // COM errors can happen transiently
+            }
             Thread.Sleep(500);
         }
         return null;
