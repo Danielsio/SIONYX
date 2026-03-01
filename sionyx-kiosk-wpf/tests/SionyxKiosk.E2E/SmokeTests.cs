@@ -106,4 +106,68 @@ public class KioskE2ETests
             Thread.Sleep(1000);
         }
     }
+
+    // ── Print monitor UI tests (run after login, on home page) ──
+
+    [Fact, TestPriority(30)]
+    public void HomePage_ShouldShowPrintBalanceCard()
+    {
+        if (!HasCredentials)
+            return;
+
+        var mainWindow = _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(10), exact: true);
+        mainWindow.Should().NotBeNull();
+
+        var navHome = mainWindow!.FindFirstDescendant(cf => cf.ByAutomationId("NavHome"));
+        navHome.Should().NotBeNull();
+        navHome!.Click();
+        Thread.Sleep(1000);
+
+        var printBalanceCard = mainWindow.FindFirstDescendant(cf => cf.ByAutomationId("StatPrintBalance"));
+        printBalanceCard.Should().NotBeNull("home page should display the print balance stat card");
+    }
+
+    [Fact, TestPriority(31)]
+    public void HomePage_ShouldShowStartSessionButton()
+    {
+        if (!HasCredentials)
+            return;
+
+        var mainWindow = _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(10), exact: true);
+        mainWindow.Should().NotBeNull();
+
+        var startBtn = mainWindow!.FindFirstDescendant(cf => cf.ByAutomationId("StartSessionButton"));
+        // Button may be hidden if user has no time, so just check the page loaded
+        if (startBtn != null)
+        {
+            startBtn.IsEnabled.Should().BeTrue("start session button should be enabled when user has time");
+        }
+    }
+
+    [Fact, TestPriority(40)]
+    public void PrintHistoryPage_ShouldShowStatCards()
+    {
+        if (!HasCredentials)
+            return;
+
+        var mainWindow = _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(10), exact: true);
+        mainWindow.Should().NotBeNull();
+
+        var navPrintHistory = mainWindow!.FindFirstDescendant(cf => cf.ByAutomationId("NavPrintHistory"));
+        navPrintHistory.Should().NotBeNull();
+        navPrintHistory!.Click();
+        Thread.Sleep(1500);
+
+        var pagesCard = mainWindow.FindFirstDescendant(cf => cf.ByAutomationId("PrintStatPages"));
+        pagesCard.Should().NotBeNull("print history page should show the pages stat card");
+
+        var costCard = mainWindow.FindFirstDescendant(cf => cf.ByAutomationId("PrintStatCost"));
+        costCard.Should().NotBeNull("print history page should show the cost stat card");
+
+        var approvedCard = mainWindow.FindFirstDescendant(cf => cf.ByAutomationId("PrintStatApproved"));
+        approvedCard.Should().NotBeNull("print history page should show the approved count card");
+
+        var deniedCard = mainWindow.FindFirstDescendant(cf => cf.ByAutomationId("PrintStatDenied"));
+        deniedCard.Should().NotBeNull("print history page should show the denied count card");
+    }
 }

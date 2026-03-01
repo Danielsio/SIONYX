@@ -22,19 +22,23 @@
 
         <!-- Pinned: Summary stats -->
         <UniformGrid Grid.Row="1" Rows="1" Margin="0,0,0,24">
-            <controls:StatCard Title="עמודים" Value="{Binding TotalPages}" Icon="📄"
+            <controls:StatCard AutomationProperties.AutomationId="PrintStatPages"
+                               Title="עמודים" Value="{Binding TotalPages}" Icon="📄"
                                AccentColor="{StaticResource StatBlueColor}"
                                AccentBgColor="{StaticResource StatBlueBgColor}"
                                Margin="0,0,8,0" />
-            <controls:StatCard Title="עלות כוללת" Value="{Binding TotalCost, StringFormat='₪{0:F2}'}" Icon="💰"
+            <controls:StatCard AutomationProperties.AutomationId="PrintStatCost"
+                               Title="עלות כוללת" Value="{Binding TotalCost, StringFormat='₪{0:F2}'}" Icon="💰"
                                AccentColor="{StaticResource StatOrangeColor}"
                                AccentBgColor="{StaticResource StatOrangeBgColor}"
                                Margin="4,0" />
-            <controls:StatCard Title="אושרו" Value="{Binding ApprovedCount}" Icon="✅"
+            <controls:StatCard AutomationProperties.AutomationId="PrintStatApproved"
+                               Title="אושרו" Value="{Binding ApprovedCount}" Icon="✅"
                                AccentColor="{StaticResource StatGreenColor}"
                                AccentBgColor="{StaticResource StatGreenBgColor}"
                                Margin="4,0" />
-            <controls:StatCard Title="נדחו" Value="{Binding DeniedCount}" Icon="❌"
+            <controls:StatCard AutomationProperties.AutomationId="PrintStatDenied"
+                               Title="נדחו" Value="{Binding DeniedCount}" Icon="❌"
                                AccentColor="{StaticResource StatRedColor}"
                                AccentBgColor="{StaticResource StatRedBgColor}"
                                Margin="8,0,0,0" />
