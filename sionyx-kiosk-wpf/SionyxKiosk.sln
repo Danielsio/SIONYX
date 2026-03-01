@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -16,6 +16,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomActions", "installer\CustomActions\CustomActions.csproj", "{E5A1B2C3-D4F5-4A6B-8C7D-9E0F1A2B3C4E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SionyxInstaller", "installer\SionyxInstaller.wixproj", "{F6B2C3D4-E5A1-4B7C-9D8E-0F1A2B3C4D5F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SionyxKiosk.E2E", "tests\SionyxKiosk.E2E\SionyxKiosk.E2E.csproj", "{DE0BC97A-7BD9-461E-A175-EBB3E9DFF37C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -58,11 +60,20 @@ Global
 		{F6B2C3D4-E5A1-4B7C-9D8E-0F1A2B3C4D5F}.Release|Any CPU.ActiveCfg = Release|x64
 		{F6B2C3D4-E5A1-4B7C-9D8E-0F1A2B3C4D5F}.Release|x64.ActiveCfg = Release|x64
 		{F6B2C3D4-E5A1-4B7C-9D8E-0F1A2B3C4D5F}.Release|x64.Build.0 = Release|x64
+		{DE0BC97A-7BD9-461E-A175-EBB3E9DFF37C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE0BC97A-7BD9-461E-A175-EBB3E9DFF37C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE0BC97A-7BD9-461E-A175-EBB3E9DFF37C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DE0BC97A-7BD9-461E-A175-EBB3E9DFF37C}.Debug|x64.Build.0 = Debug|Any CPU
+		{DE0BC97A-7BD9-461E-A175-EBB3E9DFF37C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE0BC97A-7BD9-461E-A175-EBB3E9DFF37C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE0BC97A-7BD9-461E-A175-EBB3E9DFF37C}.Release|x64.ActiveCfg = Release|Any CPU
+		{DE0BC97A-7BD9-461E-A175-EBB3E9DFF37C}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{BA17CD22-BB33-4F40-81A1-E667364102CA} = {77A3DE2A-F044-4E2F-939B-2E412E681AD1}
 		{18EF8711-83DB-4598-9CB1-6D00188F8579} = {A02AD732-6C7E-4840-AF87-8C5ABB17EDC6}
 		{E5A1B2C3-D4F5-4A6B-8C7D-9E0F1A2B3C4E} = {D3F8A1B2-C4E5-4F6A-B7D8-9E0F1A2B3C4D}
 		{F6B2C3D4-E5A1-4B7C-9D8E-0F1A2B3C4D5F} = {D3F8A1B2-C4E5-4F6A-B7D8-9E0F1A2B3C4D}
+		{DE0BC97A-7BD9-461E-A175-EBB3E9DFF37C} = {A02AD732-6C7E-4840-AF87-8C5ABB17EDC6}
 	EndGlobalSection
 EndGlobal

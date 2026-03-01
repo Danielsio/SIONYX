@@ -43,7 +43,45 @@ jobs:
 
       - name: Test
         working-directory: sionyx-kiosk-wpf
-        run: dotnet test
+        run: dotnet test --filter "Category!=E2E"
+
+  kiosk-e2e:
+    runs-on: windows-latest
+    needs: [kiosk-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.x"
+
+      - name: Generate .env for E2E
+        shell: pwsh
+        run: |
+          @"
+          FIREBASE_API_KEY=AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c
+          FIREBASE_AUTH_DOMAIN=sionyx-19636.firebaseapp.com
+          FIREBASE_PROJECT_ID=sionyx-19636
+          FIREBASE_DATABASE_URL=https://sionyx-19636-default-rtdb.europe-west1.firebasedatabase.app
+          FIREBASE_STORAGE_BUCKET=sionyx-19636.firebasestorage.app
+          FIREBASE_MESSAGING_SENDER_ID=961130757239
+          FIREBASE_APP_ID=1:961130757239:web:1a87dffcea40aac13f1a72
+          FIREBASE_MEASUREMENT_ID=G-ZEM9LH1301
+          FIREBASE_ORG_ID=sionov
+          NEDARIM_CALLBACK_URL=https://us-central1-sionyx-19636.cloudfunctions.net/nedarimCallback
+          "@ | Set-Content .env
+
+      - name: Build kiosk app
+        working-directory: sionyx-kiosk-wpf
+        run: dotnet build src/SionyxKiosk/SionyxKiosk.csproj
+
+      - name: Run E2E smoke tests
+        working-directory: sionyx-kiosk-wpf
+        env:
+          SIONYX_E2E_PHONE: ${{ secrets.E2E_TEST_PHONE }}
+          SIONYX_E2E_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+        run: dotnet test tests/SionyxKiosk.E2E --verbosity normal
 
   installer-test:
     runs-on: windows-latest
