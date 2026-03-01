@@ -267,7 +267,8 @@ namespace SionyxInstaller
 
         /// <summary>
         /// Post-install verification: checks user, profile, task, exe, and registry.
-        /// Writes results to install.log and shows a summary MessageBox.
+        /// Writes results to install.log. Only shows a MessageBox if errors are found;
+        /// on success, the WiX finish page shows next steps.
         /// </summary>
         [CustomAction]
         public static ActionResult VerifyInstallation(Session session)
@@ -409,35 +410,31 @@ namespace SionyxInstaller
                 try { File.WriteAllText(logFile, log.ToString()); }
                 catch { session.Log("[WARN] Could not write install.log"); }
 
-                // Show MessageBox (skip in silent mode)
-                string uiLevelStr = session.CustomActionData.ContainsKey("UILEVEL")
-                    ? session.CustomActionData["UILEVEL"] : "5";
-                bool isSilent = int.TryParse(uiLevelStr, out int uiLevel) && uiLevel <= 3;
-
-                if (!isSilent)
+                // Only show a MessageBox if verification found errors.
+                // On success, the WiX finish page shows next steps — no popup needed.
+                if (errors.Count > 0)
                 {
-                    try
-                    {
-                        string summary = errors.Count == 0
-                            ? "ALL CHECKS PASSED\n\n" +
-                              "Installation verified successfully.\n\n" +
-                              "Next steps:\n" +
-                              "1. Press Win+L to lock your PC (or sign out)\n" +
-                              "2. Click 'SionyxUser' on the login screen\n\n" +
-                              "The kiosk app starts automatically."
-                            : $"{errors.Count} CHECK(S) FAILED\n\n" + string.Join("\n", errors) +
-                              $"\n\nFull log: {logFile}";
+                    string uiLevelStr = session.CustomActionData.ContainsKey("UILEVEL")
+                        ? session.CustomActionData["UILEVEL"] : "5";
+                    bool isSilent = int.TryParse(uiLevelStr, out int uiLevel) && uiLevel <= 3;
 
-                        string title = errors.Count == 0
-                            ? "SIONYX — Install Verified"
-                            : "SIONYX — Install Issues Detected";
-
-                        uint mbType = errors.Count == 0 ? 0x00000040u : 0x00000030u;
-                        MessageBoxFromInstaller(title, summary, mbType);
-                    }
-                    catch (Exception mbEx)
+                    if (!isSilent)
                     {
-                        session.Log($"[WARN] Could not show MessageBox: {mbEx.Message}");
+                        try
+                        {
+                            string summary = $"{errors.Count} CHECK(S) FAILED\n\n" +
+                                string.Join("\n", errors) +
+                                $"\n\nFull log: {logFile}";
+
+                            MessageBoxFromInstaller(
+                                "SIONYX — Install Issues Detected",
+                                summary,
+                                0x00000030u); // WARNING icon
+                        }
+                        catch (Exception mbEx)
+                        {
+                            session.Log($"[WARN] Could not show MessageBox: {mbEx.Message}");
+                        }
                     }
                 }
 
