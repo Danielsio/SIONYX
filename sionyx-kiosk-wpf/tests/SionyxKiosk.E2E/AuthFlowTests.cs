@@ -39,7 +39,7 @@ public class AuthFlowTests
         if (loginButton == null) return null;
         loginButton.Click();
 
-        return _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(30));
+        return _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(30), exact: true);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class AuthFlowTests
             return;
 
         // Ensure we're logged in (may already be from Login_ShouldShowMainWindow)
-        var mainWindow = _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(5));
+        var mainWindow = _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(5), exact: true);
         if (mainWindow == null)
         {
             mainWindow = DoLogin();
