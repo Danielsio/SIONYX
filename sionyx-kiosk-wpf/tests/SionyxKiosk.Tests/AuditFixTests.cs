@@ -425,19 +425,19 @@ public class AuditFixTests : IDisposable
     }
 
     [Fact]
-    public void FormatExpiry_FewHoursRemaining_ShowsHours()
+    public void FormatExpiry_FewHoursRemaining_ShowsExactDate()
     {
         var dt = DateTime.Now.AddHours(5).AddMinutes(1);
         var result = HomeViewModel.FormatExpiry(dt.ToString("o"));
-        result.Should().Contain("שעות");
+        result.Should().Be(dt.ToString("dd/MM/yyyy HH:mm"));
     }
 
     [Fact]
-    public void FormatExpiry_FewMinutesRemaining_ShowsMinutes()
+    public void FormatExpiry_FewMinutesRemaining_ShowsExactDate()
     {
         var dt = DateTime.Now.AddMinutes(30);
         var result = HomeViewModel.FormatExpiry(dt.ToString("o"));
-        result.Should().Contain("דקות");
+        result.Should().Be(dt.ToString("dd/MM/yyyy HH:mm"));
     }
 
     [Fact]

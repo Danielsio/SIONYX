@@ -102,6 +102,11 @@ public class SessionService : BaseService, ISessionService
     {
         if (IsActive) return Error("Session already active");
 
+        // Fetch fresh user data from Firebase to get the latest remaining time
+        var freshTime = await FetchFreshRemainingTimeAsync();
+        if (freshTime.HasValue)
+            initialRemainingTime = freshTime.Value;
+
         // Check time expiration
         var expired = await CheckTimeExpirationAsync();
         if (expired) return Error("הזמן שלך פג תוקף. אנא רכוש חבילה חדשה.");
@@ -268,6 +273,27 @@ public class SessionService : BaseService, ISessionService
             ["sessionStartTime"] = null,
             ["updatedAt"] = DateTime.Now.ToString("o"),
         });
+    }
+
+    private async Task<int?> FetchFreshRemainingTimeAsync()
+    {
+        try
+        {
+            var result = await Firebase.DbGetAsync($"users/{_userId}");
+            if (!result.Success || result.Data is not JsonElement data || data.ValueKind == JsonValueKind.Null)
+                return null;
+
+            if (data.TryGetProperty("remainingTime", out var rt) && rt.TryGetInt32(out var seconds))
+            {
+                Logger.Information("Fresh remainingTime from Firebase: {Seconds}s", seconds);
+                return seconds;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to fetch fresh remaining time, using local value");
+        }
+        return null;
     }
 
     private async Task<bool> CheckTimeExpirationAsync()

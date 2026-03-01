@@ -193,6 +193,21 @@ public class AuthService : BaseService, IAuthService
         return result.Success ? Success() : Error(result.Error ?? "Update failed");
     }
 
+    /// <summary>Re-fetch current user data from Firebase to pick up server-side changes (e.g. after purchase).</summary>
+    public async Task<ServiceResult> RefreshCurrentUserAsync()
+    {
+        if (CurrentUser == null) return Error("No user logged in");
+
+        var uid = CurrentUser.Uid;
+        var result = await Firebase.DbGetAsync($"users/{uid}");
+        if (!result.Success || result.Data is not JsonElement data || data.ValueKind == JsonValueKind.Null)
+            return Error("Failed to refresh user data");
+
+        CurrentUser = ParseUserData(data, uid);
+        Logger.Information("User data refreshed: remaining={Time}s", CurrentUser.RemainingTime);
+        return Success(CurrentUser);
+    }
+
     // ==================== PRIVATE HELPERS ====================
 
     private async Task RecoverOrphanedSessionAsync(string userId, JsonElement userData)

@@ -358,10 +358,12 @@ exports.nedarimCallback = onRequest(async (req, res) => {
       TransactionId,
       Status,
       Amount: amountNum,
-      CreditCardNumber: CreditCardNumber ? "****" : undefined,
       Param1,
       Param2,
     };
+    if (CreditCardNumber) {
+      sanitizedRawResponse.CreditCardNumber = "****";
+    }
 
     const updateData = {
       status: Status === "Error" ? "failed" : "completed",

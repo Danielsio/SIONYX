@@ -5,13 +5,12 @@ using System.Windows.Data;
 using SionyxKiosk.Models;
 using SionyxKiosk.Services;
 using SionyxKiosk.ViewModels;
-using SionyxKiosk.Views.Dialogs;
-
 namespace SionyxKiosk.Views.Pages;
 
 public partial class PackagesPage : Page
 {
     private readonly IPaymentDialogFactory _dialogFactory;
+    private readonly AuthService _auth;
 
     public static readonly DependencyProperty CardWidthProperty =
         DependencyProperty.Register(nameof(CardWidth), typeof(double), typeof(PackagesPage),
@@ -23,9 +22,10 @@ public partial class PackagesPage : Page
         set => SetValue(CardWidthProperty, value);
     }
 
-    public PackagesPage(PackagesViewModel viewModel, IPaymentDialogFactory dialogFactory)
+    public PackagesPage(PackagesViewModel viewModel, IPaymentDialogFactory dialogFactory, AuthService auth)
     {
         _dialogFactory = dialogFactory;
+        _auth = auth;
         DataContext = viewModel;
         Resources["BoolToVis"] = new BooleanToVisibilityConverter();
         Resources["ZeroToVis"] = new ZeroToVisibilityConverter();
@@ -54,14 +54,13 @@ public partial class PackagesPage : Page
         CardWidth = Math.Clamp(cardWidth, minWidth, maxWidth);
     }
 
-    private void OnPurchaseRequested(Package package)
+    private async void OnPurchaseRequested(Package package)
     {
         var (succeeded, _) = _dialogFactory.CreateAndShow(package, Window.GetWindow(this));
 
         if (succeeded)
         {
-            AlertDialog.Show("הצלחה", "התשלום בוצע בהצלחה! הזמן נוסף לחשבונך.", AlertDialog.AlertType.Success);
-
+            await _auth.RefreshCurrentUserAsync();
             if (Window.GetWindow(this) is Windows.MainWindow mainWindow)
                 mainWindow.NavigateHome();
         }

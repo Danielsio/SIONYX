@@ -137,6 +137,10 @@ public partial class HomeViewModel : ObservableObject, IDisposable
         {
             await _session.EndSessionAsync("user");
             IsSessionActive = false;
+
+            // Use the session's authoritative remaining time (synced to Firebase)
+            // instead of _user.RemainingTime which may be stale from login
+            _user.RemainingTime = Math.Max(0, _session.RemainingTime);
             UpdateStats();
         }
         catch (Exception ex)
@@ -185,7 +189,8 @@ public partial class HomeViewModel : ObservableObject, IDisposable
     private void OnSessionEnded(string reason)
     {
         IsSessionActive = false;
-        RefreshUserData();
+        _user.RemainingTime = Math.Max(0, _session.RemainingTime);
+        UpdateStats();
     }
 
     private void OnMessagesReceived(List<Dictionary<string, object?>> msgs)
@@ -237,29 +242,12 @@ public partial class HomeViewModel : ObservableObject, IDisposable
     internal static string FormatExpiry(string? expiresAt, int remainingTime = -1)
     {
         if (string.IsNullOrEmpty(expiresAt) || !DateTime.TryParse(expiresAt, out var dt))
-        {
-            // No expiry date set: "unlimited" only makes sense if user actually has time
             return remainingTime > 0 ? "ללא הגבלה" : "אין";
-        }
 
-        var remaining = dt - DateTime.Now;
-        if (remaining.TotalSeconds <= 0)
+        if (dt <= DateTime.Now)
             return "פג תוקף";
 
-        if (remaining.TotalDays >= 2)
-            return $"{(int)remaining.TotalDays} ימים";
-        if (remaining.TotalHours >= 1)
-            return $"{(int)remaining.TotalHours} שעות";
-
-        return $"{(int)remaining.TotalMinutes} דקות";
-    }
-
-    /// <summary>Refresh display after session ends (remaining time may have changed).</summary>
-    private void RefreshUserData()
-    {
-        var remaining = _session.RemainingTime;
-        var ts = TimeSpan.FromSeconds(Math.Max(0, remaining));
-        RemainingTime = ts.ToString(@"hh\:mm\:ss");
+        return dt.ToString("dd/MM/yyyy HH:mm");
     }
 
     // ── Cleanup ─────────────────────────────────────────────────

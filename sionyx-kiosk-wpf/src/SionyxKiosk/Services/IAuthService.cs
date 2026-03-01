@@ -11,4 +11,5 @@ public interface IAuthService
     Task<ServiceResult> RegisterAsync(string phone, string password, string firstName, string lastName, string email = "");
     Task LogoutAsync();
     Task<ServiceResult> UpdateUserDataAsync(Dictionary<string, object> updates);
+    Task<ServiceResult> RefreshCurrentUserAsync();
 }

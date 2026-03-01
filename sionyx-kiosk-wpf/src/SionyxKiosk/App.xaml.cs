@@ -212,7 +212,8 @@ public partial class App : Application
                 services.AddTransient<PackagesPage>(sp =>
                 {
                     var vm = sp.GetRequiredService<PackagesViewModel>();
-                    return new PackagesPage(vm, sp.GetRequiredService<IPaymentDialogFactory>());
+                    return new PackagesPage(vm, sp.GetRequiredService<IPaymentDialogFactory>(),
+                        sp.GetRequiredService<AuthService>());
                 });
                 services.AddTransient<HistoryPage>();
                 services.AddTransient(sp => new PrintHistoryPage(
