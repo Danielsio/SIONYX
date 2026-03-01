@@ -7,7 +7,9 @@ namespace SionyxKiosk.Tests.Infrastructure;
 
 /// <summary>
 /// Tests for FirebaseConfig's FindEnvFile and LoadFromEnvironment paths.
+/// Uses [Collection] to avoid env var race conditions with FirebaseConfigLoadTests.
 /// </summary>
+[Collection("FirebaseConfig")]
 public class FirebaseConfigFindEnvTests
 {
     [Fact]
@@ -16,10 +18,7 @@ public class FirebaseConfigFindEnvTests
         var method = typeof(FirebaseConfig).GetMethod("FindEnvFile",
             BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        // In CI/test environment, there likely isn't a .env file near the base directory
-        // The method walks up 5 levels looking for .env
         var result = method.Invoke(null, null);
-        // Result is either null or a valid path string
         (result == null || (result is string s && s.EndsWith(".env"))).Should().BeTrue();
     }
 
@@ -29,7 +28,6 @@ public class FirebaseConfigFindEnvTests
         var method = typeof(FirebaseConfig).GetMethod("LoadFromEnvironment",
             BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        // Save originals
         var origApiKey = Environment.GetEnvironmentVariable("FIREBASE_API_KEY");
         var origAuthDomain = Environment.GetEnvironmentVariable("FIREBASE_AUTH_DOMAIN");
         var origDbUrl = Environment.GetEnvironmentVariable("FIREBASE_DATABASE_URL");
@@ -73,7 +71,8 @@ public class FirebaseConfigFindEnvTests
 
         try
         {
-            Environment.SetEnvironmentVariable("FIREBASE_API_KEY", null);
+            // Whitespace prevents DotEnvLoader override (not null) but fails IsNullOrWhiteSpace
+            Environment.SetEnvironmentVariable("FIREBASE_API_KEY", " ");
             Environment.SetEnvironmentVariable("FIREBASE_DATABASE_URL", "https://test.firebaseio.com");
             Environment.SetEnvironmentVariable("FIREBASE_PROJECT_ID", "test-project");
             Environment.SetEnvironmentVariable("ORG_ID", "test-org");
@@ -98,9 +97,6 @@ public class FirebaseConfigFindEnvTests
         var method = typeof(FirebaseConfig).GetMethod("LoadFromRegistry",
             BindingFlags.NonPublic | BindingFlags.Static)!;
 
-        // If registry has SIONYX config, this returns a valid config
-        // If not, it throws (missing required fields)
-        // Either way, the method is exercised
         try
         {
             var config = (FirebaseConfig)method.Invoke(null, null)!;
@@ -108,7 +104,6 @@ public class FirebaseConfigFindEnvTests
         }
         catch (TargetInvocationException ex)
         {
-            // Expected if registry doesn't have SIONYX config
             ex.InnerException.Should().BeOfType<InvalidOperationException>();
         }
     }
@@ -116,8 +111,6 @@ public class FirebaseConfigFindEnvTests
     [Fact]
     public void Load_ShouldReturnConfigOrThrow()
     {
-        // This tests the public Load() method which routes to either
-        // LoadFromRegistry or LoadFromEnvironment
         try
         {
             var config = FirebaseConfig.Load();
