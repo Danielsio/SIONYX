@@ -144,31 +144,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Feedback Section -->
-                <TextBlock Text="שלח משוב" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
-                <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="32,28" Margin="0,0,0,36">
-                    <Border.Effect>
-                        <DropShadowEffect BlurRadius="20" ShadowDepth="4" Direction="270" Color="#0F172A" Opacity="0.07" />
-                    </Border.Effect>
-                    <StackPanel>
-                        <TextBlock Text="יש לך שאלה, הצעה או בעיה? שלח לנו הודעה ונחזור אליך בהקדם."
-                                   FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"
-                                   TextWrapping="Wrap" Margin="0,0,0,16" LineHeight="22" />
-                        <TextBox Text="{Binding FeedbackText, UpdateSourceTrigger=PropertyChanged}"
-                                 Style="{StaticResource FrostInput}"
-                                 AcceptsReturn="True" TextWrapping="Wrap"
-                                 MinHeight="100" MaxHeight="200" Height="Auto"
-                                 VerticalScrollBarVisibility="Auto"
-                                 FlowDirection="RightToLeft" />
-                        <Button Content="📧  שלח משוב" Style="{StaticResource BtnPrimary}"
-                                Command="{Binding SendFeedbackCommand}"
-                                Width="200" Height="44" FontSize="16" Margin="0,16,0,0"
-                                HorizontalAlignment="Right" />
-                        <TextBlock Text="{Binding FeedbackStatus}" FontSize="14" FontWeight="SemiBold"
-                                   Foreground="{StaticResource PrimaryBrush}" Margin="0,8,0,0"
-                                   HorizontalAlignment="Center" />
-                    </StackPanel>
-                </Border>
             </StackPanel>
         </ScrollViewer>
     </Grid>
