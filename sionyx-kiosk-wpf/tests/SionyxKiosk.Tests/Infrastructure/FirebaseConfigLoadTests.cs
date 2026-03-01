@@ -6,14 +6,15 @@ namespace SionyxKiosk.Tests.Infrastructure;
 
 /// <summary>
 /// Tests for FirebaseConfig.LoadFromEnvironment by setting environment variables.
+/// Uses [Collection] to avoid env var race conditions with FirebaseConfigFindEnvTests.
 /// </summary>
+[Collection("FirebaseConfig")]
 public class FirebaseConfigLoadTests : IDisposable
 {
     private readonly Dictionary<string, string?> _originalEnvVars = new();
 
     public FirebaseConfigLoadTests()
     {
-        // Save original values
         foreach (var key in new[] { "FIREBASE_API_KEY", "FIREBASE_AUTH_DOMAIN", "FIREBASE_DATABASE_URL", "FIREBASE_PROJECT_ID", "ORG_ID" })
         {
             _originalEnvVars[key] = Environment.GetEnvironmentVariable(key);
@@ -22,7 +23,6 @@ public class FirebaseConfigLoadTests : IDisposable
 
     public void Dispose()
     {
-        // Restore original values
         foreach (var (key, value) in _originalEnvVars)
         {
             if (value == null)
@@ -59,7 +59,8 @@ public class FirebaseConfigLoadTests : IDisposable
     [Fact]
     public void LoadFromEnvironment_WithMissingApiKey_ShouldThrow()
     {
-        Environment.SetEnvironmentVariable("FIREBASE_API_KEY", null);
+        // Whitespace prevents DotEnvLoader override (not null) but fails IsNullOrWhiteSpace
+        Environment.SetEnvironmentVariable("FIREBASE_API_KEY", " ");
         Environment.SetEnvironmentVariable("FIREBASE_DATABASE_URL", "https://test-db.firebaseio.com");
         Environment.SetEnvironmentVariable("FIREBASE_PROJECT_ID", "test-project");
         Environment.SetEnvironmentVariable("ORG_ID", "test-org");
@@ -74,13 +75,13 @@ public class FirebaseConfigLoadTests : IDisposable
     public void LoadFromEnvironment_WithNoAuthDomain_ShouldStillWork()
     {
         Environment.SetEnvironmentVariable("FIREBASE_API_KEY", "test-key");
-        Environment.SetEnvironmentVariable("FIREBASE_AUTH_DOMAIN", null);
+        Environment.SetEnvironmentVariable("FIREBASE_AUTH_DOMAIN", " ");
         Environment.SetEnvironmentVariable("FIREBASE_DATABASE_URL", "https://test-db.firebaseio.com");
         Environment.SetEnvironmentVariable("FIREBASE_PROJECT_ID", "test-project");
         Environment.SetEnvironmentVariable("ORG_ID", "test-org");
 
         var config = LoadFromEnvironment();
-        config.AuthDomain.Should().BeNull();
+        config.AuthDomain.Should().Match(d => d == null || string.IsNullOrWhiteSpace(d));
     }
 
     [Fact]
@@ -89,7 +90,7 @@ public class FirebaseConfigLoadTests : IDisposable
         Environment.SetEnvironmentVariable("FIREBASE_API_KEY", "test-key");
         Environment.SetEnvironmentVariable("FIREBASE_DATABASE_URL", "https://test-db.firebaseio.com");
         Environment.SetEnvironmentVariable("FIREBASE_PROJECT_ID", "test-project");
-        Environment.SetEnvironmentVariable("ORG_ID", null);
+        Environment.SetEnvironmentVariable("ORG_ID", " ");
 
         var act = () => LoadFromEnvironment();
         act.Should().Throw<TargetInvocationException>()
