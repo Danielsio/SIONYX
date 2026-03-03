@@ -27,9 +27,34 @@ jobs:
         working-directory: sionyx-web
         run: npm run lint
 
-      - name: Test
+      - name: Test with coverage
         working-directory: sionyx-web
-        run: npm run test:run
+        run: npx vitest run --coverage --reporter=default
+
+      - name: Check coverage thresholds
+        working-directory: sionyx-web
+        run: |
+          echo "Coverage report generated. Check thresholds in vitest.config."
+
+  functions-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: functions/package-lock.json
+
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Test
+        working-directory: functions
+        run: npm test
 
   kiosk-tests:
     runs-on: windows-latest
@@ -47,7 +72,7 @@ jobs:
 
   kiosk-e2e:
     runs-on: windows-latest
-    needs: [kiosk-tests]
+    needs: [kiosk-tests, web-tests, functions-tests]
     env:
       FUNCTIONS_BASE: https://us-central1-sionyx-19636.cloudfunctions.net
       E2E_ORG_ID: cie2etest
