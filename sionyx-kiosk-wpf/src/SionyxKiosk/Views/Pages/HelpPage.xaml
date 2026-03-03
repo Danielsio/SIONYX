@@ -69,9 +69,8 @@
                 </ItemsControl>
 
                 <!-- Contact Section -->
-                <TextBlock Text="צור קשר" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
-                <ContentControl AutomationProperties.AutomationId="ContactSection" Focusable="False" IsTabStop="False">
-                <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="32,28" Margin="0,0,0,36">
+                <TextBlock AutomationProperties.AutomationId="ContactSectionTitle" Text="צור קשר" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
+                <Border AutomationProperties.AutomationId="ContactSection" Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="32,28" Margin="0,0,0,36">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="20" ShadowDepth="4" Direction="270" Color="#0F172A" Opacity="0.07" />
                     </Border.Effect>
@@ -144,7 +143,6 @@
                                    HorizontalAlignment="Center" />
                     </StackPanel>
                 </Border>
-                </ContentControl>
 
             </StackPanel>
         </ScrollViewer>
