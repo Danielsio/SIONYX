@@ -7,6 +7,7 @@
 
 .PHONY: help run test test-all test-cov e2e build build-local build-dry \
         web-dev web-test web-deploy web-deploy-hosting \
+        functions-test \
         release release-patch release-minor release-major
 
 # ── Help (default) ────────────────────────────────────────────────
@@ -25,9 +26,13 @@ help:
 	@echo "    make build-local      Build installer (no upload)"
 	@echo "    make build-dry        Preview build (no changes)"
 	@echo ""
+	@echo "  Cloud Functions"
+	@echo "    make functions-test   Run Cloud Functions tests"
+	@echo ""
 	@echo "  Web (admin dashboard)"
 	@echo "    make web-dev          Run web dev server"
-	@echo "    make web-test         Run web tests"
+	@echo "    make web-test         Run web unit tests"
+	@echo "    make web-e2e          Run web E2E tests (Playwright)"
 	@echo "    make web-deploy       Build + deploy all to Firebase"
 	@echo "    make web-deploy-hosting  Deploy hosting only (skip tests)"
 	@echo ""
@@ -66,12 +71,19 @@ build-local:
 build-dry:
 	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File build.ps1 -DryRun
 
+# ── Cloud Functions ───────────────────────────────────────────────
+functions-test:
+	cd functions && npm test
+
 # ── Web ───────────────────────────────────────────────────────────
 web-dev:
 	cd sionyx-web && npm run dev
 
 web-test:
 	cd sionyx-web && npm run test
+
+web-e2e:
+	cd sionyx-web && npx playwright test
 
 web-deploy:
 	cd sionyx-web && npm run test:run && npm run build
