@@ -10,7 +10,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <controls:PageHeader Grid.Row="0" Title="חבילות" Subtitle="בחר את החבילה המתאימה לך"
+        <controls:PageHeader Grid.Row="0" AutomationProperties.AutomationId="PackagesPageHeader" Title="חבילות" Subtitle="בחר את החבילה המתאימה לך"
                              HeaderBrush="{StaticResource PackagesHeaderGradient}" Icon="📦"
                              Margin="0,0,0,20" />
 
@@ -32,7 +32,7 @@
                                      Visibility="{Binding ShowEmptyState, Converter={StaticResource BoolToVis}}" />
 
                 <!-- Responsive package grid -->
-                <ItemsControl ItemsSource="{Binding Packages}">
+                <ItemsControl AutomationProperties.AutomationId="PackagesList" ItemsSource="{Binding Packages}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel HorizontalAlignment="Center" />

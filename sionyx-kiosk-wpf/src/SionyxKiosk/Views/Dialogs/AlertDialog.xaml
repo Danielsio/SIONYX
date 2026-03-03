@@ -38,9 +38,9 @@
 
                         <!-- Actions -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="32,20,32,28">
-                            <Button x:Name="OkButton" Content="אישור" Style="{StaticResource BtnPrimary}"
+                            <Button x:Name="OkButton" AutomationProperties.AutomationId="AlertConfirmButton" Content="אישור" Style="{StaticResource BtnPrimary}"
                                     Width="140" Height="44" FontSize="16" Click="OkButton_Click" />
-                            <Button x:Name="CancelButton" Content="ביטול" Style="{StaticResource BtnGhost}"
+                            <Button x:Name="CancelButton" AutomationProperties.AutomationId="AlertCancelButton" Content="ביטול" Style="{StaticResource BtnGhost}"
                                     Width="140" Height="44" FontSize="16"
                                     Margin="12,0,0,0" Click="CancelButton_Click" Visibility="Collapsed" />
                         </StackPanel>

@@ -46,7 +46,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0" Style="{StaticResource FrostInput}"
+                <TextBox Grid.Column="0" AutomationProperties.AutomationId="HistorySearchBox" Style="{StaticResource FrostInput}"
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          Tag="חיפוש לפי שם חבילה..."
                          Margin="0,0,12,0" />
@@ -79,7 +79,7 @@
                 <controls:EmptyState x:Name="EmptyPanel" Message="אין היסטוריית רכישות" Visibility="Collapsed" />
 
                 <!-- Purchase list -->
-                <ItemsControl ItemsSource="{Binding FilteredPurchases}" Margin="0,0,0,32">
+                <ItemsControl AutomationProperties.AutomationId="PurchasesList" ItemsSource="{Binding FilteredPurchases}" Margin="0,0,0,32">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <controls:PurchaseCard

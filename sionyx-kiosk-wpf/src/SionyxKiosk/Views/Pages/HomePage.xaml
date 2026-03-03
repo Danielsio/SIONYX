@@ -22,11 +22,11 @@
 
         <!-- Pinned: Stats row -->
         <UniformGrid Grid.Row="1" Rows="1" Margin="0,0,0,24">
-            <controls:StatCard Title="זמן נותר" Value="{Binding RemainingTime}" Icon="⏱"
+            <controls:StatCard AutomationProperties.AutomationId="StatTimeRemaining" Title="זמן נותר" Value="{Binding RemainingTime}" Icon="⏱"
                                AccentColor="{StaticResource StatOrangeColor}"
                                AccentBgColor="{StaticResource StatOrangeBgColor}"
                                Margin="0,0,8,0" />
-            <controls:StatCard Title="בתוקף עד" Value="{Binding TimeExpiry}" Icon="📅"
+            <controls:StatCard AutomationProperties.AutomationId="StatExpiry" Title="בתוקף עד" Value="{Binding TimeExpiry}" Icon="📅"
                                AccentColor="{StaticResource StatGreenColor}"
                                AccentBgColor="{StaticResource StatGreenBgColor}"
                                Margin="4,0" />
@@ -35,7 +35,7 @@
                                AccentColor="{StaticResource StatRedColor}"
                                AccentBgColor="{StaticResource StatRedBgColor}"
                                Margin="4,0" />
-            <controls:StatCard Title="הודעות" Value="{Binding UnreadMessages}" Icon="💬"
+            <controls:StatCard AutomationProperties.AutomationId="StatMessages" Title="הודעות" Value="{Binding UnreadMessages}" Icon="💬"
                                AccentColor="{StaticResource StatPurpleColor}"
                                AccentBgColor="{StaticResource StatPurpleBgColor}"
                                Margin="8,0,0,0" />
@@ -46,7 +46,7 @@
             <StackPanel Margin="0,0,0,32">
 
                 <!-- Global announcements section -->
-                <Border x:Name="AnnouncementsSection" Background="White" CornerRadius="{StaticResource RadiusLg}"
+                <Border x:Name="AnnouncementsSection" AutomationProperties.AutomationId="AnnouncementsPanel" Background="White" CornerRadius="{StaticResource RadiusLg}"
                         Padding="28,24" Margin="0,0,0,24" Visibility="Collapsed">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="16" ShadowDepth="3" Direction="270" Color="#0F172A" Opacity="0.06" />
@@ -136,7 +136,7 @@
                                 <TextBlock Text="רכוש חבילה חדשה כדי להמשיך ליהנות מהשירותים שלנו"
                                            FontSize="15" Foreground="{StaticResource TextSecondaryBrush}"
                                            HorizontalAlignment="Center" Margin="0,0,0,20" />
-                                <Button Style="{StaticResource BtnPrimary}"
+                                <Button AutomationProperties.AutomationId="BuyPackageButton" Style="{StaticResource BtnPrimary}"
                                         Command="{Binding BuyPackageCommand}"
                                         Width="240" Height="52" FontSize="18">
                                     <StackPanel Orientation="Horizontal">
@@ -167,10 +167,10 @@
                             <TextBlock Text="ההפעלה פעילה" FontSize="17" FontWeight="SemiBold"
                                        Foreground="{StaticResource SuccessBrush}"
                                        HorizontalAlignment="Center" Margin="0,0,0,16" />
-                            <Button Content="▶  חזור להפעלה" Style="{StaticResource BtnPrimary}"
+                            <Button AutomationProperties.AutomationId="ResumeSessionButton" Content="▶  חזור להפעלה" Style="{StaticResource BtnPrimary}"
                                     Click="ResumeSession_Click"
                                     Width="260" Height="52" FontSize="18" Margin="0,0,0,12" />
-                            <Button Content="⏹  סיים הפעלה" Style="{StaticResource BtnDanger}"
+                            <Button AutomationProperties.AutomationId="EndSessionButton" Content="⏹  סיים הפעלה" Style="{StaticResource BtnDanger}"
                                     Click="EndSession_Click"
                                     IsEnabled="{Binding IsEndingSession, Converter={StaticResource InverseBool}}"
                                     Width="260" Height="52" FontSize="18" />

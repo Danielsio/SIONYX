@@ -45,7 +45,7 @@
                 <!-- Password input -->
                 <Border CornerRadius="12" Background="#F8FAFC" BorderBrush="{StaticResource BorderBrush}"
                         BorderThickness="2" Padding="16,14" Margin="0,0,0,28">
-                    <PasswordBox x:Name="PasswordInput" FontSize="16"
+                    <PasswordBox x:Name="PasswordInput" AutomationProperties.AutomationId="AdminPasswordInput" FontSize="16"
                                  Foreground="{StaticResource TextPrimaryBrush}"
                                  CaretBrush="{StaticResource PrimaryBrush}"
                                  Background="Transparent" BorderThickness="0" />
@@ -59,7 +59,7 @@
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <Button Grid.Column="0" Content="ביטול" IsCancel="True"
+                    <Button Grid.Column="0" AutomationProperties.AutomationId="AdminExitCancelButton" Content="ביטול" IsCancel="True"
                             Padding="0,14" FontSize="15" FontWeight="SemiBold"
                             Click="Cancel_Click" Cursor="Hand">
                         <Button.Template>
@@ -78,7 +78,7 @@
                         </Button.Template>
                     </Button>
 
-                    <Button Grid.Column="2" Content="אשר יציאה" IsDefault="True"
+                    <Button Grid.Column="2" AutomationProperties.AutomationId="AdminExitConfirmButton" Content="אשר יציאה" IsDefault="True"
                             Padding="0,14" FontSize="15" FontWeight="SemiBold"
                             Click="OK_Click" Cursor="Hand">
                         <Button.Template>

@@ -78,7 +78,7 @@
                                          Style="{StaticResource FrostPasswordBox}"
                                          Margin="0,0,0,8" />
 
-                            <TextBlock x:Name="LoginError" Text="{Binding ErrorMessage}"
+                            <TextBlock x:Name="LoginError" AutomationProperties.AutomationId="LoginErrorText" Text="{Binding ErrorMessage}"
                                        Foreground="{StaticResource ErrorBrush}" FontSize="{StaticResource FontSizeSm}"
                                        Margin="0,8,0,0" TextWrapping="Wrap"
                                        Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}" />
@@ -89,7 +89,7 @@
                                     Command="{Binding LoginCommand}" Margin="0,24,0,0"
                                     IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
 
-                            <Button Content="שכחת סיסמה?"
+                            <Button AutomationProperties.AutomationId="ForgotPasswordLink" Content="שכחת סיסמה?"
                                     Style="{StaticResource BtnGhost}" Margin="0,8,0,0"
                                     Command="{Binding ForgotPasswordCommand}"
                                     IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
@@ -99,7 +99,7 @@
                                        TextWrapping="Wrap" Margin="0,4,0,0"
                                        Visibility="{Binding ForgotPasswordInfo, Converter={StaticResource StringToVis}}" />
 
-                            <Button Content="אין לך חשבון? הירשם"
+                            <Button AutomationProperties.AutomationId="SwitchToRegisterLink" Content="אין לך חשבון? הירשם"
                                     Style="{StaticResource BtnGhost}" Margin="0,12,0,0"
                                     Click="ToggleToRegister_Click" />
                         </StackPanel>
@@ -119,19 +119,19 @@
                                        Style="{StaticResource TextSubtitle}" Margin="0,0,0,30" />
 
                             <TextBlock Text="מספר טלפון" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
-                            <TextBox x:Name="RegPhoneInput" Style="{StaticResource FrostInput}"
+                            <TextBox x:Name="RegPhoneInput" AutomationProperties.AutomationId="RegPhoneInput" Style="{StaticResource FrostInput}"
                                      Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14" />
 
                             <TextBlock Text="סיסמה" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
-                            <PasswordBox x:Name="RegPasswordInput" Style="{StaticResource FrostPasswordBox}"
+                            <PasswordBox x:Name="RegPasswordInput" AutomationProperties.AutomationId="RegPasswordInput" Style="{StaticResource FrostPasswordBox}"
                                          Margin="0,0,0,14" />
 
                             <TextBlock Text="שם פרטי" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
-                            <TextBox Style="{StaticResource FrostInput}"
+                            <TextBox AutomationProperties.AutomationId="RegFirstNameInput" Style="{StaticResource FrostInput}"
                                      Text="{Binding FirstName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,14" />
 
                             <TextBlock Text="שם משפחה" Style="{StaticResource TextCaption}" Margin="0,0,0,6" />
-                            <TextBox Style="{StaticResource FrostInput}"
+                            <TextBox AutomationProperties.AutomationId="RegLastNameInput" Style="{StaticResource FrostInput}"
                                      Text="{Binding LastName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" />
 
                             <TextBlock Text="{Binding ErrorMessage}"
@@ -139,12 +139,12 @@
                                        Margin="0,8,0,0" TextWrapping="Wrap"
                                        Visibility="{Binding ErrorMessage, Converter={StaticResource StringToVis}}" />
 
-                            <Button x:Name="RegisterButton" Content="{Binding RegisterButtonText}"
+                            <Button x:Name="RegisterButton" AutomationProperties.AutomationId="RegisterButton" Content="{Binding RegisterButtonText}"
                                     Style="{StaticResource BtnPrimary}"
                                     Command="{Binding RegisterCommand}" Margin="0,20,0,0"
                                     IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBool}}" />
 
-                            <Button Content="יש לך חשבון? התחבר"
+                            <Button AutomationProperties.AutomationId="SwitchToLoginLink" Content="יש לך חשבון? התחבר"
                                     Style="{StaticResource BtnGhost}" Margin="0,10,0,0"
                                     Click="ToggleToLogin_Click" />
                         </StackPanel>
