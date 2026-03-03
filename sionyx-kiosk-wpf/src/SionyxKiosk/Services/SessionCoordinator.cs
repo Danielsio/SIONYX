@@ -1,3 +1,4 @@
+using System.Media;
 using System.Windows;
 using Serilog;
 
@@ -5,7 +6,7 @@ namespace SionyxKiosk.Services;
 
 /// <summary>
 /// Coordinates session lifecycle events with UI elements (floating timer, notifications).
-/// Owns subscription/unsubscription of SessionService and PrintMonitorService events.
+/// Owns subscription/unsubscription of SessionService, PrintMonitorService, and IdleTimeoutService events.
 /// Extracted from App.xaml.cs to reduce god-class complexity.
 /// </summary>
 public class SessionCoordinator
@@ -16,6 +17,7 @@ public class SessionCoordinator
     private readonly PrintMonitorService _printMonitor;
     private readonly AuthService _auth;
     private readonly PrintHistoryService _printHistory;
+    private readonly IdleTimeoutService _idleTimeout;
 
     private Action? _sessionStartedHandler;
     private Action<int>? _sessionTimeUpdatedHandler;
@@ -27,6 +29,9 @@ public class SessionCoordinator
     private Action<string, int, double, double>? _printJobAllowedHandler;
     private Action<string, int, double, double>? _printJobBlockedHandler;
     private Action<double>? _printBudgetUpdatedHandler;
+    private Action<int>? _idleWarningHandler;
+    private Action? _idleTimeoutHandler;
+    private Action? _activityResumedHandler;
 
     private Views.Controls.FloatingTimer? _floatingTimer;
 
@@ -34,12 +39,13 @@ public class SessionCoordinator
     public event Action? RestoreMainWindow;
 
     public SessionCoordinator(SessionService session, PrintMonitorService printMonitor,
-        AuthService auth, PrintHistoryService printHistory)
+        AuthService auth, PrintHistoryService printHistory, IdleTimeoutService idleTimeout)
     {
         _session = session;
         _printMonitor = printMonitor;
         _auth = auth;
         _printHistory = printHistory;
+        _idleTimeout = idleTimeout;
     }
 
     /// <summary>Subscribe to all session and print monitor events.</summary>
@@ -71,6 +77,14 @@ public class SessionCoordinator
         _printMonitor.JobAllowed += _printJobAllowedHandler;
         _printMonitor.JobBlocked += _printJobBlockedHandler;
         _printMonitor.BudgetUpdated += _printBudgetUpdatedHandler;
+
+        _idleWarningHandler = OnIdleWarning;
+        _idleTimeoutHandler = OnIdleTimeout;
+        _activityResumedHandler = OnActivityResumed;
+
+        _idleTimeout.IdleWarning += _idleWarningHandler;
+        _idleTimeout.IdleTimeout += _idleTimeoutHandler;
+        _idleTimeout.ActivityResumed += _activityResumedHandler;
     }
 
     /// <summary>Unsubscribe from all events and close the floating timer.</summary>
@@ -88,6 +102,10 @@ public class SessionCoordinator
         if (_printJobBlockedHandler != null) _printMonitor.JobBlocked -= _printJobBlockedHandler;
         if (_printBudgetUpdatedHandler != null) _printMonitor.BudgetUpdated -= _printBudgetUpdatedHandler;
 
+        if (_idleWarningHandler != null) _idleTimeout.IdleWarning -= _idleWarningHandler;
+        if (_idleTimeoutHandler != null) _idleTimeout.IdleTimeout -= _idleTimeoutHandler;
+        if (_activityResumedHandler != null) _idleTimeout.ActivityResumed -= _activityResumedHandler;
+
         _sessionStartedHandler = null;
         _sessionTimeUpdatedHandler = null;
         _sessionEndedHandler = null;
@@ -98,6 +116,9 @@ public class SessionCoordinator
         _printJobAllowedHandler = null;
         _printJobBlockedHandler = null;
         _printBudgetUpdatedHandler = null;
+        _idleWarningHandler = null;
+        _idleTimeoutHandler = null;
+        _activityResumedHandler = null;
     }
 
     /// <summary>Close the floating timer (call during logout/stop).</summary>
@@ -127,6 +148,7 @@ public class SessionCoordinator
     private void OnSessionStarted()
     {
         _printMonitor.StartMonitoring();
+        _idleTimeout.StartMonitoring();
         Application.Current?.Dispatcher.InvokeAsync(() =>
         {
             _floatingTimer = new Views.Controls.FloatingTimer();
@@ -149,6 +171,7 @@ public class SessionCoordinator
     private void OnSessionEnded(string reason)
     {
         _printMonitor.StopMonitoring();
+        _idleTimeout.StopMonitoring();
         Application.Current?.Dispatcher.InvokeAsync(() =>
         {
             CloseFloatingTimerInternal();
@@ -159,6 +182,7 @@ public class SessionCoordinator
     private void OnWarning5Min()
     {
         Logger.Information("Session warning: 5 minutes remaining");
+        PlayAlertSound();
         Views.Controls.FloatingNotification.Show(
             "5 דקות נותרו", "ההפעלה תסתיים בעוד 5 דקות",
             Views.Controls.FloatingNotification.NotificationType.Warning, 5000);
@@ -167,6 +191,7 @@ public class SessionCoordinator
     private void OnWarning1Min()
     {
         Logger.Information("Session warning: 1 minute remaining");
+        PlayCriticalSound();
         Views.Controls.FloatingNotification.Show(
             "דקה אחרונה!", "ההפעלה תסתיים בעוד דקה",
             Views.Controls.FloatingNotification.NotificationType.Error, 6000);
@@ -198,6 +223,47 @@ public class SessionCoordinator
             _floatingTimer?.Hide();
             RestoreMainWindow?.Invoke();
         });
+    }
+
+    private void OnIdleWarning(int secondsRemaining)
+    {
+        Logger.Warning("Idle warning: session will end in {Seconds}s if no activity", secondsRemaining);
+        PlayAlertSound();
+        var minutes = secondsRemaining / 60;
+        var label = minutes > 0 ? $"{minutes} דקות" : $"{secondsRemaining} שניות";
+        Views.Controls.FloatingNotification.Show(
+            "אין פעילות", $"ההפעלה תסתיים בעוד {label} אם לא תהיה פעילות",
+            Views.Controls.FloatingNotification.NotificationType.Warning, 8000);
+    }
+
+    private void OnIdleTimeout()
+    {
+        Logger.Warning("Idle timeout reached, ending session");
+        PlayCriticalSound();
+        Views.Controls.FloatingNotification.Show(
+            "ההפעלה הסתיימה", "ההפעלה הסתיימה עקב חוסר פעילות",
+            Views.Controls.FloatingNotification.NotificationType.Error, 6000);
+        _ = _session.EndSessionAsync("idle");
+    }
+
+    private void OnActivityResumed()
+    {
+        Logger.Information("User activity resumed after idle warning");
+        Views.Controls.FloatingNotification.Show(
+            "ברוך השב!", "ההפעלה ממשיכה",
+            Views.Controls.FloatingNotification.NotificationType.Success, 3000);
+    }
+
+    private static void PlayAlertSound()
+    {
+        try { SystemSounds.Exclamation.Play(); }
+        catch { /* non-fatal */ }
+    }
+
+    private static void PlayCriticalSound()
+    {
+        try { SystemSounds.Hand.Play(); }
+        catch { /* non-fatal */ }
     }
 
     private void CloseFloatingTimerInternal()
