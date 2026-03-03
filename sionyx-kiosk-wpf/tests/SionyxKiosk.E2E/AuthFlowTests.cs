@@ -124,10 +124,13 @@ public class AuthFlowTests
         var passwordInput = window.FindFirstDescendant(cf => cf.ByAutomationId("LoginPasswordInput"));
         passwordInput.Should().NotBeNull();
         passwordInput!.Focus();
-        // Clear any existing text before typing
-        Keyboard.TypeSimultaneously(FlaUI.Core.WindowsAPI.VirtualKeyShort.CONTROL,
-                                     FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_A);
         Thread.Sleep(100);
+        // WPF PasswordBox ignores Ctrl+A; use Home then Shift+End to select all
+        Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.HOME);
+        Thread.Sleep(50);
+        Keyboard.TypeSimultaneously(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT,
+                                     FlaUI.Core.WindowsAPI.VirtualKeyShort.END);
+        Thread.Sleep(50);
         Keyboard.Type("wrongpassword123");
 
         var loginButton = window.FindFirstDescendant(cf => cf.ByAutomationId("LoginButton"))?.AsButton();

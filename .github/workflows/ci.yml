@@ -119,6 +119,30 @@ jobs:
             -Method Post -ContentType "application/json" -Body $body
           Write-Host "Created org: $($resp.result.orgId)"
 
+      - name: Verify login credentials
+        shell: pwsh
+        run: |
+          $email = "$($env:E2E_ADMIN_PHONE)@sionyx.app"
+          $body = @{
+            email = $email
+            password = $env:E2E_ADMIN_PASSWORD
+            returnSecureToken = $true
+          } | ConvertTo-Json
+          Write-Host "Testing login for $email ..."
+          try {
+            $apiKey = "AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c"
+            $url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$apiKey"
+            $resp = Invoke-RestMethod -Uri $url -Method Post -ContentType "application/json" -Body $body
+            Write-Host "Login verified OK: uid=$($resp.localId)"
+          } catch {
+            Write-Host "LOGIN VERIFICATION FAILED: $($_.Exception.Message)"
+            $stream = $_.Exception.Response.GetResponseStream()
+            $reader = [System.IO.StreamReader]::new($stream)
+            $errBody = $reader.ReadToEnd()
+            Write-Host "Response body: $errBody"
+            throw "Firebase login verification failed - user may not have been created properly"
+          }
+
       - name: Generate .env for E2E
         working-directory: sionyx-kiosk-wpf
         shell: pwsh

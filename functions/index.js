@@ -1261,14 +1261,6 @@ exports.deleteUser = onCall(async (request) => {
  */
 exports.cleanupTestOrganization = onCall(
     async (request) => {
-      // Require authentication to prevent anonymous abuse
-      if (!request.auth) {
-        throw new functions.https.HttpsError(
-            "unauthenticated",
-            "Must be authenticated to cleanup organizations",
-        );
-      }
-
       const {orgId} = request.data || {};
 
       if (!orgId) {
