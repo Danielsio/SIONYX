@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Override the global mock from setup.js so we test the real implementation
+vi.unmock('../services/realtimeService');
+
 import { ref, onValue } from 'firebase/database';
 import {
   subscribeToUsers,

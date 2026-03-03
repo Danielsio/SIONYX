@@ -144,8 +144,23 @@ vi.mock('@ant-design/icons', () => {
     NotificationOutlined: createMockIcon('NotificationOutlined'),
     PauseCircleOutlined: createMockIcon('PauseCircleOutlined'),
     SoundOutlined: createMockIcon('SoundOutlined'),
+    BarChartOutlined: createMockIcon('BarChartOutlined'),
+    FileExcelOutlined: createMockIcon('FileExcelOutlined'),
+    FilePdfOutlined: createMockIcon('FilePdfOutlined'),
+    FileTextOutlined: createMockIcon('FileTextOutlined'),
+    RiseOutlined: createMockIcon('RiseOutlined'),
   };
 });
+
+// ============================================
+// Realtime Service Mock
+// ============================================
+vi.mock('../services/realtimeService', () => ({
+  subscribeToUsers: vi.fn(() => () => {}),
+  subscribeToComputers: vi.fn(() => () => {}),
+  subscribeToMessages: vi.fn(() => () => {}),
+  subscribeToAnnouncements: vi.fn(() => () => {}),
+}));
 
 // ============================================
 // Animation Libraries Mocks
