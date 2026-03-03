@@ -79,10 +79,13 @@ public class KioskAppFixture : IDisposable
                 cf => cf.ByAutomationId("LoginPasswordInput"));
             if (passwordInput == null) return false;
             passwordInput.Focus();
-            // Select all existing text before typing to avoid appending to stale content
-            Keyboard.TypeSimultaneously(FlaUI.Core.WindowsAPI.VirtualKeyShort.CONTROL,
-                                         FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_A);
             Thread.Sleep(100);
+            // WPF PasswordBox ignores Ctrl+A; use Home then Shift+End to select all
+            Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.HOME);
+            Thread.Sleep(50);
+            Keyboard.TypeSimultaneously(FlaUI.Core.WindowsAPI.VirtualKeyShort.SHIFT,
+                                         FlaUI.Core.WindowsAPI.VirtualKeyShort.END);
+            Thread.Sleep(50);
             Keyboard.Type(password);
 
             var loginButton = authWindow.FindFirstDescendant(
