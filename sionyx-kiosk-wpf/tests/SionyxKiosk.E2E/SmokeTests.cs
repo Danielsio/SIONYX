@@ -1,5 +1,4 @@
 using FlaUI.Core.AutomationElements;
-using FlaUI.Core.Input;
 using FluentAssertions;
 using SionyxKiosk.E2E.Fixtures;
 
@@ -67,22 +66,10 @@ public class KioskE2ETests
         if (!HasCredentials)
             return;
 
-        var authWindow = _app.GetAuthWindow();
+        var loggedIn = _app.EnsureLoggedIn();
+        loggedIn.Should().BeTrue("login with E2E credentials should succeed");
 
-        var phoneInput = authWindow.FindFirstDescendant(cf => cf.ByAutomationId("LoginPhoneInput"))?.AsTextBox();
-        phoneInput.Should().NotBeNull();
-        phoneInput!.Text = _phone!;
-
-        var passwordInput = authWindow.FindFirstDescendant(cf => cf.ByAutomationId("LoginPasswordInput"));
-        passwordInput.Should().NotBeNull();
-        passwordInput!.Focus();
-        Keyboard.Type(_password!);
-
-        var loginButton = authWindow.FindFirstDescendant(cf => cf.ByAutomationId("LoginButton"))?.AsButton();
-        loginButton.Should().NotBeNull();
-        loginButton!.Click();
-
-        var mainWindow = _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(30), exact: true);
+        var mainWindow = _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(10), exact: true);
         mainWindow.Should().NotBeNull("main window should appear after successful login");
         mainWindow!.Title.Should().Be("SIONYX");
     }

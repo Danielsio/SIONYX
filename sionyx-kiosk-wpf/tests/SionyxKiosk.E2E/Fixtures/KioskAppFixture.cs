@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Input;
 using FlaUI.UIA3;
 
 namespace SionyxKiosk.E2E.Fixtures;
@@ -10,6 +11,10 @@ public class KioskAppFixture : IDisposable
     public Application App { get; }
     public UIA3Automation Automation { get; } = new();
     public string? LaunchError { get; private set; }
+
+    private bool _loginAttempted;
+    private bool _loginSucceeded;
+    private readonly object _loginLock = new();
 
     public KioskAppFixture()
     {
@@ -30,6 +35,64 @@ public class KioskAppFixture : IDisposable
         catch (InvalidOperationException)
         {
             LaunchError = $"App process not associated (crashed on startup). Exe: {exePath}";
+        }
+    }
+
+    /// <summary>
+    /// Performs login once if credentials are available and login hasn't been done yet.
+    /// Returns true if logged in (or already was), false if no credentials.
+    /// </summary>
+    public bool EnsureLoggedIn()
+    {
+        lock (_loginLock)
+        {
+            if (_loginSucceeded)
+                return true;
+
+            if (_loginAttempted)
+                return _loginSucceeded;
+
+            var phone = Environment.GetEnvironmentVariable("SIONYX_E2E_PHONE");
+            var password = Environment.GetEnvironmentVariable("SIONYX_E2E_PASSWORD");
+            if (string.IsNullOrEmpty(phone) || string.IsNullOrEmpty(password))
+                return false;
+
+            // Already on main window (e.g. auto-login)?
+            var existing = WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(2), exact: true);
+            if (existing != null)
+            {
+                _loginAttempted = true;
+                _loginSucceeded = true;
+                return true;
+            }
+
+            _loginAttempted = true;
+
+            var authWindow = GetAuthWindow();
+
+            var phoneInput = authWindow.FindFirstDescendant(
+                cf => cf.ByAutomationId("LoginPhoneInput"))?.AsTextBox();
+            if (phoneInput == null) return false;
+            phoneInput.Text = phone;
+
+            var passwordInput = authWindow.FindFirstDescendant(
+                cf => cf.ByAutomationId("LoginPasswordInput"));
+            if (passwordInput == null) return false;
+            passwordInput.Focus();
+            // Select all existing text before typing to avoid appending to stale content
+            Keyboard.TypeSimultaneously(FlaUI.Core.WindowsAPI.VirtualKeyShort.CONTROL,
+                                         FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_A);
+            Thread.Sleep(100);
+            Keyboard.Type(password);
+
+            var loginButton = authWindow.FindFirstDescendant(
+                cf => cf.ByAutomationId("LoginButton"))?.AsButton();
+            if (loginButton == null) return false;
+            loginButton.Click();
+
+            var mainWindow = WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(30), exact: true);
+            _loginSucceeded = mainWindow != null;
+            return _loginSucceeded;
         }
     }
 

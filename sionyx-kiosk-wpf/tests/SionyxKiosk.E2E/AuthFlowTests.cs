@@ -124,6 +124,10 @@ public class AuthFlowTests
         var passwordInput = window.FindFirstDescendant(cf => cf.ByAutomationId("LoginPasswordInput"));
         passwordInput.Should().NotBeNull();
         passwordInput!.Focus();
+        // Clear any existing text before typing
+        Keyboard.TypeSimultaneously(FlaUI.Core.WindowsAPI.VirtualKeyShort.CONTROL,
+                                     FlaUI.Core.WindowsAPI.VirtualKeyShort.KEY_A);
+        Thread.Sleep(100);
         Keyboard.Type("wrongpassword123");
 
         var loginButton = window.FindFirstDescendant(cf => cf.ByAutomationId("LoginButton"))?.AsButton();
