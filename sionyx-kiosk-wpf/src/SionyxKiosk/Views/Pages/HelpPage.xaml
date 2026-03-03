@@ -22,7 +22,7 @@
                 <TextBlock Text="שאלות נפוצות" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
 
                 <!-- FAQ Accordion -->
-                <ItemsControl ItemsSource="{Binding FaqItems}" Margin="0,0,0,36">
+                <ItemsControl AutomationProperties.AutomationId="FaqSection" ItemsSource="{Binding FaqItems}" Margin="0,0,0,36">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border x:Name="FaqBorder" CornerRadius="{StaticResource RadiusLg}"
@@ -70,7 +70,7 @@
 
                 <!-- Contact Section -->
                 <TextBlock Text="צור קשר" Style="{StaticResource TextH3}" Margin="0,0,0,16" />
-                <Border Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="32,28" Margin="0,0,0,36">
+                <Border AutomationProperties.AutomationId="ContactSection" Background="White" CornerRadius="{StaticResource RadiusLg}" Padding="32,28" Margin="0,0,0,36">
                     <Border.Effect>
                         <DropShadowEffect BlurRadius="20" ShadowDepth="4" Direction="270" Color="#0F172A" Opacity="0.07" />
                     </Border.Effect>

@@ -56,7 +56,7 @@
 
                 <!-- Logout button at bottom -->
                 <Border DockPanel.Dock="Bottom" Padding="14,14">
-                    <Button Style="{StaticResource BtnDanger}"
+                    <Button AutomationProperties.AutomationId="LogoutButton" Style="{StaticResource BtnDanger}"
                             Command="{Binding LogoutCommand}"
                             IsEnabled="{Binding IsLoggingOut, Converter={StaticResource InverseBool}}">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
