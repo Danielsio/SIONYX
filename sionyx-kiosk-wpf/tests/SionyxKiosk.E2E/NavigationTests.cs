@@ -1,4 +1,6 @@
 using FlaUI.Core.AutomationElements;
+using FlaUI.Core.Input;
+using FlaUI.Core.WindowsAPI;
 using FluentAssertions;
 using SionyxKiosk.E2E.Fixtures;
 
@@ -175,7 +177,12 @@ public class NavigationTests
         var faq = main.FindFirstDescendant(cf => cf.ByAutomationId("FaqSection"));
         faq.Should().NotBeNull("help page should have FAQ section");
 
-        var contact = main.FindFirstDescendant(cf => cf.ByAutomationId("ContactSection"));
+        // Scroll to bottom so contact section is in view on smaller CI displays
+        main.Focus();
+        Keyboard.Press(VirtualKeyShort.END);
+        Thread.Sleep(500);
+
+        var contact = main.FindFirstDescendant(cf => cf.ByAutomationId("ContactSectionTitle"));
         contact.Should().NotBeNull("help page should have contact section");
     }
 
