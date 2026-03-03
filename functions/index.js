@@ -424,7 +424,8 @@ exports.nedarimCallback = onRequest(async (req, res) => {
       const purchase = purchaseSnapshot.val();
       purchaseRetrievalTimer.end(log.info);
 
-      // Amount verification: ensure callback amount matches stored purchase amount
+      // Amount verification: ensure callback amount matches
+      // stored purchase amount
       if (purchase && purchase.amount != null && amountNum > 0) {
         const storedAmount = Number(purchase.amount);
         if (!Number.isNaN(storedAmount) && storedAmount > 0 &&
@@ -539,11 +540,17 @@ exports.nedarimCallback = onRequest(async (req, res) => {
           // Prevents inconsistency if the process crashes between operations
           const userUpdateTimer = createTimer("user-crediting-update");
           const atomicUpdate = {};
-          for (const [key, value] of Object.entries(updatePayload)) {
-            atomicUpdate[`organizations/${orgId}/users/${purchase.userId}/${key}`] = value;
+          const userPath =
+              `organizations/${orgId}/users/${purchase.userId}`;
+          for (const [key, val] of Object.entries(updatePayload)) {
+            atomicUpdate[`${userPath}/${key}`] = val;
           }
-          atomicUpdate[`organizations/${orgId}/purchases/${purchaseId}/creditedAt`] = new Date().toISOString();
-          atomicUpdate[`organizations/${orgId}/purchases/${purchaseId}/creditedUserId`] = purchase.userId;
+          const purchasePath =
+              `organizations/${orgId}/purchases/${purchaseId}`;
+          atomicUpdate[`${purchasePath}/creditedAt`] =
+              new Date().toISOString();
+          atomicUpdate[`${purchasePath}/creditedUserId`] =
+              purchase.userId;
 
           await admin.database().ref().update(atomicUpdate);
           userUpdateTimer.end(log.info);
