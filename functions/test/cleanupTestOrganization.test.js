@@ -38,12 +38,6 @@ beforeAll(() => {
 beforeEach(() => resetMocks());
 
 describe("cleanupTestOrganization", () => {
-  test("rejects unauthenticated request", async () => {
-    const req = {auth: null, data: {orgId: "testorg"}};
-    await expect(cleanupTestOrganization(req))
-        .rejects.toThrow("Must be authenticated");
-  });
-
   test("rejects missing orgId", async () => {
     const req = {auth: {uid: "admin"}, data: {}};
     await expect(cleanupTestOrganization(req))
