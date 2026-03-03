@@ -148,11 +148,13 @@ public partial class App : Application
                     sp.GetRequiredService<KeyboardRestrictionService>(),
                     sp.GetRequiredService<ProcessRestrictionService>(),
                     sp.GetRequiredService<GlobalHotkeyService>()));
+                services.AddSingleton<IdleTimeoutService>();
                 services.AddSingleton(sp => new SessionCoordinator(
                     sp.GetRequiredService<SessionService>(),
                     sp.GetRequiredService<PrintMonitorService>(),
                     sp.GetRequiredService<AuthService>(),
-                    sp.GetRequiredService<PrintHistoryService>()));
+                    sp.GetRequiredService<PrintHistoryService>(),
+                    sp.GetRequiredService<IdleTimeoutService>()));
 
                 // ViewModels
                 services.AddTransient<AuthViewModel>(sp => new AuthViewModel(
