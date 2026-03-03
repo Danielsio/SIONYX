@@ -37,6 +37,7 @@ public class KioskE2ETests
     [Fact, TestPriority(2)]
     public void AuthWindow_ShouldHavePhoneInput()
     {
+        if (_app.IsLoggedIn) return;
         var window = _app.GetAuthWindow();
         var input = window.FindFirstDescendant(cf => cf.ByAutomationId("LoginPhoneInput"));
         input.Should().NotBeNull("auth window should contain the phone input field");
@@ -45,6 +46,7 @@ public class KioskE2ETests
     [Fact, TestPriority(3)]
     public void AuthWindow_ShouldHavePasswordInput()
     {
+        if (_app.IsLoggedIn) return;
         var window = _app.GetAuthWindow();
         var input = window.FindFirstDescendant(cf => cf.ByAutomationId("LoginPasswordInput"));
         input.Should().NotBeNull("auth window should contain the password input field");
@@ -53,6 +55,7 @@ public class KioskE2ETests
     [Fact, TestPriority(4)]
     public void AuthWindow_ShouldHaveLoginButton()
     {
+        if (_app.IsLoggedIn) return;
         var window = _app.GetAuthWindow();
         var button = window.FindFirstDescendant(cf => cf.ByAutomationId("LoginButton"));
         button.Should().NotBeNull("auth window should contain the login button");

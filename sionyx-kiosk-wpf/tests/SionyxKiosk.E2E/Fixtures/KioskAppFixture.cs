@@ -16,6 +16,8 @@ public class KioskAppFixture : IDisposable
     private bool _loginSucceeded;
     private readonly object _loginLock = new();
 
+    public bool IsLoggedIn => _loginSucceeded;
+
     public KioskAppFixture()
     {
         KillExisting();
