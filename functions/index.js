@@ -179,6 +179,16 @@ exports.nedarimCallback = onRequest(async (req, res) => {
   let purchaseId;
   let orgId;
 
+  // Reject non-POST requests
+  if (req.method !== "POST") {
+    log.warn("Rejected non-POST request", {method: req.method});
+    return res.status(405).json({
+      success: false,
+      error: "Method Not Allowed",
+      correlationId,
+    });
+  }
+
   // Enhanced request logging
   log.info("Nedarim callback request received", {
     method: req.method,
@@ -199,8 +209,13 @@ exports.nedarimCallback = onRequest(async (req, res) => {
   log.debug("Request payload (masked)", {payload: maskedBody});
 
   try {
-    // CALLBACK_SECRET: validate secret from query param or header if configured
+    // CALLBACK_SECRET: validate secret from query param or header
     const callbackSecret = process.env.CALLBACK_SECRET;
+    if (!callbackSecret && process.env.NODE_ENV === "production") {
+      log.error("CALLBACK_SECRET not configured in production", null, {
+        severity: "CRITICAL",
+      });
+    }
     if (callbackSecret) {
       const providedSecret = (req.query && req.query.secret) ||
           (req.headers && req.headers["x-callback-secret"]);
@@ -409,6 +424,45 @@ exports.nedarimCallback = onRequest(async (req, res) => {
       const purchase = purchaseSnapshot.val();
       purchaseRetrievalTimer.end(log.info);
 
+      // Amount verification: ensure callback amount matches stored purchase amount
+      if (purchase && purchase.amount != null && amountNum > 0) {
+        const storedAmount = Number(purchase.amount);
+        if (!Number.isNaN(storedAmount) && storedAmount > 0 &&
+            Math.abs(storedAmount - amountNum) > 0.01) {
+          log.error("Amount mismatch detected — possible tampering", null, {
+            purchaseId,
+            orgId,
+            callbackAmount: amountNum,
+            storedAmount,
+            severity: "CRITICAL",
+          });
+          return res.status(400).json({
+            success: false,
+            error: "Amount mismatch",
+            correlationId,
+          });
+        }
+      }
+
+      // Idempotency: skip crediting if already processed
+      if (purchase && purchase.status === "completed" &&
+          purchase.creditedAt) {
+        log.warn("Purchase already credited, skipping duplicate callback", {
+          purchaseId,
+          orgId,
+          existingTransactionId: purchase.transactionId,
+          newTransactionId: TransactionId,
+        });
+
+        requestTimer.end(log.info);
+        return res.status(200).json({
+          success: true,
+          message: "Callback already processed (idempotent)",
+          correlationId,
+          processedAt: purchase.processedAt,
+        });
+      }
+
       log.info("Purchase data retrieved for user crediting", {
         hasPurchase: !!purchase,
         hasUserId: !!(purchase && purchase.userId),
@@ -481,9 +535,17 @@ exports.nedarimCallback = onRequest(async (req, res) => {
             });
           }
 
-          // Performance timing for user update
+          // Atomic multi-path update: credit user + mark purchase as credited
+          // Prevents inconsistency if the process crashes between operations
           const userUpdateTimer = createTimer("user-crediting-update");
-          await userRef.update(updatePayload);
+          const atomicUpdate = {};
+          for (const [key, value] of Object.entries(updatePayload)) {
+            atomicUpdate[`organizations/${orgId}/users/${purchase.userId}/${key}`] = value;
+          }
+          atomicUpdate[`organizations/${orgId}/purchases/${purchaseId}/creditedAt`] = new Date().toISOString();
+          atomicUpdate[`organizations/${orgId}/purchases/${purchaseId}/creditedUserId`] = purchase.userId;
+
+          await admin.database().ref().update(atomicUpdate);
           userUpdateTimer.end(log.info);
 
           log.info("User credited successfully", {
@@ -839,6 +901,15 @@ exports.registerOrganization = onCall(async (request) => {
       );
     }
 
+    // Warn if encryption key is missing (credentials will be weakly encoded)
+    if (!getEncryptionKey()) {
+      log.error("ENCRYPTION_KEY not configured — Nedarim credentials " +
+          "will be stored as base64 (not secure)", null, {
+        severity: "CRITICAL",
+        orgId,
+      });
+    }
+
     // Step 2: Prepare and save organization metadata
     const metadata = {
       name: cleanOrgName,
@@ -1183,6 +1254,14 @@ exports.deleteUser = onCall(async (request) => {
  */
 exports.cleanupTestOrganization = onCall(
     async (request) => {
+      // Require authentication to prevent anonymous abuse
+      if (!request.auth) {
+        throw new functions.https.HttpsError(
+            "unauthenticated",
+            "Must be authenticated to cleanup organizations",
+        );
+      }
+
       const {orgId} = request.data || {};
 
       if (!orgId) {
