@@ -56,6 +56,7 @@ import { getComputerUsageStats } from '../services/computerService';
 import { formatMinutesHebrew } from '../utils/timeFormatter';
 import { getAllUsers } from '../services/userService';
 import { getUserStatus, getStatusLabel, getStatusColor } from '../constants/userStatus';
+import { subscribeToUsers, subscribeToComputers } from '../services/realtimeService';
 import StatCard, { MiniStatCard } from '../components/StatCard';
 import { logger } from '../utils/logger';
 
@@ -209,6 +210,39 @@ const OverviewPage = () => {
       isMounted.current = false;
     };
   }, [loadData]);
+
+  // Real-time subscriptions for live active user and computer updates
+  useEffect(() => {
+    if (!orgId) return;
+
+    const unsubUsers = subscribeToUsers(orgId, users => {
+      if (!isMounted.current) return;
+      const usersList = Object.entries(users || {}).map(([uid, data]) => ({ uid, ...data }));
+      const activeUsers = usersList
+        .filter(u => u.isSessionActive || u.currentComputerId)
+        .sort((a, b) => {
+          const dateA = new Date(a.lastActivity || a.updatedAt || 0);
+          const dateB = new Date(b.lastActivity || b.updatedAt || 0);
+          return dateB - dateA;
+        })
+        .slice(0, 5);
+      setRecentUsers(activeUsers);
+    });
+
+    const unsubComputers = subscribeToComputers(orgId, computers => {
+      if (!isMounted.current) return;
+      const list = Object.values(computers || {});
+      setComputerStats({
+        totalComputers: list.length,
+        activeComputers: list.filter(c => c.isActive || c.currentUserId).length,
+      });
+    });
+
+    return () => {
+      unsubUsers();
+      unsubComputers();
+    };
+  }, [orgId]);
 
   const handleWidgetToggle = (key, checked) => {
     const next = { ...widgetVisibility, [key]: checked };

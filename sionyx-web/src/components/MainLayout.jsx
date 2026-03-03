@@ -30,6 +30,7 @@ import {
   BulbOutlined,
   BulbFilled,
   NotificationOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons';
 import NotificationBell from './NotificationBell';
 import { useAuthStore } from '../store/authStore';
@@ -45,6 +46,7 @@ const breadcrumbMap = {
   '/admin/messages': 'הודעות',
   '/admin/computers': 'מחשבים',
   '/admin/announcements': 'הודעות מערכת',
+  '/admin/reports': 'דוחות',
   '/admin/settings': 'הגדרות',
 };
 
@@ -128,6 +130,11 @@ const MainLayout = () => {
       key: '/admin/announcements',
       icon: <NotificationOutlined />,
       label: 'הודעות מערכת',
+    },
+    {
+      key: '/admin/reports',
+      icon: <BarChartOutlined />,
+      label: 'דוחות',
     },
     {
       key: '/admin/settings',
