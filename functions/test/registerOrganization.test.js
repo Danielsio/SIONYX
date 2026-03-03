@@ -26,7 +26,7 @@ jest.mock("firebase-functions/v2/scheduler", () => ({
   onSchedule: (_opts, fn) => fn,
 }));
 
-const {resetMocks, seedDb, getDb} = require("./firebaseMock");
+const {resetMocks, getDb} = require("./firebaseMock");
 
 let registerOrganization;
 

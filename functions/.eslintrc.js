@@ -23,6 +23,23 @@ module.exports = {
       },
       rules: {},
     },
+    {
+      files: ["test/**/*.js"],
+      env: {
+        jest: true,
+      },
+      parserOptions: {
+        "ecmaVersion": 2020,
+      },
+      rules: {
+        "max-len": "off",
+        "require-jsdoc": "off",
+        "object-curly-spacing": "off",
+        "block-spacing": "off",
+        "brace-style": "off",
+        "no-unused-vars": "warn",
+      },
+    },
   ],
   globals: {},
 };

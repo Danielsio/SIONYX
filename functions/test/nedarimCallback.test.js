@@ -121,7 +121,7 @@ describe("nedarimCallback", () => {
   });
 
   test("rejects missing TransactionId", async () => {
-    const {TransactionId, ...noTxn} = validBody;
+    const {TransactionId: _txn, ...noTxn} = validBody;
     const req = makeReq(noTxn);
     const res = makeRes();
     await nedarimCallback(req, res);
@@ -132,7 +132,7 @@ describe("nedarimCallback", () => {
   });
 
   test("rejects missing Status", async () => {
-    const {Status, ...noStatus} = validBody;
+    const {Status: _st, ...noStatus} = validBody;
     const req = makeReq(noStatus);
     const res = makeRes();
     await nedarimCallback(req, res);
