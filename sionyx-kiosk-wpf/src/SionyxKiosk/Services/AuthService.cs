@@ -14,6 +14,11 @@ public class AuthService : BaseService, IAuthService
     private readonly LocalDatabase _localDb;
     private readonly ComputerService _computerService;
 
+    // Rate limiting: track failed login attempts per phone
+    private static readonly Dictionary<string, (int Count, DateTime LastAttempt)> _loginAttempts = new();
+    private const int MaxLoginAttempts = 5;
+    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(5);
+
     public UserData? CurrentUser { get; private set; }
 
     public AuthService(FirebaseClient firebase, LocalDatabase localDb, ComputerService computerService) : base(firebase)
@@ -77,11 +82,25 @@ public class AuthService : BaseService, IAuthService
     public async Task<ServiceResult> LoginAsync(string phone, string password)
     {
         Logger.Information("Login attempt for {Phone}", phone);
+
+        // Rate limiting check
+        if (IsLockedOut(phone))
+        {
+            var remaining = GetLockoutRemaining(phone);
+            Logger.Warning("Login blocked: too many attempts for {Phone}, locked for {Seconds}s", phone, (int)remaining.TotalSeconds);
+            return Error($"יותר מדי ניסיונות כניסה. נסה שוב בעוד {(int)remaining.TotalMinutes + 1} דקות.");
+        }
+
         var email = PhoneToEmail(phone);
 
         var result = await Firebase.SignInAsync(email, password);
         if (!result.Success)
+        {
+            RecordFailedAttempt(phone);
             return Error(result.Error ?? "Login failed");
+        }
+
+        ClearAttempts(phone);
 
         var uid = Firebase.UserId!;
         var userResult = await Firebase.DbGetAsync($"users/{uid}");
@@ -329,5 +348,45 @@ public class AuthService : BaseService, IAuthService
     {
         var clean = new string(phone.Where(char.IsDigit).ToArray());
         return $"{clean}@sionyx.app";
+    }
+
+    // ==================== RATE LIMITING ====================
+
+    private static bool IsLockedOut(string phone)
+    {
+        if (!_loginAttempts.TryGetValue(phone, out var record))
+            return false;
+        if (record.Count < MaxLoginAttempts)
+            return false;
+        return DateTime.UtcNow - record.LastAttempt < LockoutDuration;
+    }
+
+    private static TimeSpan GetLockoutRemaining(string phone)
+    {
+        if (!_loginAttempts.TryGetValue(phone, out var record))
+            return TimeSpan.Zero;
+        var elapsed = DateTime.UtcNow - record.LastAttempt;
+        return elapsed >= LockoutDuration ? TimeSpan.Zero : LockoutDuration - elapsed;
+    }
+
+    private static void RecordFailedAttempt(string phone)
+    {
+        if (_loginAttempts.TryGetValue(phone, out var record))
+        {
+            // Reset counter if lockout has expired
+            if (DateTime.UtcNow - record.LastAttempt >= LockoutDuration)
+                _loginAttempts[phone] = (1, DateTime.UtcNow);
+            else
+                _loginAttempts[phone] = (record.Count + 1, DateTime.UtcNow);
+        }
+        else
+        {
+            _loginAttempts[phone] = (1, DateTime.UtcNow);
+        }
+    }
+
+    private static void ClearAttempts(string phone)
+    {
+        _loginAttempts.Remove(phone);
     }
 }
