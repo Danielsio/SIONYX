@@ -1,5 +1,4 @@
 using FlaUI.Core.AutomationElements;
-using FlaUI.Core.Input;
 using FluentAssertions;
 using SionyxKiosk.E2E.Fixtures;
 
@@ -17,25 +16,28 @@ namespace SionyxKiosk.E2E;
 public class NavigationTests
 {
     private readonly KioskAppFixture _app;
-    private readonly bool _hasCredentials;
 
     public NavigationTests(KioskAppFixture app)
     {
         _app = app;
-        var phone = Environment.GetEnvironmentVariable("SIONYX_E2E_PHONE");
-        var password = Environment.GetEnvironmentVariable("SIONYX_E2E_PASSWORD");
-        _hasCredentials = !string.IsNullOrEmpty(phone) && !string.IsNullOrEmpty(password);
     }
 
-    private Window? GetMainWindow() =>
-        _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(10), exact: true);
+    private bool HasCredentials =>
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SIONYX_E2E_PHONE")) &&
+        !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SIONYX_E2E_PASSWORD"));
+
+    private Window? GetMainWindow()
+    {
+        _app.EnsureLoggedIn();
+        return _app.WaitForWindowByTitle("SIONYX", TimeSpan.FromSeconds(10), exact: true);
+    }
 
     // ── Home Page ──
 
     [Fact, TestPriority(200)]
     public void HomePage_ShouldShowAllStatCards()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
@@ -59,7 +61,7 @@ public class NavigationTests
     [Fact, TestPriority(201)]
     public void HomePage_ShouldShowBuyOrStartButton()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
@@ -75,7 +77,7 @@ public class NavigationTests
     [Fact, TestPriority(210)]
     public void PackagesPage_ShouldLoadWithHeader()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
@@ -91,7 +93,7 @@ public class NavigationTests
     [Fact, TestPriority(211)]
     public void PackagesPage_ShouldShowPackagesList()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
@@ -108,7 +110,7 @@ public class NavigationTests
     [Fact, TestPriority(220)]
     public void HistoryPage_ShouldLoadWithSearchBox()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
@@ -124,7 +126,7 @@ public class NavigationTests
     [Fact, TestPriority(221)]
     public void HistoryPage_ShouldShowPurchasesList()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
@@ -137,7 +139,7 @@ public class NavigationTests
     [Fact, TestPriority(230)]
     public void PrintHistoryPage_ShouldShowAllFourStatCards()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
@@ -161,7 +163,7 @@ public class NavigationTests
     [Fact, TestPriority(240)]
     public void HelpPage_ShouldShowFaqAndContact()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
@@ -182,7 +184,7 @@ public class NavigationTests
     [Fact, TestPriority(250)]
     public void Navigation_ShouldReturnToHomePage()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
@@ -204,7 +206,7 @@ public class NavigationTests
     [Fact, TestPriority(251)]
     public void Navigation_RapidPageSwitching_ShouldNotCrash()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
@@ -227,7 +229,7 @@ public class NavigationTests
     [Fact, TestPriority(260)]
     public void MainWindow_ShouldHaveLogoutButton()
     {
-        if (!_hasCredentials) return;
+        if (!HasCredentials) return;
         var main = GetMainWindow();
         main.Should().NotBeNull();
 
