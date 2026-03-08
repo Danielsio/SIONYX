@@ -6,19 +6,12 @@
 import { ref, get, update, remove } from 'firebase/database';
 import { database } from '../config/firebase';
 import { getOrgId } from '../hooks/useOrgId';
-import { useAuthStore } from '../store/authStore';
-import { isSupervisorPendingActivation } from '../utils/roles';
 import { logger } from '../utils/logger';
 
 /**
  * Get all computers in the organization
  */
 export const getAllComputers = async () => {
-  // Supervisor activation gate: return empty data if not yet activated
-  if (isSupervisorPendingActivation(useAuthStore.getState().user)) {
-    return { success: true, data: [] };
-  }
-
   try {
     // Get organization ID from localStorage or user data
     const orgId = getOrgId();

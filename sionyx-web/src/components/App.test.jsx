@@ -13,6 +13,22 @@ vi.mock('../store/authStore', () => ({
       setUser: vi.fn(),
       setLoading: vi.fn(),
       logout: vi.fn(),
+      darkMode: false,
+    };
+    return selector ? selector(state) : state;
+  }),
+}));
+
+// Mock the supervisor auth store
+vi.mock('../supervisor/store/supervisorAuthStore', () => ({
+  useSupervisorAuthStore: vi.fn(selector => {
+    const state = {
+      supervisor: null,
+      isAuthenticated: false,
+      isLoading: false,
+      setSupervisor: vi.fn(),
+      setLoading: vi.fn(),
+      logout: vi.fn(),
     };
     return selector ? selector(state) : state;
   }),
@@ -21,13 +37,23 @@ vi.mock('../store/authStore', () => ({
 // Mock the auth service
 vi.mock('../services/authService', () => ({
   onAuthChange: vi.fn(callback => {
-    // Simulate unauthenticated state
     callback(null);
-    return vi.fn(); // Return unsubscribe function
+    return vi.fn();
   }),
   getCurrentAdminData: vi.fn(),
   signInAdmin: vi.fn(),
   signOut: vi.fn(),
+}));
+
+// Mock the supervisor auth service
+vi.mock('../supervisor/services/supervisorAuthService', () => ({
+  onSupervisorAuthChange: vi.fn(callback => {
+    callback(null);
+    return vi.fn();
+  }),
+  getCurrentSupervisorData: vi.fn(),
+  signInSupervisor: vi.fn(),
+  signOutSupervisor: vi.fn(),
 }));
 
 // Mock lazy-loaded pages to avoid async loading issues in tests

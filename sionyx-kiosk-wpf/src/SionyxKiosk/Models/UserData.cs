@@ -13,6 +13,7 @@ public class UserData
     public int RemainingTime { get; set; }
     public double PrintBalance { get; set; }
     public bool IsLoggedIn { get; set; }
+    public bool IsBlocked { get; set; }
     public bool IsAdmin { get; set; }
     public bool IsSessionActive { get; set; }
     public string? SessionStartTime { get; set; }

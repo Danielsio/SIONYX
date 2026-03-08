@@ -239,4 +239,127 @@ public class AuthServiceTests : IDisposable
         var result = await _service.IsLoggedInAsync();
         result.Should().BeFalse();
     }
+
+    // ==================== BLOCKED USERS ====================
+
+    [Fact]
+    public async Task LoginAsync_WhenUserIsBlocked_ShouldFail()
+    {
+        _handler.When("signInWithPassword", new
+        {
+            idToken = "login-token",
+            refreshToken = "login-refresh",
+            localId = "user-123",
+            expiresIn = "3600"
+        });
+
+        _handler.When("users/user-123.json", new
+        {
+            firstName = "David",
+            lastName = "Cohen",
+            phoneNumber = "0501234567",
+            blocked = true,
+            blockedReason = "Bad behavior",
+        });
+
+        var result = await _service.LoginAsync("0501234567", "password123");
+        result.IsSuccess.Should().BeFalse();
+        result.Error.Should().Contain("נחסם");
+    }
+
+    [Fact]
+    public async Task LoginAsync_WhenUserIsNotBlocked_ShouldSucceed()
+    {
+        _handler.When("signInWithPassword", new
+        {
+            idToken = "login-token",
+            refreshToken = "login-refresh",
+            localId = "user-123",
+            expiresIn = "3600"
+        });
+
+        _handler.When("users/user-123.json", new
+        {
+            firstName = "David",
+            lastName = "Cohen",
+            phoneNumber = "0501234567",
+            blocked = false,
+            remainingTime = 3600,
+        });
+
+        _handler.SetDefaultSuccess();
+
+        var result = await _service.LoginAsync("0501234567", "password123");
+        result.IsSuccess.Should().BeTrue();
+        _service.CurrentUser.Should().NotBeNull();
+        _service.CurrentUser!.IsBlocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LoginAsync_WhenBlockedFieldMissing_ShouldSucceed()
+    {
+        _handler.When("signInWithPassword", new
+        {
+            idToken = "login-token",
+            refreshToken = "login-refresh",
+            localId = "user-123",
+            expiresIn = "3600"
+        });
+
+        _handler.When("users/user-123.json", new
+        {
+            firstName = "David",
+            lastName = "Cohen",
+            phoneNumber = "0501234567",
+            remainingTime = 3600,
+        });
+
+        _handler.SetDefaultSuccess();
+
+        var result = await _service.LoginAsync("0501234567", "password123");
+        result.IsSuccess.Should().BeTrue();
+        _service.CurrentUser!.IsBlocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ParseUserData_WithBlockedTrue_ShouldSetIsBlocked()
+    {
+        var json = JsonSerializer.Serialize(new
+        {
+            firstName = "John",
+            lastName = "Doe",
+            blocked = true,
+            blockedReason = "Test",
+        });
+        var doc = JsonDocument.Parse(json);
+        var userData = AuthServiceTestHelper.CallParseUserData(doc.RootElement, "uid-1");
+        userData.IsBlocked.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ParseUserData_WithBlockedFalse_ShouldNotSetIsBlocked()
+    {
+        var json = JsonSerializer.Serialize(new
+        {
+            firstName = "John",
+            lastName = "Doe",
+            blocked = false,
+        });
+        var doc = JsonDocument.Parse(json);
+        var userData = AuthServiceTestHelper.CallParseUserData(doc.RootElement, "uid-1");
+        userData.IsBlocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ParseUserData_WithoutBlockedField_ShouldDefaultToFalse()
+    {
+        var json = JsonSerializer.Serialize(new
+        {
+            firstName = "John",
+            lastName = "Doe",
+        });
+        var doc = JsonDocument.Parse(json);
+        var userData = AuthServiceTestHelper.CallParseUserData(doc.RootElement, "uid-1");
+        userData.IsBlocked.Should().BeFalse();
+    }
 }

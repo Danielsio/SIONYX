@@ -5,9 +5,6 @@ import {
   getUserRole,
   hasRole,
   isAdminOrAbove,
-  isSupervisor,
-  isAdminOnly,
-  isSupervisorPendingActivation,
   getRoleDisplayName,
 } from './roles';
 
@@ -16,14 +13,16 @@ describe('roles utility', () => {
     it('has correct role values', () => {
       expect(ROLES.USER).toBe('user');
       expect(ROLES.ADMIN).toBe('admin');
-      expect(ROLES.SUPERVISOR).toBe('supervisor');
+    });
+
+    it('does not contain supervisor (handled separately)', () => {
+      expect(ROLES).not.toHaveProperty('SUPERVISOR');
     });
   });
 
   describe('ROLE_HIERARCHY', () => {
     it('has correct hierarchy order', () => {
       expect(ROLE_HIERARCHY[ROLES.USER]).toBeLessThan(ROLE_HIERARCHY[ROLES.ADMIN]);
-      expect(ROLE_HIERARCHY[ROLES.ADMIN]).toBeLessThan(ROLE_HIERARCHY[ROLES.SUPERVISOR]);
     });
   });
 
@@ -33,20 +32,18 @@ describe('roles utility', () => {
       expect(getUserRole(undefined)).toBe(ROLES.USER);
     });
 
-    it('returns role from role field when present', () => {
+    it('returns admin from role field', () => {
       expect(getUserRole({ role: 'admin' })).toBe('admin');
-      expect(getUserRole({ role: 'supervisor' })).toBe('supervisor');
-      expect(getUserRole({ role: 'user' })).toBe('user');
+    });
+
+    it('returns user for unknown role values', () => {
+      expect(getUserRole({ role: 'supervisor' })).toBe('user');
+      expect(getUserRole({ role: 'unknown' })).toBe('user');
     });
 
     it('falls back to isAdmin when role field missing', () => {
       expect(getUserRole({ isAdmin: true })).toBe(ROLES.ADMIN);
       expect(getUserRole({ isAdmin: false })).toBe(ROLES.USER);
-    });
-
-    it('prefers role field over isAdmin', () => {
-      expect(getUserRole({ role: 'supervisor', isAdmin: true })).toBe('supervisor');
-      expect(getUserRole({ role: 'user', isAdmin: true })).toBe('user');
     });
 
     it('returns user when no role and isAdmin is false', () => {
@@ -58,24 +55,19 @@ describe('roles utility', () => {
   describe('hasRole', () => {
     it('returns true when user has exact role', () => {
       expect(hasRole({ role: 'admin' }, ROLES.ADMIN)).toBe(true);
-      expect(hasRole({ role: 'supervisor' }, ROLES.SUPERVISOR)).toBe(true);
     });
 
     it('returns true when user has higher role', () => {
-      expect(hasRole({ role: 'supervisor' }, ROLES.ADMIN)).toBe(true);
-      expect(hasRole({ role: 'supervisor' }, ROLES.USER)).toBe(true);
       expect(hasRole({ role: 'admin' }, ROLES.USER)).toBe(true);
     });
 
     it('returns false when user has lower role', () => {
       expect(hasRole({ role: 'user' }, ROLES.ADMIN)).toBe(false);
-      expect(hasRole({ role: 'admin' }, ROLES.SUPERVISOR)).toBe(false);
     });
 
     it('works with isAdmin fallback', () => {
       expect(hasRole({ isAdmin: true }, ROLES.ADMIN)).toBe(true);
       expect(hasRole({ isAdmin: true }, ROLES.USER)).toBe(true);
-      expect(hasRole({ isAdmin: true }, ROLES.SUPERVISOR)).toBe(false);
     });
   });
 
@@ -85,31 +77,14 @@ describe('roles utility', () => {
       expect(isAdminOrAbove({ isAdmin: true })).toBe(true);
     });
 
-    it('returns true for supervisor', () => {
-      expect(isAdminOrAbove({ role: 'supervisor' })).toBe(true);
-    });
-
     it('returns false for user', () => {
       expect(isAdminOrAbove({ role: 'user' })).toBe(false);
       expect(isAdminOrAbove(null)).toBe(false);
     });
   });
 
-  describe('isSupervisor', () => {
-    it('returns true only for supervisor', () => {
-      expect(isSupervisor({ role: 'supervisor' })).toBe(true);
-    });
-
-    it('returns false for admin and user', () => {
-      expect(isSupervisor({ role: 'admin' })).toBe(false);
-      expect(isSupervisor({ role: 'user' })).toBe(false);
-      expect(isSupervisor({ isAdmin: true })).toBe(false);
-    });
-  });
-
   describe('getRoleDisplayName', () => {
     it('returns Hebrew display names', () => {
-      expect(getRoleDisplayName(ROLES.SUPERVISOR)).toBe('מפקח');
       expect(getRoleDisplayName(ROLES.ADMIN)).toBe('מנהל');
       expect(getRoleDisplayName(ROLES.USER)).toBe('משתמש');
     });
@@ -117,58 +92,6 @@ describe('roles utility', () => {
     it('returns user for unknown roles', () => {
       expect(getRoleDisplayName('unknown')).toBe('משתמש');
       expect(getRoleDisplayName(null)).toBe('משתמש');
-    });
-  });
-
-  describe('isAdminOnly', () => {
-    it('returns true only for admin role', () => {
-      expect(isAdminOnly({ role: 'admin' })).toBe(true);
-    });
-
-    it('returns false for supervisor', () => {
-      expect(isAdminOnly({ role: 'supervisor' })).toBe(false);
-    });
-
-    it('returns false for user', () => {
-      expect(isAdminOnly({ role: 'user' })).toBe(false);
-      expect(isAdminOnly(null)).toBe(false);
-    });
-
-    it('returns true for legacy isAdmin users (mapped to admin role)', () => {
-      expect(isAdminOnly({ isAdmin: true })).toBe(true);
-    });
-  });
-
-  describe('isSupervisorPendingActivation', () => {
-    it('returns true for supervisor without supervisorActive flag', () => {
-      expect(isSupervisorPendingActivation({ role: 'supervisor' })).toBe(true);
-    });
-
-    it('returns true for supervisor with supervisorActive=false', () => {
-      expect(isSupervisorPendingActivation({ role: 'supervisor', supervisorActive: false })).toBe(
-        true
-      );
-    });
-
-    it('returns false for supervisor with supervisorActive=true', () => {
-      expect(isSupervisorPendingActivation({ role: 'supervisor', supervisorActive: true })).toBe(
-        false
-      );
-    });
-
-    it('returns false for admin (unaffected by activation)', () => {
-      expect(isSupervisorPendingActivation({ role: 'admin' })).toBe(false);
-      expect(isSupervisorPendingActivation({ role: 'admin', supervisorActive: false })).toBe(false);
-      expect(isSupervisorPendingActivation({ isAdmin: true })).toBe(false);
-    });
-
-    it('returns false for regular user', () => {
-      expect(isSupervisorPendingActivation({ role: 'user' })).toBe(false);
-    });
-
-    it('returns false for null/undefined user', () => {
-      expect(isSupervisorPendingActivation(null)).toBe(false);
-      expect(isSupervisorPendingActivation(undefined)).toBe(false);
     });
   });
 });

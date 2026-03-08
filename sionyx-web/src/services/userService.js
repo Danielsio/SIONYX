@@ -1,19 +1,12 @@
 import { ref, get, update } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
 import { database, functions } from '../config/firebase';
-import { useAuthStore } from '../store/authStore';
-import { isSupervisorPendingActivation } from '../utils/roles';
 import { logger } from '../utils/logger';
 
 /**
  * Get all users in an organization
  */
 export const getAllUsers = async orgId => {
-  // Supervisor activation gate: return empty data if not yet activated
-  if (isSupervisorPendingActivation(useAuthStore.getState().user)) {
-    return { success: true, users: [] };
-  }
-
   try {
     const usersRef = ref(database, `organizations/${orgId}/users`);
     const snapshot = await get(usersRef);
