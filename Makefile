@@ -93,14 +93,18 @@ web-deploy-hosting:
 	cd sionyx-web && npm run build
 	firebase deploy --only hosting
 
-# ── Release ───────────────────────────────────────────────────────
-release: release-patch
+# ── Release (auto-detect from conventional commits) ──────────────
+release:
+	powershell -ExecutionPolicy Bypass -File scripts/release/release.ps1
 
 release-patch:
-	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File release.ps1 -Increment patch
+	powershell -ExecutionPolicy Bypass -File scripts/release/release.ps1 -Override patch
 
 release-minor:
-	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File release.ps1 -Increment minor
+	powershell -ExecutionPolicy Bypass -File scripts/release/release.ps1 -Override minor
 
 release-major:
-	cd sionyx-kiosk-wpf && powershell -ExecutionPolicy Bypass -File release.ps1 -Increment major
+	powershell -ExecutionPolicy Bypass -File scripts/release/release.ps1 -Override major
+
+release-dry:
+	powershell -ExecutionPolicy Bypass -File scripts/release/release.ps1 -DryRun
