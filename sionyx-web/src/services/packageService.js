@@ -1,7 +1,5 @@
 import { ref, get, set, update, remove, push } from 'firebase/database';
 import { database } from '../config/firebase';
-import { useAuthStore } from '../store/authStore';
-import { isSupervisorPendingActivation } from '../utils/roles';
 import { logger } from '../utils/logger';
 
 const normalizePackageData = packageData => ({
@@ -16,11 +14,6 @@ const normalizePackageData = packageData => ({
  * Get all packages in an organization
  */
 export const getAllPackages = async orgId => {
-  // Supervisor activation gate: return empty data if not yet activated
-  if (isSupervisorPendingActivation(useAuthStore.getState().user)) {
-    return { success: true, packages: [] };
-  }
-
   try {
     const packagesRef = ref(database, `organizations/${orgId}/packages`);
     const snapshot = await get(packagesRef);

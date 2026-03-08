@@ -54,6 +54,17 @@ public class AuthService : BaseService, IAuthService
         if (!userResult.Success || userResult.Data is not JsonElement data || data.ValueKind == JsonValueKind.Null)
             return false;
 
+        // Blocked user check
+        if (data.TryGetProperty("blocked", out var blocked) && blocked.GetBoolean())
+        {
+            Logger.Warning("Auto-login rejected: user is blocked");
+            _localDb.Delete("refresh_token");
+            _localDb.Delete("user_id");
+            _localDb.Delete("phone");
+            Firebase.ClearAuth();
+            return false;
+        }
+
         // Single-session enforcement: reject auto-login if user is active on another PC
         if (IsLoggedInOnAnotherComputer(data))
         {
@@ -106,6 +117,10 @@ public class AuthService : BaseService, IAuthService
         var userResult = await Firebase.DbGetAsync($"users/{uid}");
         if (!userResult.Success || userResult.Data is not JsonElement userData || userData.ValueKind == JsonValueKind.Null)
             return Error(ErrorTranslations.Translate("user data not found"));
+
+        // Blocked user check
+        if (userData.TryGetProperty("blocked", out var blocked) && blocked.GetBoolean())
+            return Error("החשבון שלך נחסם. פנה למנהל המערכת.");
 
         // Single-session enforcement
         if (IsLoggedInOnAnotherComputer(userData))
@@ -334,6 +349,7 @@ public class AuthService : BaseService, IAuthService
             RemainingTime = data.TryGetProperty("remainingTime", out var rt) && rt.TryGetInt32(out var rtVal) ? rtVal : 0,
             PrintBalance = data.TryGetProperty("printBalance", out var pb) && pb.TryGetDouble(out var pbVal) ? pbVal : 0,
             IsLoggedIn = data.TryGetProperty("isLoggedIn", out var li) && li.GetBoolean(),
+            IsBlocked = data.TryGetProperty("blocked", out var bl) && bl.GetBoolean(),
             IsAdmin = data.TryGetProperty("isAdmin", out var ia) && ia.GetBoolean(),
             IsSessionActive = data.TryGetProperty("isSessionActive", out var sa) && sa.GetBoolean(),
             SessionStartTime = data.TryGetProperty("sessionStartTime", out var st) ? st.GetString() : null,

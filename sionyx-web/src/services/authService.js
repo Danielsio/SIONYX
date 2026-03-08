@@ -5,7 +5,7 @@ import {
 } from 'firebase/auth';
 import { ref, get } from 'firebase/database';
 import { auth, database } from '../config/firebase';
-import { isAdminOrAbove, getUserRole, ROLES } from '../utils/roles';
+import { isAdminOrAbove, getUserRole } from '../utils/roles';
 import { logger } from '../utils/logger';
 
 /**
@@ -83,22 +83,6 @@ export const signInAdmin = async (phone, password, orgId) => {
     // Ensure role is set (for backwards compatibility)
     const effectiveRole = getUserRole(userData);
 
-    // For supervisors, fetch the activation status from org settings
-    let supervisorActive = undefined;
-    if (effectiveRole === ROLES.SUPERVISOR) {
-      try {
-        const settingsRef = ref(
-          database,
-          `organizations/${cleanOrgId}/metadata/settings/supervisorActive`
-        );
-        const settingsSnapshot = await get(settingsRef);
-        supervisorActive = settingsSnapshot.exists() ? settingsSnapshot.val() === true : false;
-      } catch (e) {
-        logger.warn('Could not fetch supervisor activation status:', e);
-        supervisorActive = false;
-      }
-    }
-
     return {
       success: true,
       user: {
@@ -107,7 +91,6 @@ export const signInAdmin = async (phone, password, orgId) => {
         orgId: cleanOrgId,
         ...userData,
         role: effectiveRole,
-        ...(supervisorActive !== undefined && { supervisorActive }),
       },
     };
   } catch (error) {
@@ -191,22 +174,6 @@ export const getCurrentAdminData = async () => {
     // Ensure role is set (for backwards compatibility)
     const effectiveRole = getUserRole(userData);
 
-    // For supervisors, fetch the activation status from org settings
-    let supervisorActive = undefined;
-    if (effectiveRole === ROLES.SUPERVISOR) {
-      try {
-        const settingsRef = ref(
-          database,
-          `organizations/${orgId}/metadata/settings/supervisorActive`
-        );
-        const settingsSnapshot = await get(settingsRef);
-        supervisorActive = settingsSnapshot.exists() ? settingsSnapshot.val() === true : false;
-      } catch (e) {
-        logger.warn('Could not fetch supervisor activation status:', e);
-        supervisorActive = false;
-      }
-    }
-
     return {
       success: true,
       admin: {
@@ -214,7 +181,6 @@ export const getCurrentAdminData = async () => {
         orgId: orgId,
         ...userData,
         role: effectiveRole,
-        ...(supervisorActive !== undefined && { supervisorActive }),
       },
     };
   } catch (error) {
