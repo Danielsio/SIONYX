@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      override:
+        description: "Force bump type (leave empty to auto-detect from commits)"
+        required: false
+        type: choice
+        options:
+          - ""
+          - patch
+          - minor
+          - major
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.x"
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine version
+        id: version
+        shell: pwsh
+        run: |
+          $override = "${{ github.event.inputs.override }}"
+          $params = if ($override) { @{ Override = $override } } else { @{} }
+          $info = & scripts/release/get-next-version.ps1 @params
+          Write-Host "Current: v$($info.Current)"
+          Write-Host "Next:    v$($info.Next) ($($info.Bump))"
+          Write-Host "Commits: $($info.CommitCount)"
+          "version=$($info.Next)" >> $env:GITHUB_OUTPUT
+          "bump=$($info.Bump)" >> $env:GITHUB_OUTPUT
+          "commits=$($info.CommitCount)" >> $env:GITHUB_OUTPUT
+
+      - name: Build installer
+        shell: pwsh
+        working-directory: sionyx-kiosk-wpf
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          powershell -ExecutionPolicy Bypass -File build.ps1 -Version $ver -NoUpload
+
+      - name: Generate changelog
+        shell: pwsh
+        run: |
+          $info = & scripts/release/get-next-version.ps1
+          & scripts/release/generate-changelog.ps1 -Version "${{ steps.version.outputs.version }}" -Commits $info.Commits
+
+      - name: Update version.json
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          $parts = $ver -split "\."
+          $vf = "sionyx-kiosk-wpf/version.json"
+          $data = Get-Content $vf -Raw | ConvertFrom-Json
+          $data.version = $ver
+          $data.major = [int]$parts[0]
+          $data.minor = [int]$parts[1]
+          $data.patch = [int]$parts[2]
+          $data.buildNumber = [int]$data.buildNumber + 1
+          $data.lastBuildDate = (Get-Date).ToString("o")
+          $data | ConvertTo-Json -Depth 10 | Set-Content $vf
+
+      - name: Commit, tag, and push
+        shell: pwsh
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          git add -A
+          git commit -m "release: v$ver"
+          git tag "v$ver"
+          git push origin main --tags
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          $msi = Get-ChildItem "sionyx-kiosk-wpf/installer/bin/x64/Release/*.msi" | Select-Object -First 1
+          $notes = "## Release v$ver`n`nBump type: **${{ steps.version.outputs.bump }}** (from ${{ steps.version.outputs.commits }} commits)`n`nSee [CHANGELOG.md](CHANGELOG.md) for details."
+          if ($msi) {
+            gh release create "v$ver" $msi.FullName --title "v$ver" --notes $notes
+          } else {
+            gh release create "v$ver" --title "v$ver" --notes $notes
+          }
