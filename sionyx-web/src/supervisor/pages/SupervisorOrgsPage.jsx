@@ -1,16 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Spin, Tag, Typography, App } from 'antd';
+import { Card, Row, Col, Spin, Tag, Typography, App, Badge, Empty, theme } from 'antd';
+import { BankOutlined, UserOutlined, TeamOutlined, RightOutlined } from '@ant-design/icons';
 import { getSupervisorOrgs } from '../services/supervisorOrgService';
 import dayjs from 'dayjs';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const SupervisorOrgsPage = () => {
   const [loading, setLoading] = useState(true);
   const [organizations, setOrganizations] = useState([]);
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const { token } = theme.useToken();
 
   useEffect(() => {
     const load = async () => {
@@ -26,43 +28,6 @@ const SupervisorOrgsPage = () => {
     load();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const columns = [
-    {
-      title: 'שם',
-      dataIndex: 'name',
-      key: 'name',
-      render: (_, record) => record.name || record.orgId,
-    },
-    {
-      title: 'סטטוס',
-      dataIndex: 'status',
-      key: 'status',
-      render: status => (
-        <Tag color={status === 'active' ? 'green' : 'default'}>
-          {status === 'active' ? 'פעיל' : status || 'לא ידוע'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'משתמשים',
-      dataIndex: 'userCount',
-      key: 'userCount',
-      align: 'center',
-    },
-    {
-      title: 'פעילים',
-      dataIndex: 'activeUsers',
-      key: 'activeUsers',
-      align: 'center',
-    },
-    {
-      title: 'תאריך יצירה',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: v => (v ? dayjs(v).format('DD/MM/YYYY') : '-'),
-    },
-  ];
-
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
@@ -72,22 +37,60 @@ const SupervisorOrgsPage = () => {
   }
 
   return (
-    <div style={{ direction: 'rtl' }}>
+    <div style={{ direction: 'rtl', maxWidth: 960, margin: '0 auto' }}>
       <Title level={3} style={{ marginBottom: 24 }}>
+        <BankOutlined style={{ marginLeft: 8 }} />
         ארגונים
       </Title>
-      <Table
-        dataSource={organizations}
-        columns={columns}
-        rowKey='orgId'
-        onRow={record => ({
-          onClick: () => navigate(`/supervisor/organizations/${record.orgId}`),
-          style: { cursor: 'pointer' },
-        })}
-        pagination={{ pageSize: 10 }}
-        locale={{ emptyText: 'אין ארגונים בפיקוח' }}
-        scroll={{ x: 600 }}
-      />
+
+      {organizations.length === 0 ? (
+        <Card size='small'>
+          <Empty description='אין ארגונים בפיקוח' />
+        </Card>
+      ) : (
+        <Row gutter={[12, 12]}>
+          {organizations.map(org => (
+            <Col xs={24} sm={12} key={org.orgId}>
+              <Card
+                hoverable
+                size='small'
+                onClick={() => navigate(`/supervisor/organizations/${org.orgId}`)}
+                style={{ cursor: 'pointer' }}
+                styles={{ body: { padding: 16 } }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <BankOutlined style={{ fontSize: 18, color: token.colorPrimary }} />
+                    <Text strong>{org.name || org.orgId}</Text>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Tag color={org.status === 'active' ? 'green' : 'default'}>
+                      {org.status === 'active' ? 'פעיל' : org.status || 'לא ידוע'}
+                    </Tag>
+                    <RightOutlined style={{ fontSize: 12, color: token.colorTextTertiary }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <Badge
+                    color={token.colorSuccess}
+                    text={<Text type='secondary' style={{ fontSize: 12 }}>{org.userCount || 0} משתמשים</Text>}
+                  />
+                  <Badge
+                    color={token.colorInfo}
+                    text={<Text type='secondary' style={{ fontSize: 12 }}>{org.activeUsers || 0} פעילים</Text>}
+                  />
+                  {org.createdAt && (
+                    <Text type='secondary' style={{ fontSize: 12 }}>
+                      {dayjs(org.createdAt).format('DD/MM/YYYY')}
+                    </Text>
+                  )}
+                </div>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
     </div>
   );
 };
