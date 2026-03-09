@@ -28,7 +28,7 @@ public class AppConstantsCoverageTests
     public void GetAdminExitPassword_DefaultFallback()
     {
         var password = AppConstants.GetAdminExitPassword();
-        password.Should().Be("REDACTED_ADMIN_PASSWORD");
+        password.Should().Be("dev-exit");
     }
 
     [Fact]

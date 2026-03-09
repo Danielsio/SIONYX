@@ -10,7 +10,20 @@
     <ProductVersion Condition="'$(ProductVersion)' == ''">0.0.0</ProductVersion>
     <PublishDir Condition="'$(PublishDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\dist'))</PublishDir>
     <SourceDir Condition="'$(SourceDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..'))</SourceDir>
-    <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(PublishDir);SourceDir=$(SourceDir)</DefineConstants>
+
+    <!-- Firebase + secrets: read from MSBuild properties (passed via -p: or env vars) -->
+    <FirebaseApiKey Condition="'$(FirebaseApiKey)' == ''">$(FIREBASE_API_KEY)</FirebaseApiKey>
+    <FirebaseAuthDomain Condition="'$(FirebaseAuthDomain)' == ''">$(FIREBASE_AUTH_DOMAIN)</FirebaseAuthDomain>
+    <FirebaseProjectId Condition="'$(FirebaseProjectId)' == ''">$(FIREBASE_PROJECT_ID)</FirebaseProjectId>
+    <FirebaseDatabaseUrl Condition="'$(FirebaseDatabaseUrl)' == ''">$(FIREBASE_DATABASE_URL)</FirebaseDatabaseUrl>
+    <FirebaseStorageBucket Condition="'$(FirebaseStorageBucket)' == ''">$(FIREBASE_STORAGE_BUCKET)</FirebaseStorageBucket>
+    <FirebaseMessagingSenderId Condition="'$(FirebaseMessagingSenderId)' == ''">$(FIREBASE_MESSAGING_SENDER_ID)</FirebaseMessagingSenderId>
+    <FirebaseAppId Condition="'$(FirebaseAppId)' == ''">$(FIREBASE_APP_ID)</FirebaseAppId>
+    <FirebaseMeasurementId Condition="'$(FirebaseMeasurementId)' == ''">$(FIREBASE_MEASUREMENT_ID)</FirebaseMeasurementId>
+    <NedarimCallbackUrl Condition="'$(NedarimCallbackUrl)' == ''">$(NEDARIM_CALLBACK_URL)</NedarimCallbackUrl>
+    <AdminExitPassword Condition="'$(AdminExitPassword)' == ''">$(ADMIN_EXIT_PASSWORD)</AdminExitPassword>
+
+    <DefineConstants>ProductVersion=$(ProductVersion);PublishDir=$(PublishDir);SourceDir=$(SourceDir);FirebaseApiKey=$(FirebaseApiKey);FirebaseAuthDomain=$(FirebaseAuthDomain);FirebaseProjectId=$(FirebaseProjectId);FirebaseDatabaseUrl=$(FirebaseDatabaseUrl);FirebaseStorageBucket=$(FirebaseStorageBucket);FirebaseMessagingSenderId=$(FirebaseMessagingSenderId);FirebaseAppId=$(FirebaseAppId);FirebaseMeasurementId=$(FirebaseMeasurementId);NedarimCallbackUrl=$(NedarimCallbackUrl);AdminExitPassword=$(AdminExitPassword)</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
