@@ -1,19 +1,29 @@
-import { Card, Descriptions, Typography } from 'antd';
-import { UserOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Typography, theme } from 'antd';
+import { UserOutlined, MailOutlined, PhoneOutlined, SettingOutlined } from '@ant-design/icons';
 import { useSupervisorAuthStore } from '../store/supervisorAuthStore';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const SupervisorSettingsPage = () => {
   const supervisor = useSupervisorAuthStore(state => state.supervisor);
+  const { token } = theme.useToken();
+
+  const orgCount = supervisor?.organizations
+    ? Object.keys(supervisor.organizations).length
+    : 0;
 
   return (
-    <div style={{ direction: 'rtl' }}>
-      <Title level={4} style={{ marginBottom: 24 }}>
-        הגדרות מפקח
+    <div style={{ direction: 'rtl', maxWidth: 600, margin: '0 auto' }}>
+      <Title level={3} style={{ marginBottom: 24 }}>
+        <SettingOutlined style={{ marginLeft: 8 }} />
+        הגדרות
       </Title>
 
-      <Card title='פרופיל מפקח' style={{ maxWidth: 500 }}>
+      <Card
+        size='small'
+        title='פרופיל מפקח'
+        styles={{ body: { padding: 0 } }}
+      >
         <Descriptions column={1} bordered size='small'>
           <Descriptions.Item
             label={<><UserOutlined style={{ marginLeft: 8 }} />שם</>}
@@ -30,11 +40,15 @@ const SupervisorSettingsPage = () => {
           >
             {supervisor?.phone || '-'}
           </Descriptions.Item>
+          <Descriptions.Item label='ארגונים בפיקוח'>
+            {orgCount}
+          </Descriptions.Item>
+          <Descriptions.Item label='תאריך יצירה'>
+            {supervisor?.createdAt
+              ? new Date(supervisor.createdAt).toLocaleDateString('he-IL')
+              : '-'}
+          </Descriptions.Item>
         </Descriptions>
-
-        <div style={{ marginTop: 24 }}>
-          <Text type='secondary'>הגדרות נוספות יופיעו כאן בעתיד.</Text>
-        </div>
       </Card>
     </div>
   );
