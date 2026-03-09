@@ -7,7 +7,8 @@
 
 .PHONY: help run test test-all test-cov e2e build build-local build-dry \
         web-dev web-test web-deploy web-deploy-hosting \
-        functions-test \
+        functions-test test-rules \
+        setup-supervisor \
         release release-patch release-minor release-major
 
 # ── Help (default) ────────────────────────────────────────────────
@@ -28,6 +29,10 @@ help:
 	@echo ""
 	@echo "  Cloud Functions"
 	@echo "    make functions-test   Run Cloud Functions tests"
+	@echo "    make test-rules       Run security rules tests (needs emulator)"
+	@echo ""
+	@echo "  Supervisor"
+	@echo "    make setup-supervisor Setup supervisor user (dry-run by default)"
 	@echo ""
 	@echo "  Web (admin dashboard)"
 	@echo "    make web-dev          Run web dev server"
@@ -74,6 +79,17 @@ build-dry:
 # ── Cloud Functions ───────────────────────────────────────────────
 functions-test:
 	cd functions && npm test
+
+# ── Security Rules (requires Firebase emulator) ──────────────────
+test-rules:
+	cd tests/rules && npm test
+
+# ── Supervisor Setup ─────────────────────────────────────────────
+setup-supervisor:
+	node scripts/setup-supervisor.js
+
+setup-supervisor-confirm:
+	node scripts/setup-supervisor.js --confirm
 
 # ── Web ───────────────────────────────────────────────────────────
 web-dev:
