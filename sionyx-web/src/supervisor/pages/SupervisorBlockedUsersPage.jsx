@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, Spin, App } from 'antd';
-import { CheckCircleOutlined } from '@ant-design/icons';
+import { Table, Button, Spin, App, Typography } from 'antd';
+import { CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
+
+const { Title } = Typography;
 import { getBlockedUsers, unblockUser } from '../services/supervisorBlockService';
 import dayjs from 'dayjs';
 
@@ -87,12 +89,17 @@ const SupervisorBlockedUsersPage = () => {
 
   return (
     <div style={{ direction: 'rtl' }}>
+      <Title level={3} style={{ marginBottom: 24 }}>
+        <StopOutlined style={{ marginLeft: 8 }} />
+        משתמשים חסומים
+      </Title>
       <Table
         dataSource={blockedUsers}
         columns={columns}
         rowKey='phone'
         pagination={{ pageSize: 10 }}
         locale={{ emptyText: 'אין משתמשים חסומים' }}
+        scroll={{ x: 500 }}
       />
     </div>
   );
