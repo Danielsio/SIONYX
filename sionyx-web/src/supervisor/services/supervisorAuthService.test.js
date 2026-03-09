@@ -77,7 +77,7 @@ describe('supervisorAuthService', () => {
         uid: 'sup-1',
         phone: '1234567890',
         name: 'Supervisor',
-        email: 'sup@test.com',
+        createdAt: null,
         orgIds: ['org1', 'org2'],
       });
       expect(localStorage.getItem('supervisorUid')).toBe('sup-1');
@@ -155,8 +155,8 @@ describe('supervisorAuthService', () => {
       expect(result.supervisor).toEqual({
         uid: 'sup-1',
         name: 'Supervisor',
-        email: 'sup@test.com',
         phone: '1234567890',
+        createdAt: null,
         orgIds: ['org1'],
       });
     });

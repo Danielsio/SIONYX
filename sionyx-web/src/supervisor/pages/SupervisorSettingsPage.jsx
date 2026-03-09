@@ -7,9 +7,7 @@ const { Title } = Typography;
 const SupervisorSettingsPage = () => {
   const supervisor = useSupervisorAuthStore(state => state.supervisor);
 
-  const orgCount = supervisor?.organizations
-    ? Object.keys(supervisor.organizations).length
-    : 0;
+  const orgCount = supervisor?.orgIds?.length || 0;
 
   return (
     <div style={{ direction: 'rtl', maxWidth: 600, margin: '0 auto' }}>

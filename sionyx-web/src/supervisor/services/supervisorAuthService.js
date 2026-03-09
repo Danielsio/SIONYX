@@ -41,7 +41,7 @@ export const signInSupervisor = async (phone, password) => {
         uid,
         phone,
         name: supervisorData.name || '',
-        email: supervisorData.email || '',
+        createdAt: supervisorData.createdAt || null,
         orgIds,
       },
     };
@@ -90,8 +90,8 @@ export const getCurrentSupervisorData = async () => {
       supervisor: {
         uid: user.uid,
         name: supervisorData.name || '',
-        email: supervisorData.email || '',
         phone: supervisorData.phone || '',
+        createdAt: supervisorData.createdAt || null,
         orgIds,
       },
     };
