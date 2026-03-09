@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Table, Button, Spin, App, Typography } from 'antd';
-import { CheckCircleOutlined, StopOutlined } from '@ant-design/icons';
-
-const { Title } = Typography;
+import { Card, Row, Col, Button, Spin, App, Typography, Empty, Tag, theme } from 'antd';
+import { CheckCircleOutlined, StopOutlined, PhoneOutlined } from '@ant-design/icons';
 import { getBlockedUsers, unblockUser } from '../services/supervisorBlockService';
 import dayjs from 'dayjs';
+
+const { Title, Text } = Typography;
 
 const SupervisorBlockedUsersPage = () => {
   const [loading, setLoading] = useState(true);
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [unblockingPhone, setUnblockingPhone] = useState(null);
   const { message } = App.useApp();
+  const { token } = theme.useToken();
 
   const loadData = async () => {
     setLoading(true);
@@ -39,46 +40,6 @@ const SupervisorBlockedUsersPage = () => {
     setUnblockingPhone(null);
   };
 
-  const columns = [
-    {
-      title: 'שם',
-      key: 'name',
-      render: (_, r) => r.userName || r.name || '-',
-    },
-    {
-      title: 'טלפון',
-      dataIndex: 'phone',
-      key: 'phone',
-    },
-    {
-      title: 'סיבה',
-      dataIndex: 'reason',
-      key: 'reason',
-      render: v => v || '-',
-    },
-    {
-      title: 'תאריך חסימה',
-      dataIndex: 'blockedAt',
-      key: 'blockedAt',
-      render: v => (v ? dayjs(v).format('DD/MM/YYYY HH:mm') : '-'),
-    },
-    {
-      title: 'פעולות',
-      key: 'actions',
-      render: (_, r) => (
-        <Button
-          type='primary'
-          size='small'
-          icon={<CheckCircleOutlined />}
-          loading={unblockingPhone === r.phone}
-          onClick={() => handleUnblock(r.phone)}
-        >
-          שחרר חסימה
-        </Button>
-      ),
-    },
-  ];
-
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
@@ -88,19 +49,58 @@ const SupervisorBlockedUsersPage = () => {
   }
 
   return (
-    <div style={{ direction: 'rtl' }}>
+    <div style={{ direction: 'rtl', maxWidth: 960, margin: '0 auto' }}>
       <Title level={3} style={{ marginBottom: 24 }}>
         <StopOutlined style={{ marginLeft: 8 }} />
         משתמשים חסומים
       </Title>
-      <Table
-        dataSource={blockedUsers}
-        columns={columns}
-        rowKey='phone'
-        pagination={{ pageSize: 10 }}
-        locale={{ emptyText: 'אין משתמשים חסומים' }}
-        scroll={{ x: 500 }}
-      />
+
+      {blockedUsers.length === 0 ? (
+        <Card size='small'>
+          <Empty description='אין משתמשים חסומים' />
+        </Card>
+      ) : (
+        <Row gutter={[12, 12]}>
+          {blockedUsers.map(user => (
+            <Col xs={24} sm={12} key={user.phone}>
+              <Card size='small' styles={{ body: { padding: 16 } }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <Text strong>{user.userName || user.name || user.phone}</Text>
+                  <Tag color='error'>חסום</Tag>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <PhoneOutlined style={{ fontSize: 12, color: token.colorTextTertiary }} />
+                    <Text type='secondary' style={{ fontSize: 13 }}>{user.phone}</Text>
+                  </div>
+                  {user.reason && (
+                    <Text type='secondary' style={{ fontSize: 12 }}>
+                      סיבה: {user.reason}
+                    </Text>
+                  )}
+                  {user.blockedAt && (
+                    <Text type='secondary' style={{ fontSize: 12 }}>
+                      {dayjs(user.blockedAt).format('DD/MM/YYYY HH:mm')}
+                    </Text>
+                  )}
+                </div>
+
+                <Button
+                  type='primary'
+                  size='small'
+                  block
+                  icon={<CheckCircleOutlined />}
+                  loading={unblockingPhone === user.phone}
+                  onClick={() => handleUnblock(user.phone)}
+                >
+                  שחרר חסימה
+                </Button>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
     </div>
   );
 };
