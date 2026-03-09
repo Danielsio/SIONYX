@@ -20,6 +20,7 @@ const SupervisorDashboardPage = lazy(() => import('./supervisor/pages/Supervisor
 const SupervisorOrgsPage = lazy(() => import('./supervisor/pages/SupervisorOrgsPage'));
 const SupervisorOrgDetailPage = lazy(() => import('./supervisor/pages/SupervisorOrgDetailPage'));
 const SupervisorBlockedUsersPage = lazy(() => import('./supervisor/pages/SupervisorBlockedUsersPage'));
+const SupervisorMessagesPage = lazy(() => import('./supervisor/pages/SupervisorMessagesPage'));
 const SupervisorSettingsPage = lazy(() => import('./supervisor/pages/SupervisorSettingsPage'));
 const OverviewPage = lazy(() => import('./pages/OverviewPage'));
 const UsersPage = lazy(() => import('./pages/UsersPage'));
@@ -142,6 +143,7 @@ function App() {
                 <Route index element={<SupervisorDashboardPage />} />
                 <Route path='organizations' element={<SupervisorOrgsPage />} />
                 <Route path='organizations/:orgId' element={<SupervisorOrgDetailPage />} />
+                <Route path='messages' element={<SupervisorMessagesPage />} />
                 <Route path='blocked' element={<SupervisorBlockedUsersPage />} />
                 <Route path='settings' element={<SupervisorSettingsPage />} />
               </Route>
