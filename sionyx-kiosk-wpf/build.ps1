@@ -182,6 +182,33 @@ function Invoke-Publish {
     return $true
 }
 
+function Test-InstallerSecrets {
+    $required = @(
+        "FIREBASE_API_KEY",
+        "FIREBASE_AUTH_DOMAIN",
+        "FIREBASE_PROJECT_ID",
+        "FIREBASE_DATABASE_URL",
+        "FIREBASE_STORAGE_BUCKET",
+        "FIREBASE_MESSAGING_SENDER_ID",
+        "FIREBASE_APP_ID",
+        "FIREBASE_MEASUREMENT_ID",
+        "NEDARIM_CALLBACK_URL",
+        "ADMIN_EXIT_PASSWORD"
+    )
+
+    $missing = $required | Where-Object { -not [Environment]::GetEnvironmentVariable($_) }
+    if ($missing.Count -gt 0) {
+        Write-Err "Missing required environment variables for installer:"
+        $missing | ForEach-Object { Write-Host "    - $_" -ForegroundColor Red }
+        Write-Host ""
+        Write-Host "  Set them locally or via GitHub Secrets in CI." -ForegroundColor Yellow
+        Write-Host "  Example:  `$env:FIREBASE_API_KEY = 'AIza...'" -ForegroundColor Yellow
+        return $false
+    }
+    Write-Ok "All installer secrets present in environment"
+    return $true
+}
+
 function New-Installer([string]$ver) {
     Write-Header "Creating Installer v$ver (WiX MSI)"
 
@@ -190,6 +217,10 @@ function New-Installer([string]$ver) {
 
     if (-not (Test-Path $wixProj)) {
         Write-Err "WiX project not found: $wixProj"
+        return $null
+    }
+
+    if (-not (Test-InstallerSecrets)) {
         return $null
     }
 

@@ -129,22 +129,22 @@
 
       <Component Id="RegFirebase" Guid="*">
         <RegistryKey Root="HKLM" Key="SOFTWARE\SIONYX">
-          <RegistryValue Name="FirebaseApiKey"            Type="string" Value="REDACTED_FIREBASE_API_KEY" />
-          <RegistryValue Name="FirebaseAuthDomain"        Type="string" Value="REDACTED_FIREBASE_AUTH_DOMAIN" />
-          <RegistryValue Name="FirebaseProjectId"         Type="string" Value="sionyx-19636" />
-          <RegistryValue Name="FirebaseDatabaseUrl"       Type="string" Value="https://REDACTED_FIREBASE_DATABASE_URL" />
-          <RegistryValue Name="FirebaseStorageBucket"     Type="string" Value="REDACTED_FIREBASE_STORAGE_BUCKET" />
-          <RegistryValue Name="FirebaseMessagingSenderId" Type="string" Value="961130757239" />
-          <RegistryValue Name="FirebaseAppId"             Type="string" Value="REDACTED_FIREBASE_APP_ID" />
-          <RegistryValue Name="FirebaseMeasurementId"     Type="string" Value="REDACTED_FIREBASE_MEASUREMENT_ID" />
+          <RegistryValue Name="FirebaseApiKey"            Type="string" Value="$(var.FirebaseApiKey)" />
+          <RegistryValue Name="FirebaseAuthDomain"        Type="string" Value="$(var.FirebaseAuthDomain)" />
+          <RegistryValue Name="FirebaseProjectId"         Type="string" Value="$(var.FirebaseProjectId)" />
+          <RegistryValue Name="FirebaseDatabaseUrl"       Type="string" Value="$(var.FirebaseDatabaseUrl)" />
+          <RegistryValue Name="FirebaseStorageBucket"     Type="string" Value="$(var.FirebaseStorageBucket)" />
+          <RegistryValue Name="FirebaseMessagingSenderId" Type="string" Value="$(var.FirebaseMessagingSenderId)" />
+          <RegistryValue Name="FirebaseAppId"             Type="string" Value="$(var.FirebaseAppId)" />
+          <RegistryValue Name="FirebaseMeasurementId"     Type="string" Value="$(var.FirebaseMeasurementId)" />
         </RegistryKey>
         <RegistryValue Root="HKLM" Key="SOFTWARE\SIONYX" Name="firebaseConfigured" Type="integer" Value="1" KeyPath="yes" />
       </Component>
 
       <Component Id="RegPaymentAndSecurity" Guid="*">
         <RegistryKey Root="HKLM" Key="SOFTWARE\SIONYX">
-          <RegistryValue Name="NedarimCallbackUrl" Type="string" Value="https://us-central1-sionyx-19636.cloudfunctions.net/nedarimCallback" />
-          <RegistryValue Name="AdminExitPassword"  Type="string" Value="REDACTED_ADMIN_PASSWORD" />
+          <RegistryValue Name="NedarimCallbackUrl" Type="string" Value="$(var.NedarimCallbackUrl)" />
+          <RegistryValue Name="AdminExitPassword"  Type="string" Value="$(var.AdminExitPassword)" />
         </RegistryKey>
         <RegistryValue Root="HKLM" Key="SOFTWARE\SIONYX" Name="paymentConfigured" Type="integer" Value="1" KeyPath="yes" />
       </Component>
