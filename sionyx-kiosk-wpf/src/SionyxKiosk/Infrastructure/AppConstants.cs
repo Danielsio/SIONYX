@@ -11,8 +11,8 @@ public static class AppConstants
     /// <summary>Default admin exit hotkey combination.</summary>
     public const string AdminExitHotkeyDefault = "Ctrl+Alt+Space";
 
-    /// <summary>Default fallback password (only used if neither registry nor env provides one).</summary>
-    private const string DefaultAdminPassword = "sionyx2025";
+    /// <summary>Fallback password for local development only. Production reads from registry.</summary>
+    private const string DefaultAdminPassword = "dev-exit";
 
     /// <summary>
     /// Load admin exit password from configuration.
