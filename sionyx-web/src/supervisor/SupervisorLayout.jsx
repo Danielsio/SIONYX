@@ -20,6 +20,7 @@ import {
   SettingOutlined,
   StopOutlined,
   UserOutlined,
+  MessageOutlined,
 } from '@ant-design/icons';
 import useIsMobile from '../hooks/useIsMobile';
 import { useSupervisorAuthStore } from './store/supervisorAuthStore';
@@ -31,6 +32,7 @@ const { Text } = Typography;
 const menuItems = [
   { key: '/supervisor', icon: <DashboardOutlined />, label: 'סקירה' },
   { key: '/supervisor/organizations', icon: <BankOutlined />, label: 'ארגונים' },
+  { key: '/supervisor/messages', icon: <MessageOutlined />, label: 'הודעות' },
   { key: '/supervisor/blocked', icon: <StopOutlined />, label: 'משתמשים חסומים' },
   { key: '/supervisor/settings', icon: <SettingOutlined />, label: 'הגדרות' },
 ];
@@ -65,11 +67,13 @@ const SupervisorLayout = () => {
       ? '/supervisor'
       : location.pathname.startsWith('/supervisor/organizations')
         ? '/supervisor/organizations'
-        : location.pathname.startsWith('/supervisor/blocked')
-          ? '/supervisor/blocked'
-          : location.pathname.startsWith('/supervisor/settings')
-            ? '/supervisor/settings'
-            : location.pathname;
+        : location.pathname.startsWith('/supervisor/messages')
+          ? '/supervisor/messages'
+          : location.pathname.startsWith('/supervisor/blocked')
+            ? '/supervisor/blocked'
+            : location.pathname.startsWith('/supervisor/settings')
+              ? '/supervisor/settings'
+              : location.pathname;
 
   const toggleSidebar = () => {
     if (isMobile) {
