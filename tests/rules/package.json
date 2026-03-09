@@ -1,0 +1,13 @@
+{
+  "name": "sionyx-rules-tests",
+  "private": true,
+  "description": "Firebase Realtime Database security rules tests",
+  "scripts": {
+    "test": "jest --forceExit --detectOpenHandles"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.0",
+    "firebase-admin": "^12.6.0",
+    "jest": "^30.2.0"
+  }
+}
