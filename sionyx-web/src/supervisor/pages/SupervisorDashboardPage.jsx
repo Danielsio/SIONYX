@@ -15,7 +15,6 @@ import {
   BankOutlined,
   UserOutlined,
   TeamOutlined,
-  DollarOutlined,
   StopOutlined,
 } from '@ant-design/icons';
 import { getSupervisorOrgs } from '../services/supervisorOrgService';
@@ -57,14 +56,12 @@ const SupervisorDashboardPage = () => {
   const totalOrgs = orgs.length;
   const totalUsers = orgs.reduce((s, o) => s + (o.userCount || 0), 0);
   const activeSessions = orgs.reduce((s, o) => s + (o.activeUsers || 0), 0);
-  const totalRevenue = orgs.reduce((s, o) => s + (o.totalRevenue || 0), 0);
   const blockedUsers = data.blockedUsersCount || 0;
 
   const stats = [
     { title: 'סה״כ ארגונים', value: totalOrgs, icon: <BankOutlined /> },
     { title: 'סה״כ משתמשים', value: totalUsers, icon: <UserOutlined /> },
     { title: 'הפעלות פעילות', value: activeSessions, icon: <TeamOutlined /> },
-    { title: 'הכנסות', value: totalRevenue.toFixed(2), suffix: '₪', icon: <DollarOutlined /> },
     { title: 'משתמשים חסומים', value: blockedUsers, icon: <StopOutlined /> },
   ];
 
@@ -115,17 +112,13 @@ const SupervisorDashboardPage = () => {
                   </Tag>
                 </div>
                 <Row gutter={8}>
-                  <Col span={8}>
+                  <Col span={12}>
                     <Text type='secondary' style={{ fontSize: 12 }}>משתמשים: </Text>
                     <Text>{org.userCount || 0}</Text>
                   </Col>
-                  <Col span={8}>
+                  <Col span={12}>
                     <Text type='secondary' style={{ fontSize: 12 }}>פעילים: </Text>
                     <Text>{org.activeUsers || 0}</Text>
-                  </Col>
-                  <Col span={8}>
-                    <Text type='secondary' style={{ fontSize: 12 }}>הכנסות: </Text>
-                    <Text>{(org.totalRevenue || 0).toFixed(2)} ₪</Text>
                   </Col>
                 </Row>
               </Card>
