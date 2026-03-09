@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import {
   Card,
   Tabs,
-  Table,
   Tag,
   Button,
   Spin,
@@ -12,15 +11,28 @@ import {
   Modal,
   Form,
   Input,
+  Row,
+  Col,
+  Empty,
+  Space,
+  theme,
 } from 'antd';
-import { StopOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import {
+  StopOutlined,
+  CheckCircleOutlined,
+  UserOutlined,
+  PhoneOutlined,
+  DesktopOutlined,
+  ShoppingOutlined,
+  ClockCircleOutlined,
+} from '@ant-design/icons';
 import { getOrgUsers, getOrgPackages, getOrgComputers } from '../services/supervisorOrgService';
 import { getBlockedUsers, blockUser, unblockUser } from '../services/supervisorBlockService';
 import SupervisorOperatingHoursSettings from '../components/SupervisorOperatingHoursSettings';
 import { getUserStatus, getStatusLabel, getStatusColor } from '../../constants/userStatus';
 import { formatTimeHebrewCompact } from '../../utils/timeFormatter';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const SupervisorOrgDetailPage = () => {
   const { orgId } = useParams();
@@ -34,6 +46,7 @@ const SupervisorOrgDetailPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
   const { message } = App.useApp();
+  const { token } = theme.useToken();
 
   const loadData = async () => {
     if (!orgId) return;
@@ -95,91 +108,8 @@ const SupervisorOrgDetailPage = () => {
     }
   };
 
-  const userColumns = [
-    {
-      title: 'שם',
-      key: 'name',
-      render: (_, r) =>
-        `${(r.firstName || '').trim()} ${(r.lastName || '').trim()}`.trim() || r.phone || '-',
-    },
-    { title: 'טלפון', dataIndex: 'phone', key: 'phone', render: v => v || '-', responsive: ['sm'] },
-    {
-      title: 'סטטוס',
-      key: 'status',
-      render: (_, r) => {
-        const isBlocked = blockedPhones.has(r.phone || r.phoneNumber);
-        if (isBlocked) return <Tag color='error'>חסום</Tag>;
-        const status = getUserStatus(r);
-        return <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>;
-      },
-    },
-    {
-      title: 'זמן נותר',
-      key: 'remainingTime',
-      render: (_, r) => formatTimeHebrewCompact(r.remainingTime || 0),
-      responsive: ['md'],
-    },
-    {
-      title: 'תקציב הדפסות',
-      dataIndex: 'printBalance',
-      key: 'printBalance',
-      render: v => (v != null ? `₪${Number(v).toFixed(2)}` : '-'),
-      responsive: ['md'],
-    },
-    {
-      title: 'פעולות',
-      key: 'actions',
-      render: (_, r) => {
-        const isBlocked = blockedPhones.has(r.phone || r.phoneNumber);
-        return isBlocked ? (
-          <Button
-            type='link'
-            size='small'
-            icon={<CheckCircleOutlined />}
-            onClick={() => handleUnblock(r)}
-          >
-            שחרר
-          </Button>
-        ) : (
-          <Button
-            type='link'
-            size='small'
-            danger
-            icon={<StopOutlined />}
-            onClick={() => handleBlock(r)}
-          >
-            חסום
-          </Button>
-        );
-      },
-    },
-  ];
-
-  const packageColumns = [
-    { title: 'שם', dataIndex: 'name', key: 'name' },
-    { title: 'מחיר (₪)', dataIndex: 'price', key: 'price', render: v => (v != null ? Number(v).toFixed(2) : '-') },
-    { title: 'דקות', dataIndex: 'minutes', key: 'minutes', render: v => v ?? '-', responsive: ['sm'] },
-    { title: 'הדפסות', dataIndex: 'prints', key: 'prints', render: v => v ?? '-', responsive: ['sm'] },
-  ];
-
-  const computerColumns = [
-    { title: 'שם', key: 'name', render: (_, r) => r.name || r.computerName || r.id || '-' },
-    {
-      title: 'סטטוס',
-      key: 'active',
-      render: (_, r) => (
-        <Tag color={r.isActive ? 'green' : 'default'}>
-          {r.isActive ? 'פעיל' : 'לא פעיל'}
-        </Tag>
-      ),
-    },
-    {
-      title: 'משתמש נוכחי',
-      key: 'currentUser',
-      render: (_, r) => r.currentUserId || r.currentUserName || '-',
-      responsive: ['sm'],
-    },
-  ];
+  const getUserName = r =>
+    `${(r.firstName || '').trim()} ${(r.lastName || '').trim()}`.trim() || r.phone || '-';
 
   if (loading && !users.length) {
     return (
@@ -189,49 +119,138 @@ const SupervisorOrgDetailPage = () => {
     );
   }
 
+  const renderUsers = () => {
+    if (users.length === 0) return <Empty description='אין משתמשים' />;
+    return (
+      <Row gutter={[12, 12]}>
+        {users.map(r => {
+          const isBlocked = blockedPhones.has(r.phone || r.phoneNumber);
+          const status = getUserStatus(r);
+          return (
+            <Col xs={24} sm={12} key={r.uid}>
+              <Card size='small' styles={{ body: { padding: 12 } }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <Space size={6}>
+                    <UserOutlined style={{ color: token.colorPrimary }} />
+                    <Text strong style={{ fontSize: 13 }}>{getUserName(r)}</Text>
+                  </Space>
+                  {isBlocked ? (
+                    <Tag color='error'>חסום</Tag>
+                  ) : (
+                    <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 8 }}>
+                  {r.phone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <PhoneOutlined style={{ fontSize: 11, color: token.colorTextTertiary }} />
+                      <Text type='secondary' style={{ fontSize: 12 }}>{r.phone}</Text>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    <Text type='secondary' style={{ fontSize: 12 }}>
+                      זמן: {formatTimeHebrewCompact(r.remainingTime || 0)}
+                    </Text>
+                    {r.printBalance != null && (
+                      <Text type='secondary' style={{ fontSize: 12 }}>
+                        הדפסות: ₪{Number(r.printBalance).toFixed(2)}
+                      </Text>
+                    )}
+                  </div>
+                </div>
+                {isBlocked ? (
+                  <Button
+                    size='small'
+                    block
+                    icon={<CheckCircleOutlined />}
+                    onClick={() => handleUnblock(r)}
+                  >
+                    שחרר חסימה
+                  </Button>
+                ) : (
+                  <Button
+                    size='small'
+                    block
+                    danger
+                    icon={<StopOutlined />}
+                    onClick={() => handleBlock(r)}
+                  >
+                    חסום
+                  </Button>
+                )}
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
+    );
+  };
+
+  const renderPackages = () => {
+    if (packages.length === 0) return <Empty description='אין חבילות' />;
+    return (
+      <Row gutter={[12, 12]}>
+        {packages.map(pkg => (
+          <Col xs={24} sm={12} lg={8} key={pkg.id}>
+            <Card size='small' styles={{ body: { padding: 12 } }}>
+              <Text strong style={{ fontSize: 14, display: 'block', marginBottom: 8 }}>
+                <ShoppingOutlined style={{ marginLeft: 6, color: token.colorPrimary }} />
+                {pkg.name}
+              </Text>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <Text type='secondary' style={{ fontSize: 12 }}>
+                  מחיר: ₪{pkg.price != null ? Number(pkg.price).toFixed(2) : '-'}
+                </Text>
+                {pkg.minutes != null && (
+                  <Text type='secondary' style={{ fontSize: 12 }}>
+                    דקות: {pkg.minutes}
+                  </Text>
+                )}
+                {pkg.prints != null && (
+                  <Text type='secondary' style={{ fontSize: 12 }}>
+                    הדפסות: {pkg.prints}
+                  </Text>
+                )}
+              </div>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+    );
+  };
+
+  const renderComputers = () => {
+    if (computers.length === 0) return <Empty description='אין מחשבים' />;
+    return (
+      <Row gutter={[12, 12]}>
+        {computers.map(c => (
+          <Col xs={24} sm={12} lg={8} key={c.id}>
+            <Card size='small' styles={{ body: { padding: 12 } }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Space size={6}>
+                  <DesktopOutlined style={{ color: token.colorPrimary }} />
+                  <Text strong style={{ fontSize: 13 }}>{c.name || c.computerName || c.id || '-'}</Text>
+                </Space>
+                <Tag color={c.isActive ? 'green' : 'default'}>
+                  {c.isActive ? 'פעיל' : 'לא פעיל'}
+                </Tag>
+              </div>
+              {(c.currentUserId || c.currentUserName) && (
+                <Text type='secondary' style={{ fontSize: 12, marginTop: 4, display: 'block' }}>
+                  משתמש: {c.currentUserName || c.currentUserId}
+                </Text>
+              )}
+            </Card>
+          </Col>
+        ))}
+      </Row>
+    );
+  };
+
   const tabItems = [
-    {
-      key: 'users',
-      label: 'משתמשים',
-      children: (
-        <Table
-          dataSource={users}
-          columns={userColumns}
-          rowKey='uid'
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: 'אין משתמשים' }}
-          scroll={{ x: 500 }}
-        />
-      ),
-    },
-    {
-      key: 'packages',
-      label: 'חבילות',
-      children: (
-        <Table
-          dataSource={packages}
-          columns={packageColumns}
-          rowKey='id'
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: 'אין חבילות' }}
-          scroll={{ x: 400 }}
-        />
-      ),
-    },
-    {
-      key: 'computers',
-      label: 'מחשבים',
-      children: (
-        <Table
-          dataSource={computers}
-          columns={computerColumns}
-          rowKey='id'
-          pagination={{ pageSize: 10 }}
-          locale={{ emptyText: 'אין מחשבים' }}
-          scroll={{ x: 400 }}
-        />
-      ),
-    },
+    { key: 'users', label: `משתמשים (${users.length})`, children: renderUsers() },
+    { key: 'packages', label: `חבילות (${packages.length})`, children: renderPackages() },
+    { key: 'computers', label: `מחשבים (${computers.length})`, children: renderComputers() },
     {
       key: 'settings',
       label: 'שעות פעילות',
@@ -240,14 +259,12 @@ const SupervisorOrgDetailPage = () => {
   ];
 
   return (
-    <div style={{ direction: 'rtl' }}>
+    <div style={{ direction: 'rtl', maxWidth: 960, margin: '0 auto' }}>
       <Title level={4} style={{ marginBottom: 24 }}>
         ארגון: {orgId}
       </Title>
 
-      <Card>
-        <Tabs items={tabItems} />
-      </Card>
+      <Tabs items={tabItems} />
 
       <Modal
         title='חסימת משתמש'
