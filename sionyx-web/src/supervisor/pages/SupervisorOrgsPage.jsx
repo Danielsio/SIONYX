@@ -56,13 +56,6 @@ const SupervisorOrgsPage = () => {
       align: 'center',
     },
     {
-      title: 'הכנסות (₪)',
-      dataIndex: 'totalRevenue',
-      key: 'totalRevenue',
-      align: 'left',
-      render: v => (v != null ? Number(v).toFixed(2) : '0.00'),
-    },
-    {
       title: 'תאריך יצירה',
       dataIndex: 'createdAt',
       key: 'createdAt',
