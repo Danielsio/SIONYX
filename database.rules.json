@@ -6,26 +6,46 @@
         ".write": false
       }
     },
+
+    "supervisors": {
+      "$uid": {
+        ".read": "auth.uid === $uid",
+        ".write": false,
+        "organizations": {
+          "$orgId": {
+            ".read": "auth.uid === $uid"
+          }
+        },
+        "blockedUsers": {
+          ".read": "auth.uid === $uid",
+          ".write": "auth.uid === $uid",
+          "$phone": {
+            ".validate": "newData.hasChildren(['blockedAt']) || !newData.exists()"
+          }
+        }
+      }
+    },
+
     "organizations": {
       ".read": false,
       ".write": false,
       
       "$orgId": {
         "users": {
-          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor')",
+          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
           ".indexOn": ["isActive", "createdAt", "lastSeen"],
           
           "$userId": {
-            ".read": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor'",
-            ".write": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor'",
+            ".read": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()",
+            ".write": "auth.uid == $userId || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin'",
             
             "isAdmin": {
-              ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor'"
+              ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin'"
             },
 
             "role": {
-              ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor'",
-              ".validate": "newData.isString() && (newData.val() == 'user' || newData.val() == 'admin' || newData.val() == 'supervisor')"
+              ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin'",
+              ".validate": "newData.isString() && (newData.val() == 'user' || newData.val() == 'admin')"
             },
             
             "remainingTime": {
@@ -39,16 +59,28 @@
             },
             "timeExpiresAt": {
               ".validate": "newData.isString() || !newData.exists()"
+            },
+            "blocked": {
+              ".validate": "newData.isBoolean()",
+              ".write": "root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
+            },
+            "blockedAt": {
+              ".validate": "newData.isNumber() || !newData.exists()",
+              ".write": "root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
+            },
+            "blockedReason": {
+              ".validate": "(newData.isString() && newData.val().length <= 500) || !newData.exists()",
+              ".write": "root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
             }
           }
         },
         
         "packages": {
-          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
           ".indexOn": ["isActive", "createdAt"],
           
           "$packageId": {
-            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor'",
+            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin'",
             ".validate": "newData.hasChildren(['name', 'price'])",
             
             "name": {
@@ -79,12 +111,12 @@
         },
         
         "purchases": {
-          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
           ".indexOn": ["userId", "status", "createdAt"],
           
           "$purchaseId": {
-            ".read": "data.child('userId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor'",
-            ".write": "(!data.exists() && newData.child('userId').val() == auth.uid) || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor'",
+            ".read": "data.child('userId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()",
+            ".write": "(!data.exists() && newData.child('userId').val() == auth.uid) || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin'",
             ".validate": "newData.hasChildren(['userId', 'status', 'createdAt'])",
             
             "userId": {
@@ -100,21 +132,21 @@
         },
         
         "messages": {
-          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
           ".indexOn": ["toUserId", "timestamp", "read"],
 
           "$messageId": {
-            ".read": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor')",
-            ".write": "auth != null && ((!data.exists() && (root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor')) || data.child('toUserId').val() == auth.uid)",
+            ".read": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
+            ".write": "auth != null && ((!data.exists() && (root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())) || data.child('toUserId').val() == auth.uid)",
             ".validate": "newData.hasChildren(['toUserId', 'message', 'timestamp'])",
 
             "read": {
-              ".write": "auth != null && (data.parent().child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor')",
+              ".write": "auth != null && (data.parent().child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin')",
               ".validate": "newData.isBoolean()"
             },
 
             "readAt": {
-              ".write": "auth != null && (data.parent().child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor')",
+              ".write": "auth != null && (data.parent().child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin')",
               ".validate": "newData.isNumber()"
             },
             
@@ -133,11 +165,11 @@
         },
         
         "announcements": {
-          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
           ".indexOn": ["createdAt", "active"],
 
           "$announcementId": {
-            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor'",
+            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin'",
             
             "title": {
               ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 200"
@@ -161,11 +193,11 @@
         },
         
         "computers": {
-          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
           ".indexOn": ["isActive", "lastSeen", "computerName"],
           
           "$computerId": {
-            ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
+            ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
             ".write": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
             
             "userId": {
@@ -184,9 +216,13 @@
         },
         
         "metadata": {
-          ".read": "auth != null && root.child('organizations').child($orgId).child('users').child(auth.uid).exists()",
-          ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'supervisor'",
+          ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
+          ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin'",
           
+          "settings": {
+            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
+          },
+
           "name": {
             ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
           },

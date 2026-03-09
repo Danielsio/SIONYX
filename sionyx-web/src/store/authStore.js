@@ -4,8 +4,6 @@ import {
   getUserRole,
   hasRole as checkRole,
   isAdminOrAbove,
-  isSupervisor,
-  ROLES,
 } from '../utils/roles.js';
 
 export const useAuthStore = create(
@@ -43,8 +41,6 @@ export const useAuthStore = create(
       hasRole: requiredRole => checkRole(get().user, requiredRole),
 
       isAdminOrAbove: () => isAdminOrAbove(get().user),
-
-      isSupervisor: () => isSupervisor(get().user),
     }),
     {
       name: 'admin-auth-storage',

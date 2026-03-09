@@ -30,18 +30,6 @@ describe('RoleGuard', () => {
     expect(screen.getByTestId('protected-content')).toBeInTheDocument();
   });
 
-  it('renders children when user has higher role', () => {
-    mockUser('supervisor');
-
-    render(
-      <RoleGuard requiredRole={ROLES.ADMIN}>
-        <div data-testid='protected-content'>Protected Content</div>
-      </RoleGuard>
-    );
-
-    expect(screen.getByTestId('protected-content')).toBeInTheDocument();
-  });
-
   it('does not render children when user has lower role', () => {
     mockUser('user');
 
@@ -59,7 +47,7 @@ describe('RoleGuard', () => {
 
     render(
       <RoleGuard
-        requiredRole={ROLES.SUPERVISOR}
+        requiredRole={ROLES.ADMIN}
         fallback={<div data-testid='fallback'>Access Denied</div>}
       >
         <div data-testid='protected-content'>Protected Content</div>
@@ -108,29 +96,5 @@ describe('RoleGuard', () => {
     );
 
     expect(screen.getByTestId('protected-content')).toBeInTheDocument();
-  });
-
-  it('restricts supervisor content from admin', () => {
-    mockUser('admin');
-
-    render(
-      <RoleGuard requiredRole={ROLES.SUPERVISOR}>
-        <div data-testid='supervisor-content'>Supervisor Only</div>
-      </RoleGuard>
-    );
-
-    expect(screen.queryByTestId('supervisor-content')).not.toBeInTheDocument();
-  });
-
-  it('allows supervisor to see supervisor content', () => {
-    mockUser('supervisor');
-
-    render(
-      <RoleGuard requiredRole={ROLES.SUPERVISOR}>
-        <div data-testid='supervisor-content'>Supervisor Only</div>
-      </RoleGuard>
-    );
-
-    expect(screen.getByTestId('supervisor-content')).toBeInTheDocument();
   });
 });

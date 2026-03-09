@@ -144,22 +144,6 @@ describe('authService', () => {
       expect(result.user.role).toBe('admin');
     });
 
-    it('returns success for supervisor', async () => {
-      signInWithEmailAndPassword.mockResolvedValue({
-        user: { uid: 'user-123' },
-      });
-      get.mockResolvedValue({
-        exists: () => true,
-        val: () => ({ role: 'supervisor', firstName: 'Super', lastName: 'Visor' }),
-      });
-      set.mockResolvedValue();
-
-      const result = await signInAdmin('1234567890', 'password', 'my-org');
-
-      expect(result.success).toBe(true);
-      expect(result.user.role).toBe('supervisor');
-    });
-
     it('rejects login for user with role field set to user', async () => {
       signInWithEmailAndPassword.mockResolvedValue({
         user: { uid: 'user-123' },
@@ -321,19 +305,6 @@ describe('authService', () => {
       expect(result.admin.role).toBe('admin');
     });
 
-    it('returns supervisor data', async () => {
-      auth.currentUser = { uid: 'user-123' };
-      localStorage.setItem('adminOrgId', 'my-org');
-      get.mockResolvedValue({
-        exists: () => true,
-        val: () => ({ role: 'supervisor', firstName: 'Super', lastName: 'Visor' }),
-      });
-
-      const result = await getCurrentAdminData();
-
-      expect(result.success).toBe(true);
-      expect(result.admin.role).toBe('supervisor');
-    });
   });
 
   describe('onAuthChange', () => {
