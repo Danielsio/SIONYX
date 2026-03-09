@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Table, Spin, Tag, App } from 'antd';
+import { Table, Spin, Tag, Typography, App } from 'antd';
 import { getSupervisorOrgs } from '../services/supervisorOrgService';
 import dayjs from 'dayjs';
+
+const { Title } = Typography;
 
 const SupervisorOrgsPage = () => {
   const [loading, setLoading] = useState(true);
@@ -22,7 +24,7 @@ const SupervisorOrgsPage = () => {
       setLoading(false);
     };
     load();
-  }, [message]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const columns = [
     {
@@ -78,6 +80,9 @@ const SupervisorOrgsPage = () => {
 
   return (
     <div style={{ direction: 'rtl' }}>
+      <Title level={3} style={{ marginBottom: 24 }}>
+        ארגונים
+      </Title>
       <Table
         dataSource={organizations}
         columns={columns}
@@ -88,6 +93,7 @@ const SupervisorOrgsPage = () => {
         })}
         pagination={{ pageSize: 10 }}
         locale={{ emptyText: 'אין ארגונים בפיקוח' }}
+        scroll={{ x: 600 }}
       />
     </div>
   );

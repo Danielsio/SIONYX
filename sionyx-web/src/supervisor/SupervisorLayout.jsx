@@ -8,16 +8,18 @@ import {
   Button,
   Drawer,
   Tooltip,
+  Space,
+  theme,
 } from 'antd';
 import {
   DashboardOutlined,
   BankOutlined,
-  UserOutlined,
   LogoutOutlined,
   MenuUnfoldOutlined,
   MenuFoldOutlined,
   SettingOutlined,
   StopOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import useIsMobile from '../hooks/useIsMobile';
 import { useSupervisorAuthStore } from './store/supervisorAuthStore';
@@ -25,10 +27,6 @@ import { signOutSupervisor } from './services/supervisorAuthService';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
-
-const sidebarStyle = {
-  background: 'linear-gradient(180deg, #1a1030 0%, #0f0a1f 100%)',
-};
 
 const menuItems = [
   { key: '/supervisor', icon: <DashboardOutlined />, label: 'סקירה' },
@@ -45,6 +43,7 @@ const SupervisorLayout = () => {
   const location = useLocation();
   const supervisor = useSupervisorAuthStore(state => state.supervisor);
   const logout = useSupervisorAuthStore(state => state.logout);
+  const { token } = theme.useToken();
 
   useEffect(() => {
     if (!isMobile) setMobileDrawerVisible(false);
@@ -86,7 +85,7 @@ const SupervisorLayout = () => {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        ...sidebarStyle,
+        background: token.colorBgContainer,
       }}
     >
       <div
@@ -95,7 +94,7 @@ const SupervisorLayout = () => {
           alignItems: 'center',
           justifyContent: collapsed ? 'center' : 'flex-start',
           padding: collapsed ? '16px 12px' : '20px 24px',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+          borderBottom: `1px solid ${token.colorBorderSecondary}`,
           flexShrink: 0,
           gap: 12,
           minHeight: 72,
@@ -105,12 +104,11 @@ const SupervisorLayout = () => {
           style={{
             width: collapsed ? 36 : 40,
             height: collapsed ? 36 : 40,
-            background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+            background: token.colorPrimary,
             borderRadius: 12,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
           }}
         >
           <span
@@ -126,14 +124,7 @@ const SupervisorLayout = () => {
           </span>
         </div>
         {!collapsed && (
-          <Text
-            style={{
-              color: '#fff',
-              fontSize: 14,
-              fontWeight: 700,
-              letterSpacing: '0.5px',
-            }}
-          >
+          <Text strong style={{ fontSize: 14, letterSpacing: '0.5px' }}>
             SIONYX SUPERVISOR
           </Text>
         )}
@@ -141,21 +132,17 @@ const SupervisorLayout = () => {
 
       <div style={{ flex: 1, padding: '16px 8px', overflowY: 'auto' }}>
         <Menu
-          theme='dark'
           mode='inline'
           selectedKeys={[selectedKey]}
           items={menuItems}
           onClick={handleMenuClick}
-          style={{
-            background: 'transparent',
-            border: 'none',
-          }}
+          style={{ border: 'none' }}
         />
       </div>
 
       <div
         style={{
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+          borderTop: `1px solid ${token.colorBorderSecondary}`,
           padding: collapsed ? '16px 8px' : '16px',
           flexShrink: 0,
         }}
@@ -163,25 +150,16 @@ const SupervisorLayout = () => {
         <Button
           type='text'
           block
+          danger
           icon={<LogoutOutlined />}
           onClick={handleLogout}
           style={{
-            color: 'rgba(255, 255, 255, 0.65)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: collapsed ? 'center' : 'flex-start',
             gap: 10,
             height: 44,
             borderRadius: 10,
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
-            e.currentTarget.style.color = '#ef4444';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.65)';
           }}
         >
           {!collapsed && 'התנתק'}
@@ -206,8 +184,8 @@ const SupervisorLayout = () => {
             right: 0,
             top: 0,
             bottom: 0,
-            ...sidebarStyle,
-            boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.2)',
+            background: token.colorBgContainer,
+            borderLeft: `1px solid ${token.colorBorderSecondary}`,
             zIndex: 100,
           }}
         >
@@ -235,22 +213,20 @@ const SupervisorLayout = () => {
         style={{
           marginRight: isMobile ? 0 : collapsed ? 72 : 240,
           transition: 'margin 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-          background: '#0f0a1f',
         }}
       >
         <Header
           style={{
             padding: isMobile ? '0 16px' : '0 28px',
-            background: 'linear-gradient(90deg, #1a1030 0%, #0f0a1f 100%)',
+            background: token.colorBgContainer,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)',
+            borderBottom: `1px solid ${token.colorBorderSecondary}`,
             minHeight: 68,
             position: 'sticky',
             top: 0,
             zIndex: 50,
-            borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
           }}
         >
           <Tooltip title={collapsed ? 'הרחב תפריט' : 'צמצם תפריט'}>
@@ -267,27 +243,17 @@ const SupervisorLayout = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'rgba(255, 255, 255, 0.85)',
               }}
             />
           </Tooltip>
 
-          <Space
-            style={{
-              padding: '6px 12px',
-              borderRadius: 12,
-              background: 'rgba(99, 102, 241, 0.15)',
-            }}
-          >
+          <Space>
             <Avatar
               size={36}
-              style={{
-                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-              }}
+              style={{ background: token.colorPrimary }}
               icon={<UserOutlined />}
             />
-            <Text style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>
+            <Text strong style={{ fontSize: 14 }}>
               {supervisor?.name || supervisor?.phone || 'מפקח'}
             </Text>
           </Space>
@@ -298,7 +264,6 @@ const SupervisorLayout = () => {
             margin: isMobile ? 16 : 28,
             padding: isMobile ? 20 : 28,
             minHeight: 'calc(100vh - 124px)',
-            background: 'transparent',
           }}
         >
           <Outlet />

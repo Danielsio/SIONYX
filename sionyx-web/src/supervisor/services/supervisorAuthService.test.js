@@ -44,7 +44,7 @@ describe('supervisorAuthService', () => {
 
     it('returns error when user is not a supervisor', async () => {
       signInWithEmailAndPassword.mockResolvedValue({
-        user: { uid: 'user-123' },
+        user: { uid: 'user-123', getIdToken: vi.fn().mockResolvedValue('token') },
       });
       get.mockResolvedValue({ exists: () => false });
       firebaseSignOut.mockResolvedValue();
@@ -58,7 +58,7 @@ describe('supervisorAuthService', () => {
 
     it('returns success with supervisor data when valid', async () => {
       signInWithEmailAndPassword.mockResolvedValue({
-        user: { uid: 'sup-1' },
+        user: { uid: 'sup-1', getIdToken: vi.fn().mockResolvedValue('token') },
       });
       get
         .mockResolvedValueOnce({
@@ -85,7 +85,7 @@ describe('supervisorAuthService', () => {
 
     it('returns empty orgIds when organizations path does not exist', async () => {
       signInWithEmailAndPassword.mockResolvedValue({
-        user: { uid: 'sup-1' },
+        user: { uid: 'sup-1', getIdToken: vi.fn().mockResolvedValue('token') },
       });
       get
         .mockResolvedValueOnce({

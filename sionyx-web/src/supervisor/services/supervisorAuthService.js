@@ -17,6 +17,8 @@ export const signInSupervisor = async (phone, password) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const uid = userCredential.user.uid;
 
+    await userCredential.user.getIdToken(true);
+
     const supervisorRef = ref(database, `supervisors/${uid}`);
     const snapshot = await get(supervisorRef);
 
