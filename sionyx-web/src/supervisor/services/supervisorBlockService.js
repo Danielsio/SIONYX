@@ -1,13 +1,48 @@
-import { httpsCallable } from 'firebase/functions';
-import { ref, get } from 'firebase/database';
-import { database, functions } from '../../config/firebase';
-import { auth } from '../../config/firebase';
+import { ref, get, set, remove, update } from 'firebase/database';
+import { database, auth } from '../../config/firebase';
+import { useSupervisorAuthStore } from '../store/supervisorAuthStore';
 
 export const blockUser = async (phone, reason, userName) => {
   try {
-    const fn = httpsCallable(functions, 'blockUser');
-    const result = await fn({ phone, reason, userName });
-    return result.data;
+    const user = auth.currentUser;
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    const normalizedPhone = phone.replace(/\D/g, '');
+    if (!normalizedPhone) return { success: false, error: 'Invalid phone number' };
+
+    const orgIds = useSupervisorAuthStore.getState().getOrgIds();
+    if (orgIds.length === 0) return { success: false, error: 'No supervised organizations' };
+
+    const blockedRef = ref(database, `supervisors/${user.uid}/blockedUsers/${normalizedPhone}`);
+    await set(blockedRef, {
+      name: userName || '',
+      reason: reason || '',
+      blockedAt: Date.now(),
+      blockedBy: user.uid,
+    });
+
+    let blockedCount = 0;
+    for (const orgId of orgIds) {
+      const usersRef = ref(database, `organizations/${orgId}/users`);
+      const usersSnap = await get(usersRef);
+      if (!usersSnap.exists()) continue;
+
+      const users = usersSnap.val();
+      for (const [userId, userData] of Object.entries(users)) {
+        const userPhone = (userData.phoneNumber || '').replace(/\D/g, '');
+        if (userPhone === normalizedPhone) {
+          const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
+          await update(userRef, {
+            blocked: true,
+            blockedAt: Date.now(),
+            blockedReason: reason || '',
+          });
+          blockedCount++;
+        }
+      }
+    }
+
+    return { success: true, blockedCount, message: `User blocked in ${blockedCount} organization(s)` };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -15,9 +50,37 @@ export const blockUser = async (phone, reason, userName) => {
 
 export const unblockUser = async phone => {
   try {
-    const fn = httpsCallable(functions, 'unblockUser');
-    const result = await fn({ phone });
-    return result.data;
+    const user = auth.currentUser;
+    if (!user) return { success: false, error: 'Not authenticated' };
+
+    const normalizedPhone = phone.replace(/\D/g, '');
+    const orgIds = useSupervisorAuthStore.getState().getOrgIds();
+
+    const blockedRef = ref(database, `supervisors/${user.uid}/blockedUsers/${normalizedPhone}`);
+    await remove(blockedRef);
+
+    let unblockedCount = 0;
+    for (const orgId of orgIds) {
+      const usersRef = ref(database, `organizations/${orgId}/users`);
+      const usersSnap = await get(usersRef);
+      if (!usersSnap.exists()) continue;
+
+      const users = usersSnap.val();
+      for (const [userId, userData] of Object.entries(users)) {
+        const userPhone = (userData.phoneNumber || '').replace(/\D/g, '');
+        if (userPhone === normalizedPhone) {
+          const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
+          await update(userRef, {
+            blocked: false,
+            blockedAt: null,
+            blockedReason: null,
+          });
+          unblockedCount++;
+        }
+      }
+    }
+
+    return { success: true, unblockedCount, message: `User unblocked in ${unblockedCount} organization(s)` };
   } catch (error) {
     return { success: false, error: error.message };
   }

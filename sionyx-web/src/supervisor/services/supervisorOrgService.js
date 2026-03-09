@@ -1,12 +1,51 @@
-import { httpsCallable } from 'firebase/functions';
 import { ref, get } from 'firebase/database';
-import { database, functions } from '../../config/firebase';
+import { database, auth } from '../../config/firebase';
+import { useSupervisorAuthStore } from '../store/supervisorAuthStore';
 
 export const getSupervisorOrgs = async () => {
   try {
-    const fn = httpsCallable(functions, 'getSupervisorOrgs');
-    const result = await fn({});
-    return result.data;
+    const user = auth.currentUser;
+    if (!user) return { success: false, error: 'Not authenticated', organizations: [] };
+
+    const orgIds = useSupervisorAuthStore.getState().getOrgIds();
+
+    const orgs = [];
+    for (const orgId of orgIds) {
+      const orgRef = ref(database, `organizations/${orgId}`);
+      const orgSnap = await get(orgRef);
+      if (!orgSnap.exists()) continue;
+
+      const orgData = orgSnap.val();
+      const metadata = orgData.metadata || {};
+      const users = orgData.users || {};
+      const purchases = orgData.purchases || {};
+
+      const userCount = Object.keys(users).length;
+      const activeUsers = Object.values(users).filter(u => u.isSessionActive).length;
+
+      let totalRevenue = 0;
+      Object.values(purchases).forEach(p => {
+        if (p.status === 'completed' && p.amount) {
+          totalRevenue += parseFloat(p.amount) || 0;
+        }
+      });
+
+      orgs.push({
+        orgId,
+        name: metadata.name || orgId,
+        status: metadata.status || 'unknown',
+        userCount,
+        activeUsers,
+        totalRevenue,
+        createdAt: metadata.created_at || null,
+      });
+    }
+
+    const blockedRef = ref(database, `supervisors/${user.uid}/blockedUsers`);
+    const blockedSnap = await get(blockedRef);
+    const blockedUsersCount = blockedSnap.exists() ? Object.keys(blockedSnap.val()).length : 0;
+
+    return { success: true, organizations: orgs, blockedUsersCount };
   } catch (error) {
     return { success: false, error: error.message, organizations: [] };
   }

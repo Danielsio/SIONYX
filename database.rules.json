@@ -18,7 +18,10 @@
         },
         "blockedUsers": {
           ".read": "auth.uid === $uid",
-          ".write": false
+          ".write": "auth.uid === $uid",
+          "$phone": {
+            ".validate": "newData.hasChildren(['blockedAt']) || !newData.exists()"
+          }
         }
       }
     },
@@ -59,15 +62,15 @@
             },
             "blocked": {
               ".validate": "newData.isBoolean()",
-              ".write": false
+              ".write": "root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
             },
             "blockedAt": {
-              ".validate": "newData.isNumber()",
-              ".write": false
+              ".validate": "newData.isNumber() || !newData.exists()",
+              ".write": "root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
             },
             "blockedReason": {
-              ".validate": "newData.isString() && newData.val().length <= 500",
-              ".write": false
+              ".validate": "(newData.isString() && newData.val().length <= 500) || !newData.exists()",
+              ".write": "root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
             }
           }
         },
@@ -216,6 +219,10 @@
           ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
           ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin'",
           
+          "settings": {
+            ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
+          },
+
           "name": {
             ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 100"
           },
