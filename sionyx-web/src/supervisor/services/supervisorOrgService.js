@@ -11,14 +11,15 @@ export const getSupervisorOrgs = async () => {
 
     const orgs = [];
     for (const orgId of orgIds) {
-      const orgRef = ref(database, `organizations/${orgId}`);
-      const orgSnap = await get(orgRef);
-      if (!orgSnap.exists()) continue;
+      const [metadataSnap, usersSnap, purchasesSnap] = await Promise.all([
+        get(ref(database, `organizations/${orgId}/metadata`)),
+        get(ref(database, `organizations/${orgId}/users`)),
+        get(ref(database, `organizations/${orgId}/purchases`)),
+      ]);
 
-      const orgData = orgSnap.val();
-      const metadata = orgData.metadata || {};
-      const users = orgData.users || {};
-      const purchases = orgData.purchases || {};
+      const metadata = metadataSnap.exists() ? metadataSnap.val() : {};
+      const users = usersSnap.exists() ? usersSnap.val() : {};
+      const purchases = purchasesSnap.exists() ? purchasesSnap.val() : {};
 
       const userCount = Object.keys(users).length;
       const activeUsers = Object.values(users).filter(u => u.isSessionActive).length;

@@ -20,7 +20,7 @@ import SupervisorOperatingHoursSettings from '../components/SupervisorOperatingH
 import { getUserStatus, getStatusLabel, getStatusColor } from '../../constants/userStatus';
 import { formatTimeHebrewCompact } from '../../utils/timeFormatter';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 const SupervisorOrgDetailPage = () => {
   const { orgId } = useParams();
@@ -31,6 +31,7 @@ const SupervisorOrgDetailPage = () => {
   const [blockedPhones, setBlockedPhones] = useState(new Set());
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [blockingUser, setBlockingUser] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
   const { message } = App.useApp();
 
@@ -55,7 +56,7 @@ const SupervisorOrgDetailPage = () => {
 
   useEffect(() => {
     loadData();
-  }, [orgId]);
+  }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleBlock = user => {
     setBlockingUser(user);
@@ -64,7 +65,8 @@ const SupervisorOrgDetailPage = () => {
   };
 
   const handleBlockSubmit = async () => {
-    if (!blockingUser) return;
+    if (!blockingUser || submitting) return;
+    setSubmitting(true);
     const values = await form.validateFields();
     const result = await blockUser(
       blockingUser.phone || blockingUser.phoneNumber,
@@ -79,6 +81,7 @@ const SupervisorOrgDetailPage = () => {
     } else {
       message.error(result?.error || 'שגיאה בחסימה');
     }
+    setSubmitting(false);
   };
 
   const handleUnblock = async user => {
@@ -99,7 +102,7 @@ const SupervisorOrgDetailPage = () => {
       render: (_, r) =>
         `${(r.firstName || '').trim()} ${(r.lastName || '').trim()}`.trim() || r.phone || '-',
     },
-    { title: 'טלפון', dataIndex: 'phone', key: 'phone', render: v => v || '-' },
+    { title: 'טלפון', dataIndex: 'phone', key: 'phone', render: v => v || '-', responsive: ['sm'] },
     {
       title: 'סטטוס',
       key: 'status',
@@ -114,12 +117,14 @@ const SupervisorOrgDetailPage = () => {
       title: 'זמן נותר',
       key: 'remainingTime',
       render: (_, r) => formatTimeHebrewCompact(r.remainingTime || 0),
+      responsive: ['md'],
     },
     {
       title: 'תקציב הדפסות',
       dataIndex: 'printBalance',
       key: 'printBalance',
       render: v => (v != null ? `₪${Number(v).toFixed(2)}` : '-'),
+      responsive: ['md'],
     },
     {
       title: 'פעולות',
@@ -133,7 +138,7 @@ const SupervisorOrgDetailPage = () => {
             icon={<CheckCircleOutlined />}
             onClick={() => handleUnblock(r)}
           >
-            שחרר חסימה
+            שחרר
           </Button>
         ) : (
           <Button
@@ -153,8 +158,8 @@ const SupervisorOrgDetailPage = () => {
   const packageColumns = [
     { title: 'שם', dataIndex: 'name', key: 'name' },
     { title: 'מחיר (₪)', dataIndex: 'price', key: 'price', render: v => (v != null ? Number(v).toFixed(2) : '-') },
-    { title: 'דקות', dataIndex: 'minutes', key: 'minutes', render: v => v ?? '-' },
-    { title: 'הדפסות', dataIndex: 'prints', key: 'prints', render: v => v ?? '-' },
+    { title: 'דקות', dataIndex: 'minutes', key: 'minutes', render: v => v ?? '-', responsive: ['sm'] },
+    { title: 'הדפסות', dataIndex: 'prints', key: 'prints', render: v => v ?? '-', responsive: ['sm'] },
   ];
 
   const computerColumns = [
@@ -172,6 +177,7 @@ const SupervisorOrgDetailPage = () => {
       title: 'משתמש נוכחי',
       key: 'currentUser',
       render: (_, r) => r.currentUserId || r.currentUserName || '-',
+      responsive: ['sm'],
     },
   ];
 
@@ -194,6 +200,7 @@ const SupervisorOrgDetailPage = () => {
           rowKey='uid'
           pagination={{ pageSize: 10 }}
           locale={{ emptyText: 'אין משתמשים' }}
+          scroll={{ x: 500 }}
         />
       ),
     },
@@ -207,6 +214,7 @@ const SupervisorOrgDetailPage = () => {
           rowKey='id'
           pagination={{ pageSize: 10 }}
           locale={{ emptyText: 'אין חבילות' }}
+          scroll={{ x: 400 }}
         />
       ),
     },
@@ -220,19 +228,20 @@ const SupervisorOrgDetailPage = () => {
           rowKey='id'
           pagination={{ pageSize: 10 }}
           locale={{ emptyText: 'אין מחשבים' }}
+          scroll={{ x: 400 }}
         />
       ),
     },
     {
       key: 'settings',
-      label: 'הגדרות',
+      label: 'שעות פעילות',
       children: orgId ? <SupervisorOperatingHoursSettings orgId={orgId} /> : null,
     },
   ];
 
   return (
     <div style={{ direction: 'rtl' }}>
-      <Title level={4} style={{ marginBottom: 24, color: 'rgba(255,255,255,0.9)' }}>
+      <Title level={4} style={{ marginBottom: 24 }}>
         ארגון: {orgId}
       </Title>
 
@@ -244,6 +253,7 @@ const SupervisorOrgDetailPage = () => {
         title='חסימת משתמש'
         open={blockModalOpen}
         onOk={handleBlockSubmit}
+        confirmLoading={submitting}
         onCancel={() => {
           setBlockModalOpen(false);
           setBlockingUser(null);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Input, Button, Card, Typography, Alert, App } from 'antd';
+import { Form, Input, Button, Card, Typography, Alert, App, theme } from 'antd';
 import { PhoneOutlined, LockOutlined } from '@ant-design/icons';
 import { signInSupervisor } from '../services/supervisorAuthService';
 import { useSupervisorAuthStore } from '../store/supervisorAuthStore';
@@ -13,6 +13,7 @@ const SupervisorLoginPage = () => {
   const navigate = useNavigate();
   const setSupervisor = useSupervisorAuthStore(state => state.setSupervisor);
   const { message } = App.useApp();
+  const { token } = theme.useToken();
 
   const onFinish = async values => {
     setLoading(true);
@@ -39,7 +40,7 @@ const SupervisorLoginPage = () => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #1a1030 0%, #0f0a1f 50%, #1a1030 100%)',
+        background: token.colorBgLayout,
         padding: '20px',
         direction: 'rtl',
       }}
@@ -49,8 +50,6 @@ const SupervisorLoginPage = () => {
           width: '100%',
           maxWidth: 450,
           borderRadius: 16,
-          boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
-          border: '1px solid rgba(99, 102, 241, 0.2)',
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
@@ -108,12 +107,7 @@ const SupervisorLoginPage = () => {
               htmlType='submit'
               loading={loading}
               block
-              style={{
-                height: 45,
-                fontSize: 16,
-                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                border: 'none',
-              }}
+              style={{ height: 45, fontSize: 16 }}
             >
               התחבר
             </Button>

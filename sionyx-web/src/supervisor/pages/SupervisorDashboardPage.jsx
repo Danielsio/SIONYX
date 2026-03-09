@@ -43,7 +43,7 @@ const SupervisorDashboardPage = () => {
       setLoading(false);
     };
     load();
-  }, [message]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
     return (
@@ -70,32 +70,26 @@ const SupervisorDashboardPage = () => {
 
   return (
     <div style={{ direction: 'rtl' }}>
-      <Title level={3} style={{ marginBottom: 24, color: 'rgba(255,255,255,0.9)' }}>
+      <Title level={3} style={{ marginBottom: 24 }}>
         סקירה כללית
       </Title>
 
       <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
         {stats.map((s, i) => (
-          <Col xs={24} sm={12} lg={8} xl={undefined} key={i}>
-            <Card
-              style={{
-                background: 'rgba(99, 102, 241, 0.1)',
-                border: '1px solid rgba(99, 102, 241, 0.2)',
-              }}
-            >
+          <Col xs={24} sm={12} lg={8} key={i}>
+            <Card>
               <Statistic
-                title={<Text style={{ color: 'rgba(255,255,255,0.7)' }}>{s.title}</Text>}
+                title={s.title}
                 value={s.value}
                 suffix={s.suffix}
                 prefix={s.icon}
-                prefixStyle={{ color: '#6366f1', marginLeft: 8 }}
               />
             </Card>
           </Col>
         ))}
       </Row>
 
-      <Title level={4} style={{ marginBottom: 16, color: 'rgba(255,255,255,0.9)' }}>
+      <Title level={4} style={{ marginBottom: 16 }}>
         ארגונים בפיקוח
       </Title>
 
@@ -110,14 +104,10 @@ const SupervisorDashboardPage = () => {
               <Card
                 hoverable
                 onClick={() => navigate(`/supervisor/organizations/${org.orgId}`)}
-                style={{
-                  background: 'rgba(26, 16, 48, 0.6)',
-                  border: '1px solid rgba(99, 102, 241, 0.2)',
-                  cursor: 'pointer',
-                }}
+                style={{ cursor: 'pointer' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                  <Text strong style={{ fontSize: 16, color: 'rgba(255,255,255,0.9)' }}>
+                  <Text strong style={{ fontSize: 16 }}>
                     {org.name || org.orgId}
                   </Text>
                   <Tag color={org.status === 'active' ? 'green' : 'default'}>
@@ -127,17 +117,15 @@ const SupervisorDashboardPage = () => {
                 <Row gutter={8}>
                   <Col span={8}>
                     <Text type='secondary' style={{ fontSize: 12 }}>משתמשים: </Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.85)' }}>{org.userCount || 0}</Text>
+                    <Text>{org.userCount || 0}</Text>
                   </Col>
                   <Col span={8}>
                     <Text type='secondary' style={{ fontSize: 12 }}>פעילים: </Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.85)' }}>{org.activeUsers || 0}</Text>
+                    <Text>{org.activeUsers || 0}</Text>
                   </Col>
                   <Col span={8}>
                     <Text type='secondary' style={{ fontSize: 12 }}>הכנסות: </Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.85)' }}>
-                      {(org.totalRevenue || 0).toFixed(2)} ₪
-                    </Text>
+                    <Text>{(org.totalRevenue || 0).toFixed(2)} ₪</Text>
                   </Col>
                 </Row>
               </Card>

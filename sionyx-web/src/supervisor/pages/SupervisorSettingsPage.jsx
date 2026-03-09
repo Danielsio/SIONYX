@@ -9,7 +9,7 @@ const SupervisorSettingsPage = () => {
 
   return (
     <div style={{ direction: 'rtl' }}>
-      <Title level={4} style={{ marginBottom: 24, color: 'rgba(255,255,255,0.9)' }}>
+      <Title level={4} style={{ marginBottom: 24 }}>
         הגדרות מפקח
       </Title>
 
