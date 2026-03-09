@@ -10,12 +10,15 @@ import {
   Tag,
   Empty,
   App,
+  Badge,
+  theme,
 } from 'antd';
 import {
   BankOutlined,
   UserOutlined,
   TeamOutlined,
   StopOutlined,
+  RightOutlined,
 } from '@ant-design/icons';
 import { getSupervisorOrgs } from '../services/supervisorOrgService';
 
@@ -26,6 +29,7 @@ const SupervisorDashboardPage = () => {
   const [data, setData] = useState({ organizations: [], blockedUsersCount: 0 });
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const { token } = theme.useToken();
 
   useEffect(() => {
     const load = async () => {
@@ -59,68 +63,74 @@ const SupervisorDashboardPage = () => {
   const blockedUsers = data.blockedUsersCount || 0;
 
   const stats = [
-    { title: 'סה״כ ארגונים', value: totalOrgs, icon: <BankOutlined /> },
-    { title: 'סה״כ משתמשים', value: totalUsers, icon: <UserOutlined /> },
-    { title: 'הפעלות פעילות', value: activeSessions, icon: <TeamOutlined /> },
-    { title: 'משתמשים חסומים', value: blockedUsers, icon: <StopOutlined /> },
+    { title: 'ארגונים', value: totalOrgs, icon: <BankOutlined />, color: token.colorPrimary },
+    { title: 'משתמשים', value: totalUsers, icon: <UserOutlined />, color: token.colorSuccess },
+    { title: 'פעילים', value: activeSessions, icon: <TeamOutlined />, color: token.colorInfo },
+    { title: 'חסומים', value: blockedUsers, icon: <StopOutlined />, color: token.colorError },
   ];
 
   return (
-    <div style={{ direction: 'rtl' }}>
-      <Title level={3} style={{ marginBottom: 24 }}>
-        סקירה כללית
-      </Title>
+    <div style={{ direction: 'rtl', maxWidth: 960, margin: '0 auto' }}>
+      <Title level={3} style={{ marginBottom: 24 }}>סקירה כללית</Title>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
+      <Row gutter={[12, 12]} style={{ marginBottom: 32 }}>
         {stats.map((s, i) => (
-          <Col xs={24} sm={12} lg={8} key={i}>
-            <Card>
+          <Col xs={12} sm={6} key={i}>
+            <Card
+              size='small'
+              style={{ borderTop: `3px solid ${s.color}` }}
+              styles={{ body: { padding: '16px 12px' } }}
+            >
               <Statistic
-                title={s.title}
+                title={<Text type='secondary' style={{ fontSize: 12 }}>{s.title}</Text>}
                 value={s.value}
-                suffix={s.suffix}
                 prefix={s.icon}
+                valueStyle={{ fontSize: 24 }}
               />
             </Card>
           </Col>
         ))}
       </Row>
 
-      <Title level={4} style={{ marginBottom: 16 }}>
-        ארגונים בפיקוח
-      </Title>
+      <Title level={4} style={{ marginBottom: 16 }}>ארגונים בפיקוח</Title>
 
       {orgs.length === 0 ? (
-        <Card>
+        <Card size='small'>
           <Empty description='אין ארגונים בפיקוח' />
         </Card>
       ) : (
-        <Row gutter={[16, 16]}>
+        <Row gutter={[12, 12]}>
           {orgs.map(org => (
-            <Col xs={24} sm={12} lg={8} key={org.orgId}>
+            <Col xs={24} sm={12} key={org.orgId}>
               <Card
                 hoverable
+                size='small'
                 onClick={() => navigate(`/supervisor/organizations/${org.orgId}`)}
                 style={{ cursor: 'pointer' }}
+                styles={{ body: { padding: 16 } }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                  <Text strong style={{ fontSize: 16 }}>
-                    {org.name || org.orgId}
-                  </Text>
-                  <Tag color={org.status === 'active' ? 'green' : 'default'}>
-                    {org.status === 'active' ? 'פעיל' : org.status || 'לא ידוע'}
-                  </Tag>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <BankOutlined style={{ fontSize: 18, color: token.colorPrimary }} />
+                    <Text strong>{org.name || org.orgId}</Text>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Tag color={org.status === 'active' ? 'green' : 'default'}>
+                      {org.status === 'active' ? 'פעיל' : org.status || 'לא ידוע'}
+                    </Tag>
+                    <RightOutlined style={{ fontSize: 12, color: token.colorTextTertiary }} />
+                  </div>
                 </div>
-                <Row gutter={8}>
-                  <Col span={12}>
-                    <Text type='secondary' style={{ fontSize: 12 }}>משתמשים: </Text>
-                    <Text>{org.userCount || 0}</Text>
-                  </Col>
-                  <Col span={12}>
-                    <Text type='secondary' style={{ fontSize: 12 }}>פעילים: </Text>
-                    <Text>{org.activeUsers || 0}</Text>
-                  </Col>
-                </Row>
+                <div style={{ marginTop: 12, display: 'flex', gap: 16 }}>
+                  <Badge
+                    color={token.colorSuccess}
+                    text={<Text type='secondary' style={{ fontSize: 12 }}>{org.userCount || 0} משתמשים</Text>}
+                  />
+                  <Badge
+                    color={token.colorInfo}
+                    text={<Text type='secondary' style={{ fontSize: 12 }}>{org.activeUsers || 0} פעילים</Text>}
+                  />
+                </div>
               </Card>
             </Col>
           ))}
