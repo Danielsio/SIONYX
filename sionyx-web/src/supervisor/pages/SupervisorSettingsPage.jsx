@@ -1,12 +1,11 @@
-import { Card, Descriptions, Typography, theme } from 'antd';
-import { UserOutlined, MailOutlined, PhoneOutlined, SettingOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Typography } from 'antd';
+import { UserOutlined, PhoneOutlined, SettingOutlined } from '@ant-design/icons';
 import { useSupervisorAuthStore } from '../store/supervisorAuthStore';
 
 const { Title } = Typography;
 
 const SupervisorSettingsPage = () => {
   const supervisor = useSupervisorAuthStore(state => state.supervisor);
-  const { token } = theme.useToken();
 
   const orgCount = supervisor?.organizations
     ? Object.keys(supervisor.organizations).length
@@ -29,11 +28,6 @@ const SupervisorSettingsPage = () => {
             label={<><UserOutlined style={{ marginLeft: 8 }} />שם</>}
           >
             {supervisor?.name || '-'}
-          </Descriptions.Item>
-          <Descriptions.Item
-            label={<><MailOutlined style={{ marginLeft: 8 }} />אימייל</>}
-          >
-            {supervisor?.email || '-'}
           </Descriptions.Item>
           <Descriptions.Item
             label={<><PhoneOutlined style={{ marginLeft: 8 }} />טלפון</>}
