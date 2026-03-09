@@ -1,6 +1,5 @@
-import { httpsCallable } from 'firebase/functions';
-import { ref, get } from 'firebase/database';
-import { database, functions } from '../../config/firebase';
+import { ref, get, update } from 'firebase/database';
+import { database } from '../../config/firebase';
 
 export const getOrgOperatingHours = async orgId => {
   try {
@@ -28,9 +27,9 @@ export const getOrgOperatingHours = async orgId => {
 
 export const updateOrgOperatingHours = async (orgId, operatingHours) => {
   try {
-    const fn = httpsCallable(functions, 'setSupervisorOrgSettings');
-    const result = await fn({ orgId, settings: { operatingHours } });
-    return result.data;
+    const settingsRef = ref(database, `organizations/${orgId}/metadata/settings`);
+    await update(settingsRef, { operatingHours });
+    return { success: true, message: 'Settings updated successfully' };
   } catch (error) {
     return { success: false, error: error.message };
   }

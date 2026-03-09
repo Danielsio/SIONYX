@@ -1,75 +1,94 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { httpsCallable } from 'firebase/functions';
-import { ref, get } from 'firebase/database';
+import { ref, get, set, remove, update } from 'firebase/database';
 import { blockUser, unblockUser, getBlockedUsers } from './supervisorBlockService';
 import { auth } from '../../config/firebase';
 
-vi.mock('firebase/functions');
 vi.mock('firebase/database');
 vi.mock('../../config/firebase', () => ({
   auth: { currentUser: { uid: 'sup-1' } },
   database: {},
-  functions: {},
+}));
+vi.mock('../store/supervisorAuthStore', () => ({
+  useSupervisorAuthStore: {
+    getState: () => ({
+      getOrgIds: () => ['org-1', 'org-2'],
+    }),
+  },
 }));
 
 describe('supervisorBlockService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     auth.currentUser = { uid: 'sup-1' };
+    ref.mockReturnValue('mockRef');
+    set.mockResolvedValue();
+    remove.mockResolvedValue();
+    update.mockResolvedValue();
   });
 
   describe('blockUser', () => {
-    it('calls httpsCallable correctly', async () => {
-      const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
-      httpsCallable.mockReturnValue(mockFn);
-
-      await blockUser('1234567890', 'Spam', 'John Doe');
-
-      expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'blockUser');
-      expect(mockFn).toHaveBeenCalledWith({
-        phone: '1234567890',
-        reason: 'Spam',
-        userName: 'John Doe',
+    it('writes to blockedUsers and updates matching users across orgs', async () => {
+      const getCalls = [];
+      get.mockImplementation(refVal => {
+        getCalls.push(refVal);
+        return Promise.resolve({
+          exists: () => true,
+          val: () => ({
+            user1: { phoneNumber: '123-456-7890', name: 'John' },
+            user2: { phoneNumber: '999-999-9999', name: 'Jane' },
+          }),
+        });
       });
+
+      const result = await blockUser('123-456-7890', 'Spam', 'John');
+
+      expect(result.success).toBe(true);
+      expect(result.blockedCount).toBe(2);
+      expect(set).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledTimes(2);
     });
 
-    it('returns result data on success', async () => {
-      const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
-      httpsCallable.mockReturnValue(mockFn);
+    it('returns error when not authenticated', async () => {
+      auth.currentUser = null;
 
       const result = await blockUser('1234567890', 'Spam', 'John');
 
-      expect(result).toEqual({ success: true });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Not authenticated');
     });
 
-    it('returns error on failure', async () => {
-      const mockFn = vi.fn().mockRejectedValue(new Error('Block failed'));
-      httpsCallable.mockReturnValue(mockFn);
+    it('returns error for invalid phone', async () => {
+      const result = await blockUser('---', 'Spam', 'John');
 
-      const result = await blockUser('1234567890', 'Spam', 'John');
-
-      expect(result).toEqual({ success: false, error: 'Block failed' });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Invalid phone number');
     });
   });
 
   describe('unblockUser', () => {
-    it('calls httpsCallable correctly', async () => {
-      const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
-      httpsCallable.mockReturnValue(mockFn);
-
-      await unblockUser('1234567890');
-
-      expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'unblockUser');
-      expect(mockFn).toHaveBeenCalledWith({ phone: '1234567890' });
-    });
-
-    it('returns result data on success', async () => {
-      const mockFn = vi.fn().mockResolvedValue({ data: { success: true } });
-      httpsCallable.mockReturnValue(mockFn);
+    it('removes from blockedUsers and clears blocked flag on matching users', async () => {
+      get.mockResolvedValue({
+        exists: () => true,
+        val: () => ({
+          user1: { phoneNumber: '1234567890', name: 'John' },
+        }),
+      });
 
       const result = await unblockUser('1234567890');
 
-      expect(result).toEqual({ success: true });
+      expect(result.success).toBe(true);
+      expect(result.unblockedCount).toBe(2);
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(update).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns error when not authenticated', async () => {
+      auth.currentUser = null;
+
+      const result = await unblockUser('1234567890');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Not authenticated');
     });
   });
 
