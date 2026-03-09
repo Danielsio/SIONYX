@@ -67,13 +67,24 @@
 
 ---
 
+## Post-Audit Changes (Second Pass)
+
+| # | Change | File(s) |
+|---|--------|---------|
+| 18 | **Removed Total Earnings statistic** from dashboard -- supervisors should not see financial data. | `SupervisorDashboardPage.jsx` |
+| 19 | **Removed per-org revenue display** from dashboard org cards. | `SupervisorDashboardPage.jsx` |
+| 20 | **Removed revenue column** from organizations table. | `SupervisorOrgsPage.jsx` |
+| 21 | **Redesigned dashboard** with compact card-based layout: stat cards use colored top borders, 2x2 grid on mobile, org cards show icon + badge counts. Max-width 960px for readability. | `SupervisorDashboardPage.jsx` |
+| 22 | **Added messaging system** for supervisors: new `/supervisor/messages` route, service, and page. Supervisors can send messages to users in any supervised org. Updated Firebase security rules to allow supervisor message writes. | `SupervisorMessagesPage.jsx`, `supervisorMessageService.js`, `database.rules.json`, `App.jsx`, `SupervisorLayout.jsx` |
+| 23 | **Added title and scroll** to blocked users page for consistency and mobile support. | `SupervisorBlockedUsersPage.jsx` |
+| 24 | **Improved settings page** with org count, creation date, and compact layout. Removed placeholder text. | `SupervisorSettingsPage.jsx` |
+
 ## Remaining Items (Not Bugs)
 
 | Item | Status | Notes |
 |------|--------|-------|
 | `SupervisorOperatingHoursSettings.jsx` uses custom `useIsMobile` via `window.matchMedia` instead of shared hook | Low priority | Functional, but inconsistent with layout's `useIsMobile` import. |
 | `SupervisorOperatingHoursSettings.jsx` has hardcoded `DAY_COLORS` | Low priority | These are semantic colors for days-of-week, not theme-related. Acceptable. |
-| Settings page placeholder text | Intentional | "הגדרות נוספות יופיעו כאן בעתיד" -- future feature placeholder. |
 | Firebase rules tests require emulator | By design | `tests/rules/supervisor-rules.test.js` needs `firebase emulators:start --only database`. Run via `make test-rules`. |
 
 ---
