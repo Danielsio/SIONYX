@@ -246,6 +246,8 @@ jobs:
 
       - name: Verify login credentials
         shell: pwsh
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
         run: |
           $email = "$($env:E2E_ADMIN_PHONE)@sionyx.app"
           $body = @{
@@ -255,7 +257,7 @@ jobs:
           } | ConvertTo-Json
           Write-Host "Testing login for $email ..."
           try {
-            $apiKey = "AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c"
+            $apiKey = $env:FIREBASE_API_KEY
             $url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$apiKey"
             $resp = Invoke-RestMethod -Uri $url -Method Post -ContentType "application/json" -Body $body
             Write-Host "Login verified OK: uid=$($resp.localId)"
@@ -271,15 +273,22 @@ jobs:
       - name: Generate .env for E2E
         working-directory: sionyx-kiosk-wpf
         shell: pwsh
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          NEDARIM_CALLBACK_URL: ${{ secrets.NEDARIM_CALLBACK_URL }}
         run: |
           @"
           ORG_ID=$($env:E2E_ORG_ID)
-          FIREBASE_API_KEY=AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c
-          FIREBASE_AUTH_DOMAIN=sionyx-19636.firebaseapp.com
-          FIREBASE_PROJECT_ID=sionyx-19636
-          FIREBASE_DATABASE_URL=https://sionyx-19636-default-rtdb.europe-west1.firebasedatabase.app
-          FIREBASE_STORAGE_BUCKET=sionyx-19636.firebasestorage.app
-          NEDARIM_CALLBACK_URL=https://us-central1-sionyx-19636.cloudfunctions.net/nedarimCallback
+          FIREBASE_API_KEY=$($env:FIREBASE_API_KEY)
+          FIREBASE_AUTH_DOMAIN=$($env:FIREBASE_AUTH_DOMAIN)
+          FIREBASE_PROJECT_ID=$($env:FIREBASE_PROJECT_ID)
+          FIREBASE_DATABASE_URL=$($env:FIREBASE_DATABASE_URL)
+          FIREBASE_STORAGE_BUCKET=$($env:FIREBASE_STORAGE_BUCKET)
+          NEDARIM_CALLBACK_URL=$($env:NEDARIM_CALLBACK_URL)
           "@ | Set-Content .env
 
       - name: Build kiosk app
@@ -333,6 +342,17 @@ jobs:
       - name: Build MSI installer
         working-directory: sionyx-kiosk-wpf
         shell: pwsh
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+          NEDARIM_CALLBACK_URL: ${{ secrets.NEDARIM_CALLBACK_URL }}
+          ADMIN_EXIT_PASSWORD: ${{ secrets.ADMIN_EXIT_PASSWORD }}
         run: |
           $publishDir = (Resolve-Path dist).Path
           $sourceDir  = (Resolve-Path .).Path
@@ -375,6 +395,17 @@ jobs:
 
       - name: Verify installation
         shell: pwsh
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+          NEDARIM_CALLBACK_URL: ${{ secrets.NEDARIM_CALLBACK_URL }}
+          ADMIN_EXIT_PASSWORD: ${{ secrets.ADMIN_EXIT_PASSWORD }}
         run: |
           $pass = 0; $fail = 0; $warn = 0
           function Assert-Pass($msg)  { $script:pass++; Write-Host "[PASS] $msg" }
@@ -411,19 +442,19 @@ jobs:
           Assert-Equal "installed" $reg.installed 1
 
           Write-Host "`n=== REGISTRY: FIREBASE CONFIG ==="
-          Assert-Equal "FirebaseApiKey" $reg.FirebaseApiKey "AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c"
-          Assert-Equal "FirebaseAuthDomain" $reg.FirebaseAuthDomain "sionyx-19636.firebaseapp.com"
-          Assert-Equal "FirebaseProjectId" $reg.FirebaseProjectId "sionyx-19636"
-          Assert-Equal "FirebaseDatabaseUrl" $reg.FirebaseDatabaseUrl "https://sionyx-19636-default-rtdb.europe-west1.firebasedatabase.app"
-          Assert-Equal "FirebaseStorageBucket" $reg.FirebaseStorageBucket "sionyx-19636.firebasestorage.app"
-          Assert-Equal "FirebaseMessagingSenderId" $reg.FirebaseMessagingSenderId "961130757239"
-          Assert-Equal "FirebaseAppId" $reg.FirebaseAppId "1:961130757239:web:1a87dffcea40aac13f1a72"
-          Assert-Equal "FirebaseMeasurementId" $reg.FirebaseMeasurementId "G-ZEM9LH1301"
+          Assert-Equal "FirebaseApiKey" $reg.FirebaseApiKey $env:FIREBASE_API_KEY
+          Assert-Equal "FirebaseAuthDomain" $reg.FirebaseAuthDomain $env:FIREBASE_AUTH_DOMAIN
+          Assert-Equal "FirebaseProjectId" $reg.FirebaseProjectId $env:FIREBASE_PROJECT_ID
+          Assert-Equal "FirebaseDatabaseUrl" $reg.FirebaseDatabaseUrl $env:FIREBASE_DATABASE_URL
+          Assert-Equal "FirebaseStorageBucket" $reg.FirebaseStorageBucket $env:FIREBASE_STORAGE_BUCKET
+          Assert-Equal "FirebaseMessagingSenderId" $reg.FirebaseMessagingSenderId $env:FIREBASE_MESSAGING_SENDER_ID
+          Assert-Equal "FirebaseAppId" $reg.FirebaseAppId $env:FIREBASE_APP_ID
+          Assert-Equal "FirebaseMeasurementId" $reg.FirebaseMeasurementId $env:FIREBASE_MEASUREMENT_ID
           Assert-Equal "firebaseConfigured" $reg.firebaseConfigured 1
 
           Write-Host "`n=== REGISTRY: PAYMENT & SECURITY ==="
-          Assert-Equal "NedarimCallbackUrl" $reg.NedarimCallbackUrl "https://us-central1-sionyx-19636.cloudfunctions.net/nedarimCallback"
-          Assert-Equal "AdminExitPassword" $reg.AdminExitPassword "sionyx2025"
+          Assert-Equal "NedarimCallbackUrl" $reg.NedarimCallbackUrl $env:NEDARIM_CALLBACK_URL
+          Assert-Equal "AdminExitPassword" $reg.AdminExitPassword $env:ADMIN_EXIT_PASSWORD
           Assert-Equal "paymentConfigured" $reg.paymentConfigured 1
 
           Write-Host "`n=== REGISTRY: SHORTCUT MARKERS (HKCU) ==="
