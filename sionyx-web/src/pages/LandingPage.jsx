@@ -8,7 +8,6 @@ import { useState, useCallback, useEffect, useRef, memo } from 'react';
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import { Form, Input, Typography, Space, message, Row, Col, Tag, Divider, Modal } from 'antd';
 import {
-  DownloadOutlined,
   SettingOutlined,
   TeamOutlined,
   RocketOutlined,
@@ -35,8 +34,6 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import { registerOrganization } from '../services/organizationService';
-import { downloadFile, getLatestRelease, formatVersion } from '../services/downloadService';
-import { logger } from '../utils/logger';
 import {
   AnimatedBackground,
   AnimatedButton,
@@ -65,7 +62,7 @@ const colors = {
 // ============================================
 // Hero Section Component - Premium v2.0
 // ============================================
-const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadLoading, releaseInfo }) => {
+const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
   const heroRef = useRef(null);
   const subtitleRef = useRef(null);
 
@@ -167,32 +164,6 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
         </AnimatedButton>
       </motion.div>
 
-      {/* Version Badge */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-        style={{ marginBottom: 24 }}
-      >
-        <Tag
-          style={{
-            background:
-              'linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%)',
-            border: '1px solid rgba(102, 126, 234, 0.3)',
-            borderRadius: 20,
-            padding: '5px 14px',
-            color: '#a5b4fc',
-            fontSize: 'clamp(11px, 2.5vw, 13px)',
-            fontWeight: 500,
-          }}
-        >
-          <RocketOutlined style={{ marginLeft: 6 }} />
-          {releaseInfo?.version && releaseInfo.version !== 'Latest'
-            ? `גרסה ${releaseInfo.version} - חדש!`
-            : 'גרסה חדשה זמינה!'}
-        </Tag>
-      </motion.div>
-
       {/* Main Title */}
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
         <h1
@@ -275,7 +246,7 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
         פתרון מקצועי לניהול זמני שימוש במחשבים, אישורי הדפסה ובקרת גישה למוסדות וארגונים
       </motion.p>
 
-      {/* CTA Buttons */}
+      {/* CTA Button */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -296,23 +267,6 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin, onDownload, downloadL
           }}
         >
           התחל עכשיו - חינם
-        </AnimatedButton>
-        <AnimatedButton
-          variant='ghost'
-          size='large'
-          icon={<DownloadOutlined />}
-          loading={downloadLoading}
-          onClick={onDownload}
-          style={{
-            padding: '0 32px',
-            height: 54,
-            fontSize: 16,
-            background: 'rgba(255,255,255,0.1)',
-            border: '1px solid rgba(255,255,255,0.25)',
-            color: '#fff',
-          }}
-        >
-          {downloadLoading ? 'מוריד...' : 'הורד תוכנה'}
         </AnimatedButton>
       </motion.div>
 
@@ -676,7 +630,7 @@ StatsSection.displayName = 'StatsSection';
 // Action Cards Section Component - Premium v3.0
 // ============================================
 const ActionCardsSection = memo(
-  ({ onRegisterClick, onAdminLogin, onDownload, downloadLoading, releaseInfo }) => {
+  ({ onRegisterClick, onAdminLogin }) => {
     return (
       <section
         style={{
@@ -825,96 +779,6 @@ const ActionCardsSection = memo(
                     התחל עכשיו - חינם
                   </AnimatedButton>
                 </div>
-              </div>
-            </motion.div>
-          </Col>
-
-          {/* Download Card */}
-          <Col xs={24} md={12}>
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ delay: 0.15, duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-              whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
-              style={{ height: '100%' }}
-            >
-              <div
-                style={{
-                  height: '100%',
-                  padding: '36px 32px',
-                  textAlign: 'center',
-                  background: 'rgba(255,255,255,0.03)',
-                  backdropFilter: 'blur(20px)',
-                  borderRadius: 20,
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 16,
-                    background: `linear-gradient(135deg, ${colors.success}20 0%, ${colors.success}10 100%)`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    margin: '0 auto 20px',
-                    border: `1px solid ${colors.success}30`,
-                  }}
-                >
-                  <DownloadOutlined style={{ fontSize: 28, color: colors.success }} />
-                </div>
-
-                <h3 style={{ color: 'white', margin: '0 0 8px', fontSize: 22, fontWeight: 600 }}>
-                  הורדת התוכנה
-                </h3>
-
-                {releaseInfo?.version && releaseInfo.version !== 'Latest' && (
-                  <Tag
-                    style={{
-                      alignSelf: 'center',
-                      marginBottom: 12,
-                      background: `${colors.success}15`,
-                      border: `1px solid ${colors.success}30`,
-                      color: colors.success,
-                      borderRadius: 12,
-                      padding: '3px 12px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {formatVersion(releaseInfo)}
-                  </Tag>
-                )}
-
-                <p
-                  style={{
-                    color: 'rgba(255,255,255,0.6)',
-                    marginBottom: 24,
-                    flex: 1,
-                    fontSize: 15,
-                  }}
-                >
-                  הורידו את התוכנה להתקנה על מחשבי הארגון
-                </p>
-
-                <AnimatedButton
-                  variant='glow'
-                  size='large'
-                  icon={<DownloadOutlined />}
-                  loading={downloadLoading}
-                  onClick={onDownload}
-                  fullWidth
-                  style={{
-                    background: colors.success,
-                    borderColor: colors.success,
-                  }}
-                >
-                  {downloadLoading ? 'מוריד...' : 'הורד עכשיו'}
-                </AnimatedButton>
               </div>
             </motion.div>
           </Col>
@@ -1361,27 +1225,8 @@ RegistrationModal.displayName = 'RegistrationModal';
 const LandingPage = memo(() => {
   const [registrationForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [downloadLoading, setDownloadLoading] = useState(false);
-  const [releaseInfo, setReleaseInfo] = useState(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const navigate = useNavigate();
-
-  // Fetch latest release info on mount
-  useEffect(() => {
-    let mounted = true;
-    const fetchReleaseInfo = async () => {
-      try {
-        const release = await getLatestRelease();
-        if (mounted) setReleaseInfo(release);
-      } catch (error) {
-        if (mounted) logger.warn('Could not fetch release info:', error);
-      }
-    };
-    fetchReleaseInfo();
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   const handleRegistration = useCallback(
     async values => {
@@ -1404,24 +1249,6 @@ const LandingPage = memo(() => {
     },
     [registrationForm, navigate]
   );
-
-  const handleDirectDownload = useCallback(async () => {
-    try {
-      setDownloadLoading(true);
-
-      if (!releaseInfo?.downloadUrl) {
-        throw new Error('לא נמצא קישור להורדה');
-      }
-
-      await downloadFile(releaseInfo.downloadUrl, releaseInfo.fileName);
-      message.success('ההורדה הושלמה בהצלחה!');
-    } catch (error) {
-      logger.error('Download error:', error);
-      message.error(error.message || 'שגיאה בהורדה. נסה שוב.');
-    } finally {
-      setDownloadLoading(false);
-    }
-  }, [releaseInfo]);
 
   const handleAdminLogin = useCallback(() => {
     navigate('/admin/login');
@@ -1454,9 +1281,6 @@ const LandingPage = memo(() => {
         <HeroSection
           onRegisterClick={openRegistrationModal}
           onAdminLogin={handleAdminLogin}
-          onDownload={handleDirectDownload}
-          downloadLoading={downloadLoading}
-          releaseInfo={releaseInfo}
         />
 
         {/* Features Section */}
@@ -1469,9 +1293,6 @@ const LandingPage = memo(() => {
         <ActionCardsSection
           onRegisterClick={openRegistrationModal}
           onAdminLogin={handleAdminLogin}
-          onDownload={handleDirectDownload}
-          downloadLoading={downloadLoading}
-          releaseInfo={releaseInfo}
         />
 
         {/* Premium Footer */}
