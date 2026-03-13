@@ -108,8 +108,11 @@ jobs:
   # ── Web: Deploy to Firebase Hosting ──────────────────────────
   deploy:
     runs-on: ubuntu-latest
-    needs: [web-lint, web-build, web-test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [detect-changes, web-lint, web-build, web-test]
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.detect-changes.outputs.web == 'true'
     permissions:
       contents: read
       id-token: write
@@ -319,7 +322,10 @@ jobs:
   installer-test:
     runs-on: windows-latest
     needs: [detect-changes]
-    if: needs.detect-changes.outputs.kiosk == 'true'
+    if: >
+      needs.detect-changes.outputs.kiosk == 'true' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 

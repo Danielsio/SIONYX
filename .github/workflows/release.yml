@@ -1,6 +1,11 @@
 name: Release
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'sionyx-kiosk-wpf/**'
+      - 'scripts/release/**'
   workflow_dispatch:
     inputs:
       override:
