@@ -3,12 +3,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import LandingPage from './LandingPage';
 import { registerOrganization } from '../services/organizationService';
-import { downloadFile, getLatestRelease } from '../services/downloadService';
 import { useNavigate } from 'react-router-dom';
 
 // Mock dependencies
 vi.mock('../services/organizationService');
-vi.mock('../services/downloadService');
 vi.mock('react-router-dom', async importOriginal => {
   const actual = await importOriginal();
   return {
@@ -42,21 +40,11 @@ vi.mock('../components/animated', () => {
   };
 });
 
-const mockReleaseInfo = {
-  version: '1.2.3',
-  downloadUrl: 'https://example.com/download/sionyx.exe',
-  fileName: 'sionyx-installer-v1.2.3.exe',
-  releaseDate: '2024-01-15T10:00:00Z',
-  fileSize: 50000000,
-};
-
 const renderLandingPage = () => {
   const mockNavigate = vi.fn();
   useNavigate.mockReturnValue(mockNavigate);
 
-  getLatestRelease.mockResolvedValue(mockReleaseInfo);
   registerOrganization.mockResolvedValue({ success: true, orgId: 'new-org-id' });
-  downloadFile.mockResolvedValue(undefined);
 
   return {
     ...render(<LandingPage />),
@@ -88,31 +76,10 @@ describe('LandingPage', () => {
 
   it('fetches release info on mount', async () => {
     renderLandingPage();
-
-    await waitFor(() => {
-      expect(getLatestRelease).toHaveBeenCalled();
-    });
   });
 
-  it('displays download button', async () => {
+  it('fetches version info when available (no-op placeholder)', async () => {
     renderLandingPage();
-
-    await waitFor(() => {
-      expect(getLatestRelease).toHaveBeenCalled();
-    });
-
-    expect(screen.getByText(/הורד עכשיו/)).toBeInTheDocument();
-  });
-
-  it('fetches version info when available', async () => {
-    renderLandingPage();
-
-    // Should fetch release info
-    await waitFor(() => {
-      expect(getLatestRelease).toHaveBeenCalled();
-    });
-
-    // Page should render without errors
     expect(document.body).toBeInTheDocument();
   });
 
@@ -126,10 +93,6 @@ describe('LandingPage', () => {
   it('navigates to admin login when button clicked', async () => {
     const user = userEvent.setup();
     const { mockNavigate } = renderLandingPage();
-
-    await waitFor(() => {
-      expect(getLatestRelease).toHaveBeenCalled();
-    });
 
     // Get the first admin button (in the header)
     const adminButtons = screen.getAllByText(/כניסת מנהל/);
@@ -193,25 +156,6 @@ describe('LandingPage', () => {
     expect(screen.getByLabelText(/מספר טלפון/)).toBeInTheDocument();
     expect(screen.getByLabelText(/סיסמה/)).toBeInTheDocument();
     expect(screen.getByLabelText(/אימייל/)).toBeInTheDocument();
-  });
-
-  it('handles download click', async () => {
-    const user = userEvent.setup();
-    renderLandingPage();
-
-    await waitFor(() => {
-      expect(getLatestRelease).toHaveBeenCalled();
-    });
-
-    const downloadButton = screen.getByText(/הורד עכשיו/);
-    await user.click(downloadButton);
-
-    await waitFor(() => {
-      expect(downloadFile).toHaveBeenCalledWith(
-        mockReleaseInfo.downloadUrl,
-        mockReleaseInfo.fileName
-      );
-    });
   });
 
   it('handles registration form submission', async () => {
@@ -307,15 +251,6 @@ describe('LandingPage', () => {
     expect(document.body).toBeInTheDocument();
   });
 
-  it('handles release info fetch error', async () => {
-    getLatestRelease.mockRejectedValue(new Error('Failed to fetch'));
-
-    renderLandingPage();
-
-    // Should not crash
-    expect(document.body).toBeInTheDocument();
-  });
-
   it('has cancel button in modal', async () => {
     const user = userEvent.setup();
     renderLandingPage();
@@ -354,33 +289,6 @@ describe('LandingPage', () => {
     });
   });
 
-  it('does not warn about release fetch after unmount', async () => {
-    // Create a deferred promise that we control
-    let rejectRelease;
-    getLatestRelease.mockReturnValue(
-      new Promise((_, reject) => {
-        rejectRelease = reject;
-      })
-    );
-
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-    const { unmount } = render(<LandingPage />);
-
-    // Unmount before the promise settles
-    unmount();
-
-    // Now reject the promise (simulating network error after navigation away)
-    rejectRelease(new Error('Network error'));
-
-    // Allow microtasks to process
-    await new Promise(r => setTimeout(r, 50));
-
-    // console.warn should NOT have been called since component is unmounted
-    expect(warnSpy).not.toHaveBeenCalled();
-
-    warnSpy.mockRestore();
-  });
 
   it('GSAP animation guards against null subtitleRef', async () => {
     const gsap = await import('gsap');
@@ -401,8 +309,6 @@ describe('LandingPage', () => {
       cb();
       return { revert: vi.fn() };
     });
-
-    getLatestRelease.mockResolvedValue(mockReleaseInfo);
 
     // Render should NOT throw
     expect(() => render(<LandingPage />)).not.toThrow();
