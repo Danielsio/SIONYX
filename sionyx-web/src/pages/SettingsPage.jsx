@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Card, Typography, Tabs, Space } from 'antd';
-import { SettingOutlined, DollarOutlined } from '@ant-design/icons';
+import { SettingOutlined, DollarOutlined, DownloadOutlined } from '@ant-design/icons';
 import PricingSettings from '../components/settings/PricingSettings';
+import DownloadsSettings from '../components/settings/DownloadsSettings';
 
 const { Title, Text } = Typography;
 
@@ -31,6 +32,16 @@ const SettingsPage = () => {
         </span>
       ),
       children: <PricingSettings />,
+    },
+    {
+      key: 'downloads',
+      label: (
+        <span>
+          <DownloadOutlined />
+          {' '}הורדות
+        </span>
+      ),
+      children: <DownloadsSettings />,
     },
   ];
 
