@@ -167,15 +167,15 @@ Output: `sionyx-kiosk-wpf/sionyx-installer-v{VERSION}.msi`
 
 ### Release a new version
 
-Releases are atomic: create branch → build → commit → merge to main → tag → push.
+Releases are automated via conventional commits and handle the full lifecycle (analyze → build → tag → push).
 
 ```powershell
-make release-patch     # Bug fix:      3.0.7 → 3.0.8
-make release-minor     # New feature:  3.0.7 → 3.1.0
-make release-major     # Breaking:     3.0.7 → 4.0.0
+make release-patch     # Bug fix:      3.0.7 → 3.0.8 (auto-detected)
+make release-minor     # New feature:  3.0.8 → 3.1.0 (auto-detected)
+make release-major     # Breaking:     3.0.8 → 4.0.0 (auto-detected)
 ```
 
-This calls `release.ps1` which handles everything. You must be on `main` with no uncommitted changes.
+This calls `scripts/release/release.ps1` via the Makefile. You must be on `main` with no uncommitted changes.
 
 > **Never bump `version.json` manually.** The build and release scripts handle it.
 > **Version tags are ONLY for the kiosk app** (e.g., `v2.1.3`). The web app has no version tags -- it always deploys the latest pushed code.
@@ -186,7 +186,7 @@ This calls `release.ps1` which handles everything. You must be on `main` with no
 |------|---------|
 | `version.json` | Current version + build number (auto-managed) |
 | `build.ps1` | Build script (test → publish → WiX → upload) |
-| `release.ps1` | Release script (branch → build → merge → tag → push) |
+| `scripts/release/release.ps1` | Semantic release script (auto-detects bump) |
 | `installer/` | WiX MSI installer project |
 | `upload_release.py` | Uploads installer to Firebase Storage |
 | `coverage.runsettings` | Test coverage exclusion config |
@@ -230,6 +230,19 @@ npm run test:coverage  # With coverage
 ```
 
 Tests use Vitest + @testing-library/react (jsdom, no system side effects -- always safe to run).
+
+### E2E Tests (Web)
+
+```powershell
+make web-e2e           # Run Playwright tests
+```
+
+Or directly:
+
+```powershell
+cd sionyx-web
+npx playwright test
+```
 
 ### Lint
 
@@ -369,10 +382,13 @@ make build-dry         # Preview build
 
 # Web
 make web-dev           # Dev server
-make web-test          # Run tests
+make web-test          # Run unit tests
+make web-e2e           # Run Playwright tests
 make web-deploy        # Full deploy
 make web-deploy-hosting # Hosting only
 
+# Misc
+make setup-supervisor  # Initialize first supervisor user
 # Release
 make release-patch     # Patch release
 make release-minor     # Minor release
