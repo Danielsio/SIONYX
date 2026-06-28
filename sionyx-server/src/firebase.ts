@@ -28,7 +28,13 @@ export interface Env {
   // Nedarim Plus gateway server credentials (set via secret)
   NEDARIM_MOSAD_ID?: string;
   NEDARIM_API_PASSWORD?: string;
+  // Optional AES key for org credential encryption (>=32 chars). Must match the
+  // value the kiosk/legacy functions used, or stored creds won't decode.
+  ENCRYPTION_KEY?: string;
 }
+
+/** Raised when an Auth user already exists (so callers can map it to a 409). */
+export class EmailExistsError extends Error {}
 
 // Cached access token per isolate (tokens last ~1h; refresh a little early).
 let cachedToken: { token: string; expMs: number } | null = null;
@@ -246,4 +252,54 @@ export async function verifyIdToken(env: Env, idToken: string): Promise<{ user_i
   const data = (await res.json()) as { users?: Array<{ localId: string; email?: string }> };
   const u = data.users?.[0];
   return u ? { user_id: u.localId, email: u.email } : null;
+}
+
+// ---------- Org-registration helpers ----------
+
+function b64Std(buf: ArrayBuffer | Uint8Array): string {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+export const phoneToEmail = (phone: string): string => `${phone.replace(/\D/g, '')}@sionyx.app`;
+
+/** Mirror of the Cloud Functions encryptData: AES-256-CBC ("iv:ct" base64) or base64 fallback. */
+export async function encryptData(env: Env, data: unknown): Promise<string> {
+  const plaintext = new TextEncoder().encode(JSON.stringify(data));
+  const k = env.ENCRYPTION_KEY;
+  if (k && k.length >= 32) {
+    const keyBytes = new TextEncoder().encode(k.slice(0, 32));
+    const iv = crypto.getRandomValues(new Uint8Array(16));
+    const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CBC' }, false, ['encrypt']);
+    const ct = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, key, plaintext);
+    return `${b64Std(iv)}:${b64Std(ct)}`;
+  }
+  return b64Std(plaintext);
+}
+
+/** Create a Firebase Auth user (email/password). Returns the new uid. Throws EmailExistsError if taken. */
+export async function createAuthUser(env: Env, email: string, password: string, displayName?: string): Promise<string> {
+  const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${env.FIREBASE_API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, returnSecureToken: false }),
+  });
+  const data = (await res.json()) as { localId?: string; error?: { message?: string } };
+  if (!res.ok) {
+    if ((data.error?.message || '').includes('EMAIL_EXISTS')) throw new EmailExistsError('email_exists');
+    throw new Error(`createAuthUser: ${data.error?.message || res.status}`);
+  }
+  const localId = data.localId!;
+  if (displayName) {
+    const sa = parseServiceAccount(env);
+    const token = await getAccessToken(env);
+    await fetch(`https://identitytoolkit.googleapis.com/v1/projects/${sa.project_id}/accounts:update`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ localId, displayName }),
+    }).catch(() => {});
+  }
+  return localId;
 }
