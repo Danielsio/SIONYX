@@ -17,6 +17,7 @@ import { nedarimCallback } from './payments';
 import { adminResetPassword } from './auth';
 import { deleteUser } from './users';
 import { registerOrganization } from './org';
+import { runCleanup, cleanupTestOrganization } from './cleanup';
 
 type Handler = (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
 
@@ -100,6 +101,7 @@ const routes: Record<string, Record<string, Handler>> = {
     '/auth/yemot': yemotWebhook,
     '/org/register': registerOrganization,
     '/admin/delete-user': deleteUser,
+    '/admin/cleanup-test-org': cleanupTestOrganization,
   },
 };
 
@@ -118,8 +120,8 @@ export default {
   },
 
   /** Cron Trigger — replaces the scheduled cleanupInactiveUsers function. */
-  async scheduled(_event: ScheduledController, _env: Env, _ctx: ExecutionContext): Promise<void> {
-    // TODO: port cleanupInactiveUsers (mark inactive users, prune stale data).
-    console.log('[sionyx-server] scheduled tick (cleanup not yet implemented)');
+  async scheduled(_event: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
+    const summary = await runCleanup(env);
+    console.log('[sionyx-server] scheduled cleanup done', summary);
   },
 };
