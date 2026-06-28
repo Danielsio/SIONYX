@@ -1,0 +1,5 @@
+# Copy to `.dev.vars` (gitignored) for local `wrangler dev`. Never commit real values.
+FIREBASE_SERVICE_ACCOUNT={"type":"service_account","project_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n","client_email":"...@....iam.gserviceaccount.com"}
+ADMIN_SECRET=replace-with-a-long-random-string
+NEDARIM_MOSAD_ID=
+NEDARIM_API_PASSWORD=
