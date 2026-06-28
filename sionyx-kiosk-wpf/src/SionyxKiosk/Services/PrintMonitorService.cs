@@ -616,18 +616,10 @@ public class PrintMonitorService : BaseService, IDisposable
     {
         try
         {
-            var currentBudget = await GetUserBudgetAsync(forceRefresh: true);
-            var newBudget = allowNegative
-                ? currentBudget - amount
-                : Math.Max(0.0, currentBudget - amount);
-
-            var result = await Firebase.DbUpdateAsync($"users/{_userId}", new
-            {
-                printBalance = newBudget,
-                updatedAt = DateTime.Now.ToString("o"),
-            });
-
-            if (result.Success)
+            // Server-authoritative deduction: the Worker decrements printBalance via the
+            // service account (atomic). Clients are/!will be denied direct writes by rules.
+            var (success, newBudget) = await Firebase.DeductPrintAsync(amount, allowNegative);
+            if (success)
             {
                 _cachedBudget = newBudget;
                 _budgetCacheTime = DateTime.UtcNow;

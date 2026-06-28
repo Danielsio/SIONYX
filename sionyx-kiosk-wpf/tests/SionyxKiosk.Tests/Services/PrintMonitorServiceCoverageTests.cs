@@ -153,7 +153,7 @@ public class PrintMonitorServiceCoverageTests : IDisposable
     [Fact]
     public async Task DeductBudget_WhenDbFails_ShouldReturnFalse()
     {
-        _handler.WhenError("users/test-uid.json");
+        _handler.WhenError("usage/deduct-print");
 
         var method = typeof(PrintMonitorService).GetMethod("DeductBudgetAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
         var task = method.Invoke(_service, new object[] { 10.0, false }) as Task<bool>;

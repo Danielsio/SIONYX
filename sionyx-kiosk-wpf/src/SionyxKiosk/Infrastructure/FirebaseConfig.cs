@@ -14,6 +14,10 @@ public sealed class FirebaseConfig
     public string ProjectId { get; }
     public string OrgId { get; }
 
+    /// <summary>SIONYX backend (Cloudflare Worker) base URL. Replaces Cloud Functions on the Spark plan.
+    /// Defaults to the original deployment; overridden from registry/env in Load().</summary>
+    public string ServerUrl { get; private set; } = "https://sionyx-server.sionyx-server.workers.dev";
+
     /// <summary>Firebase Auth REST API base URL.</summary>
     public string AuthUrl => "https://identitytoolkit.googleapis.com/v1/accounts";
 
@@ -47,7 +51,10 @@ public sealed class FirebaseConfig
         var projectId = config["ProjectId"];
         var orgId = config["OrgId"];
 
-        return CreateAndValidate(apiKey, authDomain, databaseUrl, projectId, orgId, "registry");
+        var cfg = CreateAndValidate(apiKey, authDomain, databaseUrl, projectId, orgId, "registry");
+        if (config.TryGetValue("ServerUrl", out var su) && !string.IsNullOrWhiteSpace(su))
+            cfg.ServerUrl = su.TrimEnd('/');
+        return cfg;
     }
 
     private static FirebaseConfig LoadFromEnvironment()
@@ -63,7 +70,11 @@ public sealed class FirebaseConfig
         var projectId = Environment.GetEnvironmentVariable("FIREBASE_PROJECT_ID");
         var orgId = Environment.GetEnvironmentVariable("ORG_ID");
 
-        return CreateAndValidate(apiKey, authDomain, databaseUrl, projectId, orgId, ".env");
+        var cfg = CreateAndValidate(apiKey, authDomain, databaseUrl, projectId, orgId, ".env");
+        var serverUrl = Environment.GetEnvironmentVariable("SERVER_URL");
+        if (!string.IsNullOrWhiteSpace(serverUrl))
+            cfg.ServerUrl = serverUrl.TrimEnd('/');
+        return cfg;
     }
 
     private static FirebaseConfig CreateAndValidate(

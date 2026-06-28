@@ -26,6 +26,7 @@ public sealed class FirebaseClient : IFirebaseClient
     private readonly string _authUrl;
     private readonly string _orgId;
     private readonly string _projectId;
+    private readonly string _serverUrl;
 
     // Auth state
     private string? _idToken;
@@ -47,6 +48,7 @@ public sealed class FirebaseClient : IFirebaseClient
         _authUrl = config.AuthUrl;
         _orgId = config.OrgId;
         _projectId = config.ProjectId;
+        _serverUrl = config.ServerUrl;
         _http = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
         Logger.Information("Firebase client initialized (org: {OrgId})", _orgId);
@@ -258,6 +260,44 @@ public sealed class FirebaseClient : IFirebaseClient
         {
             Logger.Error(ex, "DB delete failed: {Path}", orgPath);
             return FirebaseResult.Fail(ex.Message);
+        }
+    }
+
+    // ==================== SERVER (Cloudflare Worker) ====================
+
+    /// <summary>
+    /// Deduct print balance via the SIONYX backend (server-authoritative). Once RTDB
+    /// rules forbid clients writing printBalance, this becomes the only deduction path.
+    /// Returns the new balance reported by the server.
+    /// </summary>
+    public async Task<(bool Success, double Balance)> DeductPrintAsync(double amount, bool allowNegative)
+    {
+        if (!await EnsureValidTokenAsync())
+            return (false, 0);
+
+        var url = $"{_serverUrl}/usage/deduct-print";
+        var payload = new { orgId = _orgId, userId = _userId, amount, allowNegative };
+        var content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _idToken);
+            var response = await _http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                Logger.Error("Deduct print failed: {Status} {Body}", response.StatusCode, body);
+                return (false, 0);
+            }
+            using var doc = JsonDocument.Parse(body);
+            var balance = doc.RootElement.TryGetProperty("printBalance", out var pb) && pb.TryGetDouble(out var v) ? v : 0;
+            return (true, balance);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Deduct print error");
+            return (false, 0);
         }
     }
 
