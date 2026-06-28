@@ -204,6 +204,20 @@ export async function setUserPasswordByEmail(env: Env, email: string, password: 
   if (!upd.ok) throw new Error(`setUserPassword: ${upd.status} ${await upd.text()}`);
 }
 
+export async function setUserPasswordByUid(env: Env, localId: string, password: string): Promise<void> {
+  const sa = parseServiceAccount(env);
+  const token = await getAccessToken(env);
+  const upd = await fetch(
+    `https://identitytoolkit.googleapis.com/v1/projects/${sa.project_id}/accounts:update`,
+    {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ localId, password }),
+    },
+  );
+  if (!upd.ok) throw new Error(`setUserPasswordByUid: ${upd.status} ${await upd.text()}`);
+}
+
 export async function deleteAuthUser(env: Env, localId: string): Promise<void> {
   const sa = parseServiceAccount(env);
   const token = await getAccessToken(env);
