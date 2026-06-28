@@ -1,0 +1,18 @@
+{
+  "name": "sionyx-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SIONYX backend (Cloudflare Worker) — replaces Firebase Cloud Functions so the project runs on the free Spark plan.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "check": "wrangler deploy --dry-run --outdir dist"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240000.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,19 @@
+name = "sionyx-server"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+
+# Non-secret config (safe to commit). Override per-deployment / per-fork.
+# The fork re-using this just changes these + the secrets below.
+[vars]
+FIREBASE_DATABASE_URL = "https://REPLACE-default-rtdb.firebaseio.com"
+FIREBASE_API_KEY = "REPLACE_WEB_API_KEY"
+
+# Daily cleanup (replaces the scheduled cleanupInactiveUsers Cloud Function).
+[triggers]
+crons = ["0 3 * * *"]
+
+# Secrets are NOT stored here. Set them with:
+#   wrangler secret put FIREBASE_SERVICE_ACCOUNT   # full service-account JSON (one line)
+#   wrangler secret put ADMIN_SECRET
+#   wrangler secret put NEDARIM_MOSAD_ID
+#   wrangler secret put NEDARIM_API_PASSWORD
