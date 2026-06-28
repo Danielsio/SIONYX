@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { get, update } from 'firebase/database';
-import { httpsCallable } from 'firebase/functions';
 import {
   getAllUsers,
   getUserPurchaseHistory,
@@ -13,10 +12,10 @@ import {
 } from './userService';
 
 vi.mock('firebase/database');
-vi.mock('firebase/functions');
 vi.mock('../config/firebase', () => ({
   database: {},
-  functions: {},
+  auth: { currentUser: { getIdToken: vi.fn().mockResolvedValue('test-token') } },
+  SERVER_URL: 'https://test.server',
 }));
 
 // Mock auth store with admin user for access checks
@@ -319,29 +318,28 @@ describe('userService', () => {
   });
 
   describe('resetUserPassword', () => {
-    it('calls the resetUserPassword cloud function', async () => {
-      const mockCallable = vi.fn().mockResolvedValue({
-        data: { success: true, message: 'הסיסמה אופסה בהצלחה' },
+    it('calls the backend reset-password endpoint with a bearer token', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, message: 'password_reset' }),
       });
-      httpsCallable.mockReturnValue(mockCallable);
 
       const result = await resetUserPassword('my-org', 'user-123', 'newPassword123');
 
-      expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'resetUserPassword');
-      expect(mockCallable).toHaveBeenCalledWith({
-        orgId: 'my-org',
-        userId: 'user-123',
-        newPassword: 'newPassword123',
-      });
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://test.server/auth/reset-password',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ orgId: 'my-org', userId: 'user-123', newPassword: 'newPassword123' }),
+        })
+      );
+      expect(global.fetch.mock.calls[0][1].headers.Authorization).toBe('Bearer test-token');
       expect(result.success).toBe(true);
       expect(result.message).toBe('הסיסמה אופסה בהצלחה');
     });
 
-    it('returns success with default message if no message in response', async () => {
-      const mockCallable = vi.fn().mockResolvedValue({
-        data: { success: true },
-      });
-      httpsCallable.mockReturnValue(mockCallable);
+    it('returns success with default message', async () => {
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ success: true }) });
 
       const result = await resetUserPassword('my-org', 'user-123', 'newPassword123');
 
@@ -349,19 +347,20 @@ describe('userService', () => {
       expect(result.message).toBe('הסיסמה אופסה בהצלחה');
     });
 
-    it('handles cloud function error', async () => {
-      const mockCallable = vi.fn().mockRejectedValue(new Error('Permission denied'));
-      httpsCallable.mockReturnValue(mockCallable);
+    it('handles a backend error response', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ success: false, error: 'not_admin' }),
+      });
 
       const result = await resetUserPassword('my-org', 'user-123', 'newPassword123');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Permission denied');
+      expect(result.error).toBe('not_admin');
     });
 
-    it('handles error without message', async () => {
-      const mockCallable = vi.fn().mockRejectedValue({});
-      httpsCallable.mockReturnValue(mockCallable);
+    it('falls back to default error when none provided', async () => {
+      global.fetch = vi.fn().mockResolvedValue({ ok: false, json: async () => ({ success: false }) });
 
       const result = await resetUserPassword('my-org', 'user-123', 'newPassword123');
 
@@ -369,43 +368,46 @@ describe('userService', () => {
       expect(result.error).toBe('שגיאה באיפוס הסיסמה');
     });
 
-    it('passes correct parameters to cloud function', async () => {
-      const mockCallable = vi.fn().mockResolvedValue({ data: { success: true } });
-      httpsCallable.mockReturnValue(mockCallable);
+    it('handles a network rejection', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('network'));
 
-      await resetUserPassword('org-test', 'uid-abc', 'securePass!');
+      const result = await resetUserPassword('org-test', 'uid-abc', 'securePass!');
 
-      expect(mockCallable).toHaveBeenCalledWith({
-        orgId: 'org-test',
-        userId: 'uid-abc',
-        newPassword: 'securePass!',
-      });
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('network');
     });
   });
 
   describe('deleteUser', () => {
-    it('calls the deleteUser cloud function', async () => {
-      const mockCallable = vi.fn().mockResolvedValue({
-        data: { success: true, message: 'המשתמש נמחק בהצלחה' },
+    it('calls the backend delete-user endpoint with a bearer token', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, message: 'user_deleted' }),
       });
-      httpsCallable.mockReturnValue(mockCallable);
 
       const result = await deleteUser('my-org', 'user-123');
 
-      expect(httpsCallable).toHaveBeenCalledWith(expect.anything(), 'deleteUser');
-      expect(mockCallable).toHaveBeenCalledWith({ orgId: 'my-org', userId: 'user-123' });
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://test.server/admin/delete-user',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ orgId: 'my-org', userId: 'user-123' }),
+        })
+      );
       expect(result.success).toBe(true);
       expect(result.message).toBe('המשתמש נמחק בהצלחה');
     });
 
-    it('handles cloud function error', async () => {
-      const mockCallable = vi.fn().mockRejectedValue(new Error('Permission denied'));
-      httpsCallable.mockReturnValue(mockCallable);
+    it('handles a backend error response', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ success: false, error: 'not_admin' }),
+      });
 
       const result = await deleteUser('my-org', 'user-123');
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Permission denied');
+      expect(result.error).toBe('not_admin');
     });
   });
 

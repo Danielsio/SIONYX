@@ -1,6 +1,5 @@
 import { ref, get, update } from 'firebase/database';
-import { httpsCallable } from 'firebase/functions';
-import { database, functions } from '../config/firebase';
+import { auth, database, SERVER_URL } from '../config/firebase';
 import { logger } from '../utils/logger';
 
 /**
@@ -219,22 +218,27 @@ export const revokeAdminPermission = async (orgId, userId) => {
  */
 export const resetUserPassword = async (orgId, userId, newPassword) => {
   try {
-    const resetPasswordFn = httpsCallable(functions, 'resetUserPassword');
-    const result = await resetPasswordFn({ orgId, userId, newPassword });
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(`${SERVER_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ orgId, userId, newPassword }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'שגיאה באיפוס הסיסמה' };
+    }
 
     return {
       success: true,
-      message: result.data.message || 'הסיסמה אופסה בהצלחה',
+      message: 'הסיסמה אופסה בהצלחה',
     };
   } catch (error) {
     logger.error('Error resetting user password:', error);
-
-    // Extract error message from Firebase function error
-    const errorMessage = error.message || 'שגיאה באיפוס הסיסמה';
-
     return {
       success: false,
-      error: errorMessage,
+      error: error.message || 'שגיאה באיפוס הסיסמה',
     };
   }
 };
@@ -245,17 +249,25 @@ export const resetUserPassword = async (orgId, userId, newPassword) => {
  */
 export const deleteUser = async (orgId, userId) => {
   try {
-    const deleteUserFn = httpsCallable(functions, 'deleteUser');
-    const result = await deleteUserFn({ orgId, userId });
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(`${SERVER_URL}/admin/delete-user`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ orgId, userId }),
+    });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'שגיאה במחיקת המשתמש' };
+    }
 
     return {
       success: true,
-      message: result.data.message || 'המשתמש נמחק בהצלחה',
+      message: 'המשתמש נמחק בהצלחה',
     };
   } catch (error) {
     logger.error('Error deleting user:', error);
-    const errorMessage = error.message || 'שגיאה במחיקת המשתמש';
-    return { success: false, error: errorMessage };
+    return { success: false, error: error.message || 'שגיאה במחיקת המשתמש' };
   }
 };
 

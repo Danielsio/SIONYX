@@ -21,4 +21,9 @@ export const auth = getAuth(app);
 export const database = getDatabase(app);
 export const functions = getFunctions(app, 'us-central1');
 
+// SIONYX backend (Cloudflare Worker) — replaces Cloud Functions on the Spark (free) plan.
+// A fork overrides this via VITE_SERVER_URL.
+export const SERVER_URL =
+  import.meta.env.VITE_SERVER_URL || 'https://sionyx-server.sionyx-server.workers.dev';
+
 export default app;
