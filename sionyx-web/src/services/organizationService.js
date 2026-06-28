@@ -1,6 +1,5 @@
-import { database, functions } from '../config/firebase';
+import { database, SERVER_URL } from '../config/firebase';
 import { ref, get } from 'firebase/database';
-import { httpsCallable } from 'firebase/functions';
 import { logger } from '../utils/logger';
 
 /**
@@ -45,29 +44,28 @@ const decodeCloudFunctionData = encodedData => {
  */
 export const registerOrganization = async organizationData => {
   try {
-    logger.info('Calling Cloud Function for organization registration:', {
+    logger.info('Registering organization via backend:', {
       hasData: !!organizationData,
     });
 
-    // Initialize Firebase Functions
-    const registerOrg = httpsCallable(functions, 'registerOrganization');
+    const res = await fetch(`${SERVER_URL}/org/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(organizationData),
+    });
+    const data = await res.json().catch(() => ({}));
 
-    // Call the Cloud Function
-    const result = await registerOrg(organizationData);
-
-    logger.info('Organization registered successfully:', result.data);
-    return result.data;
-  } catch (error) {
-    logger.error('Error calling Cloud Function:', error);
-
-    // Handle Firebase Functions errors
-    if (error.code) {
+    if (!res.ok || !data.success) {
       return {
         success: false,
-        error: error.message || 'Registration failed',
+        error: data.error || 'Registration failed',
       };
     }
 
+    logger.info('Organization registered successfully:', data);
+    return data;
+  } catch (error) {
+    logger.error('Error registering organization:', error);
     return {
       success: false,
       error: 'Failed to register organization. Please try again.',

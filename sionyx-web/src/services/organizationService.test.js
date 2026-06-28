@@ -4,23 +4,18 @@ import {
   getOrganizationMetadata,
   getOrganizationStats,
 } from './organizationService';
-import { database, functions } from '../config/firebase';
+import { database } from '../config/firebase';
 import { ref, get } from 'firebase/database';
-import { httpsCallable } from 'firebase/functions';
 
 // Mock Firebase
 vi.mock('../config/firebase', () => ({
   database: {},
-  functions: {},
+  SERVER_URL: 'https://test.server',
 }));
 
 vi.mock('firebase/database', () => ({
   ref: vi.fn(),
   get: vi.fn(),
-}));
-
-vi.mock('firebase/functions', () => ({
-  httpsCallable: vi.fn(),
 }));
 
 describe('organizationService', () => {
@@ -29,11 +24,11 @@ describe('organizationService', () => {
   });
 
   describe('registerOrganization', () => {
-    it('should call Cloud Function with organization data', async () => {
-      const mockCall = vi.fn().mockResolvedValue({
-        data: { success: true, orgId: 'new-org-123' },
+    it('should POST organization data to the backend', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, orgId: 'new-org-123' }),
       });
-      httpsCallable.mockReturnValue(mockCall);
 
       const orgData = {
         organizationName: 'Test Org',
@@ -43,26 +38,27 @@ describe('organizationService', () => {
 
       const result = await registerOrganization(orgData);
 
-      expect(httpsCallable).toHaveBeenCalledWith(functions, 'registerOrganization');
-      expect(mockCall).toHaveBeenCalledWith(orgData);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://test.server/org/register',
+        expect.objectContaining({ method: 'POST', body: JSON.stringify(orgData) })
+      );
       expect(result).toEqual({ success: true, orgId: 'new-org-123' });
     });
 
-    it('should handle Cloud Function error with code', async () => {
-      const mockError = new Error('Permission denied');
-      mockError.code = 'permission-denied';
-      const mockCall = vi.fn().mockRejectedValue(mockError);
-      httpsCallable.mockReturnValue(mockCall);
+    it('should handle a backend error response', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ success: false, error: 'org_already_exists' }),
+      });
 
       const result = await registerOrganization({});
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('Permission denied');
+      expect(result.error).toBe('org_already_exists');
     });
 
-    it('should handle generic Cloud Function error', async () => {
-      const mockCall = vi.fn().mockRejectedValue(new Error('Network error'));
-      httpsCallable.mockReturnValue(mockCall);
+    it('should handle a network error', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 
       const result = await registerOrganization({});
 
