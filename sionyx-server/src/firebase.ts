@@ -23,6 +23,8 @@ export interface Env {
   FIREBASE_API_KEY: string;
   // Shared secret guarding admin-only endpoints (set via secret)
   ADMIN_SECRET: string;
+  // Secret embedded in the Nedarim callback URL (?secret=...) — authenticates the gateway callback
+  CALLBACK_SECRET?: string;
   // Nedarim Plus gateway server credentials (set via secret)
   NEDARIM_MOSAD_ID?: string;
   NEDARIM_API_PASSWORD?: string;

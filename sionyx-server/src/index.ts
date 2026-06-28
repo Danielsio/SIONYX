@@ -13,6 +13,7 @@ import {
   dbCompareAndSet,
   verifyIdToken,
 } from './firebase';
+import { nedarimCallback } from './payments';
 
 type Handler = (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
 
@@ -78,7 +79,6 @@ const adminCredit: Handler = async (req, env) => {
 };
 
 // Stubs — implemented in subsequent increments (each replaces a Cloud Function).
-const nedarimCallback: Handler = async () => notImplemented('payments/nedarim-callback');
 const chargeSavedCard: Handler = async () => notImplemented('payments/charge-saved-card');
 const resetRequest: Handler = async () => notImplemented('auth/reset-request');
 const yemotWebhook: Handler = async () => notImplemented('auth/yemot');
