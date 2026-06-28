@@ -412,6 +412,7 @@ package-lock.json
 !functions/package-lock.json
 !sionyx-web/package-lock.json
 !tests/rules/package-lock.json
+!sionyx-server/package-lock.json
 
 # ========================================
 # WPF Kiosk Build Artifacts

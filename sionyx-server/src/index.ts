@@ -13,6 +13,10 @@ import {
   dbCompareAndSet,
   verifyIdToken,
 } from './firebase';
+import { nedarimCallback } from './payments';
+import { adminResetPassword } from './auth';
+import { deleteUser } from './users';
+import { registerOrganization } from './org';
 
 type Handler = (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
 
@@ -78,12 +82,8 @@ const adminCredit: Handler = async (req, env) => {
 };
 
 // Stubs — implemented in subsequent increments (each replaces a Cloud Function).
-const nedarimCallback: Handler = async () => notImplemented('payments/nedarim-callback');
 const chargeSavedCard: Handler = async () => notImplemented('payments/charge-saved-card');
-const resetRequest: Handler = async () => notImplemented('auth/reset-request');
 const yemotWebhook: Handler = async () => notImplemented('auth/yemot');
-const registerOrg: Handler = async () => notImplemented('org/register');
-const deleteUser: Handler = async () => notImplemented('admin/delete-user');
 
 // ---- router ----------------------------------------------------------------
 
@@ -96,9 +96,9 @@ const routes: Record<string, Record<string, Handler>> = {
     '/admin/credit': adminCredit,
     '/payments/nedarim-callback': nedarimCallback,
     '/payments/charge-saved-card': chargeSavedCard,
-    '/auth/reset-request': resetRequest,
+    '/auth/reset-password': adminResetPassword,
     '/auth/yemot': yemotWebhook,
-    '/org/register': registerOrg,
+    '/org/register': registerOrganization,
     '/admin/delete-user': deleteUser,
   },
 };

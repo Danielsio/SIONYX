@@ -14,6 +14,7 @@ jobs:
       web: ${{ steps.filter.outputs.web }}
       functions: ${{ steps.filter.outputs.functions }}
       kiosk: ${{ steps.filter.outputs.kiosk }}
+      server: ${{ steps.filter.outputs.server }}
     steps:
       - uses: actions/checkout@v4
 
@@ -27,6 +28,8 @@ jobs:
               - 'functions/**'
             kiosk:
               - 'sionyx-kiosk-wpf/**'
+            server:
+              - 'sionyx-server/**'
 
   # ── Web: Lint ────────────────────────────────────────────────
   web-lint:
@@ -732,9 +735,36 @@ jobs:
             ${{ runner.temp }}/msi-uninstall.log
 
   # ── CI Gate (single required check for branch protection) ───
+  # ── Server: typecheck + Worker build ─────────────────────────
+  server-check:
+    runs-on: ubuntu-latest
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.server == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: sionyx-server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: sionyx-server
+        run: npm ci
+
+      - name: Typecheck
+        working-directory: sionyx-server
+        run: npx tsc --noEmit
+
+      - name: Build (dry-run)
+        working-directory: sionyx-server
+        run: npx wrangler deploy --dry-run --outdir dist
+
   ci-gate:
     runs-on: ubuntu-latest
-    needs: [web-lint, web-build, web-test, functions-tests, kiosk-tests, installer-test]
+    needs: [web-lint, web-build, web-test, functions-tests, kiosk-tests, installer-test, server-check]
     if: always()
     steps:
       - name: Check results
