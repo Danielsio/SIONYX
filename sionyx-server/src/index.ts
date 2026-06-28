@@ -18,6 +18,7 @@ import { adminResetPassword } from './auth';
 import { deleteUser } from './users';
 import { registerOrganization } from './org';
 import { runCleanup, cleanupTestOrganization } from './cleanup';
+import { deductPrint, deductTime } from './usage';
 
 type Handler = (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
 
@@ -102,6 +103,8 @@ const routes: Record<string, Record<string, Handler>> = {
     '/org/register': registerOrganization,
     '/admin/delete-user': deleteUser,
     '/admin/cleanup-test-org': cleanupTestOrganization,
+    '/usage/deduct-print': deductPrint,
+    '/usage/deduct-time': deductTime,
   },
 };
 
