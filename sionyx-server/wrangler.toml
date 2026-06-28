@@ -5,8 +5,8 @@ compatibility_date = "2026-06-01"
 # Non-secret config (safe to commit). Override per-deployment / per-fork.
 # The fork re-using this just changes these + the secrets below.
 [vars]
-FIREBASE_DATABASE_URL = "https://REPLACE-default-rtdb.firebaseio.com"
-FIREBASE_API_KEY = "REPLACE_WEB_API_KEY"
+FIREBASE_DATABASE_URL = "https://sionyx-19636-default-rtdb.europe-west1.firebasedatabase.app"
+FIREBASE_API_KEY = "AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c"
 
 # Daily cleanup (replaces the scheduled cleanupInactiveUsers Cloud Function).
 [triggers]
