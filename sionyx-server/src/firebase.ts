@@ -31,6 +31,8 @@ export interface Env {
   // Optional AES key for org credential encryption (>=32 chars). Must match the
   // value the kiosk/legacy functions used, or stored creds won't decode.
   ENCRYPTION_KEY?: string;
+  // Days before a never-purchased, non-admin user is auto-deleted by the cron (default 7).
+  INACTIVE_DAYS_NEVER_PURCHASED?: string;
 }
 
 /** Raised when an Auth user already exists (so callers can map it to a 409). */
