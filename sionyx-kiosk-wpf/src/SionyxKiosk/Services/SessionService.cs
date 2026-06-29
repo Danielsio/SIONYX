@@ -32,6 +32,7 @@ public class SessionService : BaseService, ISessionService
 
     // Sync state
     private int _consecutiveSyncFailures;
+    private int _lastSyncedTimeUsed;   // seconds of TimeUsed already deducted server-side
     public bool IsOnline { get; private set; } = true;
 
     // Timers (WPF DispatcherTimer for UI thread safety)
@@ -135,6 +136,7 @@ public class SessionService : BaseService, ISessionService
         _initialRemainingTime = initialRemainingTime;
         RemainingTime = initialRemainingTime;
         TimeUsed = 0;
+        _lastSyncedTimeUsed = 0;
         StartTime = DateTime.UtcNow;
         IsActive = true;
         _warned5Min = false;
@@ -237,14 +239,15 @@ public class SessionService : BaseService, ISessionService
     {
         if (!IsActive) return;
 
-        var result = await Firebase.DbUpdateAsync($"users/{_userId}", new
-        {
-            remainingTime = RemainingTime,
-            updatedAt = DateTime.Now.ToString("o"),
-        });
+        // Server-authoritative time: deduct the seconds used since the last sync.
+        var delta = TimeUsed - _lastSyncedTimeUsed;
+        if (delta <= 0) return;
 
-        if (result.Success)
+        var (ok, _) = await Firebase.DeductTimeAsync(delta);
+
+        if (ok)
         {
+            _lastSyncedTimeUsed = TimeUsed;
             if (_consecutiveSyncFailures > 0)
             {
                 _consecutiveSyncFailures = 0;
@@ -266,9 +269,17 @@ public class SessionService : BaseService, ISessionService
 
     private async Task FinalSyncAsync(string reason)
     {
+        // Deduct the final slice of used time (remainingTime is server-authoritative).
+        var delta = TimeUsed - _lastSyncedTimeUsed;
+        if (delta > 0)
+        {
+            await Firebase.DeductTimeAsync(delta);
+            _lastSyncedTimeUsed = TimeUsed;
+        }
+
+        // Non-balance session flags remain client-writable.
         await Firebase.DbUpdateAsync($"users/{_userId}", new Dictionary<string, object?>
         {
-            ["remainingTime"] = Math.Max(0, RemainingTime),
             ["isSessionActive"] = false,
             ["sessionStartTime"] = null,
             ["updatedAt"] = DateTime.Now.ToString("o"),
@@ -310,10 +321,10 @@ public class SessionService : BaseService, ISessionService
 
             if (DateTime.Now <= expiresAt) return false;
 
-            // Time expired - reset to 0
+            // Time expired - zero the balance server-side, then clear the marker.
+            await Firebase.DeductTimeAsync(int.MaxValue);
             await Firebase.DbUpdateAsync($"users/{_userId}", new Dictionary<string, object?>
             {
-                ["remainingTime"] = 0,
                 ["timeExpiresAt"] = null,
                 ["updatedAt"] = DateTime.Now.ToString("o"),
             });
