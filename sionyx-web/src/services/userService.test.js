@@ -132,80 +132,44 @@ describe('userService', () => {
   });
 
   describe('adjustUserBalance', () => {
-    it('returns error if user not found', async () => {
-      get.mockResolvedValue({
-        exists: () => false,
+    it('sends the time/print adjustment to the backend', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, remainingTime: 160, printBalance: 15 }),
       });
 
-      const result = await adjustUserBalance('my-org', 'user-123', {
-        timeSeconds: 60,
+      const result = await adjustUserBalance('my-org', 'user-123', { timeSeconds: 60, prints: 5 });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        'https://test.server/admin/adjust-balance',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ orgId: 'my-org', userId: 'user-123', addSeconds: 60, addPrints: 5 }),
+        })
+      );
+      expect(result.success).toBe(true);
+      expect(result.newBalance).toEqual({ remainingTime: 160, printBalance: 15 });
+    });
+
+    it('handles a backend error response', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ success: false, error: 'not_admin' }),
       });
+
+      const result = await adjustUserBalance('my-org', 'user-123', { timeSeconds: 60 });
 
       expect(result.success).toBe(false);
-      expect(result.error).toBe('User not found');
+      expect(result.error).toBe('not_admin');
     });
 
-    it('adds time correctly', async () => {
-      get.mockResolvedValue({
-        exists: () => true,
-        val: () => ({ remainingTime: 100, printBalance: 10 }),
-      });
-      update.mockResolvedValue();
+    it('handles a network rejection', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('network'));
 
-      const result = await adjustUserBalance('my-org', 'user-123', {
-        timeSeconds: 60,
-      });
+      const result = await adjustUserBalance('my-org', 'user-123', { prints: 5 });
 
-      expect(result.success).toBe(true);
-      expect(update).toHaveBeenCalled();
-      const updateCall = update.mock.calls[0][1];
-      expect(updateCall.remainingTime).toBe(160); // 100 + 60
-    });
-
-    it('adds prints correctly', async () => {
-      get.mockResolvedValue({
-        exists: () => true,
-        val: () => ({ remainingTime: 100, printBalance: 10 }),
-      });
-      update.mockResolvedValue();
-
-      const result = await adjustUserBalance('my-org', 'user-123', {
-        prints: 5,
-      });
-
-      expect(result.success).toBe(true);
-      const updateCall = update.mock.calls[0][1];
-      expect(updateCall.printBalance).toBe(15); // 10 + 5
-    });
-
-    it('prevents negative time', async () => {
-      get.mockResolvedValue({
-        exists: () => true,
-        val: () => ({ remainingTime: 30, printBalance: 10 }),
-      });
-      update.mockResolvedValue();
-
-      await adjustUserBalance('my-org', 'user-123', {
-        timeSeconds: -100,
-      });
-
-      const updateCall = update.mock.calls[0][1];
-      expect(updateCall.remainingTime).toBe(0); // Not negative
-    });
-
-    it('prevents negative prints', async () => {
-      get.mockResolvedValue({
-        exists: () => true,
-        val: () => ({ remainingTime: 100, printBalance: 5 }),
-      });
-      update.mockResolvedValue();
-
-      await adjustUserBalance('my-org', 'user-123', {
-        prints: -50,
-      });
-
-      const updateCall = update.mock.calls[0][1];
-      expect(updateCall.printBalance).toBe(0); // Not negative
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('network');
     });
   });
 

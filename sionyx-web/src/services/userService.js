@@ -93,44 +93,31 @@ export const getUserPurchaseHistory = async (orgId, userId) => {
  */
 export const adjustUserBalance = async (orgId, userId, adjustments) => {
   try {
-    // First get the current user data
-    const userRef = ref(database, `organizations/${orgId}/users/${userId}`);
-    const snapshot = await get(userRef);
+    // Server-authoritative: the Worker adjusts the balance (clients are/will be
+    // denied direct writes to remainingTime/printBalance by RTDB rules).
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(`${SERVER_URL}/admin/adjust-balance`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        orgId,
+        userId,
+        addSeconds: adjustments.timeSeconds,
+        addPrints: adjustments.prints,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
 
-    if (!snapshot.exists()) {
-      return {
-        success: false,
-        error: 'User not found',
-      };
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'Failed to adjust user balance' };
     }
-
-    const currentUser = snapshot.val();
-
-    // Calculate new values
-    const updates = {
-      updatedAt: new Date().toISOString(),
-    };
-
-    if (adjustments.timeSeconds !== undefined) {
-      updates.remainingTime = (currentUser.remainingTime || 0) + adjustments.timeSeconds;
-      // Ensure it doesn't go negative
-      if (updates.remainingTime < 0) updates.remainingTime = 0;
-    }
-
-    if (adjustments.prints !== undefined) {
-      updates.printBalance = (currentUser.printBalance || 0) + adjustments.prints;
-      // Ensure it doesn't go negative
-      if (updates.printBalance < 0) updates.printBalance = 0;
-    }
-
-    await update(userRef, updates);
 
     return {
       success: true,
       message: 'User balance adjusted successfully',
       newBalance: {
-        remainingTime: updates.remainingTime,
-        printBalance: updates.printBalance,
+        remainingTime: data.remainingTime,
+        printBalance: data.printBalance,
       },
     };
   } catch (error) {
