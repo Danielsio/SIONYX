@@ -232,7 +232,7 @@ public class PrintMonitorServiceTests : IDisposable
     [Fact]
     public async Task DeductBudget_BudgetUpdatedEvent_ShouldFire()
     {
-        _handler.When("users/test-uid.json", new { printBalance = 50.0 });
+        _handler.When("usage/deduct-print", new { success = true, printBalance = 40.0 });
         _handler.SetDefaultSuccess();
 
         double? newBudget = null;
