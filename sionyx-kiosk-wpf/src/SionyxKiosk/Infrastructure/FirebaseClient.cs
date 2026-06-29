@@ -301,6 +301,41 @@ public sealed class FirebaseClient : IFirebaseClient
         }
     }
 
+    /// <summary>
+    /// Deduct session time (seconds) via the SIONYX backend (server-authoritative).
+    /// Returns the new remainingTime reported by the server.
+    /// </summary>
+    public async Task<(bool Success, int RemainingTime)> DeductTimeAsync(int seconds)
+    {
+        if (!await EnsureValidTokenAsync())
+            return (false, 0);
+
+        var url = $"{_serverUrl}/usage/deduct-time";
+        var payload = new { orgId = _orgId, userId = _userId, seconds };
+        var content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _idToken);
+            var response = await _http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                Logger.Error("Deduct time failed: {Status} {Body}", response.StatusCode, body);
+                return (false, 0);
+            }
+            using var doc = JsonDocument.Parse(body);
+            var remaining = doc.RootElement.TryGetProperty("remainingTime", out var rt) && rt.TryGetDouble(out var v) ? (int)v : 0;
+            return (true, remaining);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Deduct time error");
+            return (false, 0);
+        }
+    }
+
     // ==================== SSE STREAMING ====================
 
     /// <summary>
