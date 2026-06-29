@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1117"/><stop offset="1" stop-color="#161b22"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#8b949e"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="620" fill="url(#bg)"/>
+  <text x="500" y="40" text-anchor="middle" fill="#e6edf3" font-size="22" font-weight="700">SIONYX — Spark-only architecture</text>
+  <text x="500" y="62" text-anchor="middle" fill="#9da7b3" font-size="12">$0 to run · no Blaze · no credit card · balances &amp; payments are server-authoritative</text>
+
+  <!-- edges -->
+  <path id="eWP" d="M265,150 C340,180 350,230 405,268" fill="none" stroke="#f6a821" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path id="eKP" d="M265,470 C340,430 350,378 405,332" fill="none" stroke="#f6a821" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path id="eWR" d="M265,120 C480,86 640,96 752,118" fill="none" stroke="#586069" stroke-width="2" marker-end="url(#arrow)"/>
+  <path id="eKR" d="M265,500 C470,560 620,300 752,250" fill="none" stroke="#586069" stroke-width="2" marker-end="url(#arrow)"/>
+  <path id="eWdb" d="M600,280 C680,250 700,180 752,150" fill="none" stroke="#f6a821" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path id="eWau" d="M600,300 C670,290 700,270 752,250" fill="none" stroke="#f6a821" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path id="eWne" d="M600,320 C680,345 700,360 752,372" fill="none" stroke="#f6a821" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <path id="eGK" d="M758,500 C470,560 300,520 265,492" fill="none" stroke="#6e7681" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrow)"/>
+
+  <!-- animated flow dots (degrade gracefully to a static diagram if stripped) -->
+  <circle r="4" fill="#4c8dff"><animateMotion dur="2.4s" repeatCount="indefinite"><mpath href="#eWP"/></animateMotion></circle>
+  <circle r="4" fill="#4c8dff"><animateMotion dur="2.4s" begin="1.2s" repeatCount="indefinite"><mpath href="#eKP"/></animateMotion></circle>
+  <circle r="3" fill="#4c8dff" opacity="0.7"><animateMotion dur="3s" repeatCount="indefinite"><mpath href="#eWR"/></animateMotion></circle>
+  <circle r="4" fill="#f6a821"><animateMotion dur="2s" repeatCount="indefinite"><mpath href="#eWdb"/></animateMotion></circle>
+  <circle r="4" fill="#f6a821"><animateMotion dur="2s" begin="0.7s" repeatCount="indefinite"><mpath href="#eWau"/></animateMotion></circle>
+  <circle r="4" fill="#f6a821"><animateMotion dur="2s" begin="1.4s" repeatCount="indefinite"><mpath href="#eWne"/></animateMotion></circle>
+  <circle r="3" fill="#f6a821" opacity="0.6"><animateMotion dur="3.4s" repeatCount="indefinite"><mpath href="#eGK"/></animateMotion></circle>
+
+  <!-- nodes -->
+  <g>
+    <rect x="60" y="92" width="205" height="66" rx="12" fill="#1f2d4d" stroke="#4c8dff" stroke-width="2"/>
+    <text x="76" y="122" fill="#e6edf3" font-size="15" font-weight="600">Web app · React</text>
+    <text x="76" y="142" fill="#9da7b3" font-size="11">admin dashboard · Firebase Hosting</text>
+  </g>
+  <g>
+    <rect x="60" y="438" width="205" height="66" rx="12" fill="#1f2d4d" stroke="#4c8dff" stroke-width="2"/>
+    <text x="76" y="468" fill="#e6edf3" font-size="15" font-weight="600">Kiosk · WPF (.NET)</text>
+    <text x="76" y="488" fill="#9da7b3" font-size="11">lockdown · sessions · printing</text>
+  </g>
+
+  <g>
+    <rect x="400" y="252" width="200" height="96" rx="12" fill="#3a2a14" stroke="#f6a821" stroke-width="2"/>
+    <text x="500" y="286" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">sionyx-server</text>
+    <text x="500" y="306" text-anchor="middle" fill="#9da7b3" font-size="11">Cloudflare Worker (free)</text>
+    <text x="500" y="325" text-anchor="middle" fill="#9da7b3" font-size="11">holds the service account ·</text>
+    <text x="500" y="340" text-anchor="middle" fill="#9da7b3" font-size="11">only writer of balances / $</text>
+  </g>
+
+  <g>
+    <rect x="752" y="92" width="196" height="62" rx="12" fill="#13301f" stroke="#3fb950" stroke-width="2"/>
+    <text x="850" y="120" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">Realtime DB</text>
+    <text x="850" y="140" text-anchor="middle" fill="#9da7b3" font-size="11">Spark · free</text>
+  </g>
+  <g>
+    <rect x="752" y="206" width="196" height="62" rx="12" fill="#13301f" stroke="#3fb950" stroke-width="2"/>
+    <text x="850" y="234" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">Auth</text>
+    <text x="850" y="254" text-anchor="middle" fill="#9da7b3" font-size="11">Spark · free</text>
+  </g>
+  <g>
+    <rect x="752" y="332" width="196" height="62" rx="12" fill="#3a1530" stroke="#db61a2" stroke-width="2"/>
+    <text x="850" y="360" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">Nedarim Plus</text>
+    <text x="850" y="380" text-anchor="middle" fill="#9da7b3" font-size="11">payments gateway</text>
+  </g>
+  <g>
+    <rect x="752" y="474" width="196" height="62" rx="12" fill="#21262d" stroke="#6e7681" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="850" y="500" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="600">GitHub Releases</text>
+    <text x="850" y="520" text-anchor="middle" fill="#9da7b3" font-size="11">installers · auto-update (planned)</text>
+  </g>
+
+  <!-- edge labels -->
+  <text x="322" y="206" fill="#8b949e" font-size="11">privileged ops</text>
+  <text x="322" y="410" fill="#8b949e" font-size="11">privileged ops</text>
+  <text x="495" y="100" fill="#8b949e" font-size="11">reads</text>
+  <text x="640" y="206" fill="#8b949e" font-size="11">admin writes</text>
+
+  <!-- legend -->
+  <g font-size="12">
+    <rect x="60" y="556" width="14" height="14" rx="3" fill="#1f2d4d" stroke="#4c8dff" stroke-width="2"/><text x="80" y="567" fill="#9da7b3">client (web / kiosk)</text>
+    <rect x="230" y="556" width="14" height="14" rx="3" fill="#3a2a14" stroke="#f6a821" stroke-width="2"/><text x="250" y="567" fill="#9da7b3">Cloudflare Worker</text>
+    <rect x="390" y="556" width="14" height="14" rx="3" fill="#13301f" stroke="#3fb950" stroke-width="2"/><text x="410" y="567" fill="#9da7b3">Firebase Spark (free)</text>
+    <rect x="560" y="556" width="14" height="14" rx="3" fill="#3a1530" stroke="#db61a2" stroke-width="2"/><text x="580" y="567" fill="#9da7b3">external gateway</text>
+    <rect x="710" y="556" width="14" height="14" rx="3" fill="#21262d" stroke="#6e7681" stroke-width="2" stroke-dasharray="3 3"/><text x="730" y="567" fill="#9da7b3">planned</text>
+  </g>
+</svg>

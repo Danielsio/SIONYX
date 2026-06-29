@@ -4,11 +4,58 @@ Kiosk management system with web admin dashboard and WPF desktop app.
 
 ## Architecture
 
-| Component | Description |
-|-----------|-------------|
-| **sionyx-web** | React web admin dashboard (Firebase Hosting) |
-| **sionyx-kiosk-wpf** | C# WPF desktop app (.NET 8) |
-| **functions** | Firebase Cloud Functions (payment callback) |
+> **This is the source of truth for the app's services and how they talk to each other.**
+> SIONYX runs entirely on **free tiers** — Firebase **Spark** (Realtime DB, Auth, Hosting) plus a
+> **Cloudflare Worker** (`sionyx-server`) that replaces Cloud Functions. **No Blaze, no credit card.**
+> The Worker is the only holder of the Firebase service account, so it is the **only writer of
+> balances, purchases, and passwords** — money is server-authoritative and clients cannot self-credit.
+
+![SIONYX architecture](docs/architecture.svg)
+
+### Services
+
+| Service | Tech | Role | Cost |
+|---|---|---|---|
+| **sionyx-web** | React (Vite) | Admin dashboard; reads RTDB, calls the Worker for privileged ops | Firebase Hosting (free) |
+| **sionyx-kiosk-wpf** | C# WPF (.NET 8) | Kiosk lockdown, sessions, printing, payments | on-prem |
+| **sionyx-server** | Cloudflare Worker (TS) | All privileged logic: payments, password reset, org register, delete-user, balance deduct/adjust, cleanup cron | Workers (free, no card) |
+| **Realtime Database** | Firebase | Source of data; rules deny client writes to balances | Spark (free) |
+| **Auth** | Firebase | User sign-in; admin ops via the Worker | Spark (free) |
+| **Nedarim Plus** | external | Card payments (hosted iframe + server-side saved-card charge) | gateway |
+| **GitHub Releases** | external | Installer hosting + kiosk auto-update *(planned)* | free |
+| ~~functions~~ | Firebase Cloud Functions | Being retired — all six ported to `sionyx-server` (drops Blaze) | — |
+
+### Data flow
+
+```mermaid
+flowchart LR
+  subgraph clients[Clients]
+    web[Web admin · React]
+    kiosk[Kiosk · WPF .NET]
+  end
+  worker["sionyx-server<br/>Cloudflare Worker<br/>(holds service account)"]
+  subgraph fb[Firebase · Spark free]
+    rtdb[(Realtime DB)]
+    auth[Auth]
+  end
+  nedarim[Nedarim Plus]
+  gh[GitHub Releases]
+
+  web -- reads --> rtdb
+  kiosk -- reads --> rtdb
+  web -- sign in --> auth
+  kiosk -- sign in --> auth
+  web -- "reset / delete / register / adjust-balance" --> worker
+  kiosk -- "deduct time+print / charge saved-card" --> worker
+  worker -- "admin writes: balances, purchases" --> rtdb
+  worker -- "set password / create / delete user" --> auth
+  worker -- "callback + saved-card charge" --> nedarim
+  worker -. "daily cleanup cron" .-> rtdb
+  gh -. "auto-update (planned)" .-> kiosk
+```
+
+The deployed Worker: `https://sionyx-server.sionyx-server.workers.dev`.
+Migration details + cutover/re-fork guide: [SPARK-MIGRATION.md](SPARK-MIGRATION.md).
 
 ## Quick Start
 
