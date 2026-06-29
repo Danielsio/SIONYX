@@ -21,6 +21,7 @@ export async function registerOrganization(req: Request, env: Env): Promise<Resp
     organizationName,
     nedarimMosadId,
     nedarimApiValid,
+    nedarimApiPassword,
     adminPhone,
     adminPassword,
     adminFirstName,
@@ -61,7 +62,7 @@ export async function registerOrganization(req: Request, env: Env): Promise<Resp
   }
 
   // 2. Org metadata (Nedarim creds encrypted to match the kiosk's decoder).
-  const metadata = {
+  const metadata: Record<string, unknown> = {
     name: cleanOrgName,
     nedarim_mosad_id: await encryptData(env, cleanMosadId),
     nedarim_api_valid: await encryptData(env, cleanApiValid),
@@ -73,6 +74,17 @@ export async function registerOrganization(req: Request, env: Env): Promise<Resp
     admin_email: adminEmail ? adminEmail.trim() : '',
   };
   await dbSet(env, `organizations/${orgId}/metadata`, metadata);
+
+  // Server-side charge credential (saved-card). Stored OUTSIDE the client-readable
+  // metadata, under a secrets/ path only the Worker (admin) can access. Optional —
+  // only orgs that provide it can charge saved cards.
+  if (nedarimApiPassword && nedarimApiPassword.trim()) {
+    await dbSet(
+      env,
+      `organizations/${orgId}/secrets/nedarim_api_password`,
+      await encryptData(env, nedarimApiPassword.trim()),
+    );
+  }
 
   // 3. Admin user record.
   await dbSet(env, `organizations/${orgId}/users/${adminUid}`, {

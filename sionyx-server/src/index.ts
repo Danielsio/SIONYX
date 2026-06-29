@@ -13,7 +13,7 @@ import {
   dbCompareAndSet,
   verifyIdToken,
 } from './firebase';
-import { nedarimCallback } from './payments';
+import { nedarimCallback, chargeSavedCard } from './payments';
 import { adminResetPassword } from './auth';
 import { deleteUser } from './users';
 import { registerOrganization } from './org';
@@ -85,7 +85,6 @@ const adminCredit: Handler = async (req, env) => {
 };
 
 // Stubs — implemented in subsequent increments (each replaces a Cloud Function).
-const chargeSavedCard: Handler = async () => notImplemented('payments/charge-saved-card');
 const yemotWebhook: Handler = async () => notImplemented('auth/yemot');
 
 // ---- router ----------------------------------------------------------------

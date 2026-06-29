@@ -6,7 +6,7 @@
  * via `creditedAt`, and credit the user + mark the purchase in ONE fan-out write.
  * Clients can never credit themselves (RTDB rules deny it).
  */
-import { Env, dbGet, dbUpdate } from './firebase';
+import { Env, dbGet, dbSet, dbUpdate, decryptData, verifyIdToken } from './firebase';
 
 const json = (data: unknown, status = 200): Response =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -127,4 +127,103 @@ export async function nedarimCallback(req: Request, env: Env): Promise<Response>
 
   console.log('[nedarim] credited', { orgId, userId: purchase.userId, addMinutes: purchase.minutes, newTime });
   return json({ success: true, message: 'credited' });
+}
+
+interface PackageData {
+  name?: string;
+  price?: number;
+  minutes?: number;
+  prints?: number;
+  validityDays?: number;
+}
+
+/**
+ * Charge a user's saved card ("keva") server-side. The org's Nedarim gateway
+ * password lives only here (decrypted from metadata) — never on the kiosk, which
+ * was the audit's payment flaw. Creates a pending purchase, calls Nedarim
+ * TashlumBodedNew, and lets the existing callback credit (idempotently).
+ */
+export async function chargeSavedCard(req: Request, env: Env): Promise<Response> {
+  const m = (req.headers.get('Authorization') || '').match(/^Bearer (.+)$/);
+  if (!m) return json({ success: false, error: 'missing_bearer_token' }, 401);
+  const claims = await verifyIdToken(env, m[1]);
+  if (!claims) return json({ success: false, error: 'invalid_id_token' }, 401);
+  const userId = claims.user_id;
+
+  const body = (await req.json().catch(() => null)) as { orgId?: string; packageId?: string } | null;
+  if (!body?.orgId || !body?.packageId) return json({ success: false, error: 'missing_fields' }, 400);
+  const { orgId, packageId } = body;
+
+  const pkg = await dbGet<PackageData>(env, `organizations/${orgId}/packages/${packageId}`);
+  if (!pkg || pkg.price == null) return json({ success: false, error: 'package_not_found' }, 404);
+
+  const user = await dbGet<{ savedCard?: { kevaId?: string } }>(env, `organizations/${orgId}/users/${userId}`);
+  const kevaId = user?.savedCard?.kevaId;
+  if (!kevaId) return json({ success: false, error: 'no_saved_card' }, 400);
+
+  const meta = await dbGet<{ nedarim_mosad_id?: string }>(env, `organizations/${orgId}/metadata`);
+  // ApiPassword lives in the server-only secrets/ path (not client-readable metadata).
+  const encApiPassword = await dbGet<string>(env, `organizations/${orgId}/secrets/nedarim_api_password`);
+  if (!meta?.nedarim_mosad_id || !encApiPassword) {
+    return json({ success: false, error: 'gateway_not_configured' }, 400);
+  }
+  const mosadId = String(await decryptData(env, meta.nedarim_mosad_id));
+  const apiPassword = String(await decryptData(env, encApiPassword));
+
+  // Pending purchase (matches the schema the callback credits from).
+  const purchaseId = crypto.randomUUID();
+  const amount = Number(pkg.price);
+  await dbSet(env, `organizations/${orgId}/purchases/${purchaseId}`, {
+    userId,
+    amount,
+    minutes: Number(pkg.minutes) || 0,
+    printBudget: Number(pkg.prints) || 0,
+    validityDays: Number(pkg.validityDays) || 0,
+    packageName: pkg.name || '',
+    status: 'pending',
+    method: 'saved-card',
+    createdAt: new Date().toISOString(),
+  });
+
+  // Server-side charge (ApiPassword stays here). The callback credits idempotently.
+  const callbackUrl = `${new URL(req.url).origin}/payments/nedarim-callback?secret=${env.CALLBACK_SECRET}`;
+  const form = new URLSearchParams({
+    Action: 'TashlumBodedNew',
+    MosadNumber: mosadId,
+    ApiPassword: apiPassword,
+    Currency: '1',
+    KevaId: kevaId,
+    Amount: String(amount),
+    Tashloumim: '1',
+    JoinToKevaId: 'NoJoin',
+    Param1: purchaseId,
+    Param2: orgId,
+    CallBack: callbackUrl,
+    Comments: `Purchase:${purchaseId}`,
+  });
+
+  let status = '';
+  let respText = '';
+  try {
+    const resp = await fetch('https://matara.pro/nedarimplus/Reports/Manage3.aspx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form,
+    });
+    respText = await resp.text();
+    status = (JSON.parse(respText) as { Status?: string }).Status || '';
+  } catch (e) {
+    console.error('[saved-card] gateway error', (e as Error).message);
+  }
+
+  if (status !== 'OK') {
+    await dbUpdate(env, `organizations/${orgId}/purchases/${purchaseId}`, {
+      status: 'failed',
+      message: respText.slice(0, 200),
+    });
+    return json({ success: false, error: 'charge_failed', purchaseId }, 402);
+  }
+
+  console.log('[saved-card] charged', { orgId, userId, purchaseId });
+  return json({ success: true, purchaseId });
 }

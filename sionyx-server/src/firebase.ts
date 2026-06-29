@@ -281,6 +281,25 @@ export async function encryptData(env: Env, data: unknown): Promise<string> {
   return b64Std(plaintext);
 }
 
+/** Mirror of the Cloud Functions decryptData: AES-256-CBC if keyed, else base64. */
+export async function decryptData(env: Env, encrypted: string): Promise<unknown> {
+  const k = env.ENCRYPTION_KEY;
+  if (k && k.length >= 32 && encrypted.includes(':')) {
+    try {
+      const [ivB64, dataB64] = encrypted.split(':');
+      const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
+      const data = Uint8Array.from(atob(dataB64), (c) => c.charCodeAt(0));
+      const keyBytes = new TextEncoder().encode(k.slice(0, 32));
+      const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CBC' }, false, ['decrypt']);
+      const dec = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, data);
+      return JSON.parse(new TextDecoder().decode(dec));
+    } catch {
+      /* fall through to base64 */
+    }
+  }
+  return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0))));
+}
+
 /** Create a Firebase Auth user (email/password). Returns the new uid. Throws EmailExistsError if taken. */
 export async function createAuthUser(env: Env, email: string, password: string, displayName?: string): Promise<string> {
   const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${env.FIREBASE_API_KEY}`, {
