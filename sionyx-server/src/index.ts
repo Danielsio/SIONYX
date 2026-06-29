@@ -19,6 +19,7 @@ import { deleteUser } from './users';
 import { registerOrganization } from './org';
 import { runCleanup, cleanupTestOrganization } from './cleanup';
 import { deductPrint, deductTime } from './usage';
+import { adjustBalance } from './admin';
 
 type Handler = (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
 
@@ -105,6 +106,7 @@ const routes: Record<string, Record<string, Handler>> = {
     '/admin/cleanup-test-org': cleanupTestOrganization,
     '/usage/deduct-print': deductPrint,
     '/usage/deduct-time': deductTime,
+    '/admin/adjust-balance': adjustBalance,
   },
 };
 
