@@ -6,7 +6,7 @@
  * Auth: caller proves identity with a Firebase ID token and must be an org admin.
  * Adjustments are additive (addSeconds/addPrints may be negative); clamped to >= 0.
  */
-import { Env, dbGet, dbCompareAndSet, verifyIdToken } from './firebase';
+import { Env, dbGet, dbSet, dbCompareAndSet, verifyIdToken } from './firebase';
 
 const json = (data: unknown, status = 200): Response =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -55,4 +55,30 @@ export async function adjustBalance(req: Request, env: Env): Promise<Response> {
   }
 
   return json({ success: true, remainingTime, printBalance });
+}
+
+/**
+ * Publish the latest release metadata to RTDB `public/latestRelease` (read by the
+ * web download page and the kiosk auto-updater). Called by the release workflow
+ * after it uploads the installer to GitHub Releases. Admin-secret gated; the
+ * Worker's admin token writes the `.write:false` public node.
+ */
+export async function setLatestRelease(req: Request, env: Env): Promise<Response> {
+  if ((req.headers.get('x-sionyx-secret') || '') !== env.ADMIN_SECRET) {
+    return json({ success: false, error: 'unauthorized' }, 401);
+  }
+  const body = (await req.json().catch(() => null)) as
+    | { version?: string; downloadUrl?: string; sha256?: string; buildNumber?: number; releasedAt?: string }
+    | null;
+  if (!body?.version || !body?.downloadUrl) return json({ success: false, error: 'missing_fields' }, 400);
+
+  await dbSet(env, 'public/latestRelease', {
+    version: body.version,
+    downloadUrl: body.downloadUrl,
+    sha256: body.sha256 || null,
+    buildNumber: body.buildNumber ?? null,
+    releasedAt: body.releasedAt || new Date().toISOString(),
+  });
+  console.log('[release] published', { version: body.version });
+  return json({ success: true });
 }

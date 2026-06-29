@@ -115,3 +115,19 @@ jobs:
           } else {
             gh release create "v$ver" --title "v$ver" --notes $notes
           }
+
+      - name: Publish latest release to RTDB (installer hosted on GitHub Releases, off Storage)
+        shell: pwsh
+        env:
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          $msi = Get-ChildItem "sionyx-kiosk-wpf/installer/bin/x64/Release/*.msi" | Select-Object -First 1
+          if (-not $msi) { Write-Host "No MSI produced; skipping latest-release publish."; exit 0 }
+          $asset = "https://github.com/${{ github.repository }}/releases/download/v$ver/$($msi.Name)"
+          $sha = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower()
+          $bn = (Get-Content sionyx-kiosk-wpf/version.json -Raw | ConvertFrom-Json).buildNumber
+          $body = @{ version = $ver; downloadUrl = $asset; sha256 = $sha; buildNumber = $bn } | ConvertTo-Json
+          Invoke-RestMethod -Uri "https://sionyx-server.sionyx-server.workers.dev/admin/set-latest-release" `
+            -Method Post -Headers @{ 'x-sionyx-secret' = $env:ADMIN_SECRET; 'Content-Type' = 'application/json' } -Body $body
+          Write-Host "Published public/latestRelease v$ver -> $asset (sha256 $sha)"
