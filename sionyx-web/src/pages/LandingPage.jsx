@@ -1067,6 +1067,21 @@ const RegistrationModal = memo(({ open, onClose, onSubmit, loading, form }) => {
                 </Form.Item>
               </Col>
             </Row>
+
+            <Row gutter={[16, 0]}>
+              <Col xs={24}>
+                <Form.Item
+                  name='nedarimApiPassword'
+                  label={<span style={labelStyle}>סיסמת API לחיוב כרטיס שמור (אופציונלי)</span>}
+                >
+                  <Input.Password
+                    prefix={<KeyOutlined style={{ color: '#bfbfbf' }} />}
+                    placeholder='נדרש רק לתשלום בכרטיס שמור (keva)'
+                    style={inputStyle}
+                  />
+                </Form.Item>
+              </Col>
+            </Row>
           </motion.div>
 
           {/* Admin User Section */}
