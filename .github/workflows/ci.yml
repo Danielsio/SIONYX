@@ -15,6 +15,7 @@ jobs:
       functions: ${{ steps.filter.outputs.functions }}
       kiosk: ${{ steps.filter.outputs.kiosk }}
       server: ${{ steps.filter.outputs.server }}
+      rules: ${{ steps.filter.outputs.rules }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +31,9 @@ jobs:
               - 'sionyx-kiosk-wpf/**'
             server:
               - 'sionyx-server/**'
+            rules:
+              - 'database.rules.json'
+              - 'tests/rules/**'
 
   # ── Web: Lint ────────────────────────────────────────────────
   web-lint:
@@ -762,9 +766,37 @@ jobs:
         working-directory: sionyx-server
         run: npx wrangler deploy --dry-run --outdir dist
 
+  # ── RTDB security rules tests (Firebase emulator) ────────────
+  rules-test:
+    runs-on: ubuntu-latest
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.rules == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: tests/rules/package-lock.json
+
+      - name: Setup Java (Firebase RTDB emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install dependencies
+        working-directory: tests/rules
+        run: npm ci
+
+      - name: Run RTDB rules tests (emulator)
+        run: npx --yes firebase-tools emulators:exec --only database --project demo-sionyx "cd tests/rules && npm test"
+
   ci-gate:
     runs-on: ubuntu-latest
-    needs: [web-lint, web-build, web-test, functions-tests, kiosk-tests, installer-test, server-check]
+    needs: [web-lint, web-build, web-test, functions-tests, kiosk-tests, installer-test, server-check, rules-test]
     if: always()
     steps:
       - name: Check results
