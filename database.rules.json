@@ -61,15 +61,15 @@
               ".validate": "newData.isString() || !newData.exists()"
             },
             "blocked": {
-              ".validate": "newData.isBoolean()",
+              ".validate": "newData.isBoolean() && (newData.val() == data.val() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
               ".write": "root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
             },
             "blockedAt": {
-              ".validate": "newData.isNumber() || !newData.exists()",
+              ".validate": "(newData.isNumber() || !newData.exists()) && (newData.val() == data.val() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
               ".write": "root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
             },
             "blockedReason": {
-              ".validate": "(newData.isString() && newData.val().length <= 500) || !newData.exists()",
+              ".validate": "((newData.isString() && newData.val().length <= 500) || !newData.exists()) && (newData.val() == data.val() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
               ".write": "root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()"
             }
           }
