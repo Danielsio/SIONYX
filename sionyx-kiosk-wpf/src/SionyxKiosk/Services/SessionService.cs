@@ -240,9 +240,8 @@ public class SessionService : BaseService, ISessionService
         if (!IsActive) return;
 
         // Server-authoritative time: deduct the seconds used since the last sync.
-        var delta = TimeUsed - _lastSyncedTimeUsed;
-        if (delta <= 0) return;
-
+        // Always attempt (even a 0-second delta) so offline/online status is detected.
+        var delta = Math.Max(0, TimeUsed - _lastSyncedTimeUsed);
         var (ok, _) = await Firebase.DeductTimeAsync(delta);
 
         if (ok)

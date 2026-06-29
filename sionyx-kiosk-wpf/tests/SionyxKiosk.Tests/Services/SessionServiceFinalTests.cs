@@ -181,7 +181,7 @@ public class SessionServiceFinalTests : IDisposable
         await _service.StartSessionAsync(3600);
 
         _handler.ClearHandlers();
-        _handler.WhenError("users/");
+        _handler.WhenError("usage/deduct-time");
 
         string? syncError = null;
         _service.SyncFailed += e => syncError = e;

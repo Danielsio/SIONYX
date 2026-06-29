@@ -309,9 +309,9 @@ public class SessionServiceDeepTests : IDisposable
         _handler.WhenRaw("users/user-123.json", "{\"remainingTime\": 3600}");
         await _service.StartSessionAsync(3600);
 
-        // Now make all requests fail
+        // Now make the time-deduction call fail
         _handler.ClearHandlers();
-        _handler.WhenError("users/", System.Net.HttpStatusCode.InternalServerError);
+        _handler.WhenError("usage/deduct-time", System.Net.HttpStatusCode.InternalServerError);
 
         string? syncError = null;
         _service.SyncFailed += e => syncError = e;
