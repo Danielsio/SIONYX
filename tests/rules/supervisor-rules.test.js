@@ -447,11 +447,7 @@ describe("Regular user access", () => {
     await assertFails(db.ref(`supervisors/${SUP_UID}`).get());
   });
 
-  // TODO(pre-existing, not C-6): a regular user can currently write their own
-  // `blocked` field because the parent users/$uid `.write` grant cascades over
-  // the field-level supervisor-only rule. This pre-dates the balance hardening
-  // and is tracked separately; skipped so it doesn't block the C-6 rules change.
-  test.skip("regular user cannot write blocked fields", async () => {
+  test("regular user cannot write blocked fields", async () => {
     const db = testEnv.authenticatedContext(USER_UID).database();
     await assertFails(
       db.ref(`organizations/${ORG_ID}/users/${USER_UID}/blocked`).set(false)
