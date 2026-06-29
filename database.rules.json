@@ -49,10 +49,10 @@
             },
             
             "remainingTime": {
-              ".validate": "newData.isNumber() && newData.val() >= 0"
+              ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.val() == data.val())"
             },
             "printBalance": {
-              ".validate": "newData.isNumber()"
+              ".validate": "newData.isNumber() && (!data.exists() || newData.val() == data.val())"
             },
             "forceLogout": {
               ".validate": "newData.isBoolean()"

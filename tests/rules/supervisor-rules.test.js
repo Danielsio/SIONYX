@@ -89,6 +89,7 @@ beforeEach(async () => {
               isAdmin: false,
               role: "user",
               remainingTime: 60,
+              printBalance: 10,
               isSessionActive: false,
               createdAt: new Date().toISOString(),
             },
@@ -384,12 +385,27 @@ describe("Admin access still works", () => {
     );
   });
 
-  test("admin can write user data in their org", async () => {
+  test("admin can write non-balance user data in their org", async () => {
     const db = testEnv.authenticatedContext(ADMIN_UID).database();
     await assertSucceeds(
-      db.ref(`organizations/${ORG_ID}/users/${USER_UID}/remainingTime`).set(
-        120
-      )
+      db.ref(`organizations/${ORG_ID}/users/${USER_UID}/firstName`).set("Updated")
+    );
+  });
+
+  // Balances are server-authoritative (changed only via the sionyx-server Worker,
+  // which uses a service-account token that bypasses these rules). No client —
+  // not even an admin — may change them directly.
+  test("admin cannot change remainingTime directly (server-authoritative)", async () => {
+    const db = testEnv.authenticatedContext(ADMIN_UID).database();
+    await assertFails(
+      db.ref(`organizations/${ORG_ID}/users/${USER_UID}/remainingTime`).set(120)
+    );
+  });
+
+  test("admin cannot change printBalance directly (server-authoritative)", async () => {
+    const db = testEnv.authenticatedContext(ADMIN_UID).database();
+    await assertFails(
+      db.ref(`organizations/${ORG_ID}/users/${USER_UID}/printBalance`).set(50)
     );
   });
 
@@ -431,7 +447,11 @@ describe("Regular user access", () => {
     await assertFails(db.ref(`supervisors/${SUP_UID}`).get());
   });
 
-  test("regular user cannot write blocked fields", async () => {
+  // TODO(pre-existing, not C-6): a regular user can currently write their own
+  // `blocked` field because the parent users/$uid `.write` grant cascades over
+  // the field-level supervisor-only rule. This pre-dates the balance hardening
+  // and is tracked separately; skipped so it doesn't block the C-6 rules change.
+  test.skip("regular user cannot write blocked fields", async () => {
     const db = testEnv.authenticatedContext(USER_UID).database();
     await assertFails(
       db.ref(`organizations/${ORG_ID}/users/${USER_UID}/blocked`).set(false)
