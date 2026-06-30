@@ -147,7 +147,19 @@ public partial class PaymentDialog : Window
             if (string.IsNullOrEmpty(mosadId) || string.IsNullOrEmpty(apiValid))
                 Logger.Warning("Nedarim credentials missing — payment will fail");
 
-            var callbackUrl = $"https://us-central1-{_firebase.ProjectId}.cloudfunctions.net/nedarimCallback";
+            // Callback the gateway calls after payment. Priority:
+            //   1. configured NedarimCallbackUrl (e.g. the Worker, server-authoritative)
+            //   2. "none" -> send empty so the gateway uses its mosad-configured callback
+            //      (most secure: no callback secret on the kiosk)
+            //   3. unset -> legacy Cloud Function URL (so existing installs are unaffected)
+            var configuredCallback = _firebase.NedarimCallbackUrl;
+            string callbackUrl;
+            if (string.Equals(configuredCallback, "none", StringComparison.OrdinalIgnoreCase))
+                callbackUrl = "";
+            else if (!string.IsNullOrWhiteSpace(configuredCallback))
+                callbackUrl = configuredCallback;
+            else
+                callbackUrl = $"https://us-central1-{_firebase.ProjectId}.cloudfunctions.net/nedarimCallback";
 
             var config = new
             {

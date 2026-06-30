@@ -58,6 +58,8 @@ public static class RegistryConfig
             ["MessagingSenderId"] = ReadValue("FirebaseMessagingSenderId"),
             ["AppId"] = ReadValue("FirebaseAppId"),
             ["MeasurementId"] = ReadValue("FirebaseMeasurementId"),
+            ["ServerUrl"] = ReadValue("ServerUrl"),
+            ["NedarimCallbackUrl"] = ReadValue("NedarimCallbackUrl"),
         };
     }
 
