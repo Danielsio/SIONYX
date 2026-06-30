@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using SionyxKiosk.Models;
 using SionyxKiosk.Services;
 using SionyxKiosk.ViewModels;
@@ -56,7 +57,27 @@ public partial class PackagesPage : Page
 
     private async void OnPurchaseRequested(Package package)
     {
-        var (succeeded, _) = _dialogFactory.CreateAndShow(package, Window.GetWindow(this));
+        bool succeeded;
+
+        // One-click: if the user has a saved card and opts in, charge it server-side.
+        // On any failure, fall back to the normal card-entry iframe.
+        if (await _dialogFactory.HasSavedCardAsync() && ConfirmUseSavedCard(package))
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+            try { succeeded = await _dialogFactory.ChargeWithSavedCardAsync(package); }
+            finally { Mouse.OverrideCursor = null; }
+
+            if (!succeeded)
+            {
+                MessageBox.Show("החיוב בכרטיס השמור נכשל. נסה כרטיס אחר.", "תשלום",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                (succeeded, _) = _dialogFactory.CreateAndShow(package, Window.GetWindow(this));
+            }
+        }
+        else
+        {
+            (succeeded, _) = _dialogFactory.CreateAndShow(package, Window.GetWindow(this));
+        }
 
         if (succeeded)
         {
@@ -64,6 +85,16 @@ public partial class PackagesPage : Page
             if (Window.GetWindow(this) is Windows.MainWindow mainWindow)
                 mainWindow.NavigateHome();
         }
+    }
+
+    private static bool ConfirmUseSavedCard(Package package)
+    {
+        var result = MessageBox.Show(
+            $"לשלם עבור '{package.Name}' בכרטיס השמור? תשלום מהיר בלחיצה אחת.",
+            "תשלום בכרטיס שמור",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        return result == MessageBoxResult.Yes;
     }
 }
 
