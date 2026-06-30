@@ -304,6 +304,11 @@ public partial class App : Application
         _systemServices.StartGlobalHotkey();
 
         _ = TryAutoLoginAsync(authVm);
+
+        // Background auto-update: reads public/latestRelease from RTDB, downloads the
+        // installer from GitHub Releases, verifies SHA-256, installs. Best-effort —
+        // any failure is caught and logged so it can never block startup.
+        _ = SionyxKiosk.Services.AutoUpdateService.CheckAndUpdateAsync();
     }
 
     private void OnLoginSucceeded()
