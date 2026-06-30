@@ -169,6 +169,31 @@
             padding-top: 16px;
         }
 
+        /* ── SAVE CARD (opt-in) ─────────────── */
+        .save-card-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            margin-bottom: 12px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            background: #FAFBFC;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            user-select: none;
+        }
+
+        .save-card-row input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
         /* ── PAY BUTTON ─────────────────────── */
         .btn-pay {
             width: 100%;
@@ -389,6 +414,11 @@
                     <span id="errorText"></span>
                 </div>
 
+                <label class="save-card-row" for="saveCardCheckbox">
+                    <input type="checkbox" id="saveCardCheckbox">
+                    <span>שמור את הכרטיס לרכישות הבאות (תשלום בלחיצה אחת)</span>
+                </label>
+
                 <button id="payButton" class="btn-pay" onclick="handlePayment()">
                     <span class="ico">🔒</span>
                     <span>בצע תשלום מאובטח</span>
@@ -505,12 +535,16 @@
 
         function onPurchaseCreated(purchaseId) {
             var name = document.getElementById('clientName').value.trim();
+            // Opt-in saved card: 'CreateToken' charges now AND tokenizes the card so the
+            // server can charge it later (one-click) via /payments/charge-saved-card. The
+            // gateway callback returns the token, which the Worker stores server-side.
+            var saveCard = document.getElementById('saveCardCheckbox').checked;
             postToNedarim({
                 'Name': 'FinishTransaction2',
                 'Value': {
                     'Mosad': CONFIG.mosadId,
                     'ApiValid': CONFIG.apiValid,
-                    'PaymentType': 'Ragil',
+                    'PaymentType': saveCard ? 'CreateToken' : 'Ragil',
                     'Currency': '1',
                     'Zeout': '',
                     'FirstName': name,
