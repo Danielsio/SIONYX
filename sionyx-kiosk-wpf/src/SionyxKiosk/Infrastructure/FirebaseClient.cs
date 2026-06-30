@@ -336,6 +336,56 @@ public sealed class FirebaseClient : IFirebaseClient
         }
     }
 
+    /// <summary>
+    /// Charge the user's saved card ("keva" token) via the SIONYX backend. The Nedarim
+    /// gateway password lives only on the server — the kiosk never handles card data, which
+    /// was the audit's payment flaw. Returns the pending purchaseId; the gateway callback
+    /// credits it, so callers should watch <c>purchases/{purchaseId}/status</c> for
+    /// completion (same confirmation path as the iframe flow).
+    /// </summary>
+    public async Task<(bool Success, string PurchaseId, string? Error)> ChargeSavedCardAsync(string packageId)
+    {
+        if (!await EnsureValidTokenAsync())
+            return (false, "", "auth");
+
+        var url = $"{_serverUrl}/payments/charge-saved-card";
+        var payload = new { orgId = _orgId, packageId };
+        var content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _idToken);
+            var response = await _http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            if (!response.IsSuccessStatusCode)
+            {
+                var err = root.TryGetProperty("error", out var e) ? e.GetString() : response.StatusCode.ToString();
+                Logger.Error("Charge saved card failed: {Status} {Body}", response.StatusCode, body);
+                return (false, "", err);
+            }
+            var purchaseId = root.TryGetProperty("purchaseId", out var p) ? p.GetString() ?? "" : "";
+            return (true, purchaseId, null);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Charge saved card error");
+            return (false, "", "exception");
+        }
+    }
+
+    /// <summary>True if the signed-in user has a saved card token on file.</summary>
+    public async Task<bool> HasSavedCardAsync()
+    {
+        var result = await DbGetAsync($"users/{_userId}/savedCard/kevaId");
+        return result.Success
+            && result.Data is JsonElement el
+            && el.ValueKind == JsonValueKind.String
+            && !string.IsNullOrEmpty(el.GetString());
+    }
+
     // ==================== SSE STREAMING ====================
 
     /// <summary>
