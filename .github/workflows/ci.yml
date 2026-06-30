@@ -29,6 +29,7 @@ jobs:
               - 'functions/**'
             kiosk:
               - 'sionyx-kiosk-wpf/**'
+              - '.github/workflows/ci.yml'
             server:
               - 'sionyx-server/**'
             rules:
@@ -648,10 +649,13 @@ jobs:
           Write-Host "Installed version before update: $(Get-SionyxVersion)"
 
           # Build a NEWER MSI (v0.0.2) over the same output file, so the existing
-          # uninstall step removes whatever ends up installed.
+          # uninstall step removes whatever ends up installed. Force a CLEAN rebuild —
+          # an incremental WiX build reuses the v0.0.1 MSI (same ProductCode/version),
+          # which msiexec then no-ops, leaving the version unchanged.
           $publishDir = (Resolve-Path sionyx-kiosk-wpf/dist).Path
           $sourceDir  = (Resolve-Path sionyx-kiosk-wpf).Path
-          dotnet build sionyx-kiosk-wpf/installer/SionyxInstaller.wixproj -c Release -p:Platform=x64 `
+          Remove-Item sionyx-kiosk-wpf/installer/bin, sionyx-kiosk-wpf/installer/obj -Recurse -Force -ErrorAction SilentlyContinue
+          dotnet build sionyx-kiosk-wpf/installer/SionyxInstaller.wixproj -c Release -p:Platform=x64 -t:Rebuild `
             "-p:ProductVersion=0.0.2" "-p:PublishDir=$publishDir" "-p:SourceDir=$sourceDir" | Out-Null
           $msi = (Get-ChildItem sionyx-kiosk-wpf/installer/bin/x64/Release/*.msi)[0].FullName
           $sha = (Get-FileHash $msi -Algorithm SHA256).Hash.ToLower()
