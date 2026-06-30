@@ -615,6 +615,85 @@ jobs:
           if ($fail -gt 0) { throw "Installation verification failed with $fail failure(s)" }
           Write-Host "ALL CHECKS PASSED"
 
+      - name: Auto-update — apply a newer MSI via the SYSTEM update task
+        shell: pwsh
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
+          FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_MEASUREMENT_ID: ${{ secrets.FIREBASE_MEASUREMENT_ID }}
+          NEDARIM_CALLBACK_URL: ${{ secrets.NEDARIM_CALLBACK_URL }}
+          ADMIN_EXIT_PASSWORD: ${{ secrets.ADMIN_EXIT_PASSWORD }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pass = 0; $fail = 0
+          function Ok($m)  { $script:pass++; Write-Host "[PASS] $m" }
+          function Bad($m) { $script:fail++; Write-Host "[FAIL] $m" }
+          function Get-SionyxVersion {
+            (Get-ItemProperty 'HKLM:\SOFTWARE\SIONYX' -ErrorAction SilentlyContinue).Version
+          }
+
+          # The SYSTEM update task must have been registered by the v0.0.1 install.
+          $task = Get-ScheduledTask -TaskName 'SIONYX Update' -ErrorAction SilentlyContinue
+          if ($task) {
+            Ok "Scheduled task 'SIONYX Update' exists"
+            if ("$($task.Principal.UserId)" -match 'S-1-5-18|SYSTEM|LocalSystem') { Ok "Update task runs as SYSTEM" }
+            else { Bad "Update task principal = '$($task.Principal.UserId)' (expected SYSTEM)" }
+          } else { Bad "Scheduled task 'SIONYX Update' NOT found" }
+
+          Write-Host "Installed version before update: $(Get-SionyxVersion)"
+
+          # Build a NEWER MSI (v0.0.2) over the same output file, so the existing
+          # uninstall step removes whatever ends up installed.
+          $publishDir = (Resolve-Path sionyx-kiosk-wpf/dist).Path
+          $sourceDir  = (Resolve-Path sionyx-kiosk-wpf).Path
+          dotnet build sionyx-kiosk-wpf/installer/SionyxInstaller.wixproj -c Release -p:Platform=x64 `
+            "-p:ProductVersion=0.0.2" "-p:PublishDir=$publishDir" "-p:SourceDir=$sourceDir" | Out-Null
+          $msi = (Get-ChildItem sionyx-kiosk-wpf/installer/bin/x64/Release/*.msi)[0].FullName
+          $sha = (Get-FileHash $msi -Algorithm SHA256).Hash.ToLower()
+          Write-Host "New MSI: $msi (sha256 $sha)"
+
+          $updateDir = "C:\ProgramData\SIONYX\update"
+          New-Item -ItemType Directory -Force -Path $updateDir | Out-Null
+          $pending = Join-Path $updateDir 'pending.json'
+
+          function Invoke-UpdateTaskAndWait([int]$timeoutSec = 180) {
+            Start-ScheduledTask -TaskName 'SIONYX Update'
+            $deadline = (Get-Date).AddSeconds($timeoutSec)
+            # The applier consumes pending.json on success or renames it to *.rejected/*.failed.
+            while ((Get-Date) -lt $deadline -and (Test-Path $pending)) { Start-Sleep -Seconds 3 }
+            Start-Sleep -Seconds 3  # let msiexec + registry settle
+          }
+
+          # NEGATIVE: a tampered (wrong SHA-256) MSI must be refused — no upgrade.
+          [pscustomobject]@{ MsiPath = $msi; Sha256 = ('0' * 64) } | ConvertTo-Json | Set-Content $pending -Encoding UTF8
+          Invoke-UpdateTaskAndWait
+          if ((Get-SionyxVersion) -eq '0.0.1') { Ok "Tampered MSI refused (version still 0.0.1)" }
+          else { Bad "Version changed despite bad SHA-256 (now $(Get-SionyxVersion))" }
+          if (Test-Path "$pending.rejected") { Ok "Bad request quarantined as pending.json.rejected" }
+          else { Write-Host "[WARN] no .rejected marker found" }
+          Remove-Item "$pending.rejected" -Force -ErrorAction SilentlyContinue
+
+          # POSITIVE: the correct MSI installs the upgrade silently as SYSTEM.
+          [pscustomobject]@{ MsiPath = $msi; Sha256 = $sha } | ConvertTo-Json | Set-Content $pending -Encoding UTF8
+          Invoke-UpdateTaskAndWait
+          $v = Get-SionyxVersion
+          if ($v -eq '0.0.2') { Ok "Auto-update installed v0.0.2 via the SYSTEM task" }
+          else { Bad "Expected version 0.0.2 after update, got '$v'" }
+          if (-not (Test-Path $pending)) { Ok "pending.json consumed after success" }
+          else { Bad "pending.json was not consumed" }
+
+          $log = Join-Path $updateDir 'update.log'
+          if (Test-Path $log) { Write-Host "`n=== update.log ==="; Get-Content $log }
+
+          Write-Host "`n  PASS: $pass  |  FAIL: $fail"
+          if ($fail -gt 0) { throw "Auto-update SYSTEM-task test failed with $fail failure(s)" }
+          Write-Host "AUTO-UPDATE TEST PASSED"
+
       - name: Dump install.log (custom action output)
         if: always()
         shell: pwsh
@@ -704,6 +783,9 @@ jobs:
           $task = Get-ScheduledTask -TaskName "SIONYX Kiosk" -ErrorAction SilentlyContinue
           if (-not $task) { Assert-Pass "Scheduled task 'SIONYX Kiosk' removed" }
           else { Assert-Fail "Scheduled task still exists" }
+          $upTask = Get-ScheduledTask -TaskName "SIONYX Update" -ErrorAction SilentlyContinue
+          if (-not $upTask) { Assert-Pass "Scheduled task 'SIONYX Update' removed" }
+          else { Assert-Fail "Update task still exists" }
 
           Write-Host "`n=== NO LEFTOVER POLICIES ==="
           $polSys = Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" -ErrorAction SilentlyContinue
