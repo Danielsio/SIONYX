@@ -18,6 +18,14 @@ public sealed class FirebaseConfig
     /// Defaults to the original deployment; overridden from registry/env in Load().</summary>
     public string ServerUrl { get; private set; } = "https://sionyx-server.sionyx-server.workers.dev";
 
+    /// <summary>
+    /// Nedarim gateway callback URL passed to the payment iframe. Empty/"none" tells the
+    /// gateway to use its mosad-configured callback (most secure — no secret on the kiosk).
+    /// Set from registry/env in Load(); the payment dialog falls back to the legacy Cloud
+    /// Function URL only when this is unset, so the Worker cutover is a config change.
+    /// </summary>
+    public string NedarimCallbackUrl { get; private set; } = "";
+
     /// <summary>Firebase Auth REST API base URL.</summary>
     public string AuthUrl => "https://identitytoolkit.googleapis.com/v1/accounts";
 
@@ -54,6 +62,8 @@ public sealed class FirebaseConfig
         var cfg = CreateAndValidate(apiKey, authDomain, databaseUrl, projectId, orgId, "registry");
         if (config.TryGetValue("ServerUrl", out var su) && !string.IsNullOrWhiteSpace(su))
             cfg.ServerUrl = su.TrimEnd('/');
+        if (config.TryGetValue("NedarimCallbackUrl", out var nc) && !string.IsNullOrWhiteSpace(nc))
+            cfg.NedarimCallbackUrl = nc.Trim();
         return cfg;
     }
 
@@ -74,6 +84,9 @@ public sealed class FirebaseConfig
         var serverUrl = Environment.GetEnvironmentVariable("SERVER_URL");
         if (!string.IsNullOrWhiteSpace(serverUrl))
             cfg.ServerUrl = serverUrl.TrimEnd('/');
+        var nedarimCallback = Environment.GetEnvironmentVariable("NEDARIM_CALLBACK_URL");
+        if (!string.IsNullOrWhiteSpace(nedarimCallback))
+            cfg.NedarimCallbackUrl = nedarimCallback.Trim();
         return cfg;
     }
 

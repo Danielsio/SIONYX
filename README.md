@@ -22,40 +22,66 @@ Kiosk management system with web admin dashboard and WPF desktop app.
 | **Realtime Database** | Firebase | Source of data; rules deny client writes to balances | Spark (free) |
 | **Auth** | Firebase | User sign-in; admin ops via the Worker | Spark (free) |
 | **Nedarim Plus** | external | Card payments (hosted iframe + server-side saved-card charge) | gateway |
-| **GitHub Releases** | external | Installer hosting + kiosk auto-update *(planned)* | free |
-| ~~functions~~ | Firebase Cloud Functions | Being retired — all six ported to `sionyx-server` (drops Blaze) | — |
+| **GitHub Releases + Actions** | external | Installer hosting; the release workflow publishes `public/latestRelease`; kiosk auto-update verifies SHA-256 and installs via a **SYSTEM scheduled task** (no UAC) | free |
+| ~~functions~~ | Firebase Cloud Functions | All six ported to `sionyx-server`; last step is the [callback cutover](docs/CALLBACK-CUTOVER.md), then delete `functions/` (drops Blaze) | — |
 
 ### Data flow
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph clients[Clients]
-    web[Web admin · React]
-    kiosk[Kiosk · WPF .NET]
+    web["Web Admin<br/>React · Firebase Hosting"]
+    kiosk["Kiosk<br/>WPF · .NET 8 · locked-down PC"]
   end
-  worker["sionyx-server<br/>Cloudflare Worker<br/>(holds service account)"]
-  subgraph fb[Firebase · Spark free]
-    rtdb[(Realtime DB)]
-    auth[Auth]
-  end
-  nedarim[Nedarim Plus]
-  gh[GitHub Releases]
 
-  web -- reads --> rtdb
-  kiosk -- reads --> rtdb
-  web -- sign in --> auth
-  kiosk -- sign in --> auth
-  web -- "reset / delete / register / adjust-balance" --> worker
-  kiosk -- "deduct time+print / charge saved-card" --> worker
-  worker -- "admin writes: balances, purchases" --> rtdb
-  worker -- "set password / create / delete user" --> auth
-  worker -- "callback + saved-card charge" --> nedarim
-  worker -. "daily cleanup cron" .-> rtdb
-  gh -. "auto-update (planned)" .-> kiosk
+  worker["<b>sionyx-server</b> · Cloudflare Worker<br/>holds the Firebase service account<br/>— only writer of money —"]
+
+  subgraph fb[Firebase · Spark · free, no card]
+    rtdb[("Realtime Database<br/>rules deny client balance writes (C-6)")]
+    auth["Authentication"]
+  end
+
+  nedarim["Nedarim Plus<br/>payment gateway"]
+
+  subgraph ghp[GitHub · free]
+    rel["Releases · MSI installer"]
+    act["Actions · CI + Release workflow"]
+  end
+
+  %% data + auth
+  web -- "read" --> rtdb
+  kiosk -- "read · SSE live" --> rtdb
+  web -- "sign in" --> auth
+  kiosk -- "sign in" --> auth
+
+  %% privileged ops -> Worker (server-authoritative)
+  web -- "reset pw · delete user · register org · adjust balance" --> worker
+  kiosk -- "deduct time/print · charge saved-card" --> worker
+
+  %% Worker -> Firebase (admin token bypasses rules)
+  worker -- "admin writes: balances · purchases · saved-card token" --> rtdb
+  worker -- "set password · create / delete user" --> auth
+  worker -. "daily cron: cleanup inactive users" .-> rtdb
+
+  %% payments
+  kiosk -- "card entry (hosted iframe)" --> nedarim
+  worker -- "saved-card charge (ApiPassword server-side)" --> nedarim
+  nedarim -- "payment callback (secret) → credit" --> worker
+
+  %% releases + auto-update
+  act -- "build MSI · create Release" --> rel
+  act -- "publish version + sha256" --> worker
+  worker -- "public/latestRelease" --> rtdb
+  kiosk -- "poll public/latestRelease" --> rtdb
+  rel -- "download MSI" --> kiosk
+  kiosk -. "verify SHA-256 → SYSTEM task installs silently" .-> kiosk
+
+  classDef money stroke:#fbbf24,stroke-width:3px;
+  class worker money;
 ```
 
 The deployed Worker: `https://sionyx-server.sionyx-server.workers.dev`.
-Migration details + cutover/re-fork guide: [SPARK-MIGRATION.md](SPARK-MIGRATION.md).
+Migration details + re-fork guide: [SPARK-MIGRATION.md](SPARK-MIGRATION.md) · final ops step: [CALLBACK-CUTOVER.md](docs/CALLBACK-CUTOVER.md).
 
 ## Quick Start
 

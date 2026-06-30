@@ -27,6 +27,7 @@ public sealed class FirebaseClient : IFirebaseClient
     private readonly string _orgId;
     private readonly string _projectId;
     private readonly string _serverUrl;
+    private readonly string _nedarimCallbackUrl;
 
     // Auth state
     private string? _idToken;
@@ -39,6 +40,8 @@ public sealed class FirebaseClient : IFirebaseClient
     public string? RefreshToken => _refreshToken;
     public string OrgId => _orgId;
     public string ProjectId => _projectId;
+    /// <summary>Configured Nedarim callback URL (empty = use the gateway's mosad default).</summary>
+    public string NedarimCallbackUrl => _nedarimCallbackUrl;
     public bool IsAuthenticated => _idToken != null && _userId != null;
 
     public FirebaseClient(FirebaseConfig config, HttpClient? httpClient = null)
@@ -49,6 +52,7 @@ public sealed class FirebaseClient : IFirebaseClient
         _orgId = config.OrgId;
         _projectId = config.ProjectId;
         _serverUrl = config.ServerUrl;
+        _nedarimCallbackUrl = config.NedarimCallbackUrl;
         _http = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
 
         Logger.Information("Firebase client initialized (org: {OrgId})", _orgId);
