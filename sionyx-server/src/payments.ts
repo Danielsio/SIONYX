@@ -123,6 +123,21 @@ export async function nedarimCallback(req: Request, env: Env): Promise<Response>
     fanout[`${userPath}/timeExpiresAt`] = exp.toISOString();
   }
 
+  // Saved card: a tokenizing transaction (kiosk PaymentType=CreateToken) makes the
+  // gateway return a reusable token. Persist it server-side so the user can later pay
+  // one-click via /payments/charge-saved-card. The token alone cannot charge — that
+  // needs the org's ApiPassword, which never leaves the Worker. (Field name per
+  // Nedarim Plus; validate against the live gateway if a token isn't captured.)
+  const savedToken = body.KevaId || body.Tokef || body.Token || body.TransactionToken || '';
+  if (savedToken) {
+    fanout[`${userPath}/savedCard`] = {
+      kevaId: savedToken,
+      last4: (body.CreditCardNumber || '').replace(/\D/g, '').slice(-4) || null,
+      savedAt: nowIso,
+    };
+    console.log('[nedarim] saved card token stored', { orgId, userId: purchase.userId });
+  }
+
   await dbUpdate(env, '', fanout); // PATCH at root = multi-path fan-out update
 
   console.log('[nedarim] credited', { orgId, userId: purchase.userId, addMinutes: purchase.minutes, newTime });
