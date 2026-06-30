@@ -43,7 +43,7 @@ public static class AutoUpdateService
             Logger.Information("[Update] new version available: {Latest} (current {Current})", latest.Version, current);
             var msi = await DownloadAndVerifyAsync(latest);
             if (msi is null) return;
-            Install(msi);
+            StageUpdate(msi, latest.Sha256);
         }
         catch (Exception ex)
         {
@@ -131,13 +131,46 @@ public static class AutoUpdateService
         return dest;
     }
 
-    private static void Install(string msiPath)
+    private static void StageUpdate(string msiPath, string? sha256)
     {
+        // Preferred path: hand the verified MSI to the SYSTEM "SIONYX Update" scheduled
+        // task (registered by the installer), which installs it silently with NO UAC
+        // prompt — the kiosk runs as a non-admin user and cannot elevate interactively.
+        // Falls back to a direct (elevating) msiexec if staging isn't possible.
         try
         {
-            Logger.Information("[Update] launching installer {Path}", msiPath);
-            // Silent install. NOTE: on a locked-down kiosk this should run via a SYSTEM
-            // scheduled task so it elevates without a UAC prompt (production follow-up).
+            var updateDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "SIONYX", "update");
+            Directory.CreateDirectory(updateDir);
+            var pending = Path.Combine(updateDir, "pending.json");
+            File.WriteAllText(pending, JsonSerializer.Serialize(new { MsiPath = msiPath, Sha256 = sha256 ?? "" }));
+            Logger.Information("[Update] staged update request at {Path}", pending);
+
+            // Best-effort immediate kick; otherwise the task's own schedule (boot +
+            // every 15 min) applies it. A non-admin user may not be able to /run it —
+            // that's fine, the scheduled trigger is the guarantee.
+            try
+            {
+                Process.Start(new ProcessStartInfo("schtasks.exe", "/run /tn \"SIONYX Update\"")
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Warning(ex, "[Update] could not trigger update task now; it will run on schedule");
+            }
+            return;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "[Update] staging failed; falling back to direct install");
+        }
+
+        try
+        {
+            Logger.Information("[Update] launching installer directly {Path}", msiPath);
             Process.Start(new ProcessStartInfo("msiexec.exe", $"/i \"{msiPath}\" /qn /norestart")
             {
                 UseShellExecute = true,
@@ -145,7 +178,7 @@ public static class AutoUpdateService
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "[Update] install launch failed");
+            Logger.Error(ex, "[Update] direct install launch failed");
         }
     }
 }

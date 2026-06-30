@@ -59,6 +59,12 @@
               Source="$(var.SourceDir)\app-logo.ico"
               KeyPath="yes" />
       </Component>
+
+      <Component Id="UpdateScript" Guid="*">
+        <File Id="ApplyUpdatePs1"
+              Source="$(var.SourceDir)\scripts\update\apply-update.ps1"
+              KeyPath="yes" />
+      </Component>
     </ComponentGroup>
 
     <ComponentGroup Id="Shortcuts" Directory="INSTALLFOLDER">
@@ -205,18 +211,21 @@
 
     <!-- INSTALL: data-setters (immediate) + actions (deferred) -->
     <SetProperty Id="CA_SetupAutoStart"     Before="CA_SetupAutoStart"     Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER]" />
+    <SetProperty Id="CA_SetupUpdateTask"    Before="CA_SetupUpdateTask"    Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER]" />
     <SetProperty Id="CA_InitializeProfile"  Before="CA_InitializeProfile"  Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER]" />
     <SetProperty Id="CA_VerifyInstallation" Before="CA_VerifyInstallation" Sequence="execute" Value="INSTALLDIR=[INSTALLFOLDER];UILEVEL=[UILevel]" />
 
     <CustomAction Id="CA_CreateKioskUser"          BinaryRef="CustomActionsDll" DllEntry="CreateKioskUser"          Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="CA_ApplySecurityRestrictions" BinaryRef="CustomActionsDll" DllEntry="ApplySecurityRestrictions" Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="CA_SetupAutoStart"           BinaryRef="CustomActionsDll" DllEntry="SetupAutoStart"           Execute="deferred" Impersonate="no" Return="check" />
+    <CustomAction Id="CA_SetupUpdateTask"          BinaryRef="CustomActionsDll" DllEntry="SetupUpdateTask"          Execute="deferred" Impersonate="no" Return="ignore" />
     <CustomAction Id="CA_InitializeProfile"        BinaryRef="CustomActionsDll" DllEntry="InitializeProfile"        Execute="deferred" Impersonate="no" Return="check" />
     <CustomAction Id="CA_VerifyInstallation"       BinaryRef="CustomActionsDll" DllEntry="VerifyInstallation"       Execute="deferred" Impersonate="no" Return="ignore" />
 
     <!-- UNINSTALL -->
     <CustomAction Id="CA_StopProcesses"       BinaryRef="CustomActionsDll" DllEntry="StopProcesses"       Execute="deferred" Impersonate="no" Return="ignore" />
     <CustomAction Id="CA_RemoveScheduledTask" BinaryRef="CustomActionsDll" DllEntry="RemoveScheduledTask" Execute="deferred" Impersonate="no" Return="ignore" />
+    <CustomAction Id="CA_RemoveUpdateTask"    BinaryRef="CustomActionsDll" DllEntry="RemoveUpdateTask"    Execute="deferred" Impersonate="no" Return="ignore" />
     <CustomAction Id="CA_RevertSecurity"      BinaryRef="CustomActionsDll" DllEntry="RevertSecurity"      Execute="deferred" Impersonate="no" Return="ignore" />
     <CustomAction Id="CA_RemoveKioskUser"     BinaryRef="CustomActionsDll" DllEntry="RemoveKioskUser"     Execute="deferred" Impersonate="no" Return="ignore" />
 
@@ -225,13 +234,15 @@
       <Custom Action="CA_CreateKioskUser"          After="InstallFiles"                 Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="CA_ApplySecurityRestrictions" After="CA_CreateKioskUser"           Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="CA_SetupAutoStart"           After="CA_ApplySecurityRestrictions"  Condition="NOT Installed AND NOT REMOVE" />
-      <Custom Action="CA_InitializeProfile"        After="CA_SetupAutoStart"            Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="CA_SetupUpdateTask"          After="CA_SetupAutoStart"            Condition="NOT Installed AND NOT REMOVE" />
+      <Custom Action="CA_InitializeProfile"        After="CA_SetupUpdateTask"           Condition="NOT Installed AND NOT REMOVE" />
       <Custom Action="CA_VerifyInstallation"       After="WriteRegistryValues"          Condition="NOT Installed AND NOT REMOVE" />
 
       <!-- UNINSTALL -->
       <Custom Action="CA_StopProcesses"       Before="RemoveFiles"         Condition="REMOVE = &quot;ALL&quot;" />
       <Custom Action="CA_RemoveScheduledTask" After="CA_StopProcesses"     Condition="REMOVE = &quot;ALL&quot;" />
-      <Custom Action="CA_RevertSecurity"      After="CA_RemoveScheduledTask" Condition="REMOVE = &quot;ALL&quot;" />
+      <Custom Action="CA_RemoveUpdateTask"    After="CA_RemoveScheduledTask" Condition="REMOVE = &quot;ALL&quot;" />
+      <Custom Action="CA_RevertSecurity"      After="CA_RemoveUpdateTask"  Condition="REMOVE = &quot;ALL&quot;" />
       <Custom Action="CA_RemoveKioskUser"     After="CA_RevertSecurity"    Condition="REMOVE = &quot;ALL&quot;" />
     </InstallExecuteSequence>
 

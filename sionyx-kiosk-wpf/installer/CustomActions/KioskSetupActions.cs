@@ -25,6 +25,7 @@ namespace SionyxInstaller
         private const string KioskUsername = "SionyxUser";
         private const string AppName = "SIONYX";
         private const string TaskName = "SIONYX Kiosk";
+        private const string UpdateTaskName = "SIONYX Update";
 
         [DllImport("userenv.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern int CreateProfile(
@@ -198,6 +199,85 @@ namespace SionyxInstaller
                 session.Log($"[ERROR] SetupAutoStart failed ({sw.ElapsedMilliseconds}ms): {ex}");
                 return ActionResult.Failure;
             }
+        }
+
+        /// <summary>
+        /// Registers the "SIONYX Update" scheduled task that runs apply-update.ps1 as
+        /// LocalSystem (boot + 15-min repetition + on-demand). This lets the non-admin
+        /// kiosk user trigger a silent, elevated MSI install without a UAC prompt: the
+        /// app stages a request and SYSTEM applies it. Also grants the kiosk user write
+        /// access to the ProgramData staging folder.
+        /// </summary>
+        [CustomAction]
+        public static ActionResult SetupUpdateTask(Session session)
+        {
+            var sw = Stopwatch.StartNew();
+            session.Log("=== SetupUpdateTask: START ===");
+
+            try
+            {
+                string installDir = session.CustomActionData["INSTALLDIR"];
+                string script = Path.Combine(installDir, "apply-update.ps1");
+
+                // Staging folder the (non-admin) kiosk user can drop pending.json into.
+                string updateDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "SIONYX", "update");
+                Directory.CreateDirectory(updateDir);
+                // Grant the Users group (SID S-1-5-32-545; locale-independent) modify rights.
+                RunCommand("icacls", $"\"{updateDir}\" /grant \"*S-1-5-32-545:(OI)(CI)M\"", session);
+
+                RunCommand("schtasks", $"/delete /tn \"{UpdateTaskName}\" /f", session);
+
+                // Register from XML — avoids nested-quoting pitfalls and cleanly expresses
+                // a SYSTEM principal (S-1-5-18) with boot + repetition triggers.
+                string args = $"-ExecutionPolicy Bypass -NoProfile -WindowStyle Hidden -File \"{script}\"";
+                string xml = BuildUpdateTaskXml(args);
+                string xmlPath = Path.Combine(Path.GetTempPath(), "sionyx_update_task.xml");
+                File.WriteAllText(xmlPath, xml, Encoding.Unicode); // UTF-16 + BOM for schtasks
+
+                int rc = RunCommand("schtasks", $"/create /tn \"{UpdateTaskName}\" /xml \"{xmlPath}\" /f", session);
+                try { File.Delete(xmlPath); } catch { /* best effort */ }
+
+                if (rc != 0)
+                    session.Log($"[WARN] Update task creation returned exit code {rc}");
+
+                session.Log($"[OK] Update task ready ({sw.ElapsedMilliseconds}ms)");
+                return ActionResult.Success;
+            }
+            catch (Exception ex)
+            {
+                session.Log($"[ERROR] SetupUpdateTask failed ({sw.ElapsedMilliseconds}ms): {ex}");
+                return ActionResult.Failure;
+            }
+        }
+
+        private static string BuildUpdateTaskXml(string arguments)
+        {
+            string escapedArgs = System.Security.SecurityElement.Escape(arguments);
+            return
+                "<?xml version=\"1.0\" encoding=\"UTF-16\"?>\r\n" +
+                "<Task version=\"1.2\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\">\r\n" +
+                "  <RegistrationInfo><Description>SIONYX auto-update applier (runs as SYSTEM).</Description></RegistrationInfo>\r\n" +
+                "  <Triggers>\r\n" +
+                "    <BootTrigger><Enabled>true</Enabled></BootTrigger>\r\n" +
+                "    <TimeTrigger>\r\n" +
+                "      <StartBoundary>2020-01-01T00:00:00</StartBoundary>\r\n" +
+                "      <Enabled>true</Enabled>\r\n" +
+                "      <Repetition><Interval>PT15M</Interval><StopAtDurationEnd>false</StopAtDurationEnd></Repetition>\r\n" +
+                "    </TimeTrigger>\r\n" +
+                "  </Triggers>\r\n" +
+                "  <Principals><Principal id=\"Author\"><UserId>S-1-5-18</UserId><RunLevel>HighestAvailable</RunLevel></Principal></Principals>\r\n" +
+                "  <Settings>\r\n" +
+                "    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>\r\n" +
+                "    <StartWhenAvailable>true</StartWhenAvailable>\r\n" +
+                "    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>\r\n" +
+                "    <AllowStartOnDemand>true</AllowStartOnDemand>\r\n" +
+                "    <Enabled>true</Enabled>\r\n" +
+                "  </Settings>\r\n" +
+                "  <Actions Context=\"Author\">\r\n" +
+                $"    <Exec><Command>powershell.exe</Command><Arguments>{escapedArgs}</Arguments></Exec>\r\n" +
+                "  </Actions>\r\n" +
+                "</Task>\r\n";
         }
 
         /// <summary>
@@ -481,6 +561,23 @@ namespace SionyxInstaller
             catch (Exception ex)
             {
                 session.Log($"[WARN] RemoveScheduledTask: {ex.Message}");
+                return ActionResult.Success;
+            }
+        }
+
+        [CustomAction]
+        public static ActionResult RemoveUpdateTask(Session session)
+        {
+            session.Log("=== RemoveUpdateTask: START ===");
+            try
+            {
+                int rc = RunCommand("schtasks", $"/delete /tn \"{UpdateTaskName}\" /f", session);
+                session.Log(rc == 0 ? "[OK] Update task removed" : "[INFO] Update task not found");
+                return ActionResult.Success;
+            }
+            catch (Exception ex)
+            {
+                session.Log($"[WARN] RemoveUpdateTask: {ex.Message}");
                 return ActionResult.Success;
             }
         }
