@@ -1,6 +1,8 @@
 name = "sionyx-server"
 main = "src/index.ts"
 compatibility_date = "2026-06-01"
+# Cloudflare account id (not a secret) — lets CI deploy without a CLOUDFLARE_ACCOUNT_ID secret.
+account_id = "7e1d31c0047f99736fb25a8649cc273e"
 
 # Non-secret config (safe to commit). Override per-deployment / per-fork.
 # The fork re-using this just changes these + the secrets below.
