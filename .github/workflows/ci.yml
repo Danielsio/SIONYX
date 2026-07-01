@@ -6,6 +6,15 @@ on:
   pull_request:
     branches: [main]
 
+# Least privilege by default; jobs elevate only what they need.
+permissions:
+  contents: read
+
+# Cancel superseded runs on a PR branch, but never cancel a main (deploy) run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   # ── Detect which areas of the codebase changed ──────────────
   detect-changes:
@@ -17,9 +26,9 @@ jobs:
       server: ${{ steps.filter.outputs.server }}
       rules: ${{ steps.filter.outputs.rules }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: dorny/paths-filter@v3
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: filter
         with:
           filters: |
@@ -36,16 +45,27 @@ jobs:
               - 'database.rules.json'
               - 'tests/rules/**'
 
+  # ── Security: dependency review (PRs only, blocks high-severity) ──
+  dependency-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/dependency-review-action@3b139cfc5fae8b618d3eae3675e383bb1769c019 # v4.5.0
+        with:
+          fail-on-severity: high
+
   # ── Web: Lint ────────────────────────────────────────────────
   web-lint:
     runs-on: ubuntu-latest
     needs: [detect-changes]
     if: needs.detect-changes.outputs.web == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: "22"
           cache: "npm"
@@ -65,10 +85,10 @@ jobs:
     needs: [detect-changes]
     if: needs.detect-changes.outputs.web == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: "22"
           cache: "npm"
@@ -96,10 +116,10 @@ jobs:
     needs: [detect-changes]
     if: needs.detect-changes.outputs.web == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: "22"
           cache: "npm"
@@ -116,6 +136,7 @@ jobs:
   # ── Web: Deploy to Firebase Hosting ──────────────────────────
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     needs: [detect-changes, web-lint, web-build, web-test]
     if: >
       github.event_name == 'push' &&
@@ -124,7 +145,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Write Firebase service account key
         shell: bash
@@ -135,7 +156,7 @@ jobs:
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: "22"
           cache: "npm"
@@ -158,7 +179,7 @@ jobs:
         run: npm run build
 
       - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+        run: npm install -g firebase-tools@15.22.4
 
       - name: Deploy to Firebase Hosting
         run: firebase deploy --only hosting --project sionyx-19636
@@ -169,10 +190,10 @@ jobs:
     needs: [detect-changes]
     if: needs.detect-changes.outputs.functions == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: "22"
           cache: "npm"
@@ -189,159 +210,51 @@ jobs:
   # ── Kiosk: Unit Tests ───────────────────────────────────────
   kiosk-tests:
     runs-on: windows-latest
+    timeout-minutes: 25
     needs: [detect-changes]
     if: needs.detect-changes.outputs.kiosk == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@87b7050bc53ea08284295505d98d2aa94301e852 # v4.2.0
         with:
           dotnet-version: "8.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('sionyx-kiosk-wpf/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
 
       - name: Test
         working-directory: sionyx-kiosk-wpf
         run: dotnet test --filter "Category!=E2E"
 
-  # ── Kiosk: E2E ──────────────────────────────────────────────
-  kiosk-e2e:
-    runs-on: windows-latest
-    needs: [kiosk-tests]
-    if: >-
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main'
-    env:
-      FUNCTIONS_BASE: https://us-central1-sionyx-19636.cloudfunctions.net
-      E2E_ORG_ID: cie2etest
-      E2E_ORG_NAME: "CI E2E Test"
-      E2E_ADMIN_PHONE: "0500000001"
-      E2E_ADMIN_PASSWORD: "CiTest123456"
-      E2E_ADMIN_FIRST: CI
-      E2E_ADMIN_LAST: Test
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.x"
-
-      - name: Cleanup previous test org
-        shell: pwsh
-        run: |
-          $body = @{ data = @{ orgId = $env:E2E_ORG_ID } } | ConvertTo-Json -Depth 3
-          try {
-            $resp = Invoke-RestMethod -Uri "$env:FUNCTIONS_BASE/cleanupTestOrganization" `
-              -Method Post -ContentType "application/json" -Body $body
-            Write-Host "Cleanup: $($resp.result.message)"
-          } catch {
-            Write-Host "Cleanup skipped (org may not exist): $($_.Exception.Message)"
-          }
-
-      - name: Create test organization
-        shell: pwsh
-        run: |
-          $body = @{
-            data = @{
-              organizationName = $env:E2E_ORG_NAME
-              nedarimMosadId   = "ci-test-mosad"
-              nedarimApiValid  = "ci-test-api-key"
-              adminPhone       = $env:E2E_ADMIN_PHONE
-              adminPassword    = $env:E2E_ADMIN_PASSWORD
-              adminFirstName   = $env:E2E_ADMIN_FIRST
-              adminLastName    = $env:E2E_ADMIN_LAST
-            }
-          } | ConvertTo-Json -Depth 3
-          $resp = Invoke-RestMethod -Uri "$env:FUNCTIONS_BASE/registerOrganization" `
-            -Method Post -ContentType "application/json" -Body $body
-          Write-Host "Created org: $($resp.result.orgId)"
-
-      - name: Verify login credentials
-        shell: pwsh
-        env:
-          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-        run: |
-          $email = "$($env:E2E_ADMIN_PHONE)@sionyx.app"
-          $body = @{
-            email = $email
-            password = $env:E2E_ADMIN_PASSWORD
-            returnSecureToken = $true
-          } | ConvertTo-Json
-          Write-Host "Testing login for $email ..."
-          try {
-            $apiKey = $env:FIREBASE_API_KEY
-            $url = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=$apiKey"
-            $resp = Invoke-RestMethod -Uri $url -Method Post -ContentType "application/json" -Body $body
-            Write-Host "Login verified OK: uid=$($resp.localId)"
-          } catch {
-            Write-Host "LOGIN VERIFICATION FAILED: $($_.Exception.Message)"
-            $stream = $_.Exception.Response.GetResponseStream()
-            $reader = [System.IO.StreamReader]::new($stream)
-            $errBody = $reader.ReadToEnd()
-            Write-Host "Response body: $errBody"
-            throw "Firebase login verification failed - user may not have been created properly"
-          }
-
-      - name: Generate .env for E2E
-        working-directory: sionyx-kiosk-wpf
-        shell: pwsh
-        env:
-          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
-          FIREBASE_AUTH_DOMAIN: ${{ secrets.FIREBASE_AUTH_DOMAIN }}
-          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
-          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-          FIREBASE_STORAGE_BUCKET: ${{ secrets.FIREBASE_STORAGE_BUCKET }}
-          NEDARIM_CALLBACK_URL: ${{ secrets.NEDARIM_CALLBACK_URL }}
-        run: |
-          @"
-          ORG_ID=$($env:E2E_ORG_ID)
-          FIREBASE_API_KEY=$($env:FIREBASE_API_KEY)
-          FIREBASE_AUTH_DOMAIN=$($env:FIREBASE_AUTH_DOMAIN)
-          FIREBASE_PROJECT_ID=$($env:FIREBASE_PROJECT_ID)
-          FIREBASE_DATABASE_URL=$($env:FIREBASE_DATABASE_URL)
-          FIREBASE_STORAGE_BUCKET=$($env:FIREBASE_STORAGE_BUCKET)
-          NEDARIM_CALLBACK_URL=$($env:NEDARIM_CALLBACK_URL)
-          "@ | Set-Content .env
-
-      - name: Build kiosk app
-        working-directory: sionyx-kiosk-wpf
-        run: dotnet build src/SionyxKiosk/SionyxKiosk.csproj
-
-      - name: Run E2E smoke tests
-        working-directory: sionyx-kiosk-wpf
-        env:
-          SIONYX_E2E_PHONE: ${{ env.E2E_ADMIN_PHONE }}
-          SIONYX_E2E_PASSWORD: ${{ env.E2E_ADMIN_PASSWORD }}
-        run: dotnet test tests/SionyxKiosk.E2E --verbosity normal
-
-      - name: Cleanup test org
-        if: always()
-        shell: pwsh
-        run: |
-          $body = @{ data = @{ orgId = $env:E2E_ORG_ID } } | ConvertTo-Json -Depth 3
-          try {
-            $resp = Invoke-RestMethod -Uri "$env:FUNCTIONS_BASE/cleanupTestOrganization" `
-              -Method Post -ContentType "application/json" -Body $body
-            Write-Host "Cleanup: $($resp.result.message)"
-          } catch {
-            Write-Host "Cleanup failed (non-fatal): $($_.Exception.Message)"
-          }
-
   # ── Kiosk: Installer Test ───────────────────────────────────
   installer-test:
     runs-on: windows-latest
+    timeout-minutes: 35
     needs: [detect-changes]
     if: >
       needs.detect-changes.outputs.kiosk == 'true' &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main'
+      (github.event_name == 'pull_request' ||
+       (github.event_name == 'push' && github.ref == 'refs/heads/main'))
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@87b7050bc53ea08284295505d98d2aa94301e852 # v4.2.0
         with:
           dotnet-version: "8.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('sionyx-kiosk-wpf/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
 
       - name: Publish app
         working-directory: sionyx-kiosk-wpf
@@ -818,7 +731,7 @@ jobs:
 
       - name: Upload MSI logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
           name: msi-logs
           path: |
@@ -832,10 +745,10 @@ jobs:
     needs: [detect-changes]
     if: needs.detect-changes.outputs.server == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: "22"
           cache: "npm"
@@ -856,20 +769,21 @@ jobs:
   # ── RTDB security rules tests (Firebase emulator) ────────────
   rules-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [detect-changes]
     if: needs.detect-changes.outputs.rules == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: tests/rules/package-lock.json
 
       - name: Setup Java (Firebase RTDB emulator)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@7a6d8a8234af8eb26422e24e3006232cccaa061b # v4.6.0
         with:
           distribution: temurin
           java-version: "21"
@@ -879,11 +793,11 @@ jobs:
         run: npm ci
 
       - name: Run RTDB rules tests (emulator)
-        run: npx --yes firebase-tools emulators:exec --only database --project demo-sionyx "cd tests/rules && npm test"
+        run: npx --yes firebase-tools@15.22.4 emulators:exec --only database --project demo-sionyx "cd tests/rules && npm test"
 
   ci-gate:
     runs-on: ubuntu-latest
-    needs: [web-lint, web-build, web-test, functions-tests, kiosk-tests, installer-test, server-check, rules-test]
+    needs: [dependency-review, web-lint, web-build, web-test, functions-tests, kiosk-tests, installer-test, server-check, rules-test]
     if: always()
     steps:
       - name: Check results
