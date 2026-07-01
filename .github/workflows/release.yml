@@ -70,7 +70,10 @@ jobs:
           ADMIN_EXIT_PASSWORD: ${{ secrets.ADMIN_EXIT_PASSWORD }}
         run: |
           $ver = "${{ steps.version.outputs.version }}"
-          powershell -ExecutionPolicy Bypass -File build.ps1 -Version $ver -NoUpload
+          # -SkipTests: this code already passed `kiosk-tests` in CI (on the PR and again
+          # post-merge) before this release runs. Re-running the full suite here is
+          # redundant and was the sole cause of every failed Release (flaky test host).
+          powershell -ExecutionPolicy Bypass -File build.ps1 -Version $ver -NoUpload -SkipTests
 
       - name: Generate changelog
         shell: pwsh
