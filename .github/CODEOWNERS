@@ -1,0 +1,17 @@
+# Code owners — auto-requested as reviewers on matching PRs.
+# (Informational unless branch protection also requires code-owner review.)
+
+# Default owner for everything
+*                           @Danielsio
+
+# Backend / money-path — the Worker is the only writer of balances & payments
+/sionyx-server/             @Danielsio
+/database.rules.json        @Danielsio
+/tests/rules/               @Danielsio
+
+# CI/CD + release automation
+/.github/                   @Danielsio
+/scripts/release/           @Danielsio
+
+# Kiosk (payments, lockdown, installer)
+/sionyx-kiosk-wpf/          @Danielsio

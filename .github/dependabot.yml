@@ -1,0 +1,49 @@
+version: 2
+updates:
+  # GitHub Actions (keeps the SHA-pinned actions current + patches supply-chain CVEs)
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # npm — one entry per lockfile
+  - package-ecosystem: npm
+    directory: /sionyx-web
+    schedule:
+      interval: weekly
+    groups:
+      web:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /sionyx-server
+    schedule:
+      interval: weekly
+    groups:
+      server:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /functions
+    schedule:
+      interval: weekly
+    groups:
+      functions:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /tests/rules
+    schedule:
+      interval: weekly
+    groups:
+      rules-tests:
+        patterns: ["*"]
+
+  # NuGet — the WPF kiosk
+  - package-ecosystem: nuget
+    directory: /sionyx-kiosk-wpf
+    schedule:
+      interval: weekly
+    groups:
+      kiosk:
+        patterns: ["*"]
