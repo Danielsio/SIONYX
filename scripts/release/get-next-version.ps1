@@ -31,11 +31,15 @@ $versionFile = Join-Path $repoRoot "sionyx-kiosk-wpf\version.json"
 if (-not (Test-Path $versionFile)) { throw "version.json not found at $versionFile" }
 
 $versionData = Get-Content $versionFile -Raw | ConvertFrom-Json
-$currentVersion = $versionData.version
 
 # Find the last version tag
 $lastTag = git describe --tags --abbrev=0 --match "v*" 2>$null
 $range = if ($lastTag) { "$lastTag..HEAD" } else { "HEAD" }
+
+# Current version = the last tag (source of truth). Fall back to version.json only
+# for the very first release (no tags yet). Using tags means the release workflow
+# never has to push a version-bump commit to the protected main branch.
+$currentVersion = if ($lastTag) { $lastTag.TrimStart('v') } else { $versionData.version }
 
 # Get commits since last tag (one-line format: <hash> <message>)
 $rawCommits = git log $range --pretty=format:"%H %s" 2>$null

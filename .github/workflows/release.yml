@@ -96,14 +96,15 @@ jobs:
           $data.lastBuildDate = (Get-Date).ToString("o")
           $data | ConvertTo-Json -Depth 10 | Set-Content $vf
 
-      - name: Commit, tag, and push
+      - name: Tag the release
         shell: pwsh
         run: |
           $ver = "${{ steps.version.outputs.version }}"
-          git add -A
-          git commit -m "release: v$ver"
-          git tag "v$ver"
-          git push origin main --tags
+          # main is a protected branch, so we do NOT push a version-bump commit to it.
+          # The annotated tag points at the released commit and is the source of truth
+          # for the next version (get-next-version.ps1 reads the last tag).
+          git tag -a "v$ver" -m "Release v$ver"
+          git push origin "v$ver"
 
       - name: Create GitHub Release
         shell: pwsh
