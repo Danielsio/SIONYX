@@ -9,35 +9,34 @@ updates:
       actions:
         patterns: ["*"]
 
-  # npm — one entry per lockfile
+  # npm — one entry per lockfile. Majors are EXCLUDED from the groups so they
+  # arrive as individual PRs that can be judged (or migrated) one by one —
+  # a grouped "everything" bump smuggled antd 5→6 + eslint 10 into one
+  # unmergeable PR (#41). Minor/patch groups stay auto-merge-friendly.
   - package-ecosystem: npm
     directory: /sionyx-web
     schedule:
       interval: weekly
     groups:
-      web:
+      web-minor-patch:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: npm
     directory: /sionyx-server
     schedule:
       interval: weekly
     groups:
-      server:
+      server-minor-patch:
         patterns: ["*"]
-  - package-ecosystem: npm
-    directory: /functions
-    schedule:
-      interval: weekly
-    groups:
-      functions:
-        patterns: ["*"]
+        update-types: ["minor", "patch"]
   - package-ecosystem: npm
     directory: /tests/rules
     schedule:
       interval: weekly
     groups:
-      rules-tests:
+      rules-tests-minor-patch:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   # NuGet — the WPF kiosk
   - package-ecosystem: nuget
@@ -45,5 +44,6 @@ updates:
     schedule:
       interval: weekly
     groups:
-      kiosk:
+      kiosk-minor-patch:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
