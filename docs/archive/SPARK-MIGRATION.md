@@ -40,7 +40,7 @@ Replaces all six Cloud Functions. See `sionyx-server/README.md` for full details
 | `POST /org/register` | `registerOrganization` | none (public) |
 | `POST /admin/cleanup-test-org` | `cleanupTestOrganization` | `x-sionyx-secret` (ADMIN_SECRET) |
 | cron (daily) | `cleanupInactiveUsers` | — |
-| `POST /admin/credit` | (new) server-authoritative credit | `x-sionyx-secret` |
+| `POST /admin/credit` | REMOVED 2026-07-02 — raw balance-minting endpoint; admins use `/admin/adjust-balance` (ID token + role) | — |
 | `POST /payments/charge-saved-card` | (planned) saved-card charge | Firebase ID token |
 
 **Deploy:** `wrangler login` → set `[vars]` in `wrangler.toml` → `wrangler secret put`

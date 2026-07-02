@@ -17,7 +17,6 @@ for reads and non-privileged writes (Security Rules deny self-crediting).
 |---|---|---|---|
 | GET | `/health` | — | none |
 | GET | `/version/latest` | — | none |
-| POST | `/admin/credit` | (new) server-authoritative credit | `x-sionyx-secret` |
 | POST | `/payments/nedarim-callback` | `nedarimCallback` | gateway signature |
 | POST | `/payments/charge-saved-card` | (kiosk-side charge, moved server-side) | user ID token |
 | POST | `/auth/reset-request` | `resetUserPassword` (email) | user/none |

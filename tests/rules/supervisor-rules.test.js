@@ -409,6 +409,28 @@ describe("Admin access still works", () => {
     );
   });
 
+  test("new user cannot be created with a negative printBalance", async () => {
+    const db = testEnv.authenticatedContext(ADMIN_UID).database();
+    await assertFails(
+      db.ref(`organizations/${ORG_ID}/users/fresh-user-neg`).set({
+        firstName: "Fresh",
+        lastName: "User",
+        printBalance: -5,
+      })
+    );
+  });
+
+  test("new user can be created with a zero printBalance", async () => {
+    const db = testEnv.authenticatedContext(ADMIN_UID).database();
+    await assertSucceeds(
+      db.ref(`organizations/${ORG_ID}/users/fresh-user-zero`).set({
+        firstName: "Fresh",
+        lastName: "User",
+        printBalance: 0,
+      })
+    );
+  });
+
   test("admin can write packages in their org", async () => {
     const db = testEnv.authenticatedContext(ADMIN_UID).database();
     await assertSucceeds(

@@ -18,20 +18,25 @@ on:
           - minor
           - major
 
+permissions:
+  contents: read
+
 jobs:
   release:
     runs-on: windows-latest
+    timeout-minutes: 30
     permissions:
-      contents: write
-      id-token: write
+      contents: write # create the release + tag
+      id-token: write # provenance attestation
+      attestations: write # provenance attestation
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@87b7050bc53ea08284295505d98d2aa94301e852 # v4.2.0
         with:
           dotnet-version: "8.x"
 
@@ -75,6 +80,11 @@ jobs:
           # redundant and was the sole cause of every failed Release (flaky test host).
           powershell -ExecutionPolicy Bypass -File build.ps1 -Version $ver -NoUpload -SkipTests
 
+      - name: Attest build provenance (MSI)
+        uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1.4.4
+        with:
+          subject-path: sionyx-kiosk-wpf/installer/bin/x64/Release/*.msi
+
       - name: Generate changelog
         shell: pwsh
         run: |
@@ -96,28 +106,21 @@ jobs:
           $data.lastBuildDate = (Get-Date).ToString("o")
           $data | ConvertTo-Json -Depth 10 | Set-Content $vf
 
-      - name: Tag the release
-        shell: pwsh
-        run: |
-          $ver = "${{ steps.version.outputs.version }}"
-          # main is a protected branch, so we do NOT push a version-bump commit to it.
-          # The annotated tag points at the released commit and is the source of truth
-          # for the next version (get-next-version.ps1 reads the last tag).
-          git tag -a "v$ver" -m "Release v$ver"
-          git push origin "v$ver"
-
-      - name: Create GitHub Release
+      - name: Create GitHub Release (creates the tag atomically)
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ver = "${{ steps.version.outputs.version }}"
+          # main is protected, so we never push a version-bump commit to it. `gh release
+          # create --target <sha>` creates the tag + release + uploads the MSI in one step
+          # (no orphan-tag partial state), and the tag is the version source of truth.
           $msi = Get-ChildItem "sionyx-kiosk-wpf/installer/bin/x64/Release/*.msi" | Select-Object -First 1
-          $notes = "## Release v$ver`n`nBump type: **${{ steps.version.outputs.bump }}** (from ${{ steps.version.outputs.commits }} commits)`n`nSee [CHANGELOG.md](CHANGELOG.md) for details."
+          $notes = "## Release v$ver`n`nBump type: **${{ steps.version.outputs.bump }}** (from ${{ steps.version.outputs.commits }} commits)."
           if ($msi) {
-            gh release create "v$ver" $msi.FullName --title "v$ver" --notes $notes
+            gh release create "v$ver" $msi.FullName --target $env:GITHUB_SHA --title "v$ver" --notes $notes
           } else {
-            gh release create "v$ver" --title "v$ver" --notes $notes
+            gh release create "v$ver" --target $env:GITHUB_SHA --title "v$ver" --notes $notes
           }
 
       - name: Publish latest release to RTDB (installer hosted on GitHub Releases, off Storage)
@@ -135,3 +138,15 @@ jobs:
           Invoke-RestMethod -Uri "https://sionyx-server.sionyx-server.workers.dev/admin/set-latest-release" `
             -Method Post -Headers @{ 'x-sionyx-secret' = $env:ADMIN_SECRET; 'Content-Type' = 'application/json' } -Body $body
           Write-Host "Published public/latestRelease v$ver -> $asset (sha256 $sha)"
+
+      - name: Roll back on failure (no partial release)
+        if: failure()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $ver = "${{ steps.version.outputs.version }}"
+          Write-Host "Release failed — removing any partial v$ver release + tag for a clean re-run."
+          gh release delete "v$ver" --cleanup-tag --yes 2>$null
+          git push origin --delete "v$ver" 2>$null
+          exit 0

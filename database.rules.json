@@ -52,7 +52,7 @@
               ".validate": "newData.isNumber() && newData.val() >= 0 && (!data.exists() || newData.val() == data.val())"
             },
             "printBalance": {
-              ".validate": "newData.isNumber() && (!data.exists() || newData.val() == data.val())"
+              ".validate": "newData.isNumber() && (!data.exists() ? newData.val() >= 0 : newData.val() == data.val())"
             },
             "forceLogout": {
               ".validate": "newData.isBoolean()"

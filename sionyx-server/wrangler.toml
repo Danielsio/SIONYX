@@ -1,19 +1,40 @@
 name = "sionyx-server"
 main = "src/index.ts"
 compatibility_date = "2026-06-01"
+# Cloudflare account id (not a secret) — lets CI deploy without a CLOUDFLARE_ACCOUNT_ID secret.
+account_id = "7e1d31c0047f99736fb25a8649cc273e"
 
 # Non-secret config (safe to commit). Override per-deployment / per-fork.
 # The fork re-using this just changes these + the secrets below.
 [vars]
 FIREBASE_DATABASE_URL = "https://sionyx-19636-default-rtdb.europe-west1.firebasedatabase.app"
 FIREBASE_API_KEY = "AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c"
+# Browser origins allowed by CORS (comma-separated); localhost is always allowed.
+WEB_ORIGIN = "https://sionyx-19636.web.app,https://sionyx-19636.firebaseapp.com"
+
+# Workers Logs: structured logs (incl. the per-request JSON access line and the
+# `amount mismatch` / `CRITICAL` markers) become searchable in the dashboard —
+# Workers & Pages → sionyx-server → Logs. For alerting, add a Cloudflare
+# notification on those markers (dashboard → Notifications); Logpush needs a
+# paid plan and is intentionally not configured.
+[observability]
+enabled = true
 
 # Daily cleanup (replaces the scheduled cleanupInactiveUsers Cloud Function).
 [triggers]
 crons = ["0 3 * * *"]
+
+# Per-IP throttle for the public /org/register endpoint (Rate Limiting API).
+[[unsafe.bindings]]
+name = "REGISTER_RATE_LIMITER"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 5, period = 60 }
 
 # Secrets are NOT stored here. Set them with:
 #   wrangler secret put FIREBASE_SERVICE_ACCOUNT   # full service-account JSON (one line)
 #   wrangler secret put ADMIN_SECRET
 #   wrangler secret put NEDARIM_MOSAD_ID
 #   wrangler secret put NEDARIM_API_PASSWORD
+#   wrangler secret put ENCRYPTION_KEY             # >= 32 chars (see .dev.vars.example)
+#   wrangler secret put TURNSTILE_SECRET           # enables Turnstile on /org/register
