@@ -36,6 +36,17 @@ export interface Env {
   // Comma-separated browser origins allowed by CORS (see src/cors.ts).
   // Defaults to the live web app; localhost is always allowed.
   WEB_ORIGIN?: string;
+  // Cloudflare Turnstile secret. When set, /org/register REQUIRES a valid
+  // turnstileToken; unset = verification off (rollout toggle until the web
+  // ships the widget). Set via `wrangler secret put TURNSTILE_SECRET`.
+  TURNSTILE_SECRET?: string;
+  // Workers Rate Limiting binding for /org/register (see wrangler.toml).
+  REGISTER_RATE_LIMITER?: RateLimiter;
+}
+
+/** Workers Rate Limiting API binding (typed locally — see wrangler.toml [[unsafe.bindings]]). */
+export interface RateLimiter {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
 /** Raised when an Auth user already exists (so callers can map it to a 409). */
