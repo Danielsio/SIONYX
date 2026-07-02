@@ -6,13 +6,7 @@
  * This Worker is the ONLY holder of the Firebase service account, so it is the
  * only writer of balances/purchases/passwords — money is server-authoritative.
  */
-import {
-  Env,
-  dbGet,
-  dbUpdate,
-  dbCompareAndSet,
-  verifyIdToken,
-} from './firebase';
+import { Env, dbGet } from './firebase';
 import { corsHeaders, preflight, withCors } from './cors';
 import { nedarimCallback, chargeSavedCard } from './payments';
 import { adminResetPassword } from './auth';
@@ -30,28 +24,6 @@ const json = (data: unknown, status = 200): Response =>
 const notImplemented = (name: string): Response =>
   json({ error: 'not_implemented', endpoint: name }, 501);
 
-// ---- auth helpers ----------------------------------------------------------
-
-async function requireUser(req: Request, env: Env): Promise<{ user_id: string; email?: string }> {
-  const auth = req.headers.get('Authorization') || '';
-  const m = auth.match(/^Bearer (.+)$/);
-  if (!m) throw new HttpError(401, 'missing_bearer_token');
-  const claims = await verifyIdToken(env, m[1]);
-  if (!claims) throw new HttpError(401, 'invalid_id_token');
-  return claims;
-}
-
-function requireAdminSecret(req: Request, env: Env): void {
-  const secret = req.headers.get('x-sionyx-secret');
-  if (!secret || secret !== env.ADMIN_SECRET) throw new HttpError(401, 'unauthorized');
-}
-
-class HttpError extends Error {
-  constructor(public status: number, public code: string) {
-    super(code);
-  }
-}
-
 // ---- handlers --------------------------------------------------------------
 
 const health: Handler = async () => json({ ok: true, service: 'sionyx-server' });
@@ -60,29 +32,6 @@ const health: Handler = async () => json({ ok: true, service: 'sionyx-server' })
 const latestVersion: Handler = async (_req, env) => {
   const data = await dbGet<{ version?: string; downloadUrl?: string }>(env, 'public/latestRelease');
   return json({ version: data?.version ?? null, downloadUrl: data?.downloadUrl ?? null });
-};
-
-/**
- * Server-authoritative credit (admin-only). Proves the money-write path that
- * RTDB rules now forbid clients from doing. Body: { orgId, userId, addSeconds?, addPrintBalance? }
- */
-const adminCredit: Handler = async (req, env) => {
-  requireAdminSecret(req, env);
-  const body = (await req.json().catch(() => null)) as
-    | { orgId?: string; userId?: string; addSeconds?: number; addPrintBalance?: number }
-    | null;
-  if (!body?.orgId || !body?.userId) throw new HttpError(400, 'missing_fields');
-  const base = `organizations/${body.orgId}/users/${body.userId}`;
-  const ok = await dbCompareAndSet(env, base, (cur: any) => {
-    const u = cur || {};
-    return {
-      ...u,
-      remainingTime: Math.max(0, (Number(u.remainingTime) || 0) + (Number(body.addSeconds) || 0)),
-      printBalance: (Number(u.printBalance) || 0) + (Number(body.addPrintBalance) || 0),
-      updatedAt: new Date().toISOString(),
-    };
-  });
-  return ok ? json({ ok: true }) : json({ error: 'conflict' }, 409);
 };
 
 // Stubs — implemented in subsequent increments (each replaces a Cloud Function).
@@ -96,7 +45,6 @@ const routes: Record<string, Record<string, Handler>> = {
     '/version/latest': latestVersion,
   },
   POST: {
-    '/admin/credit': adminCredit,
     '/payments/nedarim-callback': nedarimCallback,
     '/payments/charge-saved-card': chargeSavedCard,
     '/auth/reset-password': adminResetPassword,
@@ -114,17 +62,47 @@ const routes: Record<string, Record<string, Handler>> = {
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     if (req.method === 'OPTIONS') return preflight(env, req);
+    const requestId = crypto.randomUUID();
+    const startedMs = Date.now();
     const cors = corsHeaders(env, req);
     const url = new URL(req.url);
     const handler = routes[req.method]?.[url.pathname];
-    if (!handler) return withCors(json({ error: 'not_found' }, 404), cors);
-    try {
-      return withCors(await handler(req, env, ctx), cors);
-    } catch (e) {
-      if (e instanceof HttpError) return withCors(json({ error: e.code }, e.status), cors);
-      console.error('[sionyx-server] error', (e as Error).message);
-      return withCors(json({ error: 'internal_error' }, 500), cors);
+
+    let res: Response;
+    if (!handler) {
+      res = json({ error: 'not_found' }, 404);
+    } else {
+      try {
+        res = await handler(req, env, ctx);
+      } catch (e) {
+        console.error(
+          JSON.stringify({
+            event: 'unhandled_error',
+            requestId,
+            method: req.method,
+            path: url.pathname,
+            error: (e as Error).message,
+          }),
+        );
+        res = json({ error: 'internal_error' }, 500);
+      }
     }
+
+    res = withCors(res, cors);
+    res.headers.set('x-request-id', requestId);
+    // One structured access-log line per request (Workers Logs indexes JSON).
+    // pathname only — query strings can carry the nedarim callback secret.
+    console.log(
+      JSON.stringify({
+        event: 'request',
+        requestId,
+        method: req.method,
+        path: url.pathname,
+        status: res.status,
+        ms: Date.now() - startedMs,
+      }),
+    );
+    return res;
   },
 
   /** Cron Trigger — replaces the scheduled cleanupInactiveUsers function. */
