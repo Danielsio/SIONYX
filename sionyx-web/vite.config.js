@@ -10,13 +10,19 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          antd: ['antd'],
-          router: ['react-router-dom'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/database', 'firebase/functions'],
-          'framer-motion': ['framer-motion'],
-          gsap: ['gsap'],
+        // Vite 8 bundles with Rolldown: the old object-form `manualChunks`
+        // is unsupported ("manualChunks is not a function"); `advancedChunks`
+        // groups replace it. First matching group wins — keep router before
+        // the react group.
+        advancedChunks: {
+          groups: [
+            { name: 'router', test: /[\\/]node_modules[\\/]react-router(-dom)?[\\/]/ },
+            { name: 'vendor', test: /[\\/]node_modules[\\/]react(-dom)?[\\/]/ },
+            { name: 'antd', test: /[\\/]node_modules[\\/](antd|@ant-design)[\\/]/ },
+            { name: 'firebase', test: /[\\/]node_modules[\\/](firebase|@firebase)[\\/]/ },
+            { name: 'framer-motion', test: /[\\/]node_modules[\\/]framer-motion[\\/]/ },
+            { name: 'gsap', test: /[\\/]node_modules[\\/]gsap[\\/]/ },
+          ],
         },
       },
     },
@@ -31,7 +37,6 @@ export default defineConfig({
       'firebase/app',
       'firebase/auth',
       'firebase/database',
-      'firebase/functions',
       'framer-motion',
       'zustand',
     ],
