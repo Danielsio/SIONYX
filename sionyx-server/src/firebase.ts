@@ -36,6 +36,17 @@ export interface Env {
   // Comma-separated browser origins allowed by CORS (see src/cors.ts).
   // Defaults to the live web app; localhost is always allowed.
   WEB_ORIGIN?: string;
+  // Cloudflare Turnstile secret. When set, /org/register REQUIRES a valid
+  // turnstileToken; unset = verification off (rollout toggle until the web
+  // ships the widget). Set via `wrangler secret put TURNSTILE_SECRET`.
+  TURNSTILE_SECRET?: string;
+  // Workers Rate Limiting binding for /org/register (see wrangler.toml).
+  REGISTER_RATE_LIMITER?: RateLimiter;
+}
+
+/** Workers Rate Limiting API binding (typed locally — see wrangler.toml [[unsafe.bindings]]). */
+export interface RateLimiter {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
 }
 
 /** Raised when an Auth user already exists (so callers can map it to a 409). */
@@ -155,7 +166,11 @@ export async function dbUpdate(env: Env, path: string, data: Record<string, unkn
   if (!res.ok) throw new Error(`dbUpdate ${path}: ${res.status} ${await res.text()}`);
 }
 
-/** Atomic-ish transactional update via ETag (compare-and-set). Returns true on success. */
+/**
+ * Atomic-ish transactional update via ETag (compare-and-set). Returns true on success.
+ * `mutate` may return `undefined` to abort without writing (still returns true) —
+ * e.g. when the current value shows there is nothing left to do.
+ */
 export async function dbCompareAndSet(
   env: Env,
   path: string,
@@ -171,6 +186,7 @@ export async function dbCompareAndSet(
     const etag = getRes.headers.get('ETag') || 'null_etag';
     const current = await getRes.json();
     const next = mutate(current);
+    if (next === undefined) return true;
     const putRes = await fetch(url, {
       method: 'PUT',
       headers: {
@@ -243,20 +259,89 @@ export async function deleteAuthUser(env: Env, localId: string): Promise<void> {
   if (!res.ok) throw new Error(`deleteAuthUser: ${res.status} ${await res.text()}`);
 }
 
-/** Verify a Firebase ID token (from a client) and return its claims. */
+// ---------- Firebase ID token verification (local RS256, no per-request hop) ----------
+
+interface GoogleJwk {
+  kid: string;
+  n: string;
+  e: string;
+  kty: string;
+}
+
+const JWKS_URL =
+  'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+
+// Cached per isolate; TTL honors the endpoint's Cache-Control max-age.
+let cachedJwks: { keys: GoogleJwk[]; expMs: number } | null = null;
+
+async function getGoogleJwks(forceRefresh = false): Promise<GoogleJwk[]> {
+  if (!forceRefresh && cachedJwks && Date.now() < cachedJwks.expMs) return cachedJwks.keys;
+  const res = await fetch(JWKS_URL);
+  if (!res.ok) throw new Error(`jwks fetch failed: ${res.status}`);
+  const maxAge = /max-age=(\d+)/.exec(res.headers.get('Cache-Control') || '')?.[1];
+  const { keys } = (await res.json()) as { keys: GoogleJwk[] };
+  cachedJwks = { keys, expMs: Date.now() + (maxAge ? Number(maxAge) : 3600) * 1000 };
+  return keys;
+}
+
+function b64urlToBytes(s: string): Uint8Array {
+  const b64 = s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '=');
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+}
+
+/**
+ * Verify a Firebase ID token locally: RS256 signature against Google's
+ * securetoken JWKS (cached per isolate) + iss/aud/exp checks. Replaces the
+ * old Identity Toolkit `accounts:lookup` network round-trip per request.
+ * Returns null on ANY validation failure.
+ */
 export async function verifyIdToken(env: Env, idToken: string): Promise<{ user_id: string; email?: string } | null> {
-  const res = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken }),
-    },
-  );
-  if (!res.ok) return null;
-  const data = (await res.json()) as { users?: Array<{ localId: string; email?: string }> };
-  const u = data.users?.[0];
-  return u ? { user_id: u.localId, email: u.email } : null;
+  try {
+    const [h, p, sig] = idToken.split('.');
+    if (!h || !p || !sig) return null;
+    const header = JSON.parse(new TextDecoder().decode(b64urlToBytes(h))) as { alg?: string; kid?: string };
+    const payload = JSON.parse(new TextDecoder().decode(b64urlToBytes(p))) as {
+      aud?: string;
+      iss?: string;
+      sub?: string;
+      exp?: number;
+      iat?: number;
+      email?: string;
+    };
+    if (header.alg !== 'RS256' || !header.kid) return null;
+
+    const projectId = parseServiceAccount(env).project_id;
+    const nowSec = Date.now() / 1000;
+    if (payload.aud !== projectId) return null;
+    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
+    if (typeof payload.exp !== 'number' || payload.exp <= nowSec) return null;
+    if (typeof payload.iat === 'number' && payload.iat > nowSec + 300) return null; // clock skew guard
+    if (!payload.sub) return null;
+
+    // Key rotation: an unknown kid forces one JWKS refetch before giving up.
+    let jwk = (await getGoogleJwks()).find((k) => k.kid === header.kid);
+    if (!jwk) jwk = (await getGoogleJwks(true)).find((k) => k.kid === header.kid);
+    if (!jwk) return null;
+
+    const key = await crypto.subtle.importKey(
+      'jwk',
+      { kty: 'RSA', n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify'],
+    );
+    const valid = await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      key,
+      b64urlToBytes(sig),
+      new TextEncoder().encode(`${h}.${p}`),
+    );
+    if (!valid) return null;
+
+    return { user_id: payload.sub, email: payload.email };
+  } catch {
+    return null;
+  }
 }
 
 // ---------- Org-registration helpers ----------
@@ -270,37 +355,79 @@ function b64Std(buf: ArrayBuffer | Uint8Array): string {
 
 export const phoneToEmail = (phone: string): string => `${phone.replace(/\D/g, '')}@sionyx.app`;
 
-/** Mirror of the Cloud Functions encryptData: AES-256-CBC ("iv:ct" base64) or base64 fallback. */
-export async function encryptData(env: Env, data: unknown): Promise<string> {
-  const plaintext = new TextEncoder().encode(JSON.stringify(data));
-  const k = env.ENCRYPTION_KEY;
-  if (k && k.length >= 32) {
-    const keyBytes = new TextEncoder().encode(k.slice(0, 32));
-    const iv = crypto.getRandomValues(new Uint8Array(16));
-    const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CBC' }, false, ['encrypt']);
-    const ct = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, key, plaintext);
-    return `${b64Std(iv)}:${b64Std(ct)}`;
-  }
-  return b64Std(plaintext);
+const b64ToBytes = (b64: string): Uint8Array => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+
+/**
+ * Client-readable obfuscation (NOT encryption): base64(JSON). For org fields
+ * the web admin and kiosk decode locally without any key — `nedarim_mosad_id`
+ * and `nedarim_api_valid`, semi-public gateway identifiers that also appear in
+ * the payment iframe. Never use this for secrets.
+ */
+export function encodeClientReadable(data: unknown): string {
+  return b64Std(new TextEncoder().encode(JSON.stringify(data)));
 }
 
-/** Mirror of the Cloud Functions decryptData: AES-256-CBC if keyed, else base64. */
+const GCM_PREFIX = 'v2:';
+
+async function gcmKey(env: Env, usage: 'encrypt' | 'decrypt'): Promise<CryptoKey> {
+  const k = env.ENCRYPTION_KEY;
+  if (!k || k.length < 32) {
+    // Fail closed: silently storing secrets un-encrypted is worse than a 500.
+    throw new Error('ENCRYPTION_KEY missing or shorter than 32 chars — refusing to handle credentials');
+  }
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(k));
+  return crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM' }, false, [usage]);
+}
+
+/**
+ * Encrypt a server-only secret (e.g. the Nedarim ApiPassword): AES-256-GCM
+ * (authenticated — tampering fails decryption), format `v2:<iv>:<ct>` base64.
+ * Fails closed when ENCRYPTION_KEY is missing/short.
+ */
+export async function encryptData(env: Env, data: unknown): Promise<string> {
+  const key = await gcmKey(env, 'encrypt');
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    new TextEncoder().encode(JSON.stringify(data)),
+  );
+  return `${GCM_PREFIX}${b64Std(iv)}:${b64Std(ct)}`;
+}
+
+/**
+ * Decrypt a `v2:` AES-GCM value. Values stored before the format change fall
+ * back read-only: legacy AES-CBC (`iv:ct`, key = first 32 chars raw) and
+ * legacy base64(JSON) — this repo's production data predates ENCRYPTION_KEY,
+ * so its stored credentials are base64 until re-saved.
+ */
 export async function decryptData(env: Env, encrypted: string): Promise<unknown> {
+  if (encrypted.startsWith(GCM_PREFIX)) {
+    const [ivB64, dataB64] = encrypted.slice(GCM_PREFIX.length).split(':');
+    const key = await gcmKey(env, 'decrypt');
+    const dec = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: b64ToBytes(ivB64) },
+      key,
+      b64ToBytes(dataB64),
+    );
+    return JSON.parse(new TextDecoder().decode(dec));
+  }
+  // Legacy AES-CBC ("ivB64:ctB64" — base64 alphabets never contain ':').
   const k = env.ENCRYPTION_KEY;
   if (k && k.length >= 32 && encrypted.includes(':')) {
     try {
       const [ivB64, dataB64] = encrypted.split(':');
-      const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
-      const data = Uint8Array.from(atob(dataB64), (c) => c.charCodeAt(0));
       const keyBytes = new TextEncoder().encode(k.slice(0, 32));
       const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CBC' }, false, ['decrypt']);
-      const dec = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, data);
+      const dec = await crypto.subtle.decrypt({ name: 'AES-CBC', iv: b64ToBytes(ivB64) }, key, b64ToBytes(dataB64));
+      console.warn('[crypto] read legacy AES-CBC value — re-save to upgrade it to AES-GCM');
       return JSON.parse(new TextDecoder().decode(dec));
     } catch {
       /* fall through to base64 */
     }
   }
-  return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0))));
+  console.warn('[crypto] read legacy base64 value — re-save to upgrade it to AES-GCM');
+  return JSON.parse(new TextDecoder().decode(b64ToBytes(encrypted)));
 }
 
 /** Create a Firebase Auth user (email/password). Returns the new uid. Throws EmailExistsError if taken. */

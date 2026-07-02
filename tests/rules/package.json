@@ -6,8 +6,8 @@
     "test": "jest --forceExit --detectOpenHandles"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^3.0.0",
-    "firebase-admin": "^12.6.0",
-    "jest": "^30.2.0"
+    "@firebase/rules-unit-testing": "^5.0.1",
+    "firebase-admin": "^14.1.0",
+    "jest": "^30.4.2"
   }
 }

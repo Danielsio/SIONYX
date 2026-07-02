@@ -59,11 +59,29 @@ public partial class App : Application
         Log.Information("SIONYX Kiosk WPF starting, version {Version}", GetVersion());
 
         // ── Global exception handlers ────────────────────────────
+        var uiExceptionCount = 0;
         DispatcherUnhandledException += (_, ex) =>
         {
-            Log.Fatal(ex.Exception, "Unhandled UI exception");
+            uiExceptionCount++;
+            Log.Fatal(ex.Exception, "Unhandled UI exception #{Count}", uiExceptionCount);
             WriteCrashLog(ex.Exception, logDir);
-            ex.Handled = true;
+            ex.Handled = true; // keep the kiosk alive
+
+            // Swallowing silently can leave the UI broken with no feedback —
+            // tell the user something failed and how to recover (fires on the
+            // UI thread, so touching MainWindow is safe).
+            try
+            {
+                if (Current?.MainWindow is Views.Windows.MainWindow main)
+                    main.ShowToast(
+                        "אירעה שגיאה",
+                        "הפעולה האחרונה נכשלה. אם המסך תקוע, יש להתנתק ולהתחבר מחדש.",
+                        Views.Controls.ToastNotification.ToastType.Error);
+            }
+            catch
+            {
+                // The notifier must never take down the exception handler.
+            }
         };
         AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
         {

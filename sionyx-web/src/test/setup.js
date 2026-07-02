@@ -35,19 +35,12 @@ vi.mock('firebase/app', () => ({
   getApp: vi.fn(() => ({})),
 }));
 
-// Mock Firebase Functions
-vi.mock('firebase/functions', () => ({
-  getFunctions: vi.fn(() => ({})),
-  httpsCallable: vi.fn(() => vi.fn()),
-}));
-
 // Mock Firebase Config
 vi.mock('../config/firebase', () => ({
   auth: {
     currentUser: null,
   },
   database: {},
-  functions: {},
 }));
 
 // ============================================
