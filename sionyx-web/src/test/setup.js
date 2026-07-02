@@ -222,63 +222,7 @@ vi.mock('framer-motion', () => {
   };
 });
 
-// Mock GSAP
-vi.mock('gsap', () => ({
-  gsap: {
-    to: vi.fn(),
-    from: vi.fn(),
-    fromTo: vi.fn(),
-    set: vi.fn(),
-    timeline: vi.fn(() => ({
-      to: vi.fn().mockReturnThis(),
-      from: vi.fn().mockReturnThis(),
-      fromTo: vi.fn().mockReturnThis(),
-      add: vi.fn().mockReturnThis(),
-      play: vi.fn(),
-      pause: vi.fn(),
-      kill: vi.fn(),
-    })),
-    registerPlugin: vi.fn(),
-    context: vi.fn(() => ({
-      revert: vi.fn(),
-    })),
-  },
-  default: {
-    to: vi.fn(),
-    from: vi.fn(),
-    fromTo: vi.fn(),
-    set: vi.fn(),
-    timeline: vi.fn(() => ({
-      to: vi.fn().mockReturnThis(),
-      from: vi.fn().mockReturnThis(),
-      fromTo: vi.fn().mockReturnThis(),
-      add: vi.fn().mockReturnThis(),
-      play: vi.fn(),
-      pause: vi.fn(),
-      kill: vi.fn(),
-    })),
-    registerPlugin: vi.fn(),
-    context: vi.fn(() => ({
-      revert: vi.fn(),
-    })),
-  },
-}));
-
-// Mock GSAP ScrollTrigger
-vi.mock('gsap/ScrollTrigger', () => ({
-  ScrollTrigger: {
-    create: vi.fn(),
-    refresh: vi.fn(),
-    getAll: vi.fn(() => []),
-    kill: vi.fn(),
-  },
-  default: {
-    create: vi.fn(),
-    refresh: vi.fn(),
-    getAll: vi.fn(() => []),
-    kill: vi.fn(),
-  },
-}));
+// GSAP was removed from the app (framer-motion covers all animations).
 
 // ============================================
 // Browser APIs Mocks
