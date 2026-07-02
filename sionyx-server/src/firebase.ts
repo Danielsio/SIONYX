@@ -259,20 +259,89 @@ export async function deleteAuthUser(env: Env, localId: string): Promise<void> {
   if (!res.ok) throw new Error(`deleteAuthUser: ${res.status} ${await res.text()}`);
 }
 
-/** Verify a Firebase ID token (from a client) and return its claims. */
+// ---------- Firebase ID token verification (local RS256, no per-request hop) ----------
+
+interface GoogleJwk {
+  kid: string;
+  n: string;
+  e: string;
+  kty: string;
+}
+
+const JWKS_URL =
+  'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
+
+// Cached per isolate; TTL honors the endpoint's Cache-Control max-age.
+let cachedJwks: { keys: GoogleJwk[]; expMs: number } | null = null;
+
+async function getGoogleJwks(forceRefresh = false): Promise<GoogleJwk[]> {
+  if (!forceRefresh && cachedJwks && Date.now() < cachedJwks.expMs) return cachedJwks.keys;
+  const res = await fetch(JWKS_URL);
+  if (!res.ok) throw new Error(`jwks fetch failed: ${res.status}`);
+  const maxAge = /max-age=(\d+)/.exec(res.headers.get('Cache-Control') || '')?.[1];
+  const { keys } = (await res.json()) as { keys: GoogleJwk[] };
+  cachedJwks = { keys, expMs: Date.now() + (maxAge ? Number(maxAge) : 3600) * 1000 };
+  return keys;
+}
+
+function b64urlToBytes(s: string): Uint8Array {
+  const b64 = s.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(s.length / 4) * 4, '=');
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+}
+
+/**
+ * Verify a Firebase ID token locally: RS256 signature against Google's
+ * securetoken JWKS (cached per isolate) + iss/aud/exp checks. Replaces the
+ * old Identity Toolkit `accounts:lookup` network round-trip per request.
+ * Returns null on ANY validation failure.
+ */
 export async function verifyIdToken(env: Env, idToken: string): Promise<{ user_id: string; email?: string } | null> {
-  const res = await fetch(
-    `https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${env.FIREBASE_API_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken }),
-    },
-  );
-  if (!res.ok) return null;
-  const data = (await res.json()) as { users?: Array<{ localId: string; email?: string }> };
-  const u = data.users?.[0];
-  return u ? { user_id: u.localId, email: u.email } : null;
+  try {
+    const [h, p, sig] = idToken.split('.');
+    if (!h || !p || !sig) return null;
+    const header = JSON.parse(new TextDecoder().decode(b64urlToBytes(h))) as { alg?: string; kid?: string };
+    const payload = JSON.parse(new TextDecoder().decode(b64urlToBytes(p))) as {
+      aud?: string;
+      iss?: string;
+      sub?: string;
+      exp?: number;
+      iat?: number;
+      email?: string;
+    };
+    if (header.alg !== 'RS256' || !header.kid) return null;
+
+    const projectId = parseServiceAccount(env).project_id;
+    const nowSec = Date.now() / 1000;
+    if (payload.aud !== projectId) return null;
+    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
+    if (typeof payload.exp !== 'number' || payload.exp <= nowSec) return null;
+    if (typeof payload.iat === 'number' && payload.iat > nowSec + 300) return null; // clock skew guard
+    if (!payload.sub) return null;
+
+    // Key rotation: an unknown kid forces one JWKS refetch before giving up.
+    let jwk = (await getGoogleJwks()).find((k) => k.kid === header.kid);
+    if (!jwk) jwk = (await getGoogleJwks(true)).find((k) => k.kid === header.kid);
+    if (!jwk) return null;
+
+    const key = await crypto.subtle.importKey(
+      'jwk',
+      { kty: 'RSA', n: jwk.n, e: jwk.e, alg: 'RS256', ext: true },
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify'],
+    );
+    const valid = await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      key,
+      b64urlToBytes(sig),
+      new TextEncoder().encode(`${h}.${p}`),
+    );
+    if (!valid) return null;
+
+    return { user_id: payload.sub, email: payload.email };
+  } catch {
+    return null;
+  }
 }
 
 // ---------- Org-registration helpers ----------

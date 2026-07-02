@@ -80,6 +80,14 @@ export class MockFetch {
     this.on('POST', 'https://oauth2.googleapis.com/token', () => jsonRes({ access_token: 'test-token', expires_in: 3600 }), {
       persist: true,
     });
+    // Google securetoken JWKS — verifyIdToken validates ID tokens against it
+    // (also cached per isolate). Serves the throwaway signing key's public half.
+    this.on(
+      'GET',
+      'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
+      async () => jsonRes({ keys: [await idTokenPublicJwk()] }, { 'Cache-Control': 'public, max-age=3600' }),
+      { persist: true },
+    );
   }
 
   /** Fail if any expected mock went unused or any un-mocked call happened. */
@@ -94,6 +102,50 @@ export class MockFetch {
       );
     }
   }
+}
+
+// ---------- Firebase ID tokens (real RS256 JWTs, throwaway key) ----------
+
+const b64url = (bytes: Uint8Array): string => {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+const b64urlJson = (o: unknown): string => b64url(new TextEncoder().encode(JSON.stringify(o)));
+
+let idTokenKeys: Promise<CryptoKeyPair> | null = null;
+const getIdTokenKeys = (): Promise<CryptoKeyPair> =>
+  (idTokenKeys ??= crypto.subtle.generateKey(
+    { name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },
+    true,
+    ['sign', 'verify'],
+  ) as Promise<CryptoKeyPair>);
+
+export async function idTokenPublicJwk(): Promise<Record<string, unknown>> {
+  const { publicKey } = await getIdTokenKeys();
+  const jwk = await crypto.subtle.exportKey('jwk', publicKey);
+  return { kty: 'RSA', alg: 'RS256', use: 'sig', kid: 'test-kid', n: jwk.n, e: jwk.e };
+}
+
+/** Sign a Firebase-shaped ID token; claim overrides let tests craft invalid ones. */
+export async function makeIdToken(
+  sub: string,
+  overrides: Partial<{ aud: string; iss: string; exp: number; iat: number; kid: string; email: string }> = {},
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const header = { alg: 'RS256', typ: 'JWT', kid: overrides.kid ?? 'test-kid' };
+  const payload = {
+    aud: overrides.aud ?? 'test-project',
+    iss: overrides.iss ?? 'https://securetoken.google.com/test-project',
+    sub,
+    exp: overrides.exp ?? now + 3600,
+    iat: overrides.iat ?? now - 10,
+    ...(overrides.email ? { email: overrides.email } : {}),
+  };
+  const signingInput = `${b64urlJson(header)}.${b64urlJson(payload)}`;
+  const { privateKey } = await getIdTokenKeys();
+  const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', privateKey, new TextEncoder().encode(signingInput));
+  return `${signingInput}.${b64url(new Uint8Array(sig))}`;
 }
 
 let saJson: string | null = null;
