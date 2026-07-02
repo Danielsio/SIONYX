@@ -290,38 +290,9 @@ describe('LandingPage', () => {
   });
 
 
-  it('GSAP animation guards against null subtitleRef', async () => {
-    const gsap = await import('gsap');
-
-    // Make gsap.fromTo throw when called with null (simulates real GSAP behavior)
-    gsap.default.fromTo.mockImplementation(target => {
-      if (!target) throw new Error('GSAP: Cannot tween a null target');
-    });
-
-    // Make gsap.context execute its callback AND verify fromTo args
-    const fromToCalls = [];
-    gsap.default.fromTo.mockImplementation((...args) => {
-      fromToCalls.push(args[0]);
-      if (!args[0]) throw new Error('GSAP: Cannot tween a null target');
-    });
-
-    gsap.default.context.mockImplementation((cb, _scope) => {
-      cb();
-      return { revert: vi.fn() };
-    });
-
-    // Render should NOT throw
+  it('renders the tagline (animated by framer-motion, GSAP removed)', () => {
     expect(() => render(<LandingPage />)).not.toThrow();
-
-    // gsap.fromTo should only be called with valid (non-null) targets
-    fromToCalls.forEach(target => {
-      expect(target).not.toBeNull();
-      expect(target).not.toBeUndefined();
-    });
-
-    // Restore mocks
-    gsap.default.fromTo.mockReset();
-    gsap.default.context.mockImplementation(() => ({ revert: vi.fn() }));
+    expect(screen.getAllByText(/ניהול זמן מחשבים והדפסות/).length).toBeGreaterThan(0);
   });
 
   describe('Registration Modal Responsiveness', () => {

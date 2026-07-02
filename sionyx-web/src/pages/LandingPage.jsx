@@ -30,8 +30,6 @@ import {
   CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import { registerOrganization } from '../services/organizationService';
 import {
@@ -41,8 +39,6 @@ import {
   GlowingText,
   GradientText,
 } from '../components/animated';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -63,9 +59,6 @@ const colors = {
 // Hero Section Component - Premium v2.0
 // ============================================
 const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
-  const heroRef = useRef(null);
-  const subtitleRef = useRef(null);
-
   // Parallax effect on scroll — spring-smoothed for buttery feel
   const { scrollY } = useScroll();
   const rawY = useTransform(scrollY, [0, 500], [0, 100]);
@@ -76,23 +69,8 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
   const opacity = useSpring(rawOpacity, springConfig);
   const scale = useSpring(rawScale, springConfig);
 
-  // Subtitle GSAP animation
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      if (subtitleRef.current) {
-        gsap.fromTo(
-          subtitleRef.current,
-          { opacity: 0, y: 20 },
-          { opacity: 1, y: 0, duration: 1, delay: 0.6, ease: 'power2.out' }
-        );
-      }
-    }, heroRef);
-    return () => ctx.revert();
-  }, []);
-
   return (
     <motion.section
-      ref={heroRef}
       style={{
         minHeight: '100vh',
         display: 'flex',
@@ -206,9 +184,11 @@ const HeroSection = memo(({ onRegisterClick, onAdminLogin }) => {
         </h1>
       </div>
 
-      {/* Tagline */}
+      {/* Tagline (was the sole GSAP animation — now framer-motion like the rest) */}
       <motion.div
-        ref={subtitleRef}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1, delay: 0.6, ease: 'easeOut' }}
         style={{
           textAlign: 'center',
           marginBottom: 16,

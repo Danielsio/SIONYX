@@ -21,7 +21,6 @@ export default defineConfig({
             { name: 'antd', test: /[\\/]node_modules[\\/](antd|@ant-design)[\\/]/ },
             { name: 'firebase', test: /[\\/]node_modules[\\/](firebase|@firebase)[\\/]/ },
             { name: 'framer-motion', test: /[\\/]node_modules[\\/]framer-motion[\\/]/ },
-            { name: 'gsap', test: /[\\/]node_modules[\\/]gsap[\\/]/ },
           ],
         },
       },
