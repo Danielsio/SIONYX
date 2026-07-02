@@ -1,24 +1,9 @@
-import { useState, useEffect } from 'react';
-import useIsMobile from '../hooks/useIsMobile';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import {
-  Layout,
-  Menu,
-  Avatar,
-  Typography,
-  Space,
-  Drawer,
-  Button,
-  Tooltip,
-} from 'antd';
-import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Avatar, Typography, Space, Button, Tooltip } from 'antd';
 import {
   DashboardOutlined,
   UserOutlined,
   AppstoreOutlined,
-  LogoutOutlined,
-  MenuUnfoldOutlined,
-  MenuFoldOutlined,
   SettingOutlined,
   PhoneOutlined,
   MessageOutlined,
@@ -29,11 +14,13 @@ import {
   NotificationOutlined,
   BarChartOutlined,
 } from '@ant-design/icons';
+import AppShell from './AppShell';
 import NotificationBell from './NotificationBell';
+import useBreakpoint from '../hooks/useBreakpoint';
 import { useAuthStore } from '../store/authStore';
+import { useDataStore } from '../store/dataStore';
 import { signOut } from '../services/authService';
 
-const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
 const pageTitles = {
@@ -47,31 +34,26 @@ const pageTitles = {
   '/admin/settings': 'הגדרות',
 };
 
-// Sidebar gradient background
-const sidebarStyle = {
-  background: 'linear-gradient(180deg, #1a1f36 0%, #151929 100%)',
-};
+const menuItems = [
+  { key: '/admin', icon: <DashboardOutlined />, label: 'סקירה כללית' },
+  { key: '/admin/users', icon: <UserOutlined />, label: 'משתמשים' },
+  { key: '/admin/packages', icon: <AppstoreOutlined />, label: 'חבילות' },
+  { key: '/admin/messages', icon: <MessageOutlined />, label: 'הודעות' },
+  { key: '/admin/computers', icon: <DesktopOutlined />, label: 'מחשבים' },
+  { key: '/admin/announcements', icon: <NotificationOutlined />, label: 'הודעות מערכת' },
+  { key: '/admin/reports', icon: <BarChartOutlined />, label: 'דוחות' },
+  { key: '/admin/settings', icon: <SettingOutlined />, label: 'הגדרות' },
+];
 
 const MainLayout = () => {
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileDrawerVisible, setMobileDrawerVisible] = useState(false);
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isMobile } = useBreakpoint();
   const user = useAuthStore(state => state.user);
   const logout = useAuthStore(state => state.logout);
   const darkMode = useAuthStore(state => state.darkMode);
   const toggleDarkMode = useAuthStore(state => state.toggleDarkMode);
-
-  useEffect(() => {
-    if (!isMobile) setMobileDrawerVisible(false);
-  }, [isMobile]);
-
-  // Browser tab reflects the current page (was a static "SIONYX Admin Dashboard").
-  useEffect(() => {
-    const title = pageTitles[location.pathname];
-    document.title = title ? `SIONYX · ${title}` : 'SIONYX';
-  }, [location.pathname]);
+  const users = useDataStore(state => state.users);
 
   const handleLogout = async () => {
     await signOut();
@@ -79,394 +61,135 @@ const MainLayout = () => {
     navigate('/admin/login');
   };
 
-  const handleBackToHome = () => {
-    navigate('/');
+  // ⌘K: navigation commands + live user lookup (from the store's live list).
+  const commands = menuItems.map(item => ({
+    key: item.key,
+    icon: item.icon,
+    label: item.label,
+    hint: 'מעבר לעמוד',
+    onSelect: () => navigate(item.key),
+  }));
+
+  const getDynamicCommands = query => {
+    const q = query.toLowerCase();
+    return users
+      .filter(
+        u =>
+          `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase().includes(q) ||
+          (u.phoneNumber || '').includes(query)
+      )
+      .slice(0, 5)
+      .map(u => ({
+        key: `user-${u.uid}`,
+        icon: <UserOutlined />,
+        label: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.phoneNumber,
+        hint: `משתמש · ${u.phoneNumber || ''}`,
+        onSelect: () =>
+          navigate(
+            `/admin/users?q=${encodeURIComponent(
+              `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.phoneNumber || ''
+            )}`
+          ),
+      }));
   };
 
-  const handleMenuClick = ({ key }) => {
-    if (key === 'logout') {
-      handleLogout();
-      return;
-    }
-    navigate(key);
-    if (isMobile) {
-      setMobileDrawerVisible(false);
-    }
-  };
-
-  const toggleSidebar = () => {
-    if (isMobile) {
-      setMobileDrawerVisible(!mobileDrawerVisible);
-    } else {
-      setCollapsed(!collapsed);
-    }
-  };
-
-  // Main navigation menu items
-  const menuItems = [
-    {
-      key: '/admin',
-      icon: <DashboardOutlined />,
-      label: 'סקירה כללית',
-    },
-    {
-      key: '/admin/users',
-      icon: <UserOutlined />,
-      label: 'משתמשים',
-    },
-    {
-      key: '/admin/packages',
-      icon: <AppstoreOutlined />,
-      label: 'חבילות',
-    },
-    {
-      key: '/admin/messages',
-      icon: <MessageOutlined />,
-      label: 'הודעות',
-    },
-    {
-      key: '/admin/computers',
-      icon: <DesktopOutlined />,
-      label: 'מחשבים',
-    },
-    {
-      key: '/admin/announcements',
-      icon: <NotificationOutlined />,
-      label: 'הודעות מערכת',
-    },
-    {
-      key: '/admin/reports',
-      icon: <BarChartOutlined />,
-      label: 'דוחות',
-    },
-    {
-      key: '/admin/settings',
-      icon: <SettingOutlined />,
-      label: 'הגדרות',
-    },
-  ];
-
-  const renderSidebar = () => (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        ...sidebarStyle,
-      }}
-    >
-      {/* Logo */}
-      <motion.div
-        initial={false}
-        animate={{
-          padding: collapsed ? '16px 12px' : '20px 24px',
-        }}
-        transition={{ duration: 0.2 }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: collapsed ? 'center' : 'flex-start',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-          flexShrink: 0,
-          gap: 12,
-          minHeight: 72,
-        }}
-      >
-        <motion.div
-          animate={{
-            width: collapsed ? 36 : 40,
-            height: collapsed ? 36 : 40,
-          }}
-          transition={{ duration: 0.2 }}
+  const headerLeft = (
+    <>
+      <Tooltip title='חזרה לדף הראשי'>
+        <Button
+          type='default'
+          icon={<HomeOutlined />}
+          onClick={() => navigate('/')}
           style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            borderRadius: 12,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)',
+            gap: 6,
+            borderRadius: 10,
+            height: 40,
+            paddingLeft: 16,
+            paddingRight: 16,
           }}
         >
-          <span
-            style={{
-              color: '#fff',
-              fontSize: collapsed ? 16 : 18,
-              fontWeight: 800,
-              lineHeight: 1,
-              userSelect: 'none',
-            }}
-          >
-            S
-          </span>
-        </motion.div>
-        <AnimatePresence>
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.15 }}
-            >
-              <Text
-                style={{
-                  color: '#fff',
-                  fontSize: 20,
-                  fontWeight: 700,
-                  letterSpacing: '0.5px',
-                }}
-              >
-                SIONYX
-              </Text>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+          {!isMobile && 'דף הבית'}
+        </Button>
+      </Tooltip>
 
-      {/* Main Menu */}
-      <div style={{ flex: 1, padding: '16px 8px', overflowY: 'auto' }}>
-        <Menu
-          theme='dark'
-          mode='inline'
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={handleMenuClick}
-          style={{
-            background: 'transparent',
-            border: 'none',
-          }}
-        />
-      </div>
-
-      {/* Bottom Section - Logout */}
-      <div
-        style={{
-          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-          padding: collapsed ? '16px 8px' : '16px',
-          flexShrink: 0,
-        }}
-      >
+      <Tooltip title={darkMode ? 'מצב בהיר' : 'מצב כהה'}>
         <Button
           type='text'
-          block
-          className='sidebar-logout'
-          icon={<LogoutOutlined />}
-          onClick={handleLogout}
+          icon={darkMode ? <BulbFilled /> : <BulbOutlined />}
+          onClick={toggleDarkMode}
+          aria-label={darkMode ? 'מצב בהיר' : 'מצב כהה'}
+          style={{ fontSize: 18, width: 40, height: 40, borderRadius: 10 }}
+        />
+      </Tooltip>
+
+      <Tooltip title='התראות'>
+        <NotificationBell darkMode={darkMode} />
+      </Tooltip>
+    </>
+  );
+
+  const headerRight = (
+    <>
+      {!isMobile && (
+        <div
           style={{
-            color: 'rgba(255, 255, 255, 0.65)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
             gap: 10,
-            height: 44,
+            padding: '8px 14px',
+            background: 'rgba(102, 126, 234, 0.08)',
             borderRadius: 10,
           }}
         >
-          {!collapsed && 'התנתק'}
-        </Button>
-      </div>
-    </div>
+          <div
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: '#10b981',
+              boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
+            }}
+          />
+          <Text style={{ fontWeight: 600, color: '#667eea' }}>{user?.orgId || 'ארגון'}</Text>
+        </div>
+      )}
+
+      <Space style={{ padding: '6px 12px' }}>
+        <Avatar size={40} style={{ background: '#667eea' }} icon={<UserOutlined />} />
+        {!isMobile && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <Text style={{ fontSize: 14, fontWeight: 600 }}>
+              {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'מנהל'}
+            </Text>
+            {(user?.phone || user?.phoneNumber) && (
+              <Text type='secondary' style={{ fontSize: 12 }}>
+                <PhoneOutlined style={{ marginLeft: 4 }} />
+                {user.phone || user.phoneNumber}
+              </Text>
+            )}
+          </div>
+        )}
+      </Space>
+    </>
   );
 
   return (
-    <Layout style={{ minHeight: '100vh', direction: 'rtl' }}>
-      {/* Desktop Sidebar */}
-      {!isMobile && (
-        <Sider
-          trigger={null}
-          collapsible
-          collapsed={collapsed}
-          width={240}
-          collapsedWidth={72}
-          style={{
-            overflow: 'hidden',
-            height: '100vh',
-            position: 'fixed',
-            right: 0,
-            top: 0,
-            bottom: 0,
-            ...sidebarStyle,
-            boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.12)',
-            zIndex: 100,
-          }}
-        >
-          {renderSidebar()}
-        </Sider>
-      )}
-
-      {/* Mobile Drawer */}
-      {isMobile && (
-        <Drawer
-          title={null}
-          placement='right'
-          onClose={() => setMobileDrawerVisible(false)}
-          open={mobileDrawerVisible}
-          width={280}
-          styles={{
-            body: { padding: 0 },
-            header: { display: 'none' },
-          }}
-        >
-          <div style={{ height: '100%' }}>{renderSidebar()}</div>
-        </Drawer>
-      )}
-
-      <Layout
-        style={{
-          marginRight: isMobile ? 0 : collapsed ? 72 : 240,
-          transition: 'margin 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-          background: darkMode ? '#141414' : '#f8f9fc',
-        }}
-      >
-        <Header
-          style={{
-            padding: isMobile ? '0 16px' : '0 28px',
-            background: darkMode ? '#1f1f1f' : '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06)',
-            minHeight: 68,
-            position: 'sticky',
-            top: 0,
-            zIndex: 50,
-          }}
-        >
-          {/* Left side - Menu toggle + Back to home */}
-          <Space size='middle'>
-            <Tooltip title={collapsed ? 'הרחב תפריט' : 'צמצם תפריט'}>
-              <Button
-                type='text'
-                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                onClick={toggleSidebar}
-                aria-label={collapsed ? 'הרחב תפריט' : 'צמצם תפריט'}
-                style={{
-                  fontSize: 18,
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              />
-            </Tooltip>
-
-            <Tooltip title='חזרה לדף הראשי'>
-              <Button
-                type='default'
-                icon={<HomeOutlined />}
-                onClick={handleBackToHome}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  borderRadius: 10,
-                  height: 40,
-                  paddingLeft: 16,
-                  paddingRight: 16,
-                }}
-              >
-                {!isMobile && 'דף הבית'}
-              </Button>
-            </Tooltip>
-
-            <Tooltip title={darkMode ? 'מצב בהיר' : 'מצב כהה'}>
-              <Button
-                type='text'
-                icon={darkMode ? <BulbFilled /> : <BulbOutlined />}
-                onClick={toggleDarkMode}
-                style={{
-                  fontSize: 18,
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              />
-            </Tooltip>
-
-            <Tooltip title="התראות">
-              <NotificationBell darkMode={darkMode} />
-            </Tooltip>
-          </Space>
-
-          {/* Right side - Org info + User avatar */}
-          <Space size={isMobile ? 'small' : 'middle'}>
-            {!isMobile && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '8px 14px',
-                  background: 'rgba(102, 126, 234, 0.08)',
-                  borderRadius: 10,
-                }}
-              >
-                <div
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: '#10b981',
-                    boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)',
-                  }}
-                />
-                <Text style={{ fontWeight: 600, color: '#667eea' }}>{user?.orgId || 'ארגון'}</Text>
-              </div>
-            )}
-
-            <Space style={{ padding: '6px 12px' }}>
-              <Avatar
-                size={40}
-                style={{ background: '#667eea' }}
-                icon={<UserOutlined />}
-              />
-              {!isMobile && (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                  }}
-                >
-                  <Text style={{ fontSize: 14, fontWeight: 600 }}>
-                    {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'מנהל'}
-                  </Text>
-                  {(user?.phone || user?.phoneNumber) && (
-                    <Text type='secondary' style={{ fontSize: 12 }}>
-                      <PhoneOutlined style={{ marginLeft: 4 }} />
-                      {user.phone || user.phoneNumber}
-                    </Text>
-                  )}
-                </div>
-              )}
-            </Space>
-          </Space>
-        </Header>
-
-        <Content
-          style={{
-            margin: isMobile ? 16 : 28,
-            padding: isMobile ? 20 : 28,
-            minHeight: 'calc(100vh - 124px)',
-            background: 'transparent',
-          }}
-        >
-          {/* Enter-only fade: an exit animation would add dead time to every navigation. */}
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.12 }}
-          >
-            <Outlet />
-          </motion.div>
-        </Content>
-      </Layout>
-    </Layout>
+    <AppShell
+      brand='SIONYX'
+      sidebarVariant='dark'
+      menuItems={menuItems}
+      selectedKey={location.pathname}
+      onNavigate={navigate}
+      onLogout={handleLogout}
+      headerLeft={headerLeft}
+      headerRight={headerRight}
+      pageTitles={pageTitles}
+      commands={commands}
+      getDynamicCommands={getDynamicCommands}
+      contentBackground={darkMode ? '#141414' : '#f8f9fc'}
+    />
   );
 };
 
