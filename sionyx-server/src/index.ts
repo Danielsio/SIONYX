@@ -62,16 +62,47 @@ const routes: Record<string, Record<string, Handler>> = {
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     if (req.method === 'OPTIONS') return preflight(env, req);
+    const requestId = crypto.randomUUID();
+    const startedMs = Date.now();
     const cors = corsHeaders(env, req);
     const url = new URL(req.url);
     const handler = routes[req.method]?.[url.pathname];
-    if (!handler) return withCors(json({ error: 'not_found' }, 404), cors);
-    try {
-      return withCors(await handler(req, env, ctx), cors);
-    } catch (e) {
-      console.error('[sionyx-server] error', (e as Error).message);
-      return withCors(json({ error: 'internal_error' }, 500), cors);
+
+    let res: Response;
+    if (!handler) {
+      res = json({ error: 'not_found' }, 404);
+    } else {
+      try {
+        res = await handler(req, env, ctx);
+      } catch (e) {
+        console.error(
+          JSON.stringify({
+            event: 'unhandled_error',
+            requestId,
+            method: req.method,
+            path: url.pathname,
+            error: (e as Error).message,
+          }),
+        );
+        res = json({ error: 'internal_error' }, 500);
+      }
     }
+
+    res = withCors(res, cors);
+    res.headers.set('x-request-id', requestId);
+    // One structured access-log line per request (Workers Logs indexes JSON).
+    // pathname only — query strings can carry the nedarim callback secret.
+    console.log(
+      JSON.stringify({
+        event: 'request',
+        requestId,
+        method: req.method,
+        path: url.pathname,
+        status: res.status,
+        ms: Date.now() - startedMs,
+      }),
+    );
+    return res;
   },
 
   /** Cron Trigger — replaces the scheduled cleanupInactiveUsers function. */
