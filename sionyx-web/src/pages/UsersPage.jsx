@@ -77,6 +77,7 @@ import { formatTimeHebrewCompact } from '../utils/timeFormatter';
 import { exportToCSV, exportToExcel, exportToPDF } from '../utils/csvExport';
 import dayjs from 'dayjs';
 import StatCard from '../components/StatCard';
+import PageHeader from '../components/PageHeader';
 import { logger } from '../utils/logger';
 
 const { Title, Text } = Typography;
@@ -999,70 +1000,54 @@ const UsersPage = () => {
     >
       <Space direction='vertical' size={24} style={{ width: '100%' }}>
         {/* Header */}
-        <motion.div
-          className='page-header'
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            gap: 16,
-          }}
-        >
-          <div>
-            <Title level={2} style={{ margin: 0, fontWeight: 700 }}>
-              משתמשים
-            </Title>
-            <Text type='secondary' style={{ fontSize: 14 }}>
-              נהל וצפה בכל המשתמשים בארגון שלך
-            </Text>
-          </div>
-          <Space>
-            <Button
-              icon={<SendOutlined />}
-              disabled={filteredUsers.length === 0}
-              onClick={() => {
-                setBulkTargets(filteredUsers);
-                setSendMessageVisible(true);
-              }}
-            >
-              הודעה למסוננים ({filteredUsers.length})
-            </Button>
-            <Dropdown
-              menu={{
-                items: [
-                  {
-                    key: 'csv',
-                    icon: <DownloadOutlined />,
-                    label: 'ייצא CSV',
-                    onClick: () =>
-                      exportToCSV(usersExportData, usersExportColumns, `users-${new Date().toISOString().split('T')[0]}`),
-                  },
-                  {
-                    key: 'excel',
-                    icon: <DownloadOutlined />,
-                    label: 'ייצא Excel',
-                    onClick: () =>
-                      exportToExcel(usersExportData, usersExportColumns, `users-${new Date().toISOString().split('T')[0]}`),
-                  },
-                  {
-                    key: 'pdf',
-                    icon: <DownloadOutlined />,
-                    label: 'ייצא PDF',
-                    onClick: () =>
-                      exportToPDF(usersExportData, usersExportColumns, `users-${new Date().toISOString().split('T')[0]}`, 'ייצוא משתמשים'),
-                  },
-                ],
-              }}
-              trigger={['click']}
-            >
-              <Button icon={<DownloadOutlined />}>ייצא</Button>
-            </Dropdown>
-          </Space>
-        </motion.div>
+        <PageHeader
+          title='משתמשים'
+          subtitle='נהל וצפה בכל המשתמשים בארגון שלך'
+          actions={
+            <Space>
+              <Button
+                icon={<SendOutlined />}
+                disabled={filteredUsers.length === 0}
+                onClick={() => {
+                  setBulkTargets(filteredUsers);
+                  setSendMessageVisible(true);
+                }}
+              >
+                הודעה למסוננים ({filteredUsers.length})
+              </Button>
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'csv',
+                      icon: <DownloadOutlined />,
+                      label: 'ייצא CSV',
+                      onClick: () =>
+                        exportToCSV(usersExportData, usersExportColumns, `users-${new Date().toISOString().split('T')[0]}`),
+                    },
+                    {
+                      key: 'excel',
+                      icon: <DownloadOutlined />,
+                      label: 'ייצא Excel',
+                      onClick: () =>
+                        exportToExcel(usersExportData, usersExportColumns, `users-${new Date().toISOString().split('T')[0]}`),
+                    },
+                    {
+                      key: 'pdf',
+                      icon: <DownloadOutlined />,
+                      label: 'ייצא PDF',
+                      onClick: () =>
+                        exportToPDF(usersExportData, usersExportColumns, `users-${new Date().toISOString().split('T')[0]}`, 'ייצוא משתמשים'),
+                    },
+                  ],
+                }}
+                trigger={['click']}
+              >
+                <Button icon={<DownloadOutlined />}>ייצא</Button>
+              </Dropdown>
+            </Space>
+          }
+        />
 
         {/* Stats Row */}
         <Row gutter={[16, 16]}>
