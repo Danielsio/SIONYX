@@ -8,7 +8,16 @@
  * NOTE: like the original this is unauthenticated; add a captcha / rate-limit
  * before exposing it widely (tracked as a follow-up).
  */
-import { Env, dbGet, dbSet, encryptData, createAuthUser, phoneToEmail, EmailExistsError } from './firebase';
+import {
+  Env,
+  dbGet,
+  dbSet,
+  encodeClientReadable,
+  encryptData,
+  createAuthUser,
+  phoneToEmail,
+  EmailExistsError,
+} from './firebase';
 
 const json = (data: unknown, status = 200): Response =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } });
@@ -61,11 +70,14 @@ export async function registerOrganization(req: Request, env: Env): Promise<Resp
     throw e;
   }
 
-  // 2. Org metadata (Nedarim creds encrypted to match the kiosk's decoder).
+  // 2. Org metadata. mosad_id/api_valid are base64-encoded, NOT encrypted —
+  // the web admin and kiosk decode them locally (no key) and they end up in
+  // the payment iframe anyway. The real secret (ApiPassword) is GCM-encrypted
+  // below, in the server-only secrets/ path.
   const metadata: Record<string, unknown> = {
     name: cleanOrgName,
-    nedarim_mosad_id: await encryptData(env, cleanMosadId),
-    nedarim_api_valid: await encryptData(env, cleanApiValid),
+    nedarim_mosad_id: encodeClientReadable(cleanMosadId),
+    nedarim_api_valid: encodeClientReadable(cleanApiValid),
     created_at: new Date().toISOString(),
     status: 'active',
     created_by: 'public-registration',

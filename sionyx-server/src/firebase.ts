@@ -275,37 +275,79 @@ function b64Std(buf: ArrayBuffer | Uint8Array): string {
 
 export const phoneToEmail = (phone: string): string => `${phone.replace(/\D/g, '')}@sionyx.app`;
 
-/** Mirror of the Cloud Functions encryptData: AES-256-CBC ("iv:ct" base64) or base64 fallback. */
-export async function encryptData(env: Env, data: unknown): Promise<string> {
-  const plaintext = new TextEncoder().encode(JSON.stringify(data));
-  const k = env.ENCRYPTION_KEY;
-  if (k && k.length >= 32) {
-    const keyBytes = new TextEncoder().encode(k.slice(0, 32));
-    const iv = crypto.getRandomValues(new Uint8Array(16));
-    const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CBC' }, false, ['encrypt']);
-    const ct = await crypto.subtle.encrypt({ name: 'AES-CBC', iv }, key, plaintext);
-    return `${b64Std(iv)}:${b64Std(ct)}`;
-  }
-  return b64Std(plaintext);
+const b64ToBytes = (b64: string): Uint8Array => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+
+/**
+ * Client-readable obfuscation (NOT encryption): base64(JSON). For org fields
+ * the web admin and kiosk decode locally without any key — `nedarim_mosad_id`
+ * and `nedarim_api_valid`, semi-public gateway identifiers that also appear in
+ * the payment iframe. Never use this for secrets.
+ */
+export function encodeClientReadable(data: unknown): string {
+  return b64Std(new TextEncoder().encode(JSON.stringify(data)));
 }
 
-/** Mirror of the Cloud Functions decryptData: AES-256-CBC if keyed, else base64. */
+const GCM_PREFIX = 'v2:';
+
+async function gcmKey(env: Env, usage: 'encrypt' | 'decrypt'): Promise<CryptoKey> {
+  const k = env.ENCRYPTION_KEY;
+  if (!k || k.length < 32) {
+    // Fail closed: silently storing secrets un-encrypted is worse than a 500.
+    throw new Error('ENCRYPTION_KEY missing or shorter than 32 chars — refusing to handle credentials');
+  }
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(k));
+  return crypto.subtle.importKey('raw', bytes, { name: 'AES-GCM' }, false, [usage]);
+}
+
+/**
+ * Encrypt a server-only secret (e.g. the Nedarim ApiPassword): AES-256-GCM
+ * (authenticated — tampering fails decryption), format `v2:<iv>:<ct>` base64.
+ * Fails closed when ENCRYPTION_KEY is missing/short.
+ */
+export async function encryptData(env: Env, data: unknown): Promise<string> {
+  const key = await gcmKey(env, 'encrypt');
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv },
+    key,
+    new TextEncoder().encode(JSON.stringify(data)),
+  );
+  return `${GCM_PREFIX}${b64Std(iv)}:${b64Std(ct)}`;
+}
+
+/**
+ * Decrypt a `v2:` AES-GCM value. Values stored before the format change fall
+ * back read-only: legacy AES-CBC (`iv:ct`, key = first 32 chars raw) and
+ * legacy base64(JSON) — this repo's production data predates ENCRYPTION_KEY,
+ * so its stored credentials are base64 until re-saved.
+ */
 export async function decryptData(env: Env, encrypted: string): Promise<unknown> {
+  if (encrypted.startsWith(GCM_PREFIX)) {
+    const [ivB64, dataB64] = encrypted.slice(GCM_PREFIX.length).split(':');
+    const key = await gcmKey(env, 'decrypt');
+    const dec = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: b64ToBytes(ivB64) },
+      key,
+      b64ToBytes(dataB64),
+    );
+    return JSON.parse(new TextDecoder().decode(dec));
+  }
+  // Legacy AES-CBC ("ivB64:ctB64" — base64 alphabets never contain ':').
   const k = env.ENCRYPTION_KEY;
   if (k && k.length >= 32 && encrypted.includes(':')) {
     try {
       const [ivB64, dataB64] = encrypted.split(':');
-      const iv = Uint8Array.from(atob(ivB64), (c) => c.charCodeAt(0));
-      const data = Uint8Array.from(atob(dataB64), (c) => c.charCodeAt(0));
       const keyBytes = new TextEncoder().encode(k.slice(0, 32));
       const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CBC' }, false, ['decrypt']);
-      const dec = await crypto.subtle.decrypt({ name: 'AES-CBC', iv }, key, data);
+      const dec = await crypto.subtle.decrypt({ name: 'AES-CBC', iv: b64ToBytes(ivB64) }, key, b64ToBytes(dataB64));
+      console.warn('[crypto] read legacy AES-CBC value — re-save to upgrade it to AES-GCM');
       return JSON.parse(new TextDecoder().decode(dec));
     } catch {
       /* fall through to base64 */
     }
   }
-  return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0))));
+  console.warn('[crypto] read legacy base64 value — re-save to upgrade it to AES-GCM');
+  return JSON.parse(new TextDecoder().decode(b64ToBytes(encrypted)));
 }
 
 /** Create a Firebase Auth user (email/password). Returns the new uid. Throws EmailExistsError if taken. */

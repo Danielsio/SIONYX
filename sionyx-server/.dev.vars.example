@@ -3,3 +3,5 @@ FIREBASE_SERVICE_ACCOUNT={"type":"service_account","project_id":"...","private_k
 ADMIN_SECRET=replace-with-a-long-random-string
 NEDARIM_MOSAD_ID=
 NEDARIM_API_PASSWORD=
+# >= 32 chars; encrypts server-only credentials (AES-GCM). encryptData FAILS CLOSED without it.
+ENCRYPTION_KEY=
