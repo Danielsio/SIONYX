@@ -12,6 +12,14 @@ FIREBASE_API_KEY = "AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c"
 # Browser origins allowed by CORS (comma-separated); localhost is always allowed.
 WEB_ORIGIN = "https://sionyx-19636.web.app,https://sionyx-19636.firebaseapp.com"
 
+# Workers Logs: structured logs (incl. the per-request JSON access line and the
+# `amount mismatch` / `CRITICAL` markers) become searchable in the dashboard —
+# Workers & Pages → sionyx-server → Logs. For alerting, add a Cloudflare
+# notification on those markers (dashboard → Notifications); Logpush needs a
+# paid plan and is intentionally not configured.
+[observability]
+enabled = true
+
 # Daily cleanup (replaces the scheduled cleanupInactiveUsers Cloud Function).
 [triggers]
 crons = ["0 3 * * *"]

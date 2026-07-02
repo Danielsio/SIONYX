@@ -84,3 +84,14 @@ describe('CORS on regular responses', () => {
     expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
 });
+
+describe('request IDs', () => {
+  it('tags every response with a UUID x-request-id, including 404s', async () => {
+    const ok = await run(new Request('https://sionyx-server.example/health'));
+    const missing = await run(new Request('https://sionyx-server.example/nope'));
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    expect(ok.headers.get('x-request-id')).toMatch(uuid);
+    expect(missing.headers.get('x-request-id')).toMatch(uuid);
+    expect(ok.headers.get('x-request-id')).not.toBe(missing.headers.get('x-request-id'));
+  });
+});
