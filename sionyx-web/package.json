@@ -22,7 +22,7 @@
   "dependencies": {
     "@ant-design/icons": "^6.1.0",
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
-    "antd": "^5.27.4",
+    "antd": "^6.5.0",
     "dayjs": "^1.11.18",
     "firebase": "^12.3.0",
     "framer-motion": "^12.26.1",
