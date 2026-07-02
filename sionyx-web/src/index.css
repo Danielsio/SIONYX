@@ -77,8 +77,9 @@
   /* ==========================================
      TYPOGRAPHY SYSTEM
      ========================================== */
-  --font-sans: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
-  --font-display: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Rubik covers Hebrew + Latin and is actually loaded (index.html); Inter never was. */
+  --font-sans: 'Rubik', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+  --font-display: 'Rubik', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
   
   /* Font Sizes - Refined Scale */
@@ -219,46 +220,12 @@ code {
   background: var(--sionyx-bg-page);
 }
 
-/* Enhanced Card Styling */
-.ant-card {
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--sionyx-gray-200);
-  box-shadow: var(--shadow-card);
-  transition: all var(--duration-normal) var(--ease-smooth);
-}
-
-.ant-card.ant-card-bordered {
-  border: 1px solid var(--sionyx-gray-200);
-}
-
-.ant-card:not(.ant-card-bordered) {
-  border: none;
-}
-
-.ant-card-head {
-  border-bottom: 1px solid var(--sionyx-gray-100);
-  padding: var(--space-4) var(--space-6);
-  min-height: auto;
-}
-
-.ant-card-head-title {
-  font-weight: var(--font-semibold);
-  font-size: var(--text-md);
-  color: var(--sionyx-gray-800);
-}
-
-.ant-card-extra {
-  color: var(--sionyx-gray-500);
-}
-
-.ant-card-body {
-  padding: var(--space-6);
-}
-
-/* Stat Card Enhancement */
+/* Cards, tables, and statistics: colors/backgrounds/borders come from the AntD
+   theme tokens so BOTH light and dark modes render correctly. The hardcoded
+   light values that used to live here (with !important) were what broke dark
+   mode on tables and cards. */
 .ant-statistic-title {
   font-size: var(--text-sm);
-  color: var(--sionyx-gray-500);
   margin-bottom: var(--space-2);
   font-weight: var(--font-medium);
 }
@@ -272,36 +239,12 @@ code {
   margin-inline-end: var(--space-2);
 }
 
-/* Enhanced Table Styling */
-.ant-table-wrapper {
-  background: var(--sionyx-bg-card);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
 .ant-table {
   font-size: var(--text-base);
 }
 
 .ant-table-thead > tr > th {
-  background: var(--sionyx-gray-50) !important;
   font-weight: var(--font-semibold);
-  color: var(--sionyx-gray-700);
-  border-bottom: 1px solid var(--sionyx-gray-200);
-  padding: var(--space-3) var(--space-4);
-}
-
-.ant-table-tbody > tr > td {
-  border-bottom: 1px solid var(--sionyx-gray-100);
-  padding: var(--space-3) var(--space-4);
-}
-
-.ant-table-tbody > tr:hover > td {
-  background: var(--sionyx-primary-bg) !important;
-}
-
-.ant-table-tbody > tr:last-child > td {
-  border-bottom: none;
 }
 
 /* ==========================================
@@ -321,17 +264,12 @@ code {
   border-radius: var(--radius-md) !important;
 }
 
-.ant-input:hover,
-.ant-input-number:hover,
-.ant-select-selector:hover {
-  border-color: var(--sionyx-primary-light) !important;
-}
-
-.ant-input:focus,
-.ant-input-number:focus,
-.ant-input-focused {
-  border-color: var(--sionyx-primary) !important;
-  box-shadow: 0 0 0 3px var(--sionyx-primary-bg) !important;
+/* Keyboard focus must always be visible (AntD provides input focus rings;
+   this covers buttons and links, which had none). */
+.ant-btn:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--sionyx-primary);
+  outline-offset: 2px;
 }
 
 .ant-select-selection-item {
@@ -459,31 +397,9 @@ body,
   font-size: var(--text-sm);
 }
 
-.ant-btn-primary {
-  background: linear-gradient(135deg, var(--sionyx-primary) 0%, var(--sionyx-primary-dark) 100%);
-  border: none;
-  box-shadow: var(--shadow-primary);
-}
-
-.ant-btn-primary:hover {
-  background: linear-gradient(135deg, var(--sionyx-primary-hover) 0%, var(--sionyx-primary-dark) 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
-}
-
-.ant-btn-primary:active {
-  transform: translateY(0);
-}
-
-.ant-btn-default:hover {
-  border-color: var(--sionyx-primary);
-  color: var(--sionyx-primary);
-}
-
-.ant-btn .anticon {
-  margin-left: var(--space-2) !important;
-  margin-right: 0 !important;
-}
+/* Button colors/hover come from the AntD theme (flat primary — the gradient +
+   lift-on-hover treatment is gone). Icon margins are handled by AntD's RTL
+   support; the manual flip that used to live here double-flipped them. */
 
 /* ==========================================
    ENHANCED TAG STYLES
@@ -494,32 +410,6 @@ body,
   font-weight: var(--font-medium);
   font-size: var(--text-xs);
   padding: 2px 8px;
-  border: none;
-}
-
-.ant-tag-green {
-  background: var(--sionyx-success-bg);
-  color: var(--sionyx-success);
-}
-
-.ant-tag-blue {
-  background: var(--sionyx-info-bg);
-  color: var(--sionyx-info);
-}
-
-.ant-tag-orange {
-  background: var(--sionyx-warning-bg);
-  color: var(--sionyx-warning);
-}
-
-.ant-tag-red {
-  background: var(--sionyx-error-bg);
-  color: var(--sionyx-error);
-}
-
-.ant-tag-gold {
-  background: linear-gradient(135deg, rgba(250, 173, 20, 0.15) 0%, rgba(212, 136, 6, 0.15) 100%);
-  color: #d48806;
 }
 
 /* ==========================================
@@ -559,7 +449,6 @@ body,
 
 .ant-form-item-label > label {
   font-weight: var(--font-medium);
-  color: var(--sionyx-gray-700);
 }
 
 .ant-form-item-control {
@@ -598,7 +487,6 @@ body,
 }
 
 .ant-descriptions-bordered .ant-descriptions-item-label {
-  background: var(--sionyx-gray-50);
   font-weight: var(--font-medium);
 }
 
@@ -641,72 +529,8 @@ body,
 }
 
 /* ==========================================
-   OPTIMIZED KEYFRAME ANIMATIONS
+   KEYFRAME ANIMATIONS (only what is used)
    ========================================== */
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 8px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 20px, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale3d(0.95, 0.95, 1);
-  }
-  to {
-    opacity: 1;
-    transform: scale3d(1, 1, 1);
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale3d(1, 1, 1);
-  }
-  50% {
-    transform: scale3d(1.02, 1.02, 1);
-  }
-}
-
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translate3d(20px, 0, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translate3d(-20px, 0, 0);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
 
 @keyframes statusPulse {
   0%, 100% {
@@ -717,32 +541,6 @@ body,
     opacity: 0.8;
     box-shadow: 0 0 0 4px transparent;
   }
-}
-
-/* Animation utility classes */
-.fade-in {
-  animation: fadeIn var(--duration-normal) var(--ease-out-expo);
-}
-
-.fade-in-up {
-  animation: fadeInUp var(--duration-slow) var(--ease-out-expo);
-}
-
-.scale-in {
-  animation: scaleIn var(--duration-normal) var(--ease-out-expo);
-}
-
-.pulse-animation {
-  animation: pulse 2.5s var(--ease-in-out-sine) infinite;
-  will-change: transform;
-}
-
-.slide-in-right {
-  animation: slideInRight var(--duration-normal) var(--ease-out-expo);
-}
-
-.slide-in-left {
-  animation: slideInLeft var(--duration-normal) var(--ease-out-expo);
 }
 
 /* ==========================================
@@ -763,10 +561,6 @@ body,
   -webkit-backface-visibility: hidden;
 }
 
-.ant-input:focus {
-  outline: none;
-}
-
 /* Optimized text rendering */
 body {
   text-rendering: optimizeLegibility;
@@ -777,26 +571,6 @@ body {
 /* ==========================================
    ENHANCED COMPONENT TRANSITIONS
    ========================================== */
-
-/* Smooth card hover with subtle lift */
-.ant-card {
-  transition: 
-    transform var(--duration-normal) var(--ease-smooth),
-    box-shadow var(--duration-normal) var(--ease-smooth),
-    border-color var(--duration-fast);
-  transform: translateZ(0);
-}
-
-.ant-card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-card-hover);
-  border-color: var(--sionyx-gray-300);
-}
-
-/* Disable hover lift for stat cards (use border/glow instead) */
-.stat-card:hover {
-  transform: none;
-}
 
 /* Smooth input transitions */
 .ant-input,
@@ -820,264 +594,17 @@ body {
     width var(--duration-normal) var(--ease-out-expo);
 }
 
-/* Mobile-specific improvements */
-@media (max-width: 768px) {
-  /* Better touch targets */
-  .ant-btn {
-    min-height: 44px;
-    min-width: 44px;
-  }
-
-  .ant-menu-item {
-    min-height: 48px;
-    line-height: 48px;
-  }
-
-  /* Improve text readability */
-  body {
-    font-size: 16px;
-    line-height: 1.5;
-  }
-
-  /* Better spacing for mobile */
-  .ant-space-vertical > .ant-space-item:last-child {
-    margin-bottom: 0 !important;
-  }
-
-  /* Mobile-friendly modals */
-  .ant-modal {
-    margin: 16px;
-    max-width: calc(100vw - 32px);
-  }
-
-  .ant-drawer-content-wrapper {
-    max-width: 100vw;
-  }
-
-  /* Mobile table improvements */
-  .ant-table-tbody > tr > td {
-    padding: 8px 4px;
-    font-size: 14px;
-  }
-
-  .ant-table-thead > tr > th {
-    padding: 8px 4px;
-    font-size: 14px;
-  }
-
-  /* Mobile card improvements */
-  .ant-card-head {
-    min-height: 48px;
-    padding: 0 16px;
-  }
-
-  .ant-card-head-title {
-    font-size: 16px;
-  }
-
-  /* Mobile form improvements */
-  .ant-form-item-label > label {
-    font-size: 14px;
-  }
-
-  .ant-input,
-  .ant-input-number {
-    font-size: 16px; /* Prevents zoom on iOS */
-  }
-}
-
-@media (max-width: 480px) {
-  /* Extra small screens */
-  .ant-layout-header {
-    padding: 0 12px !important;
-  }
-
-  .ant-layout-content {
-    margin: 8px !important;
-    padding: 12px !important;
-  }
-
-  /* Smaller text for very small screens */
-  .ant-typography {
-    font-size: 14px;
-  }
-
-  /* Compact buttons */
-  .ant-btn {
-    padding: 4px 8px;
-    font-size: 14px;
-  }
-
-  /* Compact cards */
-  .ant-card-body {
-    padding: 12px !important;
-  }
-}
-
-/* ============================================
-   PREMIUM ANIMATION CLASSES
-   ============================================ */
-
-/* Subtle glow effects */
-.glow-primary {
-  box-shadow: 0 0 20px rgba(102, 126, 234, 0.25),
-              0 0 40px rgba(102, 126, 234, 0.1);
-}
-
-.glow-success {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25),
-              0 0 40px rgba(16, 185, 129, 0.1);
-}
-
-.glow-warning {
-  box-shadow: 0 0 20px rgba(245, 158, 11, 0.25),
-              0 0 40px rgba(245, 158, 11, 0.1);
-}
-
-.glow-error {
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.25),
-              0 0 40px rgba(239, 68, 68, 0.1);
-}
-
-/* Text glow - subtle */
-.text-glow {
-  text-shadow: 0 0 8px currentColor;
-}
-
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(135deg, var(--sionyx-primary), var(--sionyx-secondary));
-  background-size: 200% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: gradient-shift 6s ease infinite;
-}
-
-@keyframes gradient-shift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-/* Floating animation - more subtle */
-.float {
-  animation: float 5s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-12px); }
-}
-
-/* Pulse glow animation - subtle */
-.pulse-glow {
-  animation: pulse-glow 3s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 15px rgba(102, 126, 234, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 25px rgba(102, 126, 234, 0.4);
-  }
-}
-
-/* Shimmer effect */
-.shimmer {
-  position: relative;
-  overflow: hidden;
-}
-
-.shimmer::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.08),
-    transparent
-  );
-  animation: shimmer 2.5s infinite;
-}
-
-@keyframes shimmer {
-  0% { left: -100%; }
-  100% { left: 100%; }
-}
-
-/* Magnetic hover effect base */
-.magnetic {
-  transition: transform var(--duration-normal) var(--ease-spring);
-}
-
-/* Glass morphism */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.glass-dark {
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* 3D Card effect - subtle */
-.card-3d {
-  transform-style: preserve-3d;
-  perspective: 1000px;
-  transition: transform var(--duration-slow) var(--ease-out-expo);
-}
-
-.card-3d:hover {
-  transform: translateY(-6px) rotateX(2deg) rotateY(-2deg);
-}
-
-/* Reveal animations */
-.reveal-up {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: all var(--duration-slower) var(--ease-out-expo);
-}
-
-.reveal-up.revealed {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Stagger children - smoother */
-.stagger-children > * {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all var(--duration-slow) var(--ease-out-expo);
-}
-
-.stagger-children.revealed > *:nth-child(1) { transition-delay: 0ms; opacity: 1; transform: translateY(0); }
-.stagger-children.revealed > *:nth-child(2) { transition-delay: 60ms; opacity: 1; transform: translateY(0); }
-.stagger-children.revealed > *:nth-child(3) { transition-delay: 120ms; opacity: 1; transform: translateY(0); }
-.stagger-children.revealed > *:nth-child(4) { transition-delay: 180ms; opacity: 1; transform: translateY(0); }
-.stagger-children.revealed > *:nth-child(5) { transition-delay: 240ms; opacity: 1; transform: translateY(0); }
-.stagger-children.revealed > *:nth-child(6) { transition-delay: 300ms; opacity: 1; transform: translateY(0); }
-
 /* ============================================
    STAT CARD UTILITY CLASSES
    ============================================ */
 
-/* Base stat card styling */
+/* Base stat card styling (borders/background come from the AntD theme so dark
+   mode works; only the colored accent bar is custom). */
 .stat-card {
   position: relative;
   overflow: hidden;
   border-radius: var(--radius-xl) !important;
-  border: 1px solid var(--sionyx-gray-100) !important;
-  transition: all var(--duration-normal) var(--ease-smooth);
+  transition: box-shadow var(--duration-normal) var(--ease-smooth);
 }
 
 .stat-card::before {
@@ -1097,7 +624,6 @@ body {
 }
 
 .stat-card:hover {
-  border-color: var(--sionyx-gray-200) !important;
   box-shadow: var(--shadow-lg);
 }
 
@@ -1167,64 +693,12 @@ body {
   background: var(--sionyx-gray-400);
 }
 
-/* Info card utility */
-.info-card {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--sionyx-gray-50);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--sionyx-gray-100);
-}
-
-.info-card__icon {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  font-size: var(--text-xl);
-  flex-shrink: 0;
-}
-
-.info-card__icon--primary {
-  background: var(--sionyx-primary-bg);
-  color: var(--sionyx-primary);
-}
-
-.info-card__icon--success {
-  background: var(--sionyx-success-bg);
-  color: var(--sionyx-success);
-}
-
-.info-card__icon--warning {
-  background: var(--sionyx-warning-bg);
-  color: var(--sionyx-warning);
-}
-
-.info-card__icon--info {
-  background: var(--sionyx-info-bg);
-  color: var(--sionyx-info);
-}
-
-.info-card__content {
-  flex: 1;
-  min-width: 0;
-}
-
-.info-card__value {
-  font-size: var(--text-xl);
-  font-weight: var(--font-bold);
-  color: var(--sionyx-gray-800);
-  line-height: var(--leading-tight);
-}
-
-.info-card__label {
-  font-size: var(--text-sm);
-  color: var(--sionyx-gray-500);
-  margin-top: 2px;
+/* Sidebar logout (always on the dark sidebar; CSS hover/focus replaces the old
+   JS onMouseEnter mutation, which was invisible to keyboard users). */
+.sidebar-logout:hover,
+.sidebar-logout:focus-visible {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: var(--sionyx-error) !important;
 }
 
 /* ==========================================
@@ -1361,15 +835,10 @@ body {
     scroll-behavior: auto !important;
   }
   
-  .float,
-  .pulse-glow,
-  .pulse-animation,
-  .shimmer::after,
-  .gradient-text,
   .status-dot--active {
     animation: none !important;
   }
-  
+
   .ant-card:hover,
   .ant-btn:hover {
     transform: none !important;

@@ -1,6 +1,12 @@
 import { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ConfigProvider, theme, App as AntApp, Spin } from 'antd';
+import heIL from 'antd/locale/he_IL';
+import dayjs from 'dayjs';
+import 'dayjs/locale/he';
+
+// Hebrew everywhere: AntD strings (pagination, pickers, filters) + dayjs dates.
+dayjs.locale('he');
 import { useAuthStore } from './store/authStore';
 import { useSupervisorAuthStore } from './supervisor/store/supervisorAuthStore';
 import { onAuthChange, getCurrentAdminData } from './services/authService';
@@ -97,11 +103,14 @@ function App() {
 
   return (
     <ConfigProvider
+      locale={heIL}
       theme={{
         algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {
           colorPrimary: '#667eea',
-          borderRadius: 6,
+          borderRadius: 8,
+          fontFamily:
+            "'Rubik', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif",
         },
       }}
       direction='rtl'
