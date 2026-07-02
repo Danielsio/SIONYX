@@ -23,7 +23,7 @@ Kiosk management system with web admin dashboard and WPF desktop app.
 | **Auth** | Firebase | User sign-in; admin ops via the Worker | Spark (free) |
 | **Nedarim Plus** | external | Card payments (hosted iframe + server-side saved-card charge) | gateway |
 | **GitHub Releases + Actions** | external | Installer hosting; the release workflow publishes `public/latestRelease`; kiosk auto-update verifies SHA-256 and installs via a **SYSTEM scheduled task** (no UAC) | free |
-| ~~functions~~ | Firebase Cloud Functions | All six ported to `sionyx-server`; last step is the [callback cutover](docs/CALLBACK-CUTOVER.md), then delete `functions/` (drops Blaze) | — |
+| ~~functions~~ | Firebase Cloud Functions | Fully ported to `sionyx-server` and **deleted** (2026-07-01) — the project no longer needs Blaze | — |
 
 ### Data flow
 

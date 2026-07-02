@@ -11,24 +11,12 @@ import { logger } from '../utils/logger';
  * - Getting organization statistics for the admin dashboard
  */
 
+// base64(JSON) — matches the Worker's encodeClientReadable().
 const decodeData = encodedData => {
   try {
     return JSON.parse(atob(encodedData));
   } catch (error) {
     logger.error('Error decoding data:', error);
-    return null;
-  }
-};
-
-// New encryption format used by Cloud Function (base64 encoded JSON)
-const decodeCloudFunctionData = encodedData => {
-  try {
-    // The Cloud Function uses Buffer.from(JSON.stringify(data)).toString('base64')
-    // So we need to decode it back
-    const jsonString = atob(encodedData);
-    return JSON.parse(jsonString);
-  } catch (error) {
-    logger.error('Error decoding Cloud Function data:', error);
     return null;
   }
 };
@@ -90,18 +78,8 @@ export const getOrganizationMetadata = async orgId => {
     if (snapshot.exists()) {
       const data = snapshot.val();
 
-      // Try both decoding methods for backward compatibility
-      let decodedMosadId, decodedApiValid;
-
-      try {
-        // Try new Cloud Function format first
-        decodedMosadId = decodeCloudFunctionData(data.nedarim_mosad_id);
-        decodedApiValid = decodeCloudFunctionData(data.nedarim_api_valid);
-      } catch {
-        // Fall back to old format
-        decodedMosadId = decodeData(data.nedarim_mosad_id);
-        decodedApiValid = decodeData(data.nedarim_api_valid);
-      }
+      const decodedMosadId = decodeData(data.nedarim_mosad_id);
+      const decodedApiValid = decodeData(data.nedarim_api_valid);
 
       return {
         success: true,
