@@ -30,13 +30,13 @@ jobs:
       id-token: write # provenance attestation
       attestations: write # provenance attestation
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@87b7050bc53ea08284295505d98d2aa94301e852 # v4.2.0
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
           dotnet-version: "8.x"
 
@@ -81,7 +81,7 @@ jobs:
           powershell -ExecutionPolicy Bypass -File build.ps1 -Version $ver -NoUpload -SkipTests
 
       - name: Attest build provenance (MSI)
-        uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1.4.4
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
           subject-path: sionyx-kiosk-wpf/installer/bin/x64/Release/*.msi
 
