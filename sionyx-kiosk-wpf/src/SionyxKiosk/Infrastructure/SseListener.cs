@@ -20,8 +20,7 @@ public sealed class SseListener
 
     private CancellationTokenSource? _cts;
     private Task? _listenTask;
-    private int _reconnectDelay = 1;
-    private const int MaxReconnectDelay = 60;
+    private int _reconnectDelay = SseBackoff.InitialDelaySeconds;
 
     public bool IsRunning => _cts != null && !_cts.IsCancellationRequested;
 
@@ -80,6 +79,7 @@ public sealed class SseListener
             try
             {
                 await ConnectAndStreamAsync(ct);
+                Logger.Information("SSE stream closed by server for {Path}", _path);
             }
             catch (OperationCanceledException)
             {
@@ -91,20 +91,22 @@ public sealed class SseListener
 
                 Logger.Error(ex, "SSE connection error for {Path}", _path);
                 _errorCallback?.Invoke(ex.Message);
-
-                // Exponential backoff
-                Logger.Information("SSE reconnecting in {Delay}s for {Path}", _reconnectDelay, _path);
-                try
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(_reconnectDelay), ct);
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-
-                _reconnectDelay = Math.Min(_reconnectDelay * 2, MaxReconnectDelay);
             }
+
+            if (ct.IsCancellationRequested) break;
+
+            // Backoff on errors AND on clean server closes (see SseBackoff).
+            Logger.Information("SSE reconnecting in {Delay}s for {Path}", _reconnectDelay, _path);
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(_reconnectDelay), ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+
+            _reconnectDelay = SseBackoff.NextDelay(_reconnectDelay);
         }
     }
 
@@ -123,7 +125,7 @@ public sealed class SseListener
         using var response = await _firebase.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
 
-        _reconnectDelay = 1; // Reset backoff on successful connection
+        var connectedAt = DateTime.UtcNow;
         Logger.Information("SSE stream connected: {Path}", orgPath);
 
         using var stream = await response.Content.ReadAsStreamAsync(ct);
@@ -132,26 +134,34 @@ public sealed class SseListener
         string? eventType = null;
         var dataLines = new List<string>();
 
-        while (!ct.IsCancellationRequested)
+        try
         {
-            var line = await reader.ReadLineAsync(ct);
-            if (line == null) break; // Stream closed
+            while (!ct.IsCancellationRequested)
+            {
+                var line = await reader.ReadLineAsync(ct);
+                if (line == null) break; // Stream closed
 
-            if (line.StartsWith("event:"))
-            {
-                eventType = line[6..].Trim();
+                if (line.StartsWith("event:"))
+                {
+                    eventType = line[6..].Trim();
+                }
+                else if (line.StartsWith("data:"))
+                {
+                    dataLines.Add(line[5..].Trim());
+                }
+                else if (line == "" && eventType != null)
+                {
+                    // Empty line = end of event
+                    ProcessEvent(eventType, string.Join("", dataLines));
+                    eventType = null;
+                    dataLines.Clear();
+                }
             }
-            else if (line.StartsWith("data:"))
-            {
-                dataLines.Add(line[5..].Trim());
-            }
-            else if (line == "" && eventType != null)
-            {
-                // Empty line = end of event
-                ProcessEvent(eventType, string.Join("", dataLines));
-                eventType = null;
-                dataLines.Clear();
-            }
+        }
+        finally
+        {
+            if (SseBackoff.ShouldReset(DateTime.UtcNow - connectedAt))
+                _reconnectDelay = SseBackoff.InitialDelaySeconds;
         }
     }
 
