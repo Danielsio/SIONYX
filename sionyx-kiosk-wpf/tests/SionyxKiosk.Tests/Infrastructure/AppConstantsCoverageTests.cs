@@ -27,7 +27,10 @@ public class AppConstantsCoverageTests
     [Fact]
     public void GetAdminExitPassword_DefaultFallback()
     {
-        var password = AppConstants.GetAdminExitPassword();
+        // Via the pure resolver: GetAdminExitPassword() reads the real
+        // registry, so its result depends on the machine (a dev box with the
+        // kiosk installed resolves the production branch).
+        var password = AppConstants.ResolveAdminExitPassword(false, null, null);
         password.Should().Be("dev-exit");
     }
 
