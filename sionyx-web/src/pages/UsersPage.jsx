@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
   Card,
@@ -43,7 +44,6 @@ import {
   ClockCircleOutlined,
   PrinterOutlined,
   EyeOutlined,
-  ReloadOutlined,
   EditOutlined,
   CrownOutlined,
   MoreOutlined,
@@ -63,7 +63,6 @@ import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
 import { useOrgId } from '../hooks/useOrgId';
 import {
-  getAllUsers,
   getUserPurchaseHistory,
   adjustUserBalance,
   grantAdminPermission,
@@ -72,6 +71,7 @@ import {
   resetUserPassword,
   deleteUser,
 } from '../services/userService';
+import { subscribeToUsers } from '../services/realtimeService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { formatTimeHebrewCompact } from '../utils/timeFormatter';
 import { exportToCSV, exportToExcel, exportToPDF } from '../utils/csvExport';
@@ -102,10 +102,31 @@ const cardVariants = {
 
 const UsersPage = () => {
   const [loading, setLoading] = useState(true);
-  const [searchText, setSearchText] = useState('');
-  const [statusFilter, setStatusFilter] = useState(null);
-  const [dateRangeFilter, setDateRangeFilter] = useState(null);
-  const [roleFilter, setRoleFilter] = useState(null);
+
+  // Filters live in the URL (C5): refresh, back button, and shared links keep
+  // the search/filter context.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchText = searchParams.get('q') || '';
+  const statusFilter = searchParams.get('status');
+  const roleFilter = searchParams.get('role');
+  const dateFrom = searchParams.get('from');
+  const dateTo = searchParams.get('to');
+  const dateRangeFilter = dateFrom && dateTo ? [dayjs(dateFrom), dayjs(dateTo)] : null;
+
+  const updateFilters = patch => {
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        for (const [key, value] of Object.entries(patch)) {
+          if (value == null || value === '') next.delete(key);
+          else next.set(key, value);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+
   const [selectedUser, setSelectedUser] = useState(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [userPurchases, setUserPurchases] = useState([]);
@@ -123,6 +144,8 @@ const UsersPage = () => {
   const [sendMessageVisible, setSendMessageVisible] = useState(false);
   const [messageForm] = Form.useForm();
   const [sending, setSending] = useState(false);
+  // When set, the send-message modal targets this list instead of selectedUser.
+  const [bulkTargets, setBulkTargets] = useState(null);
 
   // Password reset state
   const [resetPasswordVisible, setResetPasswordVisible] = useState(false);
@@ -135,32 +158,19 @@ const UsersPage = () => {
   const { message } = App.useApp();
   const orgId = useOrgId();
 
-  const loadUsers = async () => {
-    setLoading(true);
-
+  // Live subscription (C1): session state and balances update as they change —
+  // admins no longer act on stale data, and mutations show up without reloads.
+  useEffect(() => {
     if (!orgId) {
       message.error('מזהה ארגון לא נמצא. אנא התחבר שוב.');
       setLoading(false);
-      return;
+      return undefined;
     }
-
-    logger.info('Loading users for organization:', orgId);
-
-    const result = await getAllUsers(orgId);
-
-    if (result.success) {
-      setUsers(result.users);
-      logger.info(`Loaded ${result.users.length} users`);
-    } else {
-      message.error(result.error || 'נכשל בטעינת המשתמשים');
-      logger.error('Failed to load users:', result.error);
-    }
-
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadUsers();
+    const unsubscribe = subscribeToUsers(orgId, list => {
+      setUsers(list);
+      setLoading(false);
+    });
+    return unsubscribe;
   }, [orgId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleViewUser = async record => {
@@ -221,9 +231,6 @@ const UsersPage = () => {
         setAdjustBalanceVisible(false);
         form.resetFields();
 
-        // Reload users to reflect changes
-        await loadUsers();
-
         // Update selected user if viewing details
         if (selectedUser?.uid === adjustingUser.uid) {
           setSelectedUser({
@@ -255,7 +262,6 @@ const UsersPage = () => {
 
         if (result.success) {
           message.success('הרשאות מנהל הוענקו בהצלחה');
-          await loadUsers();
 
           // Update selected user if viewing details
           if (selectedUser?.uid === record.uid) {
@@ -284,7 +290,6 @@ const UsersPage = () => {
 
         if (result.success) {
           message.success('הרשאות מנהל הוסרו בהצלחה');
-          await loadUsers();
 
           // Update selected user if viewing details
           if (selectedUser?.uid === record.uid) {
@@ -315,7 +320,6 @@ const UsersPage = () => {
 
           if (result.success) {
             message.success(result.message);
-            await loadUsers();
           } else {
             message.error(result.error || 'נכשל בניתוק המשתמש');
           }
@@ -345,7 +349,6 @@ const UsersPage = () => {
             message.success(result.message);
             setDrawerVisible(false);
             setSelectedUser(null);
-            await loadUsers();
           } else {
             message.error(result.error || 'נכשל במחיקת המשתמש');
           }
@@ -402,8 +405,8 @@ const UsersPage = () => {
   };
 
   const handleSendMessage = async values => {
-    const targetUser = selectedUser;
-    if (!user?.uid || !targetUser) {
+    const targets = bulkTargets ?? (selectedUser ? [selectedUser] : []);
+    if (!user?.uid || targets.length === 0) {
       message.error('שגיאה: לא ניתן לזהות את השולח');
       return;
     }
@@ -411,22 +414,28 @@ const UsersPage = () => {
       const { message: messageText } = values;
       setSending(true);
 
-      const result = await sendMessage(orgId, targetUser.uid, messageText, user.uid);
+      const results = await Promise.allSettled(
+        targets.map(t => sendMessage(orgId, t.uid, messageText, user.uid))
+      );
+      const failed = results.filter(r => r.status === 'rejected' || !r.value?.success).length;
 
-      if (result.success) {
-        message.success('הודעה נשלחה בהצלחה');
-        setSendMessageVisible(false);
-        messageForm.resetFields();
-
-        // Reload messages if viewing user details
-        if (drawerVisible) {
-          const messageResult = await getMessagesForUser(orgId, targetUser.uid);
-          if (messageResult.success) {
-            setUserMessages(messageResult.messages);
-          }
-        }
+      if (failed === 0) {
+        message.success(
+          targets.length === 1 ? 'הודעה נשלחה בהצלחה' : `ההודעה נשלחה ל-${targets.length} משתמשים`
+        );
       } else {
-        message.error(result.error || 'נכשל בשליחת ההודעה');
+        message.warning(`נשלחו ${targets.length - failed} הודעות, ${failed} נכשלו`);
+      }
+      setSendMessageVisible(false);
+      messageForm.resetFields();
+      setBulkTargets(null);
+
+      // Reload messages if viewing user details (single-target send only)
+      if (!bulkTargets && drawerVisible && selectedUser) {
+        const messageResult = await getMessagesForUser(orgId, selectedUser.uid);
+        if (messageResult.success) {
+          setUserMessages(messageResult.messages);
+        }
       }
     } catch (error) {
       logger.error('Error sending message:', error);
@@ -1004,12 +1013,24 @@ const UsersPage = () => {
           }}
         >
           <div>
-            <Title level={2} style={{ margin: 0, fontWeight: 700, color: '#1f2937' }}>
+            <Title level={2} style={{ margin: 0, fontWeight: 700 }}>
               משתמשים
             </Title>
-            <Text style={{ color: '#6b7280', fontSize: 14 }}>נהל וצפה בכל המשתמשים בארגון שלך</Text>
+            <Text type='secondary' style={{ fontSize: 14 }}>
+              נהל וצפה בכל המשתמשים בארגון שלך
+            </Text>
           </div>
           <Space>
+            <Button
+              icon={<SendOutlined />}
+              disabled={filteredUsers.length === 0}
+              onClick={() => {
+                setBulkTargets(filteredUsers);
+                setSendMessageVisible(true);
+              }}
+            >
+              הודעה למסוננים ({filteredUsers.length})
+            </Button>
             <Dropdown
               menu={{
                 items: [
@@ -1040,19 +1061,6 @@ const UsersPage = () => {
             >
               <Button icon={<DownloadOutlined />}>ייצא</Button>
             </Dropdown>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={loadUsers}
-              loading={loading}
-              style={{
-                borderRadius: 10,
-                height: 40,
-                paddingLeft: 20,
-                paddingRight: 20,
-              }}
-            >
-              רענן
-            </Button>
           </Space>
         </motion.div>
 
@@ -1155,7 +1163,8 @@ const UsersPage = () => {
                       allowClear
                       size='large'
                       prefix={<SearchOutlined style={{ color: '#9ca3af' }} />}
-                      onChange={e => setSearchText(e.target.value)}
+                      value={searchText}
+                      onChange={e => updateFilters({ q: e.target.value })}
                       style={{ width: '100%' }}
                     />
                     <Space wrap size='middle'>
@@ -1163,7 +1172,7 @@ const UsersPage = () => {
                         <Text type='secondary'>סטטוס:</Text>
                         <Segmented
                           value={statusFilter ?? 'all'}
-                          onChange={v => setStatusFilter(v === 'all' ? null : v)}
+                          onChange={v => updateFilters({ status: v === 'all' ? null : v })}
                           options={[
                             { label: 'הכל', value: 'all' },
                             { label: 'פעיל', value: 'active' },
@@ -1176,7 +1185,12 @@ const UsersPage = () => {
                         <Text type='secondary'>תאריך הצטרפות:</Text>
                         <DatePicker.RangePicker
                           value={dateRangeFilter}
-                          onChange={setDateRangeFilter}
+                          onChange={range =>
+                            updateFilters({
+                              from: range?.[0]?.format('YYYY-MM-DD') ?? null,
+                              to: range?.[1]?.format('YYYY-MM-DD') ?? null,
+                            })
+                          }
                           placeholder={['מ-', 'עד']}
                         />
                       </Space>
@@ -1184,7 +1198,7 @@ const UsersPage = () => {
                         <Text type='secondary'>תפקיד:</Text>
                         <Select
                           value={roleFilter ?? 'all'}
-                          onChange={v => setRoleFilter(v === 'all' ? null : v)}
+                          onChange={v => updateFilters({ role: v === 'all' ? null : v })}
                           style={{ minWidth: 100 }}
                           options={[
                             { label: 'הכל', value: 'all' },
@@ -1597,7 +1611,9 @@ const UsersPage = () => {
           <Space>
             <MessageOutlined />
             <span>
-              שלח הודעה {selectedUser && `ל${selectedUser.firstName} ${selectedUser.lastName}`}
+              {bulkTargets
+                ? `שלח הודעה ל-${bulkTargets.length} משתמשים מסוננים`
+                : `שלח הודעה ${selectedUser ? `ל${selectedUser.firstName} ${selectedUser.lastName}` : ''}`}
             </span>
           </Space>
         }
@@ -1605,6 +1621,7 @@ const UsersPage = () => {
         onCancel={() => {
           setSendMessageVisible(false);
           messageForm.resetFields();
+          setBulkTargets(null);
         }}
         footer={null}
         width={500}
@@ -1630,7 +1647,14 @@ const UsersPage = () => {
 
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
-              <Button onClick={() => setSendMessageVisible(false)}>ביטול</Button>
+              <Button
+                onClick={() => {
+                  setSendMessageVisible(false);
+                  setBulkTargets(null);
+                }}
+              >
+                ביטול
+              </Button>
               <Button type='primary' htmlType='submit' icon={<SendOutlined />} loading={sending}>
                 שלח הודעה
               </Button>
