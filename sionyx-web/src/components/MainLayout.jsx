@@ -5,14 +5,11 @@ import {
   Layout,
   Menu,
   Avatar,
-  Dropdown,
   Typography,
   Space,
-  Badge,
   Drawer,
   Button,
   Tooltip,
-  Breadcrumb,
 } from 'antd';
 import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
@@ -39,7 +36,7 @@ import { signOut } from '../services/authService';
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
-const breadcrumbMap = {
+const pageTitles = {
   '/admin': 'סקירה כללית',
   '/admin/users': 'משתמשים',
   '/admin/packages': 'חבילות',
@@ -69,6 +66,12 @@ const MainLayout = () => {
   useEffect(() => {
     if (!isMobile) setMobileDrawerVisible(false);
   }, [isMobile]);
+
+  // Browser tab reflects the current page (was a static "SIONYX Admin Dashboard").
+  useEffect(() => {
+    const title = pageTitles[location.pathname];
+    document.title = title ? `SIONYX · ${title}` : 'SIONYX';
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await signOut();
@@ -140,22 +143,6 @@ const MainLayout = () => {
       key: '/admin/settings',
       icon: <SettingOutlined />,
       label: 'הגדרות',
-    },
-  ];
-
-  // User profile dropdown items (without logout - logout is in sidebar)
-  const userMenuItems = [
-    {
-      key: 'profile',
-      icon: <UserOutlined />,
-      label: 'פרופיל',
-      disabled: true,
-    },
-    {
-      key: 'settings',
-      icon: <SettingOutlined />,
-      label: 'הגדרות',
-      disabled: true,
     },
   ];
 
@@ -261,6 +248,7 @@ const MainLayout = () => {
         <Button
           type='text'
           block
+          className='sidebar-logout'
           icon={<LogoutOutlined />}
           onClick={handleLogout}
           style={{
@@ -271,15 +259,6 @@ const MainLayout = () => {
             gap: 10,
             height: 44,
             borderRadius: 10,
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
-            e.currentTarget.style.color = '#ef4444';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.65)';
           }}
         >
           {!collapsed && 'התנתק'}
@@ -385,7 +364,6 @@ const MainLayout = () => {
                   height: 40,
                   paddingLeft: 16,
                   paddingRight: 16,
-                  border: '1px solid #e8eaed',
                 }}
               >
                 {!isMobile && 'דף הבית'}
@@ -440,58 +418,32 @@ const MainLayout = () => {
               </div>
             )}
 
-            <Dropdown
-              menu={{ items: userMenuItems }}
-              placement='bottomRight'
-              disabled={userMenuItems.every(item => item.disabled)}
-            >
-              <Space
-                style={{
-                  cursor: 'pointer',
-                  padding: '6px 12px',
-                  borderRadius: 12,
-                  transition: 'background 0.2s',
-                }}
-                onMouseEnter={e =>
-                  (e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.08)' : '#f4f5f7')
-                }
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <Avatar
-                  size={40}
+            <Space style={{ padding: '6px 12px' }}>
+              <Avatar
+                size={40}
+                style={{ background: '#667eea' }}
+                icon={<UserOutlined />}
+              />
+              {!isMobile && (
+                <div
                   style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
                   }}
-                  icon={<UserOutlined />}
-                />
-                {!isMobile && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'flex-start',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: darkMode ? 'rgba(255,255,255,0.85)' : '#1f2937',
-                      }}
-                    >
-                      {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'מנהל'}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: 600 }}>
+                    {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : 'מנהל'}
+                  </Text>
+                  {(user?.phone || user?.phoneNumber) && (
+                    <Text type='secondary' style={{ fontSize: 12 }}>
+                      <PhoneOutlined style={{ marginLeft: 4 }} />
+                      {user.phone || user.phoneNumber}
                     </Text>
-                    {(user?.phone || user?.phoneNumber) && (
-                      <Text type='secondary' style={{ fontSize: 12 }}>
-                        <PhoneOutlined style={{ marginLeft: 4 }} />
-                        {user.phone || user.phoneNumber}
-                      </Text>
-                    )}
-                  </div>
-                )}
-              </Space>
-            </Dropdown>
+                  )}
+                </div>
+              )}
+            </Space>
           </Space>
         </Header>
 
@@ -503,24 +455,15 @@ const MainLayout = () => {
             background: 'transparent',
           }}
         >
-          <Breadcrumb
-            style={{ marginBottom: 16 }}
-            items={[
-              { title: 'ניהול' },
-              { title: breadcrumbMap[location.pathname] || '' },
-            ].filter(item => item.title)}
-          />
-          <AnimatePresence mode='wait'>
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+          {/* Enter-only fade: an exit animation would add dead time to every navigation. */}
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.12 }}
+          >
+            <Outlet />
+          </motion.div>
         </Content>
       </Layout>
     </Layout>
