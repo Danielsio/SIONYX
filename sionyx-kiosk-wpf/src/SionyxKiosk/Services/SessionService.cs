@@ -85,7 +85,10 @@ public class SessionService : BaseService, ISessionService
         };
         _countdownTimer.Tick += (_, _) => OnCountdownTick();
 
-        _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+        var syncSeconds = ResolveSyncIntervalSeconds(
+            RegistryConfig.ReadValue("SyncIntervalSeconds")
+            ?? Environment.GetEnvironmentVariable("SIONYX_SYNC_INTERVAL"));
+        _syncTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(syncSeconds) };
         _syncTimer.Tick += (_, _) => _ = SyncToFirebaseAsync();
 
         Logger.Information("Session service initialized for user: {UserId}", userId);
@@ -96,6 +99,22 @@ public class SessionService : BaseService, ISessionService
     {
         _userId = userId;
         Logger.Information("Session service re-initialized for user: {UserId}", userId);
+    }
+
+    /// <summary>Default seconds between server syncs of used time.</summary>
+    public const int DefaultSyncIntervalSeconds = 30;
+
+    /// <summary>
+    /// Resolve the balance-sync cadence from registry `SyncIntervalSeconds` /
+    /// env `SIONYX_SYNC_INTERVAL`. Was a fixed 60s — a crash lost up to a
+    /// minute of used time; the default is now 30s and installs can tune it.
+    /// Clamped so a bad value can neither hammer the Worker nor stop syncing.
+    /// </summary>
+    public static int ResolveSyncIntervalSeconds(string? configured)
+    {
+        if (int.TryParse(configured, out var seconds))
+            return Math.Clamp(seconds, 10, 300);
+        return DefaultSyncIntervalSeconds;
     }
 
     /// <summary>Start a new session with the user's remaining time.</summary>
