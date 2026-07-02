@@ -57,7 +57,7 @@ vi.mock('@ant-design/icons', () => {
     return MockIcon;
   };
 
-  return {
+  const icons = {
     UserOutlined: createMockIcon('UserOutlined'),
     LockOutlined: createMockIcon('LockOutlined'),
     MailOutlined: createMockIcon('MailOutlined'),
@@ -143,6 +143,19 @@ vi.mock('@ant-design/icons', () => {
     FileTextOutlined: createMockIcon('FileTextOutlined'),
     RiseOutlined: createMockIcon('RiseOutlined'),
   };
+
+  // Any icon not listed above is generated on demand, so adding an icon to the
+  // app never breaks the test suite again.
+  return new Proxy(icons, {
+    get: (target, prop) => {
+      if (prop in target) return target[prop];
+      if (typeof prop === 'string' && /^[A-Z]/.test(prop)) {
+        target[prop] = createMockIcon(prop);
+        return target[prop];
+      }
+      return target[prop];
+    },
+  });
 });
 
 // ============================================
