@@ -9,6 +9,8 @@ account_id = "7e1d31c0047f99736fb25a8649cc273e"
 [vars]
 FIREBASE_DATABASE_URL = "https://sionyx-19636-default-rtdb.europe-west1.firebasedatabase.app"
 FIREBASE_API_KEY = "AIzaSyDS5hMOBeo1WtZdzP4L0WtpzLL0gI-S0-c"
+# Browser origins allowed by CORS (comma-separated); localhost is always allowed.
+WEB_ORIGIN = "https://sionyx-19636.web.app,https://sionyx-19636.firebaseapp.com"
 
 # Daily cleanup (replaces the scheduled cleanupInactiveUsers Cloud Function).
 [triggers]

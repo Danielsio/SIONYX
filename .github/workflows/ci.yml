@@ -782,6 +782,10 @@ jobs:
         working-directory: sionyx-server
         run: npx tsc --noEmit
 
+      - name: Test (vitest in workerd)
+        working-directory: sionyx-server
+        run: npm test
+
       - name: Build (dry-run)
         working-directory: sionyx-server
         run: npx wrangler deploy --dry-run --outdir dist

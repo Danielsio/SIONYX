@@ -33,6 +33,9 @@ export interface Env {
   ENCRYPTION_KEY?: string;
   // Days before a never-purchased, non-admin user is auto-deleted by the cron (default 7).
   INACTIVE_DAYS_NEVER_PURCHASED?: string;
+  // Comma-separated browser origins allowed by CORS (see src/cors.ts).
+  // Defaults to the live web app; localhost is always allowed.
+  WEB_ORIGIN?: string;
 }
 
 /** Raised when an Auth user already exists (so callers can map it to a 409). */
