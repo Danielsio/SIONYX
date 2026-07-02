@@ -47,3 +47,10 @@ updates:
       kiosk-minor-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+    ignore:
+      # WiX v7+ requires the paid Open Source Maintenance Fee EULA (WIX7015);
+      # we stay on the fee-free v6 line.
+      - dependency-name: "WixToolset.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "wix"
+        update-types: ["version-update:semver-major"]
