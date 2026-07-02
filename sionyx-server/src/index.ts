@@ -13,6 +13,7 @@ import {
   dbCompareAndSet,
   verifyIdToken,
 } from './firebase';
+import { corsHeaders, preflight, withCors } from './cors';
 import { nedarimCallback, chargeSavedCard } from './payments';
 import { adminResetPassword } from './auth';
 import { deleteUser } from './users';
@@ -112,15 +113,17 @@ const routes: Record<string, Record<string, Handler>> = {
 
 export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    if (req.method === 'OPTIONS') return preflight(env, req);
+    const cors = corsHeaders(env, req);
     const url = new URL(req.url);
     const handler = routes[req.method]?.[url.pathname];
-    if (!handler) return json({ error: 'not_found' }, 404);
+    if (!handler) return withCors(json({ error: 'not_found' }, 404), cors);
     try {
-      return await handler(req, env, ctx);
+      return withCors(await handler(req, env, ctx), cors);
     } catch (e) {
-      if (e instanceof HttpError) return json({ error: e.code }, e.status);
+      if (e instanceof HttpError) return withCors(json({ error: e.code }, e.status), cors);
       console.error('[sionyx-server] error', (e as Error).message);
-      return json({ error: 'internal_error' }, 500);
+      return withCors(json({ error: 'internal_error' }, 500), cors);
     }
   },
 
