@@ -15,21 +15,34 @@ public static class AppConstants
     private const string DefaultAdminPassword = "dev-exit";
 
     /// <summary>
-    /// Load admin exit password from configuration.
-    /// Priority: Registry -> Environment variable -> Default fallback.
+    /// Returned when a production kiosk has no AdminExitPassword configured.
+    /// Contains NUL characters, so no keyboard input can ever equal it — the
+    /// exit prompt always denies instead of accepting the public dev constant.
     /// </summary>
-    public static string GetAdminExitPassword()
-    {
-        // Production: read from registry
-        if (RegistryConfig.IsProduction())
-        {
-            var password = RegistryConfig.ReadValue("AdminExitPassword");
-            if (!string.IsNullOrEmpty(password))
-                return password;
-        }
+    public const string ExitDeniedSentinel = "\0SIONYX_EXIT_DENIED\0";
 
-        // Development: read from environment
-        var envPassword = Environment.GetEnvironmentVariable("ADMIN_EXIT_PASSWORD");
+    /// <summary>
+    /// Load admin exit password from configuration.
+    /// Production (registry present): registry value or DENY (fail closed).
+    /// Development: environment variable or the dev default.
+    /// </summary>
+    public static string GetAdminExitPassword() =>
+        ResolveAdminExitPassword(
+            RegistryConfig.IsProduction(),
+            RegistryConfig.ReadValue("AdminExitPassword"),
+            Environment.GetEnvironmentVariable("ADMIN_EXIT_PASSWORD"));
+
+    /// <summary>
+    /// Pure decision logic (unit-testable). A production kiosk with a
+    /// missing/empty registry password FAILS CLOSED: falling back to the
+    /// "dev-exit" constant (visible in this public repo) would let anyone
+    /// exit the lockdown on a misconfigured install.
+    /// </summary>
+    public static string ResolveAdminExitPassword(bool isProduction, string? registryPassword, string? envPassword)
+    {
+        if (isProduction)
+            return string.IsNullOrEmpty(registryPassword) ? ExitDeniedSentinel : registryPassword;
+
         if (!string.IsNullOrEmpty(envPassword))
             return envPassword;
 
