@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App as AntApp } from 'antd';
+import { MemoryRouter } from 'react-router-dom';
 import UsersPage from './UsersPage';
 import {
-  getAllUsers,
   getUserPurchaseHistory,
   adjustUserBalance,
   grantAdminPermission,
@@ -12,12 +12,14 @@ import {
   kickUser,
   resetUserPassword,
 } from '../services/userService';
+import { subscribeToUsers } from '../services/realtimeService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
 import { useAuthStore } from '../store/authStore';
 import { useDataStore } from '../store/dataStore';
 
 // Mock dependencies
 vi.mock('../services/userService');
+vi.mock('../services/realtimeService');
 vi.mock('../services/chatService');
 vi.mock('../store/authStore');
 vi.mock('../store/dataStore');
@@ -84,9 +86,10 @@ const renderUsersPage = (usersOverride = mockUsers) => {
     return selector ? selector(state) : state;
   });
 
-  getAllUsers.mockResolvedValue({
-    success: true,
-    users: usersOverride,
+  // Live subscription: invoke the callback synchronously with the fixture users.
+  subscribeToUsers.mockImplementation((orgId, callback) => {
+    callback(usersOverride);
+    return vi.fn();
   });
 
   getUserPurchaseHistory.mockResolvedValue({
@@ -108,9 +111,11 @@ const renderUsersPage = (usersOverride = mockUsers) => {
 
   return {
     ...render(
-      <AntApp>
-        <UsersPage />
-      </AntApp>
+      <MemoryRouter>
+        <AntApp>
+          <UsersPage />
+        </AntApp>
+      </MemoryRouter>
     ),
     mockSetUsers,
     mockUpdateUser,
@@ -127,7 +132,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     expect(document.body).toBeInTheDocument();
@@ -137,7 +142,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Title is split across elements, use role or check body content
@@ -149,7 +154,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalledWith('my-org');
+      expect(subscribeToUsers).toHaveBeenCalledWith('my-org', expect.any(Function));
     });
   });
 
@@ -157,7 +162,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Should display user names in cards
@@ -170,7 +175,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Should show the count of users
@@ -182,7 +187,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Expand the filter panel (search is inside Collapse)
@@ -197,7 +202,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Expand the filter panel (search is inside Collapse)
@@ -210,36 +215,43 @@ describe('UsersPage', () => {
     expect(searchInput).toHaveValue('יוסי');
   });
 
-  it('has refresh button', async () => {
+  it('has a bulk-message button targeting the filtered users', async () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
-    expect(screen.getByText('רענן')).toBeInTheDocument();
+    expect(screen.getByText(/הודעה למסוננים \(2\)/)).toBeInTheDocument();
   });
 
-  it('refreshes users when refresh clicked', async () => {
+  it('sends a bulk message to every filtered user', async () => {
     const user = userEvent.setup();
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalledTimes(1);
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
-    await user.click(screen.getByText('רענן'));
+    await user.click(screen.getByText(/הודעה למסוננים \(2\)/));
+    await user.type(
+      screen.getByPlaceholderText(/הכנס את ההודעה שלך כאן/),
+      'הודעה לכולם'
+    );
+    await user.click(screen.getByText('שלח הודעה', { selector: 'button span' }));
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalledTimes(2);
+      expect(sendMessage).toHaveBeenCalledTimes(2);
     });
+    expect(sendMessage).toHaveBeenCalledWith('my-org', 'user-1', 'הודעה לכולם', 'admin-123');
+    expect(sendMessage).toHaveBeenCalledWith('my-org', 'user-2', 'הודעה לכולם', 'admin-123');
   });
 
   it('shows admin badge for admin users', async () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Admin tags should be present in cards
@@ -253,7 +265,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Time info should be displayed
@@ -264,33 +276,18 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Prints info should be displayed (תקציב הדפסות = printing budget)
     expect(screen.getAllByText(/תקציב הדפסות/).length).toBeGreaterThan(0);
   });
 
-  it('handles load error gracefully', async () => {
-    getAllUsers.mockResolvedValue({
-      success: false,
-      error: 'Failed to load users',
-    });
-
-    renderUsersPage([]);
-
-    await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
-    });
-
-    expect(document.body).toBeInTheDocument();
-  });
-
   it('shows empty state when no users', async () => {
     renderUsersPage([]);
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     expect(screen.getByText(/אין משתמשים/)).toBeInTheDocument();
@@ -301,7 +298,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Find and click a user card
@@ -320,7 +317,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     expect(screen.getByText('0501234567')).toBeInTheDocument();
@@ -330,7 +327,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     expect(screen.getByText('yossi@test.com')).toBeInTheDocument();
@@ -340,7 +337,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Status tags (פעיל/מושהה/לא פעיל) should be visible
@@ -352,7 +349,7 @@ describe('UsersPage', () => {
     renderUsersPage();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // More button renders as [MoreOutlined] text due to mock
@@ -386,7 +383,7 @@ describe('UsersPage - Send Message Guard', () => {
       return selector ? selector(state) : state;
     });
 
-    getAllUsers.mockResolvedValue({ success: true, users: mockUsers });
+    subscribeToUsers.mockImplementation((orgId, callback) => { callback(mockUsers); return vi.fn(); });
     getUserPurchaseHistory.mockResolvedValue({ success: true, purchases: [] });
     getMessagesForUser.mockResolvedValue({ success: true, messages: [] });
     adjustUserBalance.mockResolvedValue({ success: true });
@@ -394,13 +391,15 @@ describe('UsersPage - Send Message Guard', () => {
     resetUserPassword.mockResolvedValue({ success: true, message: 'ok' });
 
     render(
+      <MemoryRouter>
       <AntApp>
         <UsersPage />
       </AntApp>
+    </MemoryRouter>
     );
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Open the user card drawer
@@ -460,10 +459,7 @@ describe('UsersPage - Admin Self-Revoke Prevention', () => {
       return selector ? selector(state) : state;
     });
 
-    getAllUsers.mockResolvedValue({
-      success: true,
-      users: users,
-    });
+    subscribeToUsers.mockImplementation((orgId, callback) => { callback(users); return vi.fn(); });
 
     getUserPurchaseHistory.mockResolvedValue({
       success: true,
@@ -484,9 +480,11 @@ describe('UsersPage - Admin Self-Revoke Prevention', () => {
 
     return {
       ...render(
-        <AntApp>
-          <UsersPage />
-        </AntApp>
+        <MemoryRouter>
+          <AntApp>
+            <UsersPage />
+          </AntApp>
+        </MemoryRouter>
       ),
       mockSetUsers,
       mockUpdateUser,
@@ -514,7 +512,7 @@ describe('UsersPage - Admin Self-Revoke Prevention', () => {
     renderWithCurrentUser(currentAdminId, usersWithSelf);
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Click on the admin's card to open drawer
@@ -551,7 +549,7 @@ describe('UsersPage - Admin Self-Revoke Prevention', () => {
     renderWithCurrentUser(currentAdminId, usersWithOtherAdmin);
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Click on the other admin's card to open drawer
@@ -592,7 +590,7 @@ describe('UsersPage - Password Reset', () => {
       return selector ? selector(state) : state;
     });
 
-    getAllUsers.mockResolvedValue({ success: true, users: mockUsers });
+    subscribeToUsers.mockImplementation((orgId, callback) => { callback(mockUsers); return vi.fn(); });
     getUserPurchaseHistory.mockResolvedValue({ success: true, purchases: [] });
     getMessagesForUser.mockResolvedValue({ success: true, messages: [] });
     adjustUserBalance.mockResolvedValue({ success: true });
@@ -603,9 +601,11 @@ describe('UsersPage - Password Reset', () => {
     resetUserPassword.mockResolvedValue({ success: true, message: 'הסיסמה אופסה בהצלחה' });
 
     return render(
+      <MemoryRouter>
       <AntApp>
         <UsersPage />
       </AntApp>
+    </MemoryRouter>
     );
   };
 
@@ -614,7 +614,7 @@ describe('UsersPage - Password Reset', () => {
     renderForPasswordReset();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Click on a user card to open drawer
@@ -633,7 +633,7 @@ describe('UsersPage - Password Reset', () => {
     renderForPasswordReset();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Click on a user card to open drawer
@@ -662,7 +662,7 @@ describe('UsersPage - Password Reset', () => {
     renderForPasswordReset();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Click on a user card to open drawer
@@ -695,7 +695,7 @@ describe('UsersPage - Password Reset', () => {
     renderForPasswordReset();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Click on a user card to open drawer
@@ -739,7 +739,7 @@ describe('UsersPage - Password Reset', () => {
     renderForPasswordReset();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Click on a user card to open drawer
@@ -766,7 +766,7 @@ describe('UsersPage - Password Reset', () => {
     renderForPasswordReset();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Click on a user card to open drawer
@@ -797,7 +797,7 @@ describe('UsersPage - Password Reset', () => {
     renderForPasswordReset();
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalled();
+      expect(subscribeToUsers).toHaveBeenCalled();
     });
 
     // Click on a user card to open drawer
@@ -842,27 +842,31 @@ describe('UsersPage - orgId dependency', () => {
       return selector ? selector(state) : state;
     });
 
-    getAllUsers.mockResolvedValue({ success: true, users: [] });
+    subscribeToUsers.mockImplementation((orgId, callback) => { callback([]); return vi.fn(); });
 
     const { rerender } = render(
+      <MemoryRouter>
       <AntApp>
         <UsersPage />
       </AntApp>
+    </MemoryRouter>
     );
 
     await new Promise(r => setTimeout(r, 50));
-    expect(getAllUsers).not.toHaveBeenCalled();
+    expect(subscribeToUsers).not.toHaveBeenCalled();
 
     mockUseOrgId.mockReturnValue('my-org');
 
     rerender(
+      <MemoryRouter>
       <AntApp>
         <UsersPage />
       </AntApp>
+    </MemoryRouter>
     );
 
     await waitFor(() => {
-      expect(getAllUsers).toHaveBeenCalledWith('my-org');
+      expect(subscribeToUsers).toHaveBeenCalledWith('my-org', expect.any(Function));
     });
   });
 });
