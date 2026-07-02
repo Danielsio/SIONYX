@@ -155,7 +155,11 @@ export async function dbUpdate(env: Env, path: string, data: Record<string, unkn
   if (!res.ok) throw new Error(`dbUpdate ${path}: ${res.status} ${await res.text()}`);
 }
 
-/** Atomic-ish transactional update via ETag (compare-and-set). Returns true on success. */
+/**
+ * Atomic-ish transactional update via ETag (compare-and-set). Returns true on success.
+ * `mutate` may return `undefined` to abort without writing (still returns true) —
+ * e.g. when the current value shows there is nothing left to do.
+ */
 export async function dbCompareAndSet(
   env: Env,
   path: string,
@@ -171,6 +175,7 @@ export async function dbCompareAndSet(
     const etag = getRes.headers.get('ETag') || 'null_etag';
     const current = await getRes.json();
     const next = mutate(current);
+    if (next === undefined) return true;
     const putRes = await fetch(url, {
       method: 'PUT',
       headers: {
