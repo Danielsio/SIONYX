@@ -4,5 +4,7 @@
     "minor":  4,
     "patch":  0,
     "buildNumber":  112,
-    "lastBuildDate":  "2026-03-03T21:58:35.0725430+02:00"
+    "lastBuildDate":  "2026-03-03T21:58:35.0725430+02:00",
+    "channel":  "origin",
+    "edition":  "origin"
 }
