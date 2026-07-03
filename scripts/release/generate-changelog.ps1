@@ -16,7 +16,11 @@ param(
     [Parameter(Mandatory)]
     [string]$Version,
 
+    # May be empty: a manually dispatched release with no new commits since the
+    # last tag is valid (e.g. re-running the pipeline). AllowEmptyCollection
+    # keeps PowerShell from rejecting the bind before we can handle it.
     [Parameter(Mandatory)]
+    [AllowEmptyCollection()]
     [object[]]$Commits,
 
     [string]$OutputPath = ""
@@ -38,6 +42,10 @@ $fixes    = $Commits | Where-Object { $_.Type -eq "fix" -and -not $_.Breaking }
 $others   = $Commits | Where-Object { $_.Type -notin @("feat", "fix") -and -not $_.Breaking -and $_.Type -ne "other" }
 
 $entry = "## [$Version] - $date`n"
+
+if (-not $Commits -or $Commits.Count -eq 0) {
+    $entry += "`n_No notable changes (release re-run)._`n"
+}
 
 if ($breaking) {
     $entry += "`n### Breaking Changes`n"
