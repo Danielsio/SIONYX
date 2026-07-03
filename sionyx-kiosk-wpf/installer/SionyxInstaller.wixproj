@@ -8,6 +8,11 @@
 
   <PropertyGroup>
     <ProductVersion Condition="'$(ProductVersion)' == ''">0.0.0</ProductVersion>
+    <!-- Edition label distinguishes this build from forks in the FILENAME and
+         release metadata only — the MSI ProductVersion stays numeric and the
+         ARP display name stays "SIONYX". Override with -p:Edition=<label>. -->
+    <Edition Condition="'$(Edition)' == ''">origin</Edition>
+    <OutputName>SIONYX-Setup-$(ProductVersion)-$(Edition)</OutputName>
     <PublishDir Condition="'$(PublishDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\dist'))</PublishDir>
     <SourceDir Condition="'$(SourceDir)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..'))</SourceDir>
 

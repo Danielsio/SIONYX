@@ -134,7 +134,7 @@ jobs:
           $asset = "https://github.com/${{ github.repository }}/releases/download/v$ver/$($msi.Name)"
           $sha = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower()
           $bn = (Get-Content sionyx-kiosk-wpf/version.json -Raw | ConvertFrom-Json).buildNumber
-          $body = @{ version = $ver; downloadUrl = $asset; sha256 = $sha; buildNumber = $bn } | ConvertTo-Json
+          $body = @{ version = $ver; downloadUrl = $asset; sha256 = $sha; buildNumber = $bn; channel = 'origin'; edition = 'origin' } | ConvertTo-Json
           Invoke-RestMethod -Uri "https://sionyx-server.sionyx-server.workers.dev/admin/set-latest-release" `
             -Method Post -Headers @{ 'x-sionyx-secret' = $env:ADMIN_SECRET; 'Content-Type' = 'application/json' } -Body $body
           Write-Host "Published public/latestRelease v$ver -> $asset (sha256 $sha)"

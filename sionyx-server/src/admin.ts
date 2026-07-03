@@ -68,7 +68,15 @@ export async function setLatestRelease(req: Request, env: Env): Promise<Response
     return json({ success: false, error: 'unauthorized' }, 401);
   }
   const body = (await req.json().catch(() => null)) as
-    | { version?: string; downloadUrl?: string; sha256?: string; buildNumber?: number; releasedAt?: string }
+    | {
+        version?: string;
+        downloadUrl?: string;
+        sha256?: string;
+        buildNumber?: number;
+        releasedAt?: string;
+        channel?: string;
+        edition?: string;
+      }
     | null;
   if (!body?.version || !body?.downloadUrl) return json({ success: false, error: 'missing_fields' }, 400);
 
@@ -78,7 +86,10 @@ export async function setLatestRelease(req: Request, env: Env): Promise<Response
     sha256: body.sha256 || null,
     buildNumber: body.buildNumber ?? null,
     releasedAt: body.releasedAt || new Date().toISOString(),
+    // Edition/channel let kiosks refuse a fork's release (auto-update gates on channel).
+    channel: body.channel || 'origin',
+    edition: body.edition || 'origin',
   });
-  console.log('[release] published', { version: body.version });
+  console.log('[release] published', { version: body.version, channel: body.channel || 'origin' });
   return json({ success: true });
 }

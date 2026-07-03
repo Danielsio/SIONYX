@@ -19,7 +19,18 @@ public static class AutoUpdateService
     private static readonly ILogger Logger = Log.ForContext(typeof(AutoUpdateService));
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
 
-    public sealed record ReleaseInfo(string Version, string DownloadUrl, string? Sha256);
+    public sealed record ReleaseInfo(string Version, string DownloadUrl, string? Sha256, string? Channel = null);
+
+    /// <summary>
+    /// Release channel this build accepts. A fork publishing its own releases
+    /// (different channel) can never be auto-installed onto these kiosks.
+    /// Releases without a channel (legacy) are accepted.
+    /// </summary>
+    public const string UpdateChannel = "origin";
+
+    /// <summary>Pure gate for the channel check (unit-testable).</summary>
+    public static bool IsAcceptableChannel(string? channel) =>
+        string.IsNullOrEmpty(channel) || string.Equals(channel, UpdateChannel, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Check for a newer release and install it if found. Best-effort; never throws.</summary>
     public static async Task CheckAndUpdateAsync()
@@ -33,6 +44,14 @@ public static class AutoUpdateService
             var current = GetCurrentVersion();
             var latest = await FetchLatestAsync(dbUrl);
             if (latest is null) { Logger.Information("[Update] no release metadata"); return; }
+
+            if (!IsAcceptableChannel(latest.Channel))
+            {
+                Logger.Warning(
+                    "[Update] release channel '{Channel}' does not match this build ('{Expected}') — refusing",
+                    latest.Channel, UpdateChannel);
+                return;
+            }
 
             if (!IsNewerVersion(latest.Version, current))
             {
@@ -80,8 +99,9 @@ public static class AutoUpdateService
         var version = root.TryGetProperty("version", out var v) ? v.GetString() : null;
         var dl = root.TryGetProperty("downloadUrl", out var d) ? d.GetString() : null;
         var sha = root.TryGetProperty("sha256", out var s) && s.ValueKind == JsonValueKind.String ? s.GetString() : null;
+        var channel = root.TryGetProperty("channel", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString() : null;
         if (string.IsNullOrEmpty(version) || string.IsNullOrEmpty(dl)) return null;
-        return new ReleaseInfo(version!, dl!, sha);
+        return new ReleaseInfo(version!, dl!, sha, channel);
     }
 
     /// <summary>True if <paramref name="latest"/> is a strictly newer version than <paramref name="current"/>.</summary>
