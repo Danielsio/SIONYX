@@ -21,6 +21,13 @@ on:
 permissions:
   contents: read
 
+# Serialize releases: two kiosk merges minutes apart used to run in parallel,
+# compute the same next version from the same last tag, and the loser's
+# rollback deleted the winner's release. Queued, never cancelled.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: windows-latest
@@ -107,6 +114,7 @@ jobs:
           $data | ConvertTo-Json -Depth 10 | Set-Content $vf
 
       - name: Create GitHub Release (creates the tag atomically)
+        id: create
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -122,6 +130,8 @@ jobs:
           } else {
             gh release create "v$ver" --target $env:GITHUB_SHA --title "v$ver" --notes $notes
           }
+          # Mark ownership: the rollback step may only delete a release THIS run created.
+          "created=true" >> $env:GITHUB_OUTPUT
 
       - name: Publish latest release to RTDB (installer hosted on GitHub Releases, off Storage)
         shell: pwsh
@@ -139,14 +149,16 @@ jobs:
             -Method Post -Headers @{ 'x-sionyx-secret' = $env:ADMIN_SECRET; 'Content-Type' = 'application/json' } -Body $body
           Write-Host "Published public/latestRelease v$ver -> $asset (sha256 $sha)"
 
+      # Only when THIS run created the release: a blind delete-by-version used
+      # to remove pre-existing releases (and their tags) created by other runs.
       - name: Roll back on failure (no partial release)
-        if: failure()
+        if: failure() && steps.create.outputs.created == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $ver = "${{ steps.version.outputs.version }}"
-          Write-Host "Release failed — removing any partial v$ver release + tag for a clean re-run."
+          Write-Host "Release failed after creating v$ver — removing this run's partial release + tag."
           gh release delete "v$ver" --cleanup-tag --yes 2>$null
           git push origin --delete "v$ver" 2>$null
           exit 0

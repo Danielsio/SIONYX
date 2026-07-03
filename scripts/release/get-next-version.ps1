@@ -32,8 +32,13 @@ if (-not (Test-Path $versionFile)) { throw "version.json not found at $versionFi
 
 $versionData = Get-Content $versionFile -Raw | ConvertFrom-Json
 
-# Find the last version tag
-$lastTag = git describe --tags --abbrev=0 --match "v*" 2>$null
+# Highest existing vX.Y.Z tag = the released version. (git describe returns the
+# NEAREST ancestor tag, which goes backwards when an older-numbered tag sits on
+# a newer commit — exactly what happened after rollbacks deleted newer tags.)
+$lastTag = git tag -l 'v*' 2>$null |
+    Where-Object { $_ -match '^v\d+\.\d+\.\d+$' } |
+    Sort-Object { [version]($_.TrimStart('v')) } |
+    Select-Object -Last 1
 $range = if ($lastTag) { "$lastTag..HEAD" } else { "HEAD" }
 
 # Current version = the last tag (source of truth). Fall back to version.json only
@@ -90,10 +95,14 @@ foreach ($line in $rawCommits) {
 if ($bump -eq "none") { $bump = "patch" }
 if ($Override) { $bump = $Override }
 
-# Calculate next version
-$major = [int]$versionData.major
-$minor = [int]$versionData.minor
-$patch = [int]$versionData.patch
+# Calculate next version FROM THE TAG, not version.json. version.json is never
+# committed back (main is protected), so bumping from it froze the math at one
+# fixed version: every feat-run computed the same vX.Y.0, collided with the
+# existing release, and the failure rollback then DELETED that release.
+$cur = [version]$currentVersion
+$major = $cur.Major
+$minor = $cur.Minor
+$patch = $cur.Build
 
 switch ($bump) {
     "major" { $major++; $minor = 0; $patch = 0 }
@@ -102,6 +111,13 @@ switch ($bump) {
 }
 
 $nextVersion = "$major.$minor.$patch"
+
+# Collision guard (belt & braces): never propose a version whose tag already
+# exists — bump patch until the number is free.
+while (git tag -l "v$nextVersion" 2>$null) {
+    $patch++
+    $nextVersion = "$major.$minor.$patch"
+}
 
 $result = [PSCustomObject]@{
     Current     = $currentVersion
