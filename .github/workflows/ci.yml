@@ -10,9 +10,13 @@ on:
 permissions:
   contents: read
 
-# Cancel superseded runs on a PR branch, but never cancel a main (deploy) run.
+# PRs: one run per branch — a new push cancels the superseded run.
+# main pushes: one group PER COMMIT (github.sha), because a shared group keeps
+# only ONE pending run and silently cancels the rest. Rapid consecutive merges
+# were evicting each other's queued run, and since the web/Worker/rules deploys
+# live inside this workflow, those deploys never ran (e.g. #89/#90/#91).
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
