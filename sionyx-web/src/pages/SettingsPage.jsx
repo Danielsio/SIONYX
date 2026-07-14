@@ -6,11 +6,13 @@ import {
   DownloadOutlined,
   MessageOutlined,
   CreditCardOutlined,
+  LockOutlined,
 } from '@ant-design/icons';
 import PricingSettings from '../components/settings/PricingSettings';
 import DownloadsSettings from '../components/settings/DownloadsSettings';
 import DisplayNameSettings from '../components/settings/DisplayNameSettings';
 import PaymentSettings from '../components/settings/PaymentSettings';
+import KioskPasswordSettings from '../components/settings/KioskPasswordSettings';
 
 const { Title, Text } = Typography;
 
@@ -60,6 +62,16 @@ const SettingsPage = () => {
         </span>
       ),
       children: <PaymentSettings />,
+    },
+    {
+      key: 'kioskPassword',
+      label: (
+        <span>
+          <LockOutlined />
+          {' '}סיסמת קיוסק
+        </span>
+      ),
+      children: <KioskPasswordSettings />,
     },
     {
       key: 'downloads',

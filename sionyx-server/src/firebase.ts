@@ -42,6 +42,8 @@ export interface Env {
   TURNSTILE_SECRET?: string;
   // Workers Rate Limiting binding for /org/register (see wrangler.toml).
   REGISTER_RATE_LIMITER?: RateLimiter;
+  // Throttles kiosk exit-password guesses (see wrangler.toml).
+  EXIT_PASSWORD_LIMITER?: RateLimiter;
 }
 
 /** Workers Rate Limiting API binding (typed locally — see wrangler.toml [[unsafe.bindings]]). */
