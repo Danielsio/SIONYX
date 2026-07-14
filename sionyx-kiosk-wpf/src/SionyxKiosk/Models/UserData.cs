@@ -15,6 +15,13 @@ public class UserData
     public bool IsLoggedIn { get; set; }
     public bool IsBlocked { get; set; }
     public bool IsAdmin { get; set; }
+
+    /// <summary>
+    /// An admin approved this user's phone in the web console. Only enforced when
+    /// the org turns on requirePhoneVerification.
+    /// </summary>
+    public bool PhoneVerified { get; set; }
+
     public bool IsSessionActive { get; set; }
     public string? SessionStartTime { get; set; }
     public string? CurrentComputerId { get; set; }

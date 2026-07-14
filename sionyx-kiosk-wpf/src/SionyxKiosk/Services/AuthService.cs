@@ -351,6 +351,7 @@ public class AuthService : BaseService, IAuthService
             IsLoggedIn = data.TryGetProperty("isLoggedIn", out var li) && li.GetBoolean(),
             IsBlocked = data.TryGetProperty("blocked", out var bl) && bl.GetBoolean(),
             IsAdmin = data.TryGetProperty("isAdmin", out var ia) && ia.GetBoolean(),
+            PhoneVerified = data.TryGetProperty("phoneVerified", out var pv) && pv.ValueKind == JsonValueKind.True,
             IsSessionActive = data.TryGetProperty("isSessionActive", out var sa) && sa.GetBoolean(),
             SessionStartTime = data.TryGetProperty("sessionStartTime", out var st) ? st.GetString() : null,
             CurrentComputerId = data.TryGetProperty("currentComputerId", out var ci) ? ci.GetString() : null,

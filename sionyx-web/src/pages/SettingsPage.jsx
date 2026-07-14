@@ -7,12 +7,14 @@ import {
   MessageOutlined,
   CreditCardOutlined,
   LockOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 import PricingSettings from '../components/settings/PricingSettings';
 import DownloadsSettings from '../components/settings/DownloadsSettings';
 import DisplayNameSettings from '../components/settings/DisplayNameSettings';
 import PaymentSettings from '../components/settings/PaymentSettings';
 import KioskPasswordSettings from '../components/settings/KioskPasswordSettings';
+import PhoneVerificationSettings from '../components/settings/PhoneVerificationSettings';
 
 const { Title, Text } = Typography;
 
@@ -72,6 +74,16 @@ const SettingsPage = () => {
         </span>
       ),
       children: <KioskPasswordSettings />,
+    },
+    {
+      key: 'phoneVerification',
+      label: (
+        <span>
+          <SafetyOutlined />
+          {' '}אימות טלפון
+        </span>
+      ),
+      children: <PhoneVerificationSettings />,
     },
     {
       key: 'downloads',

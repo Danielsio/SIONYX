@@ -15,6 +15,7 @@ import {
   LockOutlined,
   CalendarOutlined,
   DeleteOutlined,
+  SafetyOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { getUserStatus, getStatusLabel as getUserStatusLabel } from '../../constants/userStatus';
@@ -109,6 +110,13 @@ const UserCard = ({ userRecord, index = 0, currentUserUid, kicking = false, acti
       icon: <LockOutlined />,
       label: 'איפוס סיסמה',
       onClick: () => actions.onResetPassword(userRecord),
+    },
+    {
+      key: 'verifyPhone',
+      icon: <SafetyOutlined />,
+      label: userRecord.phoneVerified === true ? 'טלפון מאומת' : 'אמת טלפון',
+      disabled: userRecord.phoneVerified === true,
+      onClick: () => actions.onVerifyPhone(userRecord),
     },
     {
       type: 'divider',
