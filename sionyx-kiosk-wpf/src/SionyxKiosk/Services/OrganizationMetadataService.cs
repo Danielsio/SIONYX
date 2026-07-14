@@ -151,10 +151,15 @@ public class OrganizationMetadataService : BaseService
                 saveCardEnabled = save.ValueKind == JsonValueKind.True;
             }
 
+            var requirePhoneVerification =
+                data.TryGetProperty("requirePhoneVerification", out var rpv) &&
+                rpv.ValueKind == JsonValueKind.True;
+
             return new KioskSettings
             {
                 DisplayName = displayName,
                 SaveCardEnabled = saveCardEnabled,
+                RequirePhoneVerification = requirePhoneVerification,
             };
         }
         catch (Exception ex)

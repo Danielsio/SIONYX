@@ -204,6 +204,39 @@ export const updatePaymentSettings = async (orgId, payment) => {
 };
 
 /**
+ * When on, a user may not start a kiosk session until an admin has verified
+ * their phone number (an approval gate — no SMS is sent). Off by default, so
+ * existing orgs are unaffected.
+ */
+export const getPhoneVerificationSetting = async orgId => {
+  try {
+    const snapshot = await get(
+      ref(database, `organizations/${orgId}/metadata/settings/requirePhoneVerification`)
+    );
+    return {
+      success: true,
+      requirePhoneVerification: snapshot.exists() ? snapshot.val() === true : false,
+    };
+  } catch (error) {
+    logger.error('Error getting phone verification setting:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const setPhoneVerificationSetting = async (orgId, value) => {
+  try {
+    await update(ref(database, `organizations/${orgId}/metadata/settings`), {
+      requirePhoneVerification: !!value,
+    });
+    logger.info('Phone verification setting updated:', !!value);
+    return { success: true };
+  } catch (error) {
+    logger.error('Error setting phone verification setting:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Kiosk admin-exit password. It NEVER travels through the database from here:
  * the Worker stores it encrypted in the server-only `secrets/` path (clients are
  * denied that path by the RTDB rules) and only ever answers "configured: yes/no".

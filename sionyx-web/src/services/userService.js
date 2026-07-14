@@ -132,6 +132,24 @@ export const adjustUserBalance = async (orgId, userId, adjustments) => {
 /**
  * Grant admin permission to a user
  */
+/**
+ * Mark a user's phone as verified by an admin. Only meaningful when the org has
+ * `requirePhoneVerification` on — the kiosk then lets this user start sessions.
+ */
+export const verifyUserPhone = async (orgId, userId, verified = true) => {
+  try {
+    await update(ref(database, `organizations/${orgId}/users/${userId}`), {
+      phoneVerified: !!verified,
+      updatedAt: new Date().toISOString(),
+    });
+    logger.info('User phone verification set', { userId, verified });
+    return { success: true };
+  } catch (error) {
+    logger.error('Error verifying user phone:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const grantAdminPermission = async (orgId, userId) => {
   try {
     const userRef = ref(database, `organizations/${orgId}/users/${userId}`);

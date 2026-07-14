@@ -43,6 +43,7 @@ import {
   kickUser,
   resetUserPassword,
   deleteUser,
+  verifyUserPhone,
 } from '../services/userService';
 import { subscribeToUsers } from '../services/realtimeService';
 import { getMessagesForUser, sendMessage } from '../services/chatService';
@@ -335,6 +336,18 @@ const UsersPage = () => {
     setSendMessageVisible(true);
   };
 
+  const handleVerifyPhone = async record => {
+    const result = await verifyUserPhone(orgId, record.uid, true);
+    if (result.success) {
+      message.success('הטלפון אומת. המשתמש יכול להתחיל הפעלה בקיוסק.');
+      if (selectedUser?.uid === record.uid) {
+        setSelectedUser({ ...selectedUser, phoneVerified: true });
+      }
+    } else {
+      message.error(result.error || 'נכשל באימות הטלפון');
+    }
+  };
+
   const handleResetPassword = record => {
     setResetPasswordUser(record);
     setResetPasswordVisible(true);
@@ -415,6 +428,7 @@ const UsersPage = () => {
     onMessage: handleSendMessageToUser,
     onAdjust: handleAdjustBalance,
     onResetPassword: handleResetPassword,
+    onVerifyPhone: handleVerifyPhone,
     onKick: handleKickUser,
     onGrantAdmin: handleGrantAdmin,
     onRevokeAdmin: handleRevokeAdmin,

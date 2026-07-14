@@ -189,7 +189,8 @@ public partial class App : Application
                     var currentUser = auth.CurrentUser;
                     if (currentUser == null)
                         throw new InvalidOperationException("HomeViewModel requires a logged-in user. CurrentUser is null.");
-                    return new HomeViewModel(session, chat, hours, currentUser, announcements);
+                    return new HomeViewModel(session, chat, hours, currentUser, announcements,
+                        sp.GetRequiredService<OrganizationMetadataService>());
                 });
                 services.AddTransient<PackagesViewModel>(sp =>
                 {
