@@ -8,6 +8,7 @@ import {
   getActiveComputerUsers,
   forceLogoutUser,
   deleteComputer,
+  updateComputer,
 } from '../services/computerService';
 import { subscribeToComputers, subscribeToUsers } from '../services/realtimeService';
 
@@ -24,6 +25,7 @@ vi.mock('../services/computerService', async () => {
     getActiveComputerUsers: vi.fn(),
     forceLogoutUser: vi.fn(),
     deleteComputer: vi.fn(),
+    updateComputer: vi.fn(),
   };
 });
 vi.mock('../services/realtimeService', () => ({
@@ -119,6 +121,7 @@ const renderComputersPage = () => {
 
   forceLogoutUser.mockResolvedValue({ success: true });
   deleteComputer.mockResolvedValue({ success: true });
+  updateComputer.mockResolvedValue({ success: true });
 
   return render(<ComputersPage />);
 };
@@ -267,6 +270,43 @@ describe('ComputersPage', () => {
     });
 
     expect(document.body).toBeInTheDocument();
+  });
+
+  it('renames a computer via the rename dialog', async () => {
+    const user = userEvent.setup();
+    renderComputersPage();
+
+    await waitFor(() => {
+      expect(screen.getAllByText('PC-001').length).toBeGreaterThan(0);
+    });
+
+    // Open the rename dialog on the first computer card.
+    await user.click(screen.getAllByLabelText('שנה שם מחשב')[0]);
+
+    const input = await screen.findByPlaceholderText('שם המחשב');
+    await user.clear(input);
+    await user.type(input, 'קבלה');
+    await user.click(screen.getByText('שמור'));
+
+    await waitFor(() => {
+      expect(updateComputer).toHaveBeenCalledWith('comp-1', { computerName: 'קבלה' });
+    });
+  });
+
+  it('rejects an empty computer name', async () => {
+    const user = userEvent.setup();
+    renderComputersPage();
+
+    await waitFor(() => {
+      expect(screen.getAllByText('PC-001').length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getAllByLabelText('שנה שם מחשב')[0]);
+    const input = await screen.findByPlaceholderText('שם המחשב');
+    await user.clear(input);
+    await user.click(screen.getByText('שמור'));
+
+    expect(updateComputer).not.toHaveBeenCalled();
   });
 
   // BUG TESTS - Session Time and Status Display

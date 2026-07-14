@@ -14,12 +14,15 @@ import {
   Modal,
   message,
   Badge,
+  Input,
+  Tooltip,
 } from 'antd';
 import {
   DesktopOutlined,
   UserOutlined,
   LogoutOutlined,
   DeleteOutlined,
+  EditOutlined,
   ReloadOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
@@ -33,6 +36,7 @@ import {
   getActiveComputerUsers,
   forceLogoutUser,
   deleteComputer,
+  updateComputer,
   deriveFromComputersAndUsers,
 } from '../services/computerService';
 import { subscribeToComputers, subscribeToUsers } from '../services/realtimeService';
@@ -64,6 +68,12 @@ const ComputersPage = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [actionLoading, setActionLoading] = useState({});
+
+  // Rename: kiosks self-register with a machine hostname; admins need to label
+  // them by location ("קבלה", "עמדה 2") to act on the right one.
+  const [renameTarget, setRenameTarget] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renaming, setRenaming] = useState(false);
 
   const orgId = useOrgId();
 
@@ -147,6 +157,34 @@ const ComputersPage = () => {
         }
       },
     });
+  };
+
+  const openRename = computer => {
+    setRenameTarget(computer);
+    setRenameValue(computer.computerName || '');
+  };
+
+  const handleRenameConfirm = async () => {
+    const name = renameValue.trim();
+    if (!name) {
+      message.warning('נא להזין שם מחשב');
+      return;
+    }
+    setRenaming(true);
+    try {
+      const computerId = renameTarget.computerId || renameTarget.id;
+      const result = await updateComputer(computerId, { computerName: name });
+      if (result.success) {
+        message.success('שם המחשב עודכן בהצלחה');
+        setRenameTarget(null);
+      } else {
+        message.error('נכשל בעדכון שם המחשב: ' + result.error);
+      }
+    } catch (err) {
+      message.error('שגיאה בעדכון שם המחשב: ' + err.message);
+    } finally {
+      setRenaming(false);
+    }
   };
 
   const handleDeleteComputer = async computerId => {
@@ -378,11 +416,21 @@ const ComputersPage = () => {
                   לא בשימוש כעת
                 </Tag>
               )}
+              <Tooltip title='שנה שם מחשב'>
+                <Button
+                  type='text'
+                  size='small'
+                  icon={<EditOutlined />}
+                  aria-label='שנה שם מחשב'
+                  onClick={() => openRename(computer)}
+                />
+              </Tooltip>
               <Button
                 type='text'
                 danger
                 size='small'
                 icon={<DeleteOutlined />}
+                aria-label='מחק מחשב'
                 loading={actionLoading[`delete-${computer.computerId}`]}
                 onClick={() => handleDeleteComputer(computer.computerId)}
               />
@@ -423,16 +471,28 @@ const ComputersPage = () => {
             </Space>
           </Col>
 
-          {/* Delete Button */}
+          {/* Rename + Delete */}
           <Col>
-            <Button
-              type='text'
-              danger
-              size='small'
-              icon={<DeleteOutlined />}
-              loading={actionLoading[`delete-${computerId}`]}
-              onClick={() => handleDeleteComputer(computerId)}
-            />
+            <Space size={4}>
+              <Tooltip title='שנה שם מחשב'>
+                <Button
+                  type='text'
+                  size='small'
+                  icon={<EditOutlined />}
+                  aria-label='שנה שם מחשב'
+                  onClick={() => openRename(computer)}
+                />
+              </Tooltip>
+              <Button
+                type='text'
+                danger
+                size='small'
+                icon={<DeleteOutlined />}
+                aria-label='מחק מחשב'
+                loading={actionLoading[`delete-${computerId}`]}
+                onClick={() => handleDeleteComputer(computerId)}
+              />
+            </Space>
           </Col>
         </Row>
       </Card>
@@ -636,6 +696,31 @@ const ComputersPage = () => {
         </Card>
         </motion.div>
       </Space>
+
+      <Modal
+        title='שינוי שם מחשב'
+        open={!!renameTarget}
+        onOk={handleRenameConfirm}
+        onCancel={() => setRenameTarget(null)}
+        confirmLoading={renaming}
+        okText='שמור'
+        cancelText='ביטול'
+        width={420}
+      >
+        <Space direction='vertical' size='middle' style={{ width: '100%' }}>
+          <Text type='secondary'>
+            תן למחשב שם שקל לזהות לפי מיקום, למשל "קבלה" או "עמדה 2".
+          </Text>
+          <Input
+            value={renameValue}
+            onChange={e => setRenameValue(e.target.value)}
+            onPressEnter={handleRenameConfirm}
+            placeholder='שם המחשב'
+            maxLength={100}
+            autoFocus
+          />
+        </Space>
+      </Modal>
     </motion.div>
   );
 };
