@@ -505,7 +505,20 @@ public partial class App : Application
             if (dialog.ShowDialog() == true)
             {
                 var password = dialog.EnteredPassword;
-                if (password == Infrastructure.AppConstants.GetAdminExitPassword())
+
+                // An org can set a kiosk exit password from the web console; it is
+                // stored encrypted server-side and verified remotely (we never see
+                // it). If none is set — or the backend is unreachable — the
+                // installer-provisioned local password remains the way out.
+                var firebase = _host!.Services.GetRequiredService<Infrastructure.FirebaseClient>();
+                var (remoteConfigured, remoteValid) = firebase.VerifyExitPasswordAsync(password)
+                    .GetAwaiter().GetResult();
+
+                if (Infrastructure.ExitPasswordVerifier.IsAllowed(
+                        password,
+                        remoteConfigured,
+                        remoteValid,
+                        Infrastructure.AppConstants.GetAdminExitPassword()))
                 {
                     Log.Information("Admin exit: correct password, shutting down");
                     _ = Task.Run(async () =>

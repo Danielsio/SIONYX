@@ -341,6 +341,48 @@ public sealed class FirebaseClient : IFirebaseClient
     }
 
     /// <summary>
+    /// Ask the backend whether <paramref name="password"/> is the org's admin-exit
+    /// password (set from the web console). The password itself is stored encrypted
+    /// server-side and is never sent to the kiosk — we only get a yes/no.
+    /// Returns Configured=false when the org set no remote password, so the caller
+    /// falls back to the locally provisioned one.
+    /// </summary>
+    public async Task<(bool Configured, bool Valid)> VerifyExitPasswordAsync(string password)
+    {
+        if (!await EnsureValidTokenAsync())
+            return (false, false);
+
+        var url = $"{_serverUrl}/auth/verify-exit-password";
+        var payload = new { orgId = _orgId, password };
+        var content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _idToken);
+            var response = await _http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                // Includes 429 (too many guesses): treat as "cannot verify remotely".
+                Logger.Warning("Exit-password verify failed: {Status}", response.StatusCode);
+                return (false, false);
+            }
+            using var doc = JsonDocument.Parse(body);
+            var root = doc.RootElement;
+            var configured = root.TryGetProperty("configured", out var c) && c.ValueKind == JsonValueKind.True;
+            var valid = root.TryGetProperty("valid", out var v) && v.ValueKind == JsonValueKind.True;
+            return (configured, valid);
+        }
+        catch (Exception ex)
+        {
+            // Offline / server unreachable — the local password remains the way out.
+            Logger.Warning(ex, "Exit-password verify unreachable; falling back to the local password");
+            return (false, false);
+        }
+    }
+
+    /// <summary>
     /// Charge the user's saved card ("keva" token) via the SIONYX backend. The Nedarim
     /// gateway password lives only on the server — the kiosk never handles card data, which
     /// was the audit's payment flaw. Returns the pending purchaseId; the gateway callback

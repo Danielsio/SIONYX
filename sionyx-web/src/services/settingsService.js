@@ -1,5 +1,5 @@
 import { ref, get, update } from 'firebase/database';
-import { database } from '../config/firebase';
+import { auth, database, SERVER_URL } from '../config/firebase';
 import { logger } from '../utils/logger';
 
 /**
@@ -199,6 +199,54 @@ export const updatePaymentSettings = async (orgId, payment) => {
     return { success: true };
   } catch (error) {
     logger.error('Error updating payment settings:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Kiosk admin-exit password. It NEVER travels through the database from here:
+ * the Worker stores it encrypted in the server-only `secrets/` path (clients are
+ * denied that path by the RTDB rules) and only ever answers "configured: yes/no".
+ * A blank password removes the remote override — kiosks then fall back to the
+ * password the installer provisioned.
+ */
+export const getExitPasswordStatus = async orgId => {
+  try {
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(
+      `${SERVER_URL}/admin/exit-password-status?orgId=${encodeURIComponent(orgId)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'Failed to read status' };
+    }
+    return { success: true, configured: !!data.configured };
+  } catch (error) {
+    logger.error('Error getting exit password status:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const setExitPassword = async (orgId, password) => {
+  try {
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(`${SERVER_URL}/admin/set-exit-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ orgId, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      const map = {
+        password_too_short: 'הסיסמה חייבת להכיל לפחות 4 תווים',
+        not_admin: 'נדרשות הרשאות מנהל',
+      };
+      return { success: false, error: map[data.error] || data.error || 'שמירה נכשלה' };
+    }
+    return { success: true, cleared: !!data.cleared };
+  } catch (error) {
+    logger.error('Error setting exit password:', error);
     return { success: false, error: error.message };
   }
 };

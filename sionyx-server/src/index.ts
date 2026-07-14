@@ -15,6 +15,7 @@ import { registerOrganization } from './org';
 import { runCleanup, cleanupTestOrganization } from './cleanup';
 import { deductPrint, deductTime } from './usage';
 import { adjustBalance, setLatestRelease } from './admin';
+import { setExitPassword, getExitPasswordStatus, verifyExitPassword } from './exitPassword';
 
 type Handler = (req: Request, env: Env, ctx: ExecutionContext) => Promise<Response>;
 
@@ -43,6 +44,7 @@ const routes: Record<string, Record<string, Handler>> = {
   GET: {
     '/health': health,
     '/version/latest': latestVersion,
+    '/admin/exit-password-status': getExitPasswordStatus,
   },
   POST: {
     '/payments/nedarim-callback': nedarimCallback,
@@ -56,6 +58,8 @@ const routes: Record<string, Record<string, Handler>> = {
     '/usage/deduct-time': deductTime,
     '/admin/adjust-balance': adjustBalance,
     '/admin/set-latest-release': setLatestRelease,
+    '/admin/set-exit-password': setExitPassword,
+    '/auth/verify-exit-password': verifyExitPassword,
   },
 };
 
