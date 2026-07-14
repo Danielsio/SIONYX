@@ -36,7 +36,17 @@ public class PaymentDialogFactory : IPaymentDialogFactory
         return (dialog.PaymentSucceeded, dialog);
     }
 
-    public Task<bool> HasSavedCardAsync() => _firebase.HasSavedCardAsync();
+    /// <summary>
+    /// The one-click saved-card flow is offered only when the org enabled it in
+    /// the web console AND the user actually has a stored card. Gating here means
+    /// the whole flow (prompt + charge) disappears at every call site at once.
+    /// </summary>
+    public async Task<bool> HasSavedCardAsync()
+    {
+        var settings = await _metadataService.GetKioskSettingsAsync();
+        if (!settings.SaveCardEnabled) return false;
+        return await _firebase.HasSavedCardAsync();
+    }
 
     public async Task<bool> ChargeWithSavedCardAsync(Package package)
     {

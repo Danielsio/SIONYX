@@ -136,6 +136,73 @@ export const updateOperatingHours = async (orgId, operatingHoursData) => {
 /**
  * Get all settings for an organization
  */
+/**
+ * Store display name — the name the kiosk shows as the message sender, so users
+ * see "הודעה מ<שם החנות>" instead of a generic "מנהל".
+ */
+export const getDisplayName = async orgId => {
+  try {
+    const snapshot = await get(
+      ref(database, `organizations/${orgId}/metadata/settings/displayName`)
+    );
+    return { success: true, displayName: snapshot.exists() ? snapshot.val() : '' };
+  } catch (error) {
+    logger.error('Error getting display name:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateDisplayName = async (orgId, displayName) => {
+  try {
+    const clean = (displayName || '').trim();
+    if (clean.length > 40) {
+      return { success: false, error: 'השם ארוך מדי (מקסימום 40 תווים)' };
+    }
+    await update(ref(database, `organizations/${orgId}/metadata/settings`), {
+      displayName: clean,
+    });
+    logger.info('Display name updated');
+    return { success: true };
+  } catch (error) {
+    logger.error('Error updating display name:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Payment settings. `saveCardEnabled` lets an org turn the saved-card ("keva")
+ * one-click flow off; the kiosk hides it when disabled. The gateway password
+ * itself never lives here — it stays server-side only (see the Worker).
+ */
+export const getPaymentSettings = async orgId => {
+  try {
+    const snapshot = await get(
+      ref(database, `organizations/${orgId}/metadata/settings/payment`)
+    );
+    if (!snapshot.exists()) {
+      return { success: true, payment: { saveCardEnabled: false } };
+    }
+    const value = snapshot.val() || {};
+    return { success: true, payment: { saveCardEnabled: value.saveCardEnabled === true } };
+  } catch (error) {
+    logger.error('Error getting payment settings:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updatePaymentSettings = async (orgId, payment) => {
+  try {
+    await update(ref(database, `organizations/${orgId}/metadata/settings`), {
+      payment: { saveCardEnabled: !!payment.saveCardEnabled },
+    });
+    logger.info('Payment settings updated');
+    return { success: true };
+  } catch (error) {
+    logger.error('Error updating payment settings:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const getAllSettings = async orgId => {
   try {
     const metadataRef = ref(database, `organizations/${orgId}/metadata`);

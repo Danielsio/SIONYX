@@ -14,7 +14,7 @@ public class MessageViewModelExtendedTests : IDisposable
     {
         (_firebase, _handler) = TestFirebaseFactory.Create("user-123");
         var chatService = new ChatService(_firebase, "user-123");
-        _vm = new MessageViewModel(chatService);
+        _vm = new MessageViewModel(chatService, new OrganizationMetadataService(_firebase));
     }
 
     public void Dispose() => _firebase.Dispose();

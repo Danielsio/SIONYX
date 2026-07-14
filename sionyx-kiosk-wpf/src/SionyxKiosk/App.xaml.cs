@@ -213,7 +213,9 @@ public partial class App : Application
                     var auth = sp.GetRequiredService<AuthService>();
                     return new PaymentViewModel(purchase, auth.CurrentUser?.Uid ?? "");
                 });
-                services.AddTransient(sp => new MessageViewModel(sp.GetRequiredService<ChatService>()));
+                services.AddTransient(sp => new MessageViewModel(
+                    sp.GetRequiredService<ChatService>(),
+                    sp.GetRequiredService<OrganizationMetadataService>()));
                 services.AddTransient(sp => new PrintHistoryViewModel(
                     sp.GetRequiredService<PrintHistoryService>()));
 
