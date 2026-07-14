@@ -274,6 +274,22 @@ export const isUserActive = lastSeen => {
  * Delete read messages older than retentionDays for the organization.
  * Intended to be called by admin on dashboard load.
  */
+/**
+ * Delete a message (admin only — enforced by the RTDB rules, which allow an org
+ * admin to write an existing messages/$id node; regular users may only mark
+ * their own messages read).
+ */
+export const deleteMessage = async (orgId, messageId) => {
+  try {
+    await set(ref(database, `organizations/${orgId}/messages/${messageId}`), null);
+    logger.info('Message deleted:', messageId);
+    return { success: true };
+  } catch (error) {
+    logger.error('Error deleting message:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const cleanupOldMessages = async (orgId, retentionDays = 30) => {
   try {
     const messagesRef = ref(database, `organizations/${orgId}/messages`);

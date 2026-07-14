@@ -137,7 +137,7 @@
 
           "$messageId": {
             ".read": "auth != null && (data.child('toUserId').val() == auth.uid || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
-            ".write": "auth != null && ((!data.exists() && (root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())) || data.child('toUserId').val() == auth.uid)",
+            ".write": "auth != null && ((root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()) || data.child('toUserId').val() == auth.uid)",
             ".validate": "newData.hasChildren(['toUserId', 'message', 'timestamp'])",
 
             "read": {
