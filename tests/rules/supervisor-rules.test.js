@@ -110,6 +110,14 @@ beforeEach(async () => {
               userId: USER_UID,
             },
           },
+          messages: {
+            "msg-1": {
+              toUserId: USER_UID,
+              message: "hello",
+              timestamp: Date.now(),
+              read: false,
+            },
+          },
           metadata: {
             name: "Test Org",
             status: "active",
@@ -431,6 +439,13 @@ describe("Admin access still works", () => {
     );
   });
 
+  test("admin can delete a message", async () => {
+    const db = testEnv.authenticatedContext(ADMIN_UID).database();
+    await assertSucceeds(
+      db.ref(`organizations/${ORG_ID}/messages/msg-1`).remove()
+    );
+  });
+
   test("admin can write packages in their org", async () => {
     const db = testEnv.authenticatedContext(ADMIN_UID).database();
     await assertSucceeds(
@@ -473,6 +488,24 @@ describe("Regular user access", () => {
     const db = testEnv.authenticatedContext(USER_UID).database();
     await assertFails(
       db.ref(`organizations/${ORG_ID}/users/${USER_UID}/blocked`).set(false)
+    );
+  });
+
+  // Admin message deletion must not open message deletion to everyone: a user
+  // may still only touch messages addressed to them (to mark them read).
+  test("regular user cannot delete a message addressed to someone else", async () => {
+    const db = testEnv.authenticatedContext("some-other-user").database();
+    await assertFails(
+      db.ref(`organizations/${ORG_ID}/messages/msg-1`).remove()
+    );
+  });
+});
+
+describe("Unauthenticated message access", () => {
+  test("unauthenticated user cannot delete a message", async () => {
+    const db = testEnv.unauthenticatedContext().database();
+    await assertFails(
+      db.ref(`organizations/${ORG_ID}/messages/msg-1`).remove()
     );
   });
 });
