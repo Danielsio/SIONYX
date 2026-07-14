@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Card, Typography, Tabs, Space } from 'antd';
-import { SettingOutlined, DollarOutlined, DownloadOutlined } from '@ant-design/icons';
+import {
+  SettingOutlined,
+  DollarOutlined,
+  DownloadOutlined,
+  MessageOutlined,
+  CreditCardOutlined,
+} from '@ant-design/icons';
 import PricingSettings from '../components/settings/PricingSettings';
 import DownloadsSettings from '../components/settings/DownloadsSettings';
+import DisplayNameSettings from '../components/settings/DisplayNameSettings';
+import PaymentSettings from '../components/settings/PaymentSettings';
 
 const { Title, Text } = Typography;
 
@@ -32,6 +40,26 @@ const SettingsPage = () => {
         </span>
       ),
       children: <PricingSettings />,
+    },
+    {
+      key: 'messages',
+      label: (
+        <span>
+          <MessageOutlined />
+          {' '}שם בהודעות
+        </span>
+      ),
+      children: <DisplayNameSettings />,
+    },
+    {
+      key: 'payment',
+      label: (
+        <span>
+          <CreditCardOutlined />
+          {' '}תשלומים
+        </span>
+      ),
+      children: <PaymentSettings />,
     },
     {
       key: 'downloads',

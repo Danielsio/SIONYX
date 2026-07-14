@@ -10,7 +10,7 @@ public class MessageViewModelTests
     public void InitialState_ShouldBeEmpty()
     {
         var chatService = new ChatService(null!, "test-user-123");
-        var vm = new MessageViewModel(chatService);
+        var vm = new MessageViewModel(chatService, new OrganizationMetadataService(null!));
 
         vm.Messages.Should().BeEmpty();
         vm.IsLoading.Should().BeFalse();
