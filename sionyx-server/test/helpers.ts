@@ -173,6 +173,9 @@ export async function testEnv(overrides: Partial<Env> = {}): Promise<Env> {
     FIREBASE_DATABASE_URL: DB,
     CALLBACK_SECRET: 'test-callback-secret',
     ADMIN_SECRET: 'test-admin-secret',
+    // Explicit, so encryption-dependent paths behave the same in CI as locally.
+    // (A developer's gitignored .dev.vars must never be what makes tests pass.)
+    ENCRYPTION_KEY: 'test-encryption-key-0123456789abcdef',
     ...overrides,
   } as Env;
 }
