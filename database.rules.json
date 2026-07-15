@@ -215,6 +215,29 @@
           }
         },
         
+        "sessionLogs": {
+          ".read": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin' || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists()",
+          ".indexOn": ["userId"],
+
+          "$logUserId": {
+            "$logId": {
+              // A user appends their OWN session records (audit trail). Immutable
+              // once written — a user cannot rewrite history — and admins read the
+              // whole org's logs. Only admins may delete (clear old data).
+              ".write": "(auth.uid == $logUserId && !data.exists() && newData.exists()) || root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin'",
+              ".validate": "newData.hasChildren(['userId', 'startTime', 'endTime', 'usedSeconds'])",
+              "userId": { ".validate": "newData.isString() && newData.val() == $logUserId" },
+              "usedSeconds": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+              "remainingSeconds": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+              "startTime": { ".validate": "newData.isString()" },
+              "endTime": { ".validate": "newData.isString()" },
+              "reason": { ".validate": "newData.isString() && newData.val().length <= 40" },
+              "computerId": { ".validate": "newData.isString()" },
+              "computerName": { ".validate": "newData.isString() && newData.val().length <= 100" }
+            }
+          }
+        },
+
         "metadata": {
           ".read": "auth != null && (root.child('organizations').child($orgId).child('users').child(auth.uid).exists() || root.child('supervisors').child(auth.uid).child('organizations').child($orgId).exists())",
           ".write": "root.child('organizations').child($orgId).child('users').child(auth.uid).child('isAdmin').val() === true || root.child('organizations').child($orgId).child('users').child(auth.uid).child('role').val() === 'admin'",
