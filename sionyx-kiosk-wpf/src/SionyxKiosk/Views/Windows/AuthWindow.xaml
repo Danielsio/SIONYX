@@ -43,6 +43,14 @@
     </Window.Resources>
 
     <Grid Background="{StaticResource AuthPageBg}">
+        <!-- Org-branded login background (behind the card). Hidden when the org
+             set none; a failed/невalid URL simply shows nothing (the base
+             AuthPageBg remains). RenderOptions keeps large photos smooth. -->
+        <Image Source="{Binding BackgroundImageUrl}"
+               Stretch="UniformToFill"
+               RenderOptions.BitmapScalingMode="HighQuality"
+               Visibility="{Binding BackgroundImageUrl, Converter={StaticResource StringToVis}}" />
+
         <!-- Viewbox scales the auth card on screens smaller than 1000x700 -->
         <Viewbox HorizontalAlignment="Center" VerticalAlignment="Center"
                  Stretch="Uniform" StretchDirection="DownOnly"

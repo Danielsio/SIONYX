@@ -20,6 +20,9 @@ public partial class AuthViewModel : ObservableObject
     [ObservableProperty] private bool _isLoginMode = true;
     [ObservableProperty] private string _forgotPasswordInfo = "";
 
+    /// <summary>Org-branded login background (empty = the built-in look). Bound by AuthWindow.</summary>
+    [ObservableProperty] private string _backgroundImageUrl = "";
+
     /// <summary>Dynamic button text that changes during loading.</summary>
     public string LoginButtonText => IsLoading ? "מתחבר..." : "התחבר";
     public string RegisterButtonText => IsLoading ? "נרשם..." : "הירשם";
@@ -37,6 +40,26 @@ public partial class AuthViewModel : ObservableObject
     {
         _auth = auth;
         _metadataService = metadataService;
+    }
+
+    /// <summary>
+    /// Fetch the org's login branding. Best-effort: any failure or a missing/
+    /// invalid URL just leaves the built-in background. Called when the auth
+    /// screen appears (and can be re-called to live-refresh).
+    /// </summary>
+    [RelayCommand]
+    public async Task LoadBrandingAsync()
+    {
+        if (_metadataService == null) return;
+        try
+        {
+            var settings = await _metadataService.GetKioskSettingsAsync();
+            BackgroundImageUrl = settings.HasUsableBackground ? settings.BackgroundUrl : "";
+        }
+        catch
+        {
+            BackgroundImageUrl = "";
+        }
     }
 
     private static bool IsValidPhone(string phone)

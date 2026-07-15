@@ -42,7 +42,9 @@ import {
 } from '@ant-design/icons';
 import { useOrgId } from '../hooks/useOrgId';
 import { getOrganizationStats } from '../services/organizationService';
+import { getAllUsers } from '../services/userService';
 import { exportToCSV, exportToExcel, exportToPDF } from '../utils/csvExport';
+import SessionLogsReport from '../components/SessionLogsReport';
 import { logger } from '../utils/logger';
 
 dayjs.extend(isBetween);
@@ -91,6 +93,17 @@ const ReportsPage = () => {
   const [preset, setPreset] = useState('last30');
   const [customRange, setCustomRange] = useState(null);
   const orgId = useOrgId();
+  const [usersById, setUsersById] = useState({});
+
+  // Names for the session-log report (falls back to the raw uid if unavailable).
+  useEffect(() => {
+    if (!orgId) return;
+    getAllUsers(orgId).then(res => {
+      if (res.success) {
+        setUsersById(Object.fromEntries(res.users.map(u => [u.uid, u])));
+      }
+    });
+  }, [orgId]);
 
   const dateRange = useMemo(() => {
     if (preset === 'custom' && customRange) return customRange;
@@ -407,6 +420,11 @@ const ReportsPage = () => {
               locale={{ emptyText: <Empty description='אין רכישות בטווח הנבחר' image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
             />
           </Card>
+        </motion.div>
+
+        {/* Session logs (kiosk-written audit trail) */}
+        <motion.div variants={itemVariants}>
+          <SessionLogsReport orgId={orgId} usersById={usersById} />
         </motion.div>
       </Space>
     </motion.div>

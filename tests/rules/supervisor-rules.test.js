@@ -446,6 +446,11 @@ describe("Admin access still works", () => {
     );
   });
 
+  test("admin can read the org's session logs", async () => {
+    const db = testEnv.authenticatedContext(ADMIN_UID).database();
+    await assertSucceeds(db.ref(`organizations/${ORG_ID}/sessionLogs`).get());
+  });
+
   test("admin can write packages in their org", async () => {
     const db = testEnv.authenticatedContext(ADMIN_UID).database();
     await assertSucceeds(
@@ -488,6 +493,45 @@ describe("Regular user access", () => {
     const db = testEnv.authenticatedContext(USER_UID).database();
     await assertFails(
       db.ref(`organizations/${ORG_ID}/users/${USER_UID}/blocked`).set(false)
+    );
+  });
+
+  const validLog = () => ({
+    userId: USER_UID,
+    startTime: new Date(Date.now() - 3600000).toISOString(),
+    endTime: new Date().toISOString(),
+    usedSeconds: 1800,
+    remainingSeconds: 600,
+    reason: "user",
+    computerId: "dev-1",
+    computerName: "PC-1",
+  });
+
+  test("user can append their own session log", async () => {
+    const db = testEnv.authenticatedContext(USER_UID).database();
+    await assertSucceeds(
+      db.ref(`organizations/${ORG_ID}/sessionLogs/${USER_UID}/log-1`).set(validLog())
+    );
+  });
+
+  test("user cannot write a session log under another user", async () => {
+    const db = testEnv.authenticatedContext(USER_UID).database();
+    await assertFails(
+      db.ref(`organizations/${ORG_ID}/sessionLogs/${ADMIN_UID}/log-x`).set(validLog())
+    );
+  });
+
+  test("user cannot read the org-wide session logs", async () => {
+    const db = testEnv.authenticatedContext(USER_UID).database();
+    await assertFails(db.ref(`organizations/${ORG_ID}/sessionLogs`).get());
+  });
+
+  test("a session log is immutable once written (no history rewrite)", async () => {
+    const admin = testEnv.authenticatedContext(ADMIN_UID).database();
+    await admin.ref(`organizations/${ORG_ID}/sessionLogs/${USER_UID}/log-2`).set(validLog());
+    const user = testEnv.authenticatedContext(USER_UID).database();
+    await assertFails(
+      user.ref(`organizations/${ORG_ID}/sessionLogs/${USER_UID}/log-2/usedSeconds`).set(0)
     );
   });
 
