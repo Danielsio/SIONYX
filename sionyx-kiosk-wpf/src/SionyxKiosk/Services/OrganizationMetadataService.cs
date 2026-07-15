@@ -137,9 +137,21 @@ public class OrganizationMetadataService : BaseService
     {
         try
         {
+            // Branding lives directly on metadata (alongside pricing); behaviour
+            // toggles live under metadata/settings.
+            var branding = await Firebase.DbGetAsync("metadata");
+            var backgroundUrl = "";
+            var backgroundEnabled = false;
+            if (branding.Success && branding.Data is JsonElement meta && meta.ValueKind == JsonValueKind.Object)
+            {
+                backgroundUrl = SafeGet(meta, "kioskBackgroundUrl") ?? "";
+                backgroundEnabled = meta.TryGetProperty("kioskBackgroundEnabled", out var be) &&
+                                    be.ValueKind == JsonValueKind.True;
+            }
+
             var result = await Firebase.DbGetAsync("metadata/settings");
             if (!result.Success || result.Data is not JsonElement data || data.ValueKind != JsonValueKind.Object)
-                return KioskSettings.Defaults;
+                return new KioskSettings { BackgroundUrl = backgroundUrl, BackgroundEnabled = backgroundEnabled };
 
             var displayName = SafeGet(data, "displayName") ?? "";
 
@@ -160,6 +172,8 @@ public class OrganizationMetadataService : BaseService
                 DisplayName = displayName,
                 SaveCardEnabled = saveCardEnabled,
                 RequirePhoneVerification = requirePhoneVerification,
+                BackgroundUrl = backgroundUrl,
+                BackgroundEnabled = backgroundEnabled,
             };
         }
         catch (Exception ex)
