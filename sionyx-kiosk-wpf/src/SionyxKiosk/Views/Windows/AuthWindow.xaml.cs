@@ -30,7 +30,12 @@ public partial class AuthWindow : Window
         LoginPhoneInput.KeyDown += OnLoginKeyDown;
         RegPasswordInput.KeyDown += OnRegisterKeyDown;
 
-        Loaded += (_, _) => LoginPhoneInput.Focus();
+        Loaded += (_, _) =>
+        {
+            LoginPhoneInput.Focus();
+            // Pull the org's login background (no-op if none configured).
+            _ = viewModel.LoadBrandingCommand.ExecuteAsync(null);
+        };
     }
 
     public void AllowClose() => _allowClose = true;

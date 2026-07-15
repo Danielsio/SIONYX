@@ -19,7 +19,24 @@ public sealed class KioskSettings
     /// </summary>
     public bool RequirePhoneVerification { get; init; }
 
+    /// <summary>Org-supplied background image for the kiosk's login screen (empty = none).</summary>
+    public string BackgroundUrl { get; init; } = "";
+
+    /// <summary>Whether the org turned the custom background on.</summary>
+    public bool BackgroundEnabled { get; init; }
+
     public static KioskSettings Defaults { get; } = new();
+
+    /// <summary>
+    /// A branded background is shown only when the org enabled it AND supplied a
+    /// usable absolute http(s) URL. Anything else falls back to the built-in look,
+    /// so a bad value can never leave the kiosk with a broken screen.
+    /// </summary>
+    public static bool ShouldShowBackground(bool enabled, string? url) =>
+        enabled &&
+        !string.IsNullOrWhiteSpace(url) &&
+        Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+        (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
     /// <summary>
     /// Whether this user is blocked from starting a session. Pure and testable:
@@ -27,4 +44,7 @@ public sealed class KioskSettings
     /// </summary>
     public static bool IsSessionBlocked(bool requireVerification, bool userVerified) =>
         requireVerification && !userVerified;
+
+    /// <summary>Convenience: does THIS settings object call for a branded background?</summary>
+    public bool HasUsableBackground => ShouldShowBackground(BackgroundEnabled, BackgroundUrl);
 }

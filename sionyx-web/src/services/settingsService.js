@@ -204,6 +204,48 @@ export const updatePaymentSettings = async (orgId, payment) => {
 };
 
 /**
+ * Kiosk login-screen background. Stored on metadata (kioskBackgroundUrl +
+ * kioskBackgroundEnabled) so the kiosk shows a branded backdrop. A
+ * kioskRefreshAt bump signals running kiosks to re-read their look.
+ */
+export const getKioskBranding = async orgId => {
+  try {
+    const snapshot = await get(ref(database, `organizations/${orgId}/metadata`));
+    const meta = snapshot.exists() ? snapshot.val() : {};
+    return {
+      success: true,
+      branding: {
+        backgroundUrl: meta.kioskBackgroundUrl || '',
+        backgroundEnabled: meta.kioskBackgroundEnabled === true,
+      },
+    };
+  } catch (error) {
+    logger.error('Error getting kiosk branding:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateKioskBranding = async (orgId, { backgroundUrl, backgroundEnabled }) => {
+  try {
+    const url = (backgroundUrl || '').trim();
+    if (url && !/^https?:\/\/.+/i.test(url)) {
+      return { success: false, error: 'כתובת התמונה חייבת להתחיל ב-http:// או https://' };
+    }
+    await update(ref(database, `organizations/${orgId}/metadata`), {
+      kioskBackgroundUrl: url,
+      kioskBackgroundEnabled: !!backgroundEnabled,
+      // Timestamp change tells running kiosks to reload their branding.
+      kioskRefreshAt: Date.now().toString(),
+    });
+    logger.info('Kiosk branding updated');
+    return { success: true };
+  } catch (error) {
+    logger.error('Error updating kiosk branding:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * When on, a user may not start a kiosk session until an admin has verified
  * their phone number (an approval gate — no SMS is sent). Off by default, so
  * existing orgs are unaffected.
