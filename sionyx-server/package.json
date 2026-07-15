@@ -12,10 +12,10 @@
     "check": "wrangler deploy --dry-run --outdir dist"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.18.0",
+    "@cloudflare/vitest-pool-workers": "^0.18.4",
     "@cloudflare/workers-types": "^4.20240000.0",
     "typescript": "^6.0.3",
-    "vitest": "^4.1.9",
-    "wrangler": "^4.0.0"
+    "vitest": "^4.1.10",
+    "wrangler": "^4.110.0"
   }
 }
