@@ -16,6 +16,7 @@ import {
   Skeleton,
   Divider,
   Tooltip,
+  Popconfirm,
 } from 'antd';
 import {
   MessageOutlined,
@@ -25,6 +26,7 @@ import {
   CheckCircleOutlined,
   SearchOutlined,
   ReloadOutlined,
+  DeleteOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -38,6 +40,7 @@ import {
   sendMessage,
   isUserActive,
   cleanupOldMessages,
+  deleteMessage,
 } from '../services/chatService';
 import { subscribeToMessages, subscribeToUsers } from '../services/realtimeService';
 import { logger } from '../utils/logger';
@@ -72,6 +75,7 @@ const MessagesPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [chatVisible, setChatVisible] = useState(false);
   const [userMessages, setUserMessages] = useState([]);
+  const [deletingId, setDeletingId] = useState(null);
   const [loadingChat, setLoadingChat] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -142,6 +146,20 @@ const MessagesPage = () => {
     } finally {
       setLoadingChat(false);
     }
+  };
+
+  const handleDeleteMessage = async messageId => {
+    setDeletingId(messageId);
+    const result = await deleteMessage(orgId, messageId);
+    if (result.success) {
+      // Optimistic: the realtime subscription also drops it, but the open
+      // conversation list is local state.
+      setUserMessages(prev => prev.filter(m => m.id !== messageId));
+      message.success('ההודעה נמחקה');
+    } else {
+      message.error(result.error || 'נכשל במחיקת ההודעה');
+    }
+    setDeletingId(null);
   };
 
   const handleSendMessage = async () => {
@@ -691,9 +709,28 @@ const MessagesPage = () => {
                       style={{
                         display: 'flex',
                         justifyContent: 'flex-start',
+                        alignItems: 'center',
+                        gap: 6,
                         marginBottom: 10,
                       }}
                     >
+                      <Popconfirm
+                        title='למחוק את ההודעה?'
+                        description='ההודעה תיעלם גם אצל המשתמש.'
+                        okText='מחק'
+                        cancelText='ביטול'
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() => handleDeleteMessage(msg.id)}
+                      >
+                        <Button
+                          type='text'
+                          size='small'
+                          danger
+                          icon={<DeleteOutlined />}
+                          aria-label='מחק הודעה'
+                          loading={deletingId === msg.id}
+                        />
+                      </Popconfirm>
                       <div
                         style={{
                           maxWidth: '78%',

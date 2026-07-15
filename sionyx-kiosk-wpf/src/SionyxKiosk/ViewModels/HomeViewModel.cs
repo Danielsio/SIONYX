@@ -13,6 +13,7 @@ public partial class HomeViewModel : ObservableObject, IDisposable
     private readonly ChatService _chat;
     private readonly OperatingHoursService _operatingHours;
     private readonly AnnouncementService? _announcements;
+    private readonly OrganizationMetadataService? _metadata;
     private readonly UserData _user;
     private bool _disposed;
 
@@ -54,12 +55,13 @@ public partial class HomeViewModel : ObservableObject, IDisposable
     }
 
     public HomeViewModel(SessionService session, ChatService chat, OperatingHoursService operatingHours, UserData user,
-        AnnouncementService? announcements = null)
+        AnnouncementService? announcements = null, OrganizationMetadataService? metadata = null)
     {
         _session = session;
         _chat = chat;
         _operatingHours = operatingHours;
         _announcements = announcements;
+        _metadata = metadata;
         _user = user;
 
         WelcomeMessage = $"שלום, {_user.FullName}!";
@@ -103,6 +105,18 @@ public partial class HomeViewModel : ObservableObject, IDisposable
             {
                 ErrorMessage = "אין לך זמן שימוש זמין. אנא רכוש חבילה.";
                 return;
+            }
+
+            // Optional org gate: an admin must verify the user's phone before they
+            // may use a kiosk. Off by default; a metadata failure never blocks.
+            if (_metadata != null)
+            {
+                var settings = await _metadata.GetKioskSettingsAsync();
+                if (KioskSettings.IsSessionBlocked(settings.RequirePhoneVerification, _user.PhoneVerified))
+                {
+                    ErrorMessage = "מספר הטלפון שלך ממתין לאישור מנהל. פנה לצוות המקום.";
+                    return;
+                }
             }
 
             var result = await _session.StartSessionAsync(_user.RemainingTime);

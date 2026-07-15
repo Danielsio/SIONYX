@@ -23,7 +23,7 @@ public class MessageViewModelDeepTests : IDisposable
     private MessageViewModel CreateVm()
     {
         var chat = new ChatService(_firebase, "user-123");
-        return new MessageViewModel(chat);
+        return new MessageViewModel(chat, new OrganizationMetadataService(_firebase));
     }
 
     [Fact]

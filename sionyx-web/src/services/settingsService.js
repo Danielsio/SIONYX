@@ -1,5 +1,5 @@
 import { ref, get, update } from 'firebase/database';
-import { database } from '../config/firebase';
+import { auth, database, SERVER_URL } from '../config/firebase';
 import { logger } from '../utils/logger';
 
 /**
@@ -136,6 +136,196 @@ export const updateOperatingHours = async (orgId, operatingHoursData) => {
 /**
  * Get all settings for an organization
  */
+/**
+ * Store display name — the name the kiosk shows as the message sender, so users
+ * see "הודעה מ<שם החנות>" instead of a generic "מנהל".
+ */
+export const getDisplayName = async orgId => {
+  try {
+    const snapshot = await get(
+      ref(database, `organizations/${orgId}/metadata/settings/displayName`)
+    );
+    return { success: true, displayName: snapshot.exists() ? snapshot.val() : '' };
+  } catch (error) {
+    logger.error('Error getting display name:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateDisplayName = async (orgId, displayName) => {
+  try {
+    const clean = (displayName || '').trim();
+    if (clean.length > 40) {
+      return { success: false, error: 'השם ארוך מדי (מקסימום 40 תווים)' };
+    }
+    await update(ref(database, `organizations/${orgId}/metadata/settings`), {
+      displayName: clean,
+    });
+    logger.info('Display name updated');
+    return { success: true };
+  } catch (error) {
+    logger.error('Error updating display name:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Payment settings. `saveCardEnabled` lets an org turn the saved-card ("keva")
+ * one-click flow off; the kiosk hides it when disabled. The gateway password
+ * itself never lives here — it stays server-side only (see the Worker).
+ */
+export const getPaymentSettings = async orgId => {
+  try {
+    const snapshot = await get(
+      ref(database, `organizations/${orgId}/metadata/settings/payment`)
+    );
+    if (!snapshot.exists()) {
+      return { success: true, payment: { saveCardEnabled: false } };
+    }
+    const value = snapshot.val() || {};
+    return { success: true, payment: { saveCardEnabled: value.saveCardEnabled === true } };
+  } catch (error) {
+    logger.error('Error getting payment settings:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updatePaymentSettings = async (orgId, payment) => {
+  try {
+    await update(ref(database, `organizations/${orgId}/metadata/settings`), {
+      payment: { saveCardEnabled: !!payment.saveCardEnabled },
+    });
+    logger.info('Payment settings updated');
+    return { success: true };
+  } catch (error) {
+    logger.error('Error updating payment settings:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Kiosk login-screen background. Stored on metadata (kioskBackgroundUrl +
+ * kioskBackgroundEnabled) so the kiosk shows a branded backdrop. A
+ * kioskRefreshAt bump signals running kiosks to re-read their look.
+ */
+export const getKioskBranding = async orgId => {
+  try {
+    const snapshot = await get(ref(database, `organizations/${orgId}/metadata`));
+    const meta = snapshot.exists() ? snapshot.val() : {};
+    return {
+      success: true,
+      branding: {
+        backgroundUrl: meta.kioskBackgroundUrl || '',
+        backgroundEnabled: meta.kioskBackgroundEnabled === true,
+      },
+    };
+  } catch (error) {
+    logger.error('Error getting kiosk branding:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateKioskBranding = async (orgId, { backgroundUrl, backgroundEnabled }) => {
+  try {
+    const url = (backgroundUrl || '').trim();
+    if (url && !/^https?:\/\/.+/i.test(url)) {
+      return { success: false, error: 'כתובת התמונה חייבת להתחיל ב-http:// או https://' };
+    }
+    await update(ref(database, `organizations/${orgId}/metadata`), {
+      kioskBackgroundUrl: url,
+      kioskBackgroundEnabled: !!backgroundEnabled,
+      // Timestamp change tells running kiosks to reload their branding.
+      kioskRefreshAt: Date.now().toString(),
+    });
+    logger.info('Kiosk branding updated');
+    return { success: true };
+  } catch (error) {
+    logger.error('Error updating kiosk branding:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * When on, a user may not start a kiosk session until an admin has verified
+ * their phone number (an approval gate — no SMS is sent). Off by default, so
+ * existing orgs are unaffected.
+ */
+export const getPhoneVerificationSetting = async orgId => {
+  try {
+    const snapshot = await get(
+      ref(database, `organizations/${orgId}/metadata/settings/requirePhoneVerification`)
+    );
+    return {
+      success: true,
+      requirePhoneVerification: snapshot.exists() ? snapshot.val() === true : false,
+    };
+  } catch (error) {
+    logger.error('Error getting phone verification setting:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const setPhoneVerificationSetting = async (orgId, value) => {
+  try {
+    await update(ref(database, `organizations/${orgId}/metadata/settings`), {
+      requirePhoneVerification: !!value,
+    });
+    logger.info('Phone verification setting updated:', !!value);
+    return { success: true };
+  } catch (error) {
+    logger.error('Error setting phone verification setting:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Kiosk admin-exit password. It NEVER travels through the database from here:
+ * the Worker stores it encrypted in the server-only `secrets/` path (clients are
+ * denied that path by the RTDB rules) and only ever answers "configured: yes/no".
+ * A blank password removes the remote override — kiosks then fall back to the
+ * password the installer provisioned.
+ */
+export const getExitPasswordStatus = async orgId => {
+  try {
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(
+      `${SERVER_URL}/admin/exit-password-status?orgId=${encodeURIComponent(orgId)}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      return { success: false, error: data.error || 'Failed to read status' };
+    }
+    return { success: true, configured: !!data.configured };
+  } catch (error) {
+    logger.error('Error getting exit password status:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const setExitPassword = async (orgId, password) => {
+  try {
+    const token = await auth.currentUser.getIdToken();
+    const res = await fetch(`${SERVER_URL}/admin/set-exit-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ orgId, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      const map = {
+        password_too_short: 'הסיסמה חייבת להכיל לפחות 4 תווים',
+        not_admin: 'נדרשות הרשאות מנהל',
+      };
+      return { success: false, error: map[data.error] || data.error || 'שמירה נכשלה' };
+    }
+    return { success: true, cleared: !!data.cleared };
+  } catch (error) {
+    logger.error('Error setting exit password:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const getAllSettings = async orgId => {
   try {
     const metadataRef = ref(database, `organizations/${orgId}/metadata`);

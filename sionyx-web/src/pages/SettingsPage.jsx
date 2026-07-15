@@ -1,8 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Card, Typography, Tabs, Space } from 'antd';
-import { SettingOutlined, DollarOutlined, DownloadOutlined } from '@ant-design/icons';
+import {
+  SettingOutlined,
+  DollarOutlined,
+  DownloadOutlined,
+  MessageOutlined,
+  CreditCardOutlined,
+  LockOutlined,
+  SafetyOutlined,
+  PictureOutlined,
+} from '@ant-design/icons';
 import PricingSettings from '../components/settings/PricingSettings';
 import DownloadsSettings from '../components/settings/DownloadsSettings';
+import DisplayNameSettings from '../components/settings/DisplayNameSettings';
+import PaymentSettings from '../components/settings/PaymentSettings';
+import KioskPasswordSettings from '../components/settings/KioskPasswordSettings';
+import PhoneVerificationSettings from '../components/settings/PhoneVerificationSettings';
+import KioskDesignSettings from '../components/settings/KioskDesignSettings';
 
 const { Title, Text } = Typography;
 
@@ -32,6 +46,56 @@ const SettingsPage = () => {
         </span>
       ),
       children: <PricingSettings />,
+    },
+    {
+      key: 'messages',
+      label: (
+        <span>
+          <MessageOutlined />
+          {' '}שם בהודעות
+        </span>
+      ),
+      children: <DisplayNameSettings />,
+    },
+    {
+      key: 'payment',
+      label: (
+        <span>
+          <CreditCardOutlined />
+          {' '}תשלומים
+        </span>
+      ),
+      children: <PaymentSettings />,
+    },
+    {
+      key: 'kioskPassword',
+      label: (
+        <span>
+          <LockOutlined />
+          {' '}סיסמת קיוסק
+        </span>
+      ),
+      children: <KioskPasswordSettings />,
+    },
+    {
+      key: 'phoneVerification',
+      label: (
+        <span>
+          <SafetyOutlined />
+          {' '}אימות טלפון
+        </span>
+      ),
+      children: <PhoneVerificationSettings />,
+    },
+    {
+      key: 'kioskDesign',
+      label: (
+        <span>
+          <PictureOutlined />
+          {' '}עיצוב קיוסק
+        </span>
+      ),
+      children: <KioskDesignSettings />,
     },
     {
       key: 'downloads',

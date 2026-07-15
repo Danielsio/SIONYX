@@ -31,6 +31,14 @@ type = "ratelimit"
 namespace_id = "1001"
 simple = { limit = 5, period = 60 }
 
+# Kiosk exit-password guesses: a short numeric password would otherwise be
+# brute-forceable through /auth/verify-exit-password. Keyed by org+IP.
+[[unsafe.bindings]]
+name = "EXIT_PASSWORD_LIMITER"
+type = "ratelimit"
+namespace_id = "1002"
+simple = { limit = 5, period = 60 }
+
 # Secrets are NOT stored here. Set them with:
 #   wrangler secret put FIREBASE_SERVICE_ACCOUNT   # full service-account JSON (one line)
 #   wrangler secret put ADMIN_SECRET

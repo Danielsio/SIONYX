@@ -302,6 +302,38 @@ public class SessionService : BaseService, ISessionService
             ["sessionStartTime"] = null,
             ["updatedAt"] = DateTime.Now.ToString("o"),
         });
+
+        await WriteSessionLogAsync(reason);
+    }
+
+    /// <summary>
+    /// Append an audit record of the finished session (start/end, used time,
+    /// reason, which computer). Best-effort: a log failure must never affect
+    /// ending the session. Stored under organizations/$org/sessionLogs/$user/$ts,
+    /// which the web Reports page reads.
+    /// </summary>
+    private async Task WriteSessionLogAsync(string reason)
+    {
+        try
+        {
+            var ts = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString();
+            await Firebase.DbUpdateAsync($"sessionLogs/{_userId}/{ts}", new Dictionary<string, object?>
+            {
+                ["userId"] = _userId,
+                ["startTime"] = StartTime?.ToString("o"),
+                ["endTime"] = DateTime.UtcNow.ToString("o"),
+                ["usedSeconds"] = TimeUsed,
+                ["remainingSeconds"] = Math.Max(0, RemainingTime),
+                ["reason"] = reason,
+                ["computerId"] = _computerService.GetComputerId(),
+                ["computerName"] = Infrastructure.DeviceInfo.GetComputerName(),
+            });
+            Logger.Information("Session log written for user {UserId}", _userId);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to write session log (non-fatal)");
+        }
     }
 
     private async Task<int?> FetchFreshRemainingTimeAsync()

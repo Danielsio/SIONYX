@@ -8,16 +8,24 @@ namespace SionyxKiosk.ViewModels;
 /// <summary>Display-friendly wrapper for a chat message.</summary>
 public class MessageItem
 {
+    /// <summary>Shown when a message carries no sender name and the org set no display name.</summary>
+    public const string DefaultSender = "מנהל";
+
     public string Id { get; init; } = "";
-    public string DisplaySender { get; init; } = "מנהל";
+    public string DisplaySender { get; init; } = DefaultSender;
     public string DisplayBody { get; init; } = "";
     public string DisplayTime { get; init; } = "";
     public long RawTimestamp { get; init; }
 
-    public static MessageItem FromDictionary(Dictionary<string, object?> msg)
+    /// <param name="fallbackSender">
+    /// The org's display name from the web console (metadata/settings/displayName).
+    /// Used when the message itself has no sender name; empty → "מנהל".
+    /// </param>
+    public static MessageItem FromDictionary(Dictionary<string, object?> msg, string? fallbackSender = null)
     {
         var sender = msg.TryGetValue("fromName", out var name) ? name?.ToString() ?? "" : "";
-        if (string.IsNullOrWhiteSpace(sender)) sender = "מנהל";
+        if (string.IsNullOrWhiteSpace(sender)) sender = fallbackSender?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(sender)) sender = DefaultSender;
 
         var body = msg.TryGetValue("body", out var b) ? b?.ToString() ?? "" : "";
         if (string.IsNullOrEmpty(body) && msg.TryGetValue("message", out var m))
@@ -58,6 +66,7 @@ public class MessageItem
 public partial class MessageViewModel : ObservableObject
 {
     private readonly ChatService _chat;
+    private readonly OrganizationMetadataService _metadata;
 
     [ObservableProperty] private ObservableCollection<MessageItem> _messages = new();
     [ObservableProperty] private bool _isLoading;
@@ -65,9 +74,10 @@ public partial class MessageViewModel : ObservableObject
 
     public event Action? AllMessagesRead;
 
-    public MessageViewModel(ChatService chat)
+    public MessageViewModel(ChatService chat, OrganizationMetadataService metadata)
     {
         _chat = chat;
+        _metadata = metadata;
     }
 
     [RelayCommand]
@@ -80,10 +90,14 @@ public partial class MessageViewModel : ObservableObject
         {
             var result = await _chat.GetUnreadMessagesAsync(useCache: false);
 
+            // The org can name itself in the web console; messages then read
+            // "<store name>" instead of a generic "מנהל".
+            var settings = await _metadata.GetKioskSettingsAsync();
+
             if (result.IsSuccess && result.Data is List<Dictionary<string, object?>> rawMessages && rawMessages.Count > 0)
             {
                 var items = rawMessages
-                    .Select(MessageItem.FromDictionary)
+                    .Select(m => MessageItem.FromDictionary(m, settings.DisplayName))
                     .OrderBy(m => m.RawTimestamp)
                     .ToList();
 

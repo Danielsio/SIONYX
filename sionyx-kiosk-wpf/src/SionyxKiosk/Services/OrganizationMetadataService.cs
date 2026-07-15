@@ -128,6 +128,61 @@ public class OrganizationMetadataService : BaseService
         }
     }
 
+    /// <summary>
+    /// Org-configurable kiosk settings (set from the web admin, under
+    /// metadata/settings). Always succeeds: any missing value falls back to the
+    /// default, so a kiosk with no settings behaves exactly as before.
+    /// </summary>
+    public async Task<KioskSettings> GetKioskSettingsAsync()
+    {
+        try
+        {
+            // Branding lives directly on metadata (alongside pricing); behaviour
+            // toggles live under metadata/settings.
+            var branding = await Firebase.DbGetAsync("metadata");
+            var backgroundUrl = "";
+            var backgroundEnabled = false;
+            if (branding.Success && branding.Data is JsonElement meta && meta.ValueKind == JsonValueKind.Object)
+            {
+                backgroundUrl = SafeGet(meta, "kioskBackgroundUrl") ?? "";
+                backgroundEnabled = meta.TryGetProperty("kioskBackgroundEnabled", out var be) &&
+                                    be.ValueKind == JsonValueKind.True;
+            }
+
+            var result = await Firebase.DbGetAsync("metadata/settings");
+            if (!result.Success || result.Data is not JsonElement data || data.ValueKind != JsonValueKind.Object)
+                return new KioskSettings { BackgroundUrl = backgroundUrl, BackgroundEnabled = backgroundEnabled };
+
+            var displayName = SafeGet(data, "displayName") ?? "";
+
+            var saveCardEnabled = false;
+            if (data.TryGetProperty("payment", out var payment) &&
+                payment.ValueKind == JsonValueKind.Object &&
+                payment.TryGetProperty("saveCardEnabled", out var save))
+            {
+                saveCardEnabled = save.ValueKind == JsonValueKind.True;
+            }
+
+            var requirePhoneVerification =
+                data.TryGetProperty("requirePhoneVerification", out var rpv) &&
+                rpv.ValueKind == JsonValueKind.True;
+
+            return new KioskSettings
+            {
+                DisplayName = displayName,
+                SaveCardEnabled = saveCardEnabled,
+                RequirePhoneVerification = requirePhoneVerification,
+                BackgroundUrl = backgroundUrl,
+                BackgroundEnabled = backgroundEnabled,
+            };
+        }
+        catch (Exception ex)
+        {
+            Logger.Warning(ex, "Failed to read kiosk settings; using defaults");
+            return KioskSettings.Defaults;
+        }
+    }
+
     public async Task<ServiceResult> GetAdminContactAsync()
     {
         try

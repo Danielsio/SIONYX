@@ -189,7 +189,8 @@ public partial class App : Application
                     var currentUser = auth.CurrentUser;
                     if (currentUser == null)
                         throw new InvalidOperationException("HomeViewModel requires a logged-in user. CurrentUser is null.");
-                    return new HomeViewModel(session, chat, hours, currentUser, announcements);
+                    return new HomeViewModel(session, chat, hours, currentUser, announcements,
+                        sp.GetRequiredService<OrganizationMetadataService>());
                 });
                 services.AddTransient<PackagesViewModel>(sp =>
                 {
@@ -213,7 +214,9 @@ public partial class App : Application
                     var auth = sp.GetRequiredService<AuthService>();
                     return new PaymentViewModel(purchase, auth.CurrentUser?.Uid ?? "");
                 });
-                services.AddTransient(sp => new MessageViewModel(sp.GetRequiredService<ChatService>()));
+                services.AddTransient(sp => new MessageViewModel(
+                    sp.GetRequiredService<ChatService>(),
+                    sp.GetRequiredService<OrganizationMetadataService>()));
                 services.AddTransient(sp => new PrintHistoryViewModel(
                     sp.GetRequiredService<PrintHistoryService>()));
 
@@ -503,7 +506,20 @@ public partial class App : Application
             if (dialog.ShowDialog() == true)
             {
                 var password = dialog.EnteredPassword;
-                if (password == Infrastructure.AppConstants.GetAdminExitPassword())
+
+                // An org can set a kiosk exit password from the web console; it is
+                // stored encrypted server-side and verified remotely (we never see
+                // it). If none is set — or the backend is unreachable — the
+                // installer-provisioned local password remains the way out.
+                var firebase = _host!.Services.GetRequiredService<Infrastructure.FirebaseClient>();
+                var (remoteConfigured, remoteValid) = firebase.VerifyExitPasswordAsync(password)
+                    .GetAwaiter().GetResult();
+
+                if (Infrastructure.ExitPasswordVerifier.IsAllowed(
+                        password,
+                        remoteConfigured,
+                        remoteValid,
+                        Infrastructure.AppConstants.GetAdminExitPassword()))
                 {
                     Log.Information("Admin exit: correct password, shutting down");
                     _ = Task.Run(async () =>
