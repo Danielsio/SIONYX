@@ -78,6 +78,15 @@ public class PaymentDialogFactory : IPaymentDialogFactory
             }
         }
 
+        // Polling timed out. The callback may have landed a moment after we gave
+        // up — ask the server for the authoritative credit state before failing.
+        var (reached, credited) = await _firebase.ReconcilePurchaseAsync(purchaseId);
+        if (reached && credited)
+        {
+            Logger.Information("Saved-card purchase {Id} confirmed via reconcile", purchaseId);
+            return true;
+        }
+
         Logger.Warning("Saved-card purchase {Id} did not confirm in time", purchaseId);
         return false;
     }

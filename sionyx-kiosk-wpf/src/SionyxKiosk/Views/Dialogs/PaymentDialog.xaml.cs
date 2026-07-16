@@ -303,15 +303,30 @@ public partial class PaymentDialog : Window
             }
         }
 
-        Logger.Warning("Purchase status polling timed out for {Id}", _purchaseId);
-        if (!PaymentSucceeded)
+        if (PaymentSucceeded) return;
+
+        // Polling timed out. The gateway callback may have landed just after we
+        // gave up — ask the server for the authoritative credit state before
+        // showing the (alarming) "contact support" timeout to a paid customer.
+        var (reached, credited) = await _firebase.ReconcilePurchaseAsync(_purchaseId);
+        if (reached && credited)
         {
+            Logger.Information("Purchase {Id} confirmed via reconcile", _purchaseId);
             _ = Dispatcher.InvokeAsync(() =>
             {
-                var msg = JsonSerializer.Serialize(new { action = "showTimeout" });
+                PaymentSucceeded = true;
+                var msg = JsonSerializer.Serialize(new { action = "showSuccess" });
                 PaymentWebView.CoreWebView2.PostWebMessageAsJson(msg);
             });
+            return;
         }
+
+        Logger.Warning("Purchase status polling timed out for {Id}", _purchaseId);
+        _ = Dispatcher.InvokeAsync(() =>
+        {
+            var msg = JsonSerializer.Serialize(new { action = "showTimeout" });
+            PaymentWebView.CoreWebView2.PostWebMessageAsJson(msg);
+        });
     }
 
     private void OnClosed(object? sender, EventArgs e)

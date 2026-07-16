@@ -422,6 +422,48 @@ public sealed class FirebaseClient : IFirebaseClient
         }
     }
 
+    /// <summary>
+    /// Ask the backend for the authoritative credit state of a purchase. This is
+    /// read-only: the server never credits here (crediting is the gateway
+    /// callback's job) — it only reports whether the Worker has already credited
+    /// the purchase. Used to recover the "callback landed just after the kiosk
+    /// stopped polling" case, so the kiosk can confirm success instead of wrongly
+    /// telling a paying customer to contact support. <c>Reached</c> is false when
+    /// the server could not be asked (offline / error); callers should keep their
+    /// existing fallback in that case.
+    /// </summary>
+    public async Task<(bool Reached, bool Credited)> ReconcilePurchaseAsync(string purchaseId)
+    {
+        if (!await EnsureValidTokenAsync())
+            return (false, false);
+
+        var url = $"{_serverUrl}/payments/reconcile";
+        var payload = new { orgId = _orgId, purchaseId };
+        var content = new StringContent(JsonSerializer.Serialize(payload, JsonOptions), Encoding.UTF8, "application/json");
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _idToken);
+            var response = await _http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                Logger.Warning("Reconcile failed: {Status}", response.StatusCode);
+                return (false, false);
+            }
+            using var doc = JsonDocument.Parse(body);
+            var credited = doc.RootElement.TryGetProperty("credited", out var c) && c.ValueKind == JsonValueKind.True;
+            return (true, credited);
+        }
+        catch (Exception ex)
+        {
+            // Offline / server unreachable — caller keeps its existing behaviour.
+            Logger.Warning(ex, "Reconcile unreachable");
+            return (false, false);
+        }
+    }
+
     /// <summary>True if the signed-in user has a saved card token on file.</summary>
     public async Task<bool> HasSavedCardAsync()
     {

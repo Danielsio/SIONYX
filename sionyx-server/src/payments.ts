@@ -355,3 +355,69 @@ export async function chargeSavedCard(req: Request, env: Env): Promise<Response>
   console.log('[saved-card] charged', { orgId, userId, purchaseId });
   return json({ success: true, purchaseId });
 }
+
+/**
+ * Read-only reconcile: report the authoritative credit state of a purchase.
+ *
+ * Both payment flows depend on Nedarim's async callback landing to credit a
+ * purchase. If the callback lands a moment AFTER the kiosk stops polling, the
+ * customer was charged and credited but the kiosk shows "contact support". This
+ * endpoint lets the kiosk ask the server, once, for the real state so it can
+ * show the correct outcome.
+ *
+ * It is deliberately READ-ONLY and NEVER credits:
+ *   - `creditedAt` is written only by `creditPurchase` (the Worker, bypassing
+ *     rules), so it is the trustworthy "was this credited" signal. We report it;
+ *     we do not act on the client-settable `status`/`amount` (a client can forge
+ *     those when it creates the pending purchase — crediting off them would be a
+ *     self-credit hole).
+ *   - Crediting stays the exclusive job of the callback path (`creditPurchase`,
+ *     idempotent + amount-verified). This endpoint can confirm a credit; it can
+ *     never create one from a client's assertion.
+ *
+ * Limitation: a callback that is NEVER delivered (vs. merely late) leaves the
+ * purchase genuinely `pending`, and this endpoint truthfully reports that — it
+ * cannot recover it. Doing so requires querying Nedarim server-side to confirm
+ * the transaction, but the gateway's transaction-query API is undocumented in
+ * the integration we have. When that API is available this is the place to add
+ * it: verify with Nedarim, then call the existing idempotent `creditPurchase`.
+ */
+export async function reconcilePurchase(req: Request, env: Env): Promise<Response> {
+  const m = (req.headers.get('Authorization') || '').match(/^Bearer (.+)$/);
+  if (!m) return json({ success: false, error: 'missing_bearer_token' }, 401);
+  const claims = await verifyIdToken(env, m[1]);
+  if (!claims) return json({ success: false, error: 'invalid_id_token' }, 401);
+
+  const body = (await req.json().catch(() => null)) as
+    | { orgId?: string; purchaseId?: string }
+    | null;
+  if (!body?.orgId || !body?.purchaseId) {
+    return json({ success: false, error: 'missing_fields' }, 400);
+  }
+
+  // Caller must belong to the org.
+  const caller = await dbGet<{ isAdmin?: boolean; role?: string }>(
+    env,
+    `organizations/${body.orgId}/users/${claims.user_id}`,
+  );
+  if (!caller) return json({ success: false, error: 'not_in_org' }, 403);
+
+  const purchase = await dbGet<Purchase>(
+    env,
+    `organizations/${body.orgId}/purchases/${body.purchaseId}`,
+  );
+  if (!purchase) return json({ success: true, found: false, credited: false });
+
+  // A member may only inspect their own purchase; admins may inspect any.
+  const isAdmin = caller.isAdmin === true || caller.role === 'admin';
+  if (!isAdmin && purchase.userId !== claims.user_id) {
+    return json({ success: false, error: 'forbidden' }, 403);
+  }
+
+  return json({
+    success: true,
+    found: true,
+    credited: !!purchase.creditedAt,
+    status: purchase.status ?? 'unknown',
+  });
+}
