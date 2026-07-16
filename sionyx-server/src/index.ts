@@ -8,7 +8,7 @@
  */
 import { Env, dbGet } from './firebase';
 import { corsHeaders, preflight, withCors } from './cors';
-import { nedarimCallback, chargeSavedCard } from './payments';
+import { nedarimCallback, chargeSavedCard, reconcilePurchase } from './payments';
 import { adminResetPassword } from './auth';
 import { deleteUser } from './users';
 import { registerOrganization } from './org';
@@ -49,6 +49,7 @@ const routes: Record<string, Record<string, Handler>> = {
   POST: {
     '/payments/nedarim-callback': nedarimCallback,
     '/payments/charge-saved-card': chargeSavedCard,
+    '/payments/reconcile': reconcilePurchase,
     '/auth/reset-password': adminResetPassword,
     '/auth/yemot': yemotWebhook,
     '/org/register': registerOrganization,
