@@ -508,7 +508,14 @@
             if (iframe && iframe.contentWindow) iframe.contentWindow.postMessage(data, "*");
         }
 
+        // Only the Nedarim iframe may drive this handler. Without the origin
+        // check, any script on the page could postMessage a forged
+        // TransactionResponse and fake a payment success (host-side messages
+        // arrive on a separate window.chrome.webview channel, not here).
+        var NEDARIM_ORIGIN = "https://matara.pro";
+
         function handlePostMessage(event) {
+            if (event.origin !== NEDARIM_ORIGIN) return;
             if (!event.data || !event.data.Name) return;
             switch (event.data.Name) {
                 case 'Height':
@@ -568,15 +575,19 @@
 
         function handleTransactionResponse(response) {
             document.getElementById('loadingPayment').classList.remove('active');
-            if (response.Status === 'Error') {
-                document.getElementById('formSection').style.display = 'flex';
-                showError(response.Message || 'התשלום נכשל. נסה שוב.');
-            } else {
+            // Proceed only on an explicit success from the gateway. Treating
+            // "anything that isn't 'Error'" as success (the old behaviour) let an
+            // undefined/empty status slip through to the success path; require an
+            // allow-listed 'OK' instead.
+            if (response && response.Status === 'OK') {
                 document.getElementById('processingMessage').classList.add('active');
                 window.chrome.webview.postMessage({
                     action: 'paymentSuccess',
                     response: response
                 });
+            } else {
+                document.getElementById('formSection').style.display = 'flex';
+                showError((response && response.Message) || 'התשלום נכשל. נסה שוב.');
             }
         }
 
